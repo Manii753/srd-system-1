@@ -42,6 +42,7 @@ export async function POST(request, { params }) {
     srd.productionHistory = [{
       stage: firstStage._id,
       stageName: firstStage.name,
+      stageDisplayName: firstStage.displayName || firstStage.name,
       startDate: new Date(),
       status: 'in-progress'
     }];
@@ -116,6 +117,7 @@ export async function PATCH(request, { params }) {
         srd.productionHistory.push({
           stage: nextStage._id,
           stageName: nextStage.name,
+          stageDisplayName: nextStage.displayName || nextStage.name,
           startDate: new Date(),
           status: 'in-progress'
         });
@@ -158,7 +160,7 @@ export async function PATCH(request, { params }) {
         success: true,
         data: srd,
         message: nextStage 
-          ? `Stage completed. Moved to: ${nextStage.name}` 
+          ? `Stage completed. Moved to: ${nextStage.displayName || nextStage.name}` 
           : 'Production completed!'
       });
     } else if (action === 'update_stage') {

@@ -4,6 +4,7 @@ import SRD from '@/models/SRD';
 import User from '@/models/User';
 import Notification from '@/models/Notification';
 import pusher from '@/lib/pusher-server';
+import mongoose from 'mongoose';
 
 export async function GET(request) {
   try {
@@ -54,7 +55,12 @@ export async function GET(request) {
 
     // Filter by currentProductionStage
     if (currentProductionStage) {
-      query['currentProductionStage'] = currentProductionStage;
+      // Convert string to ObjectId if it's a valid MongoDB ObjectId
+      if (mongoose.Types.ObjectId.isValid(currentProductionStage)) {
+        query['currentProductionStage'] = new mongoose.Types.ObjectId(currentProductionStage);
+      } else {
+        query['currentProductionStage'] = currentProductionStage;
+      }
     }
 
     // Search by refNo or title

@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
   Scissors, CheckCircle, Clock, Package, 
-  Droplet, Sparkles, Truck 
+  Droplet, Sparkles, Truck, RefreshCw, ArrowRight
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -50,45 +50,92 @@ export default function ProductionStageDashboard({ stageName }) {
 
   const fetchData = async () => {
     try {
+      setLoading(true);
+      // First, ensure production stages exist
+      try {
+        await fetch('/api/production-stages/seed', { method: 'POST' });
+      } catch (seedError) {
+        console.warn('Could not seed production stages:', seedError);
+      }
+
       // Fetch the stage
       const stagesRes = await fetch('/api/production-stages');
       const stagesData = await stagesRes.json();
-      if (stagesData.success) {
-        const currentStage = stagesData.data.find(s => s.name === stageName);
+      
+      if (stagesData.success && stagesData.data && stagesData.data.length > 0) {
+        // Try to find stage by name (case-insensitive)
+        const currentStage = stagesData.data.find(s => 
+          s.name?.toLowerCase() === stageName.toLowerCase() ||
+          s.displayName?.toLowerCase() === stageName.toLowerCase()
+        );
+        
         setStage(currentStage);
 
         if (currentStage) {
           // Fetch SRDs in this stage
           const srdsRes = await fetch(`/api/srd?inProduction=true&currentProductionStage=${currentStage._id}`);
           const srdsData = await srdsRes.json();
+          
           if (srdsData.success) {
-            setSRDs(srdsData.data);
+            console.log(`Found ${srdsData.data.length} SRDs in ${stageName} stage`);
+            setSRDs(srdsData.data || []);
+          } else {
+            console.error('Failed to fetch SRDs:', srdsData.error);
+            setSRDs([]);
           }
+        } else {
+          console.error(`Stage "${stageName}" not found. Available stages:`, stagesData.data.map(s => s.name));
+          setSRDs([]);
         }
+      } else {
+        console.error('Failed to fetch production stages or no stages found:', stagesData.error);
+        setSRDs([]);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
+      setSRDs([]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleCompleteStage = async (srdId) => {
+    // Get the next stage name for confirmation message
+    const stagesRes = await fetch('/api/production-stages');
+    const stagesData = await stagesRes.json();
+    let nextStageName = 'the next stage';
+    
+    if (stagesData.success && stage) {
+      const currentStageIndex = stagesData.data.findIndex(s => s._id === stage._id);
+      if (currentStageIndex >= 0 && currentStageIndex < stagesData.data.length - 1) {
+        nextStageName = stagesData.data[currentStageIndex + 1].displayName || stagesData.data[currentStageIndex + 1].name;
+      }
+    }
+
+    if (!confirm(`Are you sure you want to complete this stage? The SRD will be moved to ${nextStageName}.`)) {
+      return;
+    }
+
     try {
+      // Use the actual stage name from the stage object if available
+      const actualStageName = stage?.name || stageName;
+      
       const response = await fetch(`/api/srd/${srdId}/production/complete-stage`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          stageName: stageName,
-          completedBy: session.user.name
+          stageName: actualStageName,
+          stageId: stage?._id, // Also send stage ID for extra validation
+          completedBy: session.user.name || session.user.email || 'Unknown',
+          notes: `Completed by ${session.user.name || session.user.email}`
         }),
       });
 
       const result = await response.json();
       if (result.success) {
-        alert(result.message || 'Stage completed successfully');
+        alert(result.message || 'Stage completed successfully! The SRD has been moved to the next stage.');
         fetchData(); // Refresh data
       } else {
         console.error('Failed to complete stage:', result.error);
@@ -96,7 +143,7 @@ export default function ProductionStageDashboard({ stageName }) {
       }
     } catch (error) {
       console.error('Error completing stage:', error);
-      alert('Error completing stage');
+      alert('Error completing stage. Please try again.');
     }
   };
 
@@ -195,14 +242,58 @@ export default function ProductionStageDashboard({ stageName }) {
             <h2 className="text-2xl font-bold text-gray-900">
               SRDs in {stage?.displayName || stageName}
             </h2>
-            {srds.length > 0 && (
-              <Badge variant="outline" className="text-lg px-4 py-2">
-                {srds.length} {srds.length === 1 ? 'Item' : 'Items'}
-              </Badge>
-            )}
+            <div className="flex items-center gap-3">
+              {srds.length > 0 && (
+                <Badge variant="outline" className="text-lg px-4 py-2">
+                  {srds.length} {srds.length === 1 ? 'Item' : 'Items'}
+                </Badge>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchData}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </Button>
+            </div>
           </div>
           
-          {srds.length === 0 ? (
+          {!stage ? (
+            <Card className="border-2 border-dashed border-yellow-300 bg-yellow-50">
+              <CardContent className="py-16 text-center">
+                <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center mb-4 bg-yellow-100">
+                  <Package className="h-10 w-10 text-yellow-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Production Stage Not Found
+                </h3>
+                <p className="text-sm text-gray-600 max-w-md mx-auto mb-4">
+                  The "{stageName}" production stage is not configured. Production stages need to be set up first.
+                </p>
+                <Button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch('/api/production-stages/seed', { method: 'POST' });
+                      const data = await res.json();
+                      if (data.success) {
+                        alert('Production stages seeded successfully! Refreshing...');
+                        fetchData();
+                      } else {
+                        alert('Failed to seed stages: ' + data.error);
+                      }
+                    } catch (error) {
+                      alert('Error seeding stages: ' + error.message);
+                    }
+                  }}
+                  className="bg-yellow-600 hover:bg-yellow-700"
+                >
+                  Seed Production Stages
+                </Button>
+              </CardContent>
+            </Card>
+          ) : srds.length === 0 ? (
             <Card className="border-2 border-dashed">
               <CardContent className="py-16 text-center">
                 <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center mb-4"
@@ -248,20 +339,25 @@ export default function ProductionStageDashboard({ stageName }) {
                       </div>
                     )}
 
-                    <div className="flex space-x-2 pt-2">
-                      <Link href={`/srd/${srd._id}`} className="flex-1">
-                        <Button variant="outline" size="sm" className="w-full hover:bg-gray-50">
-                          View Details
+                    <div className="space-y-2 pt-2">
+                      <div className="flex space-x-2">
+                        <Link href={`/srd/${srd._id}`} className="flex-1">
+                          <Button variant="outline" size="sm" className="w-full hover:bg-gray-50">
+                            View Details
+                          </Button>
+                        </Link>
+                        <Button 
+                          size="sm" 
+                          className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg transition-all"
+                          onClick={() => handleCompleteStage(srd._id)}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Complete & Move Next
                         </Button>
-                      </Link>
-                      <Button 
-                        size="sm" 
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg transition-all"
-                        onClick={() => handleCompleteStage(srd._id)}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Complete
-                      </Button>
+                      </div>
+                      <p className="text-xs text-gray-500 text-center">
+                        Click "Complete" to approve and move to next production stage
+                      </p>
                     </div>
                   </CardContent>
                 </Card>

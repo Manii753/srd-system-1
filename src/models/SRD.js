@@ -45,6 +45,7 @@ const srdSchema = new mongoose.Schema({
   productionHistory: [{
     stage: { type: mongoose.Schema.Types.ObjectId, ref: 'ProductionStage' },
     stageName: String,
+    stageDisplayName: String,
     startDate: { type: Date, default: Date.now },
     endDate: Date,
     completedBy: String,

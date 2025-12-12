@@ -293,7 +293,7 @@ export default function ProductionControl({ srdId, initialData, onUpdate }) {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <p className="font-medium">{entry.stageName}</p>
+                      <p className="font-medium">{entry.stageDisplayName || entry.stageName || 'Unknown Stage'}</p>
                       <Badge className={
                         entry.status === 'completed' ? 'bg-green-100 text-green-800' :
                         entry.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :

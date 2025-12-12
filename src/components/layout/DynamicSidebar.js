@@ -17,6 +17,10 @@ import {
   Plus,
   CheckCircle,
   Inbox,
+  Factory,
+  BadgeCheckIcon,
+  Edit,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -87,6 +91,9 @@ export default function DynamicSidebar() {
           { name: 'All SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
           { name: 'Production', href: '/production', icon: Package, gradient: 'from-red-500 to-orange-500' },
           { name: 'Settings', href: '/settings', icon: Settings, gradient: 'from-gray-500 to-slate-600' },
+          { name: 'Departments', href: '/departments', icon: Edit, gradient: 'from-blue-500 to-indigo-500' },
+          { name: 'Stages', href: '/stages', icon: GitBranch, gradient: 'from-teal-500 to-cyan-500' },
+          { name: 'SRD Fields', href: '/srdfields', icon: FileSpreadsheet, gradient: 'from-green-500 to-emerald-500' },
           { name: 'Users', href: '/users', icon: Users, gradient: 'from-orange-500 to-red-500' },
         ]);
       } else if (userRole === 'production-manager') {
@@ -205,6 +212,24 @@ export default function DynamicSidebar() {
                 gradient: 'from-green-500 to-emerald-500' 
               }
             );
+
+            // Add Production and Ready For Production tabs for VMD
+            if (userRole === 'vmd') {
+              menuItems.push(
+                { 
+                  name: 'Ready For Production', 
+                  href: '/srd?readyForProduction=true', 
+                  icon: BadgeCheckIcon, 
+                  gradient: 'from-green-500 to-emerald-500' 
+                },
+                { 
+                  name: 'Production', 
+                  href: '/dashboard/vmd/production', 
+                  icon: Factory, 
+                  gradient: 'from-orange-500 to-red-500' 
+                }
+              );
+            }
 
             setMenuItems(menuItems);
           }
