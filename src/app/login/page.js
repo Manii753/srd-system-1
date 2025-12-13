@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Mail, Lock } from 'lucide-react';
 
+
+
 export default function LoginPage() {
+  const {data : session}= useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,6 +24,23 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
+    if(session){
+
+      console.log("session in login",session);
+      
+      if (session?.user?.role) {
+        const role = session.user.role;
+        
+        
+        if (role === 'admin') {
+          router.push('/dashboard/admin');
+        } 
+        else {
+          
+          router.push(`/dashboard/${role}`);
+        }
+      } 
+    }
 
     try {
       const result = await signIn('credentials', {
@@ -32,26 +52,8 @@ export default function LoginPage() {
       if (result?.error) {
         setError('Invalid email or password');
       } else {
-        // Get the actual user session to determine role
-        const response = await fetch('/api/auth/session');
-        const session = await response.json();
-        
-        if (session?.user?.role) {
-          const role = session.user.role;
-          
-          // Redirect based on actual role from session
-          if (role === 'admin') {
-            router.push('/dashboard/admin');
-          } else if (role === 'production-manager') {
-            router.push('/dashboard/production-manager');
-          } else {
-            // For department roles (vmd, cad, commercial, mmc, etc.)
-            router.push(`/dashboard/${role}`);
-          }
-        } else {
-          // Fallback
-          router.push('/dashboard/vmd');
-        }
+        console.log('Login successful',result);
+        router.push(`/dashboard/${session.user.role}`);
       }
     } catch (error) {
       setError('An error occurred during login');

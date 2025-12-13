@@ -1,7 +1,7 @@
 import { Inter } from 'next/font/google'
 import { AuthProvider } from './providers'
-import PWAManager from '@/components/PWAManager'
-import PWAInstallPrompt from '@/components/PWAInstallPrompt'
+
+
 
 import './globals.css'
 
@@ -49,8 +49,6 @@ export default function RootLayout({ children }) {
       </head>
       <body className={inter.className}>
         <AuthProvider>
-          <PWAManager />
-          <PWAInstallPrompt />
           {children}
         </AuthProvider>
       </body>
