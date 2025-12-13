@@ -11,16 +11,13 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/lib/use-toast';
 import { 
   FileText, 
   Calendar, 
   User, 
   MessageCircle, 
-  Clock,
-  AlertCircle,
-  CheckCircle
+  Clock
 } from 'lucide-react';
 
 export default function SRDDetailPage() {
@@ -258,7 +255,7 @@ export default function SRDDetailPage() {
           </TabsList>
 
           {srd.status && Object.keys(srd.status).map((dept) => {
-            const canEdit = userRole === dept || userRole === 'admin';
+            const canEdit = userRole === dept || userRole === 'admin' || userRole === 'vmd';
 
             return (
               <TabsContent key={dept} value={dept}>
@@ -266,7 +263,6 @@ export default function SRDDetailPage() {
                   srd={srd}
                   department={dept}
                   onUpdate={(data) => handleDepartmentUpdate(dept, data)}
-                  isLoading={false}
                   canEdit={canEdit}
                 />
               </TabsContent>

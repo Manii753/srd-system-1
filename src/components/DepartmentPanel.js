@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, X, ChevronLeft, ChevronRight, Trash2, Star } from 'lucide-react';
+import { AlertCircle, X, ChevronLeft, ChevronRight, Trash2, Star, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import UploadImage from './UploadImage';
@@ -20,13 +20,13 @@ export default function DepartmentPanel({
   srd,
   department,
   onUpdate,
-  isLoading,
   canEdit
 }) {
   const { toast } = useToast();
   const [status, setStatus] = useState(srd.status?.[department] || 'pending');
   const [fields, setFields] = useState(srd.dynamicFields?.filter(f => f.department === department) || []);
   const [fieldDefs, setFieldDefs] = useState([]);
+  const [editingFields, setEditingFields] = useState(new Set());
 
   const [showFlagDialog, setShowFlagDialog] = useState(false);
   const [flagComment, setFlagComment] = useState('');
@@ -35,7 +35,6 @@ export default function DepartmentPanel({
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imageModalIndex, setImageModalIndex] = useState(0);
   const [modalImages, setModalImages] = useState([]);
-  const [coverImageIndex, setCoverImageIndex] = useState(0);
 
   useEffect(() => {
     async function fetchFields() {
@@ -90,6 +89,27 @@ export default function DepartmentPanel({
     });
   };
 
+  const toggleEditMode = (fieldName) => {
+    setEditingFields(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(fieldName)) {
+        newSet.delete(fieldName);
+      } else {
+        newSet.add(fieldName);
+      }
+      return newSet;
+    });
+  };
+
+  const hasFieldValue = (fieldName) => {
+    const field = fields.find(f => f.name === fieldName);
+    if (!field) return false;
+    
+    if (typeof field.value === 'boolean') return true;
+    if (Array.isArray(field.value)) return field.value.length > 0;
+    return field.value && field.value.toString().trim() !== '';
+  };
+
   const handleRemoveImage = (fieldName, imageIndex, allImages) => {
     const imageToRemove = allImages[imageIndex];
     const fieldValue = fields.find(f => f.name === fieldName)?.value ?? '';
@@ -123,7 +143,6 @@ export default function DepartmentPanel({
     const reorderedImages = [coverImage, ...otherImages];
     
     handleFieldChange(fieldName, reorderedImages);
-    setCoverImageIndex(0);
     
     toast({
       title: 'Cover image set',
@@ -198,48 +217,127 @@ export default function DepartmentPanel({
             case 'text':
             case 'number':
             case 'date':
+              const hasValue = hasFieldValue(name);
+              const isEditing = editingFields.has(name);
+              
               return (
                 <div key={_id}>
-                  <Label htmlFor={name}>{name}</Label>
-                  <Input
-                    id={name}
-                    type={type}
-                    placeholder={placeholder || ''}
-                    value={fieldValue}
-                    onChange={(e) => handleFieldChange(name, e.target.value)}
-                    required={isRequired}
-                    disabled={!canEdit}
-                  />
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor={name}>{name}</Label>
+                    {canEdit && hasValue && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleEditMode(name)}
+                        className="h-8 px-3"
+                      >
+                        {isEditing ? 'Cancel' : 'Edit'}
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {hasValue && !isEditing ? (
+                    <div className="mt-1 p-3 bg-gray-50 border rounded-md">
+                      <span className="text-sm font-medium text-gray-900">
+                        {type === 'date' && fieldValue 
+                          ? new Date(fieldValue).toLocaleDateString()
+                          : fieldValue
+                        }
+                      </span>
+                    </div>
+                  ) : (
+                    <Input
+                      id={name}
+                      type={type}
+                      placeholder={placeholder || ''}
+                      value={fieldValue}
+                      onChange={(e) => handleFieldChange(name, e.target.value)}
+                      required={isRequired}
+                      disabled={!canEdit}
+                      className="mt-1"
+                    />
+                  )}
                 </div>
               );
 
             case 'textarea':
+              const hasTextValue = hasFieldValue(name);
+              const isTextEditing = editingFields.has(name);
+              
               return (
                 <div key={_id}>
-                  <Label htmlFor={name}>{name}</Label>
-                  <Textarea
-                    id={name}
-                    placeholder={placeholder || ''}
-                    value={fieldValue}
-                    onChange={(e) => handleFieldChange(name, e.target.value)}
-                    required={isRequired}
-                    disabled={!canEdit}
-                  />
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor={name}>{name}</Label>
+                    {canEdit && hasTextValue && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleEditMode(name)}
+                        className="h-8 px-3"
+                      >
+                        {isTextEditing ? 'Cancel' : 'Edit'}
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {hasTextValue && !isTextEditing ? (
+                    <div className="mt-1 p-3 bg-gray-50 border rounded-md min-h-[80px]">
+                      <span className="text-sm text-gray-900 whitespace-pre-wrap">
+                        {fieldValue}
+                      </span>
+                    </div>
+                  ) : (
+                    <Textarea
+                      id={name}
+                      placeholder={placeholder || ''}
+                      value={fieldValue}
+                      onChange={(e) => handleFieldChange(name, e.target.value)}
+                      required={isRequired}
+                      disabled={!canEdit}
+                      className="mt-1"
+                    />
+                  )}
                 </div>
               );
 
             case 'boolean':
+              const hasBoolValue = hasFieldValue(name);
+              const isBoolEditing = editingFields.has(name);
+              
               return (
-                <div key={_id} className="flex items-center justify-between">
-                  <Label htmlFor={name}>{name}</Label>
-                  <Switch
-                    id={name}
-                    checked={!!fieldValue}
-                    onCheckedChange={(checked) =>
-                      handleFieldChange(name, checked)
-                    }
-                    disabled={!canEdit}
-                  />
+                <div key={_id}>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor={name}>{name}</Label>
+                    <div className="flex items-center gap-2">
+                      {canEdit && hasBoolValue && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleEditMode(name)}
+                          className="h-8 px-3"
+                        >
+                          {isBoolEditing ? 'Cancel' : 'Edit'}
+                        </Button>
+                      )}
+                      
+                      {hasBoolValue && !isBoolEditing ? (
+                        <div className="px-3 py-1 bg-gray-50 border rounded-md">
+                          <span className={`text-sm font-medium ${fieldValue ? 'text-green-700' : 'text-gray-600'}`}>
+                            {fieldValue ? 'Yes' : 'No'}
+                          </span>
+                        </div>
+                      ) : (
+                        <Switch
+                          id={name}
+                          checked={!!fieldValue}
+                          onCheckedChange={(checked) =>
+                            handleFieldChange(name, checked)
+                          }
+                          disabled={!canEdit}
+                        />
+                      )}
+                    </div>
+                  </div>
                 </div>
               );
 
