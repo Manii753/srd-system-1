@@ -96,41 +96,6 @@ export default function DynamicSidebar() {
           { name: 'SRD Fields', href: '/srdfields', icon: FileSpreadsheet, gradient: 'from-green-500 to-emerald-500' },
           { name: 'Users', href: '/users', icon: Users, gradient: 'from-orange-500 to-red-500' },
         ]);
-      } else if (userRole === 'production-manager') {
-        // Production Manager menu
-        setMenuItems([
-          { 
-            name: 'Home', 
-            href: '/dashboard/production-manager', 
-            icon: LayoutDashboard, 
-            gradient: 'from-blue-500 to-cyan-500' 
-          },
-          { 
-            name: 'Inbox', 
-            href: '/inbox', 
-            icon: Inbox, 
-            gradient: 'from-pink-500 to-rose-500',
-            showBadge: true
-          },
-          { 
-            name: 'Production Tracking', 
-            href: '/production', 
-            icon: Package, 
-            gradient: 'from-red-500 to-orange-500' 
-          },
-          { 
-            name: 'Production Stages', 
-            href: '/production-stages', 
-            icon: GitBranch, 
-            gradient: 'from-purple-500 to-pink-500' 
-          },
-          { 
-            name: 'Ready for Production', 
-            href: '/srd?readyForProduction=true', 
-            icon: CheckCircle, 
-            gradient: 'from-green-500 to-emerald-500' 
-          },
-        ]);
       } else if (['cutting', 'sewing', 'washing', 'finishing', 'dispatch'].includes(userRole)) {
         // Production stage roles
         const stageNames = {
@@ -216,12 +181,6 @@ export default function DynamicSidebar() {
             // Add Production and Ready For Production tabs for VMD
             if (userRole === 'vmd') {
               menuItems.push(
-                { 
-                  name: 'Ready For Production', 
-                  href: '/srd?readyForProduction=true', 
-                  icon: BadgeCheckIcon, 
-                  gradient: 'from-green-500 to-emerald-500' 
-                },
                 { 
                   name: 'Production', 
                   href: '/dashboard/vmd/production', 
