@@ -4,10 +4,47 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Calendar, User, MessageCircle } from 'lucide-react';
+import { Calendar, User, MessageCircle, Copy, Repeat } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function SRDCard({ srd, department }) {
+  const router = useRouter();
+
+  const handleDuplicate = async () => {
+    if (!confirm('Are you sure you want to duplicate this SRD?')) return;
+    
+    try {
+      const response = await fetch(`/api/srd/${srd._id}/duplicate`, { method: 'POST' });
+      const result = await response.json();
+      if (result.success) {
+        alert('SRD duplicated successfully!');
+        router.push(`/srd/${result.data._id}`);
+      } else {
+        alert(`Error duplicating SRD: ${result.error}`);
+      }
+    } catch (error) {
+      alert(`An error occurred: ${error.message}`);
+    }
+  };
+
+  const handleRedo = async () => {
+    if (!confirm('Are you sure you want to create a "redo" version of this SRD?')) return;
+
+    try {
+      const response = await fetch(`/api/srd/${srd._id}/duplicate?action=redo`, { method: 'POST' });
+      const result = await response.json();
+      if (result.success) {
+        alert('SRD "redo" created successfully!');
+        router.push(`/srd/${result.data._id}`);
+      } else {
+        alert(`Error creating "redo" SRD: ${result.error}`);
+      }
+    } catch (error) {
+      alert(`An error occurred: ${error.message}`);
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'approved': return 'bg-green-100 text-green-800';
@@ -77,10 +114,16 @@ export default function SRDCard({ srd, department }) {
         </div>
       </CardContent>
       
-      <CardFooter>
-        <Link href={`/srd/${srd._id}`} className="w-full">
-          <Button className="w-full">View Details</Button>
+      <CardFooter className="flex gap-2">
+        <Link href={`/srd/${srd._id}`} className="flex-grow">
+          <Button variant="outline" className="w-full">View Details</Button>
         </Link>
+        <Button size="icon" variant="outline" onClick={handleDuplicate} title="Duplicate SRD">
+          <Copy className="h-4 w-4" />
+        </Button>
+        <Button size="icon" variant="outline" onClick={handleRedo} title="Redo SRD">
+          <Repeat className="h-4 w-4" />
+        </Button>
       </CardFooter>
     </Card>
   );

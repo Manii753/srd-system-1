@@ -1,20 +1,56 @@
-'use client';
-
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { ChevronUp, ChevronDown, Search, Filter, X, ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { ChevronUp, ChevronDown, Search, Filter, X, ChevronLeft, ChevronRight, Star, Copy, Repeat } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
 export default function SRDTable({ srds, department }) {
+  const router = useRouter();
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedImages, setSelectedImages] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const handleDuplicate = async (srdId) => {
+    if (!confirm('Are you sure you want to duplicate this SRD?')) return;
+    
+    try {
+      const response = await fetch(`/api/srd/${srdId}/duplicate`, { method: 'POST' });
+      const result = await response.json();
+      if (result.success) {
+        alert('SRD duplicated successfully!');
+        router.push(`/srd/${result.data._id}`);
+        // Optionally, you might want to trigger a refresh of the SRD list here
+      } else {
+        alert(`Error duplicating SRD: ${result.error}`);
+      }
+    } catch (error) {
+      alert(`An error occurred: ${error.message}`);
+    }
+  };
+
+  const handleRedo = async (srdId) => {
+    if (!confirm('Are you sure you want to create a "redo" version of this SRD?')) return;
+
+    try {
+      const response = await fetch(`/api/srd/${srdId}/duplicate?action=redo`, { method: 'POST' });
+      const result = await response.json();
+      if (result.success) {
+        alert('SRD "redo" created successfully!');
+        router.push(`/srd/${result.data._id}`);
+        // Optionally, you might want to trigger a refresh of the SRD list here
+      } else {
+        alert(`Error creating "redo" SRD: ${result.error}`);
+      }
+    } catch (error) {
+      alert(`An error occurred: ${error.message}`);
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -251,12 +287,18 @@ export default function SRDTable({ srds, department }) {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {new Date(srd.createdAt).toLocaleDateString()}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
                   <Link href={`/srd/${srd._id}`}>
                     <Button size="sm" variant="outline">
                       View
                     </Button>
                   </Link>
+                  <Button size="icon" variant="outline" onClick={() => handleDuplicate(srd._id)} title="Duplicate SRD">
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button size="icon" variant="outline" onClick={() => handleRedo(srd._id)} title="Redo SRD">
+                    <Repeat className="h-4 w-4" />
+                  </Button>
                 </td>
               </tr>
             ))}
