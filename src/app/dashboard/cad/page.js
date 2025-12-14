@@ -21,8 +21,14 @@ export default function CADDashboard() {
   useEffect(() => {
     if (status === 'loading') return;
     
-    if (!session || session.user.role !== 'cad') {
+    if (!session) {
       router.push('/login');
+      return;
+    }
+
+    const allowedRoles = ['cad', 'admin'];
+    if (!allowedRoles.includes(session.user.role)) {
+      router.push(`/dashboard/${session.user.role}`);
       return;
     }
 

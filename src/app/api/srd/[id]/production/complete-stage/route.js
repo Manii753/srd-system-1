@@ -134,6 +134,11 @@ export async function POST(request, context) {
       srd.currentProductionStage = null;
     }
 
+    if (stageName) {
+      srd.status[stageName] = 'completed';
+      srd.markModified('status');
+    }
+
     srd.updatedAt = new Date();
     await srd.save();
 

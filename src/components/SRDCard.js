@@ -37,7 +37,7 @@ export default function SRDCard({ srd, department }) {
             <CardDescription className="mt-1">{srd.refNo}</CardDescription>
           </div>
           <Badge className={getStatusColor(department === 'admin' ? (srd.readyForProduction ? 'approved' : 'in-progress') : srd.status[department])}>
-            {department === 'admin' ? (srd.readyForProduction ? "Ready" : "In Progress") : (srd.status[department] || 'pending')}
+            {srd.inProduction && srd.readyForProduction ?  "In Production"  : (srd.readyForProduction ? 'Ready for Production' : srd.status[department])}
           </Badge>
         </div>
       </CardHeader>

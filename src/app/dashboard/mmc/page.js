@@ -21,8 +21,14 @@ export default function MMCDashboard() {
   useEffect(() => {
     if (status === 'loading') return;
     
-    if (!session || session.user.role !== 'mmc') {
+    if (!session) {
       router.push('/login');
+      return;
+    }
+
+    const allowedRoles = ['mmc', 'admin'];
+    if (!allowedRoles.includes(session.user.role)) {
+      router.push(`/dashboard/${session.user.role}`);
       return;
     }
 

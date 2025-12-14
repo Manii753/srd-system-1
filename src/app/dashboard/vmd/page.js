@@ -21,8 +21,14 @@ export default function VMDDashboard() {
   useEffect(() => {
     if (status === 'loading') return;
     
-    if (!session || session.user.role !== 'vmd') {
+    if (!session) {
       router.push('/login');
+      return;
+    }
+
+    const allowedRoles = ['vmd', 'admin'];
+    if (!allowedRoles.includes(session.user.role)) {
+      router.push(`/dashboard/${session.user.role}`);
       return;
     }
 
