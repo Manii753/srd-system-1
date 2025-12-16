@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { type } from 'os';
 
 const commentSchema = new mongoose.Schema({
   department: String,
@@ -21,6 +22,8 @@ const srdSchema = new mongoose.Schema({
   refNo: { type: String, required: true, unique: true },
   title: { type: String, required: true },
   description: String,
+
+  revision : {type:Number, default:0},
   
   createdBy: { 
     id: String, 

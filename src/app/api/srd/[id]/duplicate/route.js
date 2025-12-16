@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import SRD from '@/models/SRD';
-import User from '@/models/User';
 
 // Function to generate the next available refNo for duplicates/redos
 const getNextRefNo = async (baseRefNo, isRedo) => {
@@ -9,30 +8,69 @@ const getNextRefNo = async (baseRefNo, isRedo) => {
     const redoRegex = /(-R)(\d+)$/;
     const match = baseRefNo.match(redoRegex);
 
+    let nextNum = 1;
+    let candidateRefNo;
+
     if (match) {
-      const nextNum = parseInt(match[2], 10) + 1;
-      return baseRefNo.replace(redoRegex, `$1${nextNum}`);
+      nextNum = parseInt(match[2], 10) + 1;
+      candidateRefNo = baseRefNo.replace(redoRegex, `$1${nextNum}`);
+    } else {
+      candidateRefNo = `${baseRefNo}-R${nextNum}`;
     }
-    return `${baseRefNo}-R1`;
+
+    // Ensure uniqueness by incrementing until we find an available refNo
+    while (await SRD.findOne({ refNo: candidateRefNo })) {
+      nextNum++;
+      if (match) {
+        candidateRefNo = baseRefNo.replace(redoRegex, `$1${nextNum}`);
+      } else {
+        candidateRefNo = `${baseRefNo}-R${nextNum}`;
+      }
+    }
+
+    return { refNo: candidateRefNo, suffix: `R-${nextNum}` };
   }
 
   // Handle duplicates
   let newRefNo = `${baseRefNo}-COPY`;
   let counter = 2;
+  
   while (await SRD.findOne({ refNo: newRefNo })) {
     newRefNo = `${baseRefNo}-COPY-${counter}`;
     counter++;
   }
-  return newRefNo;
+
+  return { refNo: newRefNo, suffix: '(Copy)' };
+};
+
+// Function to clean the title and apply new suffix
+const getNewTitle = (originalTitle, suffix, isRedo) => {
+  if (isRedo) {
+    // Remove any existing R-X suffix from the title
+    const titleRedoRegex = / R-\d+$/;
+    const cleanTitle = originalTitle.replace(titleRedoRegex, '');
+    return `${cleanTitle} ${suffix}`;
+  }
+  
+  // For duplicates, remove any existing (Copy) suffix
+  const titleCopyRegex = / \(Copy\)$/;
+  const cleanTitle = originalTitle.replace(titleCopyRegex, '');
+  return `${cleanTitle} ${suffix}`;
 };
 
 export async function POST(request, { params }) {
   try {
     await dbConnect();
-    const { id } = params;
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
     const isRedo = action === 'redo';
+
+    // TODO: Add authentication to get the actual user
+    // const session = await getServerSession();
+    // if (!session) {
+    //   return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    // }
 
     const originalSrd = await SRD.findById(id).lean();
 
@@ -56,16 +94,24 @@ export async function POST(request, { params }) {
       productionHistory,
       comments,
       audit,
+      revision,
       ...restOfSrd 
     } = originalSrd;
 
-    // Generate the new refNo
-    const newRefNo = await getNextRefNo(refNo, isRedo);
+    // Generate the new refNo and title suffix
+    const { refNo: newRefNo, suffix } = await getNextRefNo(refNo, isRedo);
+
+    // Generate the new title with clean suffix
+    const newTitle = getNewTitle(originalSrd.title, suffix, isRedo);
+
+    // Calculate new revision number
+    const newRevision = (originalSrd.revision || 0) + 1;
 
     const newSrd = new SRD({
       ...restOfSrd,
       refNo: newRefNo,
-      title: isRedo ? originalSrd.title : `${originalSrd.title} (Copy)`,
+      title: newTitle,
+      revision: newRevision,
       
       // Reset progress and status fields to their defaults
       progress: 0,
@@ -82,8 +128,11 @@ export async function POST(request, { params }) {
       comments: [],
       audit: [{
         action: isRedo ? 'redo' : 'duplicate',
-        author: 'System',
-        details: { from: originalSrd.refNo }
+        author: 'System', // TODO: Replace with actual user from session
+        details: { 
+          from: originalSrd.refNo,
+          timestamp: new Date()
+        }
       }],
       
       // Keep createdBy from original
@@ -94,10 +143,18 @@ export async function POST(request, { params }) {
 
     await newSrd.save();
 
+    // If this is a redo, delete the original SRD
+    if (isRedo) {
+      await SRD.findByIdAndDelete(id);
+    }
+
     return NextResponse.json({ success: true, data: newSrd });
 
   } catch (error) {
     console.error('Error duplicating SRD:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ 
+      success: false, 
+      error: error.message || 'Failed to duplicate SRD' 
+    }, { status: 500 });
   }
 }
