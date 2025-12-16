@@ -96,6 +96,7 @@ export async function POST(request) {
     await dbConnect();
 
     const body = await request.json();
+    console.log('POST /api/srd body:', body);
     console.log('POST /api/srd body:', JSON.stringify(body).slice(0, 1000));
 
     // Normalize images array
@@ -112,17 +113,19 @@ export async function POST(request) {
     }
     console.log('Sanitized dynamicFields:', JSON.stringify(body.dynamicFields));
 
-    // --- Initialize status for all departments (exclude admin and production-manager) ---
-    const Department = require('@/models/Department').default;
-    const allDepartments = await Department.find({});
-    const initialStatus = {};
-    const excludedRoles = ['admin', 'production-manager'];
-    allDepartments.forEach(dept => {
-      if (!excludedRoles.includes(dept.slug)) {
-        initialStatus[dept.slug] = 'pending';
-      }
-    });
-    body.status = initialStatus;
+    // Use the status from the request body if it exists, otherwise initialize for all departments
+    if (!body.status || Object.keys(body.status).length === 0) {
+      const Department = require('@/models/Department').default;
+      const allDepartments = await Department.find({});
+      const initialStatus = {};
+      const excludedRoles = ['admin', 'production-manager'];
+      allDepartments.forEach(dept => {
+        if (!excludedRoles.includes(dept.slug)) {
+          initialStatus[dept.slug] = 'pending';
+        }
+      });
+      body.status = initialStatus;
+    }
 
     // --- Generate unique refNo if not provided ---
     const generateRefNo = () => {

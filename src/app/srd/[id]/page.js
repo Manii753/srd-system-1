@@ -228,7 +228,7 @@ export default function SRDDetailPage() {
         </Card>
 
         {/* SRD Diagnostic Tool - For Admin and Production Manager */}
-        {(userRole === 'production-manager' || userRole === 'admin' || userRole === 'vmd') && (
+        {(userRole === 'admin' || userRole === 'vmd') && (
           <SRDDiagnostic 
             srdId={srd._id}
             onFixed={() => window.location.reload()}
