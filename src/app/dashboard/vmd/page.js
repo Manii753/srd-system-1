@@ -10,13 +10,16 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/lib/use-toast';
 
 export default function VMDDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { toast } = useToast();
   const [srds, setSRDs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('cards'); // cards or table
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -46,6 +49,51 @@ export default function VMDDashboard() {
       console.error('Error fetching SRDs:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRaiseSrd = async () => {
+    setIsCreating(true);
+    try {
+      const res = await fetch('/api/srd', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          createdBy: {
+            id: session.user.id,
+            name: session.user.name,
+            role: session.user.role,
+          },
+          // title is now optional and will be omitted
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to create SRD');
+      }
+
+      const result = await res.json();
+      if (result.success) {
+        toast({
+          title: 'SRD Raised',
+          description: `SRD ${result.data.refNo} has been created.`,
+        });
+        router.push(`/srd/${result.data._id}`);
+      } else {
+        throw new Error(result.error || 'An unknown error occurred');
+      }
+    } catch (error) {
+      console.error('Error creating SRD:', error);
+      toast({
+        title: 'Error',
+        description: `Could not create SRD: ${error.message}`,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -79,12 +127,14 @@ export default function VMDDashboard() {
             <h1 className="text-3xl font-bold text-gray-900">VMD Portal</h1>
             <p className="text-gray-600 mt-1">Manage sample requests and track development progress</p>
           </div>
-          <Link href="/dashboard/vmd/create">
-            <Button className="flex items-center space-x-2">
-              <Plus className="h-5 w-5" />
-              <span>Create SRD</span>
-            </Button>
-          </Link>
+          <Button 
+            className="flex items-center space-x-2"
+            onClick={handleRaiseSrd}
+            disabled={isCreating}
+          >
+            <Plus className="h-5 w-5" />
+            <span>{isCreating ? 'Raising SRD...' : 'Raise SRD'}</span>
+          </Button>
         </div>
 
         {/* Stats Cards */}
@@ -172,9 +222,12 @@ export default function VMDDashboard() {
             <h3 className="mt-2 text-sm font-medium text-gray-900">No SRDs found</h3>
             <p className="mt-1 text-sm text-gray-500">Get started by creating a new SRD.</p>
             <div className="mt-6">
-              <Link href="/dashboard/vmd/create">
-                <Button>Create SRD</Button>
-              </Link>
+              <Button
+                onClick={handleRaiseSrd}
+                disabled={isCreating}
+              >
+                {isCreating ? 'Raising SRD...' : 'Raise SRD'}
+              </Button>
             </div>
           </div>
         )}

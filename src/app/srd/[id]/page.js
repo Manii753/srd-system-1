@@ -28,6 +28,7 @@ export default function SRDDetailPage() {
   const [srd, setSrd] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeline, setTimeline] = useState([]);
+  const allowedDepartments = ['vmd', 'cad', 'mmc', 'commercial'];
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -213,16 +214,18 @@ export default function SRDDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {srd.status && Object.entries(srd.status).map(([dept, status]) => (
-                <div key={dept} className="text-center">
-                  <Badge className={getStatusColor(status)}>
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </Badge>
-                  <div className="mt-2 text-sm font-medium text-gray-900">
-                    {dept.toUpperCase()}
+              {srd.status && Object.entries(srd.status)
+                .filter(([dept]) => allowedDepartments.includes(dept))
+                .map(([dept, status]) => (
+                  <div key={dept} className="text-center">
+                    <Badge className={getStatusColor(status)}>
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </Badge>
+                    <div className="mt-2 text-sm font-medium text-gray-900">
+                      {dept.toUpperCase()}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           </CardContent>
         </Card>
@@ -247,14 +250,14 @@ export default function SRDDetailPage() {
         {/* Department Tabs */}
         <Tabs defaultValue={userRole} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            {(canViewAll ? Object.keys(srd.status) : [userRole]).map((dept) => (
+            {allowedDepartments.filter(dept => (canViewAll ? true : dept === userRole)).map((dept) => (
               <TabsTrigger key={dept} value={dept}>
                 {dept.toUpperCase()}
               </TabsTrigger>
             ))}
           </TabsList>
 
-          {srd.status && Object.keys(srd.status).map((dept) => {
+          {srd.status && allowedDepartments.filter(dept => (canViewAll ? true : dept === userRole)).map((dept) => {
             const canEdit = userRole === dept || userRole === 'admin' || userRole === 'vmd';
 
             return (

@@ -73,8 +73,8 @@ export default function SRDTable({ srds, department }) {
 
   const filteredAndSortedSRDs = srds
     .filter(srd => {
-      const matchesSearch = srd.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        srd.refNo.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = (srd.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (srd.refNo || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = filterStatus === 'all' || (srd.status && srd.status[department] === filterStatus);
       return matchesSearch && matchesStatus;
     })

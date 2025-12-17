@@ -20,8 +20,9 @@ const auditSchema = new mongoose.Schema({
 
 const srdSchema = new mongoose.Schema({
   refNo: { type: String, required: true, unique: true },
-  title: { type: String, required: true },
+  title: { type: String },
   description: String,
+  isComplete: { type: Boolean, default: false },
 
   revision : {type:Number, default:0},
   

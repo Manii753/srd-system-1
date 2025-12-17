@@ -70,8 +70,8 @@ export default function SRDCard({ srd, department }) {
       <CardHeader>
         <div className="flex items-start justify-between">
           <div>
-            <CardTitle className="text-lg font-semibold">{srd.title}</CardTitle>
-            <CardDescription className="mt-1">{srd.refNo}</CardDescription>
+            <CardTitle className="text-lg font-semibold">{srd.refNo}</CardTitle>
+            {srd.title && <CardDescription className="mt-1">{srd.title}</CardDescription>}
           </div>
           <Badge className={getStatusColor(department === 'admin' ? (srd.readyForProduction ? 'approved' : 'in-progress') : srd.status[department])}>
             {srd.inProduction && srd.readyForProduction ?  "In Production"  : (srd.readyForProduction ? 'Ready for Production' : srd.status[department])}
