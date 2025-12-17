@@ -43,21 +43,6 @@ const getNextRefNo = async (baseRefNo, isRedo) => {
   return { refNo: newRefNo, suffix: '(Copy)' };
 };
 
-// Function to clean the title and apply new suffix
-const getNewTitle = (originalTitle, suffix, isRedo) => {
-  if (isRedo) {
-    // Remove any existing R-X suffix from the title
-    const titleRedoRegex = / R-\d+$/;
-    const cleanTitle = originalTitle.replace(titleRedoRegex, '');
-    return `${cleanTitle} ${suffix}`;
-  }
-  
-  // For duplicates, remove any existing (Copy) suffix
-  const titleCopyRegex = / \(Copy\)$/;
-  const cleanTitle = originalTitle.replace(titleCopyRegex, '');
-  return `${cleanTitle} ${suffix}`;
-};
-
 export async function POST(request, { params }) {
   try {
     await dbConnect();
@@ -98,11 +83,8 @@ export async function POST(request, { params }) {
       ...restOfSrd 
     } = originalSrd;
 
-    // Generate the new refNo and title suffix
-    const { refNo: newRefNo, suffix } = await getNextRefNo(refNo, isRedo);
-
-    // Generate the new title with clean suffix
-    const newTitle = getNewTitle(originalSrd.title, suffix, isRedo);
+    // Generate the new refNo
+    const { refNo: newRefNo } = await getNextRefNo(refNo, isRedo);
 
     // Calculate new revision number
     const newRevision = (originalSrd.revision || 0) + 1;
@@ -110,7 +92,7 @@ export async function POST(request, { params }) {
     const newSrd = new SRD({
       ...restOfSrd,
       refNo: newRefNo,
-      title: newTitle,
+      
       revision: newRevision,
       
       // Reset progress and status fields to their defaults
@@ -128,7 +110,7 @@ export async function POST(request, { params }) {
       comments: [],
       audit: [{
         action: isRedo ? 'redo' : 'duplicate',
-        author: 'System', // TODO: Replace with actual user from session
+        author: 'System',
         details: { 
           from: originalSrd.refNo,
           timestamp: new Date()
