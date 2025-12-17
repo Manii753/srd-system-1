@@ -18,7 +18,7 @@ export default function VMDDashboard() {
   const { toast } = useToast();
   const [srds, setSRDs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('cards'); // cards or table
+  const [viewMode, setViewMode] = useState('table'); // cards or table
   const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
