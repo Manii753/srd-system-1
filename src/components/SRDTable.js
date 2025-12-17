@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { ChevronUp, ChevronDown, Search, Filter, X, ChevronLeft, ChevronRight, Star, Copy, Repeat } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+
 
 export default function SRDTable({ srds, department }) {
   const router = useRouter();
@@ -15,6 +16,25 @@ export default function SRDTable({ srds, department }) {
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedImages, setSelectedImages] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [productionStages, setProductionStages] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const stagesRes = await fetch('/api/production-stages');
+      const stagesData = await stagesRes.json();
+    
+      if (stagesData.success) setProductionStages(stagesData.data.filter(s => s.isActive));
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDuplicate = async (srdId) => {
     if (!confirm('Are you sure you want to duplicate this SRD?')) return;
@@ -25,7 +45,6 @@ export default function SRDTable({ srds, department }) {
       if (result.success) {
         alert('SRD duplicated successfully!');
         router.push(`/srd/${result.data._id}`);
-        // Optionally, you might want to trigger a refresh of the SRD list here
       } else {
         alert(`Error duplicating SRD: ${result.error}`);
       }
@@ -43,7 +62,6 @@ export default function SRDTable({ srds, department }) {
       if (result.success) {
         alert('SRD "redo" created successfully!');
         router.push(`/srd/${result.data._id}`);
-        // Optionally, you might want to trigger a refresh of the SRD list here
       } else {
         alert(`Error creating "redo" SRD: ${result.error}`);
       }
@@ -98,17 +116,14 @@ export default function SRDTable({ srds, department }) {
   const getAllImages = (srd) => {
     const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
     
-    // Get images from department's dynamic fields (look for image type fields)
     const deptImageFields = srd.dynamicFields?.filter(f => {
       if (f.department !== department) return false;
       if (!f.value) return false;
       
-      // Check if it's an image URL (starts with / or http)
       if (typeof f.value === 'string' && (f.value.startsWith('/') || f.value.startsWith('http'))) {
         return true;
       }
       
-      // Check if it's an array of image URLs
       if (Array.isArray(f.value) && f.value.length > 0) {
         return f.value.some(v => typeof v === 'string' && (v.startsWith('/') || v.startsWith('http')));
       }
@@ -146,6 +161,14 @@ export default function SRDTable({ srds, department }) {
     if (currentImageIndex > 0) {
       setCurrentImageIndex(currentImageIndex - 1);
     }
+  };
+
+  // Helper function to get current production stage
+  const getCurrentProductionStage = (srd) => {
+    if (!srd.inProduction || !srd.currentProductionStage) {
+      return null;
+    }
+    return productionStages.find(stage => String(stage._id) === String(srd.currentProductionStage));
   };
 
   return (
@@ -233,111 +256,112 @@ export default function SRDTable({ srds, department }) {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Inquiry Status
               </th>
-              {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Progress
-              </th> */}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredAndSortedSRDs.map((srd) => (
-              <tr key={srd._id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {new Date(srd.createdAt).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {srd.brand || 'N/A'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {srd.sampleType || 'N/A'}   {/* add later */}
-
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {srd.style || 'N/A'}   {/* add later */}
-                  
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {srd.size || 'N/A'}   {/* add later */}
-                  
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {srd.quantity || 'N/A'}   {/* add later */} 
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {srd.color || 'N/A'}   {/* add later */}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {srd.fabric || 'N/A'}   {/* add later */}
-                  
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                   {new Date(srd.createdAt).toLocaleDateString()}
-                  
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {srd.refNo}
-                  
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge className={getStatusColor(department === 'admin' ? (srd.readyForProduction ? 'approved' : 'in-progress') : (srd.status ? srd.status[department] : 'pending'))}>
-                     {srd.inProduction && srd.readyForProduction ?  "In Production"  : (srd.readyForProduction ? 'Ready for Production' : srd.status[department])}
-                  </Badge>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {(() => {
-                    const allImages = getAllImages(srd);
-                    return allImages.length > 0 ? (
-                      <div 
-                        className="cursor-pointer hover:opacity-80 transition-opacity relative group"
-                        onClick={() => openImageSlider(allImages)}
-                      >
-                        <Image 
-                          src={allImages[0]} 
-                          width={60} 
-                          height={60}
-                          alt="SRD cover"
-                          className="rounded object-cover border-2 border-yellow-400"
-                        />
-                        <div className="absolute top-0 left-0 bg-yellow-400 text-yellow-900 px-1 py-0.5 rounded-tl rounded-br text-xs font-semibold flex items-center gap-0.5">
-                          <Star className="h-2.5 w-2.5 fill-current" />
+            {filteredAndSortedSRDs.map((srd) => {
+              const currentStage = getCurrentProductionStage(srd);
+              
+              return (
+                <tr key={srd._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {new Date(srd.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {srd.brand || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {srd.sampleType || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {srd.style || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {srd.size || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {srd.quantity || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {srd.color || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {srd.fabric || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {new Date(srd.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {srd.refNo}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Badge className={getStatusColor(srd.status?.[department] || 'pending')}>
+                      {(srd.status?.[department] || 'pending').replace('-', ' ')}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {(() => {
+                      const allImages = getAllImages(srd);
+                      return allImages.length > 0 ? (
+                        <div 
+                          className="cursor-pointer hover:opacity-80 transition-opacity relative group"
+                          onClick={() => openImageSlider(allImages)}
+                        >
+                          <Image 
+                            src={allImages[0]} 
+                            width={60} 
+                            height={60}
+                            alt="SRD cover"
+                            className="rounded object-cover border-2 border-yellow-400"
+                          />
+                          <div className="absolute top-0 left-0 bg-yellow-400 text-yellow-900 px-1 py-0.5 rounded-tl rounded-br text-xs font-semibold flex items-center gap-0.5">
+                            <Star className="h-2.5 w-2.5 fill-current" />
+                          </div>
+                          {allImages.length > 1 && (
+                            <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold shadow">
+                              {allImages.length}
+                            </span>
+                          )}
                         </div>
-                        {allImages.length > 1 && (
-                          <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold shadow">
-                            {allImages.length}
-                          </span>
-                        )}
+                      ) : (
+                        <span className="text-gray-400 text-xs">No images</span>
+                      );
+                    })()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {srd.inProduction && currentStage ? (
+                      <div className="flex items-center">
+                        <div 
+                          className="w-3 h-3 rounded-full mr-2" 
+                          style={{ backgroundColor: currentStage.color }}
+                        />
+                        <span className="font-medium capitalize">
+                          {currentStage.displayName || currentStage.name}
+                        </span>
                       </div>
                     ) : (
-                      <span className="text-gray-400 text-xs">No images</span>
-                    );
-                  })()}
-                </td>
-                {/* <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center space-x-2">
-                    <Progress value={srd.progress} className="w-16 h-2" />
-                    <span className="text-sm text-gray-500">{srd.progress}%</span>
-                  </div>
-                </td> */}
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(srd.createdAt).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
-                  <Link href={`/srd/${srd._id}`}>
-                    <Button size="sm" variant="outline">
-                      View
+                      <span className="text-gray-400 text-xs">Not in production</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
+                    <Link href={`/srd/${srd._id}`}>
+                      <Button size="sm" variant="outline">
+                        View
+                      </Button>
+                    </Link>
+                    <Button size="icon" variant="outline" onClick={() => handleDuplicate(srd._id)} title="Duplicate SRD">
+                      <Copy className="h-4 w-4" />
                     </Button>
-                  </Link>
-                  <Button size="icon" variant="outline" onClick={() => handleDuplicate(srd._id)} title="Duplicate SRD">
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="outline" onClick={() => handleRedo(srd._id)} title="Redo SRD">
-                    <Repeat className="h-4 w-4" />
-                  </Button>
-                </td>
-              </tr>
-            ))}
+                    <Button size="icon" variant="outline" onClick={() => handleRedo(srd._id)} title="Redo SRD">
+                      <Repeat className="h-4 w-4" />
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
