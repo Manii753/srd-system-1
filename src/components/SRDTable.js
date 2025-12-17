@@ -228,6 +228,9 @@ export default function SRDTable({ srds, department }) {
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Images
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Inquiry Status
               </th>
               {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -242,11 +245,44 @@ export default function SRDTable({ srds, department }) {
             {filteredAndSortedSRDs.map((srd) => (
               <tr key={srd._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {new Date(srd.createdAt).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {srd.brand || 'N/A'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {srd.sampleType || 'N/A'}   {/* add later */}
+
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {srd.style || 'N/A'}   {/* add later */}
+                  
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {srd.size || 'N/A'}   {/* add later */}
+                  
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {srd.quantity || 'N/A'}   {/* add later */} 
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {srd.color || 'N/A'}   {/* add later */}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {srd.fabric || 'N/A'}   {/* add later */}
+                  
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                   {new Date(srd.createdAt).toLocaleDateString()}
+                  
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {srd.refNo}
+                  
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Badge className={getStatusColor(department === 'admin' ? (srd.readyForProduction ? 'approved' : 'in-progress') : (srd.status ? srd.status[department] : 'pending'))}>
-                    {department === 'admin' ? (srd.readyForProduction ? "Ready" : "In Progress") : (srd.status ? srd.status[department] : 'pending')}
+                     {srd.inProduction && srd.readyForProduction ?  "In Production"  : (srd.readyForProduction ? 'Ready for Production' : srd.status[department])}
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
