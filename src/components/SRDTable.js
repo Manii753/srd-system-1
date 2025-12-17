@@ -298,9 +298,19 @@ export default function SRDTable({ srds, department }) {
                     {srd.refNo}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge className={getStatusColor(srd.status?.[department] || 'pending')}>
-                      {(srd.status?.[department] || 'pending').replace('-', ' ')}
-                    </Badge>
+                     {srd.inProduction && currentStage ? (
+                      <div className="flex items-center">
+                        <div 
+                          className="w-3 h-3 rounded-full mr-2" 
+                          style={{ backgroundColor: currentStage.color }}
+                        />
+                        <span className="font-medium capitalize">
+                          {currentStage.displayName || currentStage.name}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">Not in production</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {(() => {
@@ -332,19 +342,7 @@ export default function SRDTable({ srds, department }) {
                     })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {srd.inProduction && currentStage ? (
-                      <div className="flex items-center">
-                        <div 
-                          className="w-3 h-3 rounded-full mr-2" 
-                          style={{ backgroundColor: currentStage.color }}
-                        />
-                        <span className="font-medium capitalize">
-                          {currentStage.displayName || currentStage.name}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 text-xs">Not in production</span>
-                    )}
+                    tobe implemented
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
                     <Link href={`/srd/${srd._id}`}>
