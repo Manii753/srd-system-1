@@ -282,9 +282,7 @@ export default function SRDTable({ srds, department }) {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 ETD
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                CU
-              </th>
+              
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
@@ -324,9 +322,7 @@ export default function SRDTable({ srds, department }) {
                     {getDynamicFieldValue(srd, 'fabric')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getDynamicFieldValue(srd, 'sample-raise-date') !== 'N/A' 
-                      ? new Date(getDynamicFieldValue(srd, 'sample-raise-date')).toLocaleDateString()
-                      : 'N/A'}
+                    {new Date(srd.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {srd.refNo}
@@ -383,9 +379,7 @@ export default function SRDTable({ srds, department }) {
                       ? new Date(getDynamicFieldValue(srd, 'etd')).toLocaleDateString()
                       : 'N/A'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getDynamicFieldValue(srd, 'cu')}
-                  </td>
+                  
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
                     <Link href={`/srd/${srd._id}`}>
                       <Button size="sm" variant="outline">
