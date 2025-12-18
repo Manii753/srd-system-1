@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,19 @@ export default function SRDTable({ srds, department }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [productionStages, setProductionStages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [expandedRows, setExpandedRows] = useState(new Set());
+
+  const toggleRowExpansion = (srdId) => {
+    setExpandedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(srdId)) {
+        newSet.delete(srdId);
+      } else {
+        newSet.add(srdId);
+      }
+      return newSet;
+    });
+  };
 
   useEffect(() => {
     fetchData();
@@ -192,7 +205,7 @@ export default function SRDTable({ srds, department }) {
   };
 
   return (
-    <div className="flex flex-col w-[90vw] bg-white rounded-lg shadow">
+    <div className="flex flex-col w-full bg-white rounded-lg shadow">
       {/* Search and Filter */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center">
@@ -224,10 +237,11 @@ export default function SRDTable({ srds, department }) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-scroll">
+      <div className="w-full">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-2 py-3 w-12"></th> {/* Expander */}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 <button
                   onClick={() => handleSort('createdAt')}
@@ -239,161 +253,142 @@ export default function SRDTable({ srds, department }) {
                   )}
                 </button>
               </th>
-              
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Brand
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Sample Type
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Style
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Description
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Size
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                QTY/PCS
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Color/Wash
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Fabric
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Sample Raise Date
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Inquiry #
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Inquiry Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Picture
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ETD
-              </th>
-              
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Picture</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inquiry #</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Style</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredAndSortedSRDs.map((srd) => {
               const currentStage = getCurrentProductionStage(srd);
+              const isExpanded = expandedRows.has(srd._id);
               
               return (
-                <tr key={srd._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {new Date(srd.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getDynamicFieldValue(srd, 'brand')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getDynamicFieldValue(srd, 'sample-type')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getDynamicFieldValue(srd, 'style')}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                    {getDynamicFieldValue(srd, 'description')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getDynamicFieldValue(srd, 'size')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getDynamicFieldValue(srd, 'quantity')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getDynamicFieldValue(srd, 'color-wash')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getDynamicFieldValue(srd, 'fabric')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(srd.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {srd.refNo}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                     {srd.inProduction && currentStage ? (
-                      <div className="flex items-center">
-                        <div 
-                          className="w-3 h-3 rounded-full mr-2" 
-                          style={{ backgroundColor: currentStage.color }}
-                        />
-                        <span className="font-medium capitalize text-sm">
-                          {currentStage.displayName || currentStage.name}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 text-xs">Not in production</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getDynamicFieldValue(srd, 'inquiry-status')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {(() => {
-                      const allImages = getAllImages(srd);
-                      return allImages.length > 0 ? (
-                        <div 
-                          className="cursor-pointer hover:opacity-80 transition-opacity relative group"
-                          onClick={() => openImageSlider(allImages)}
-                        >
-                          <Image 
-                            src={allImages[0]} 
-                            width={60} 
-                            height={60}
-                            alt="SRD cover"
-                            className="rounded object-cover border-2 border-yellow-400"
-                          />
-                          <div className="absolute top-0 left-0 bg-yellow-400 text-yellow-900 px-1 py-0.5 rounded-tl rounded-br text-xs font-semibold flex items-center gap-0.5">
-                            <Star className="h-2.5 w-2.5 fill-current" />
+                <Fragment key={srd._id}>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-2 py-4">
+                        <Button size="sm" variant="ghost" onClick={() => toggleRowExpansion(srd._id)} className="w-10">
+                            {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                        </Button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {new Date(srd.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {(() => {
+                        const allImages = getAllImages(srd);
+                        return allImages.length > 0 ? (
+                          <div 
+                            className="cursor-pointer hover:opacity-80 transition-opacity relative group"
+                            onClick={() => openImageSlider(allImages)}
+                          >
+                            <Image 
+                              src={allImages[0]} 
+                              width={60} 
+                              height={60}
+                              alt="SRD cover"
+                              className="rounded object-cover border-2 border-yellow-400"
+                            />
+                            <div className="absolute top-0 left-0 bg-yellow-400 text-yellow-900 px-1 py-0.5 rounded-tl rounded-br text-xs font-semibold flex items-center gap-0.5">
+                              <Star className="h-2.5 w-2.5 fill-current" />
+                            </div>
+                            {allImages.length > 1 && (
+                              <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold shadow">
+                                {allImages.length}
+                              </span>
+                            )}
                           </div>
-                          {allImages.length > 1 && (
-                            <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold shadow">
-                              {allImages.length}
-                            </span>
-                          )}
+                        ) : (
+                          <span className="text-gray-400 text-xs">No images</span>
+                        );
+                      })()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {srd.refNo}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {getDynamicFieldValue(srd, 'style')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                       {srd.inProduction && currentStage ? (
+                        <div className="flex items-center">
+                          <div 
+                            className="w-3 h-3 rounded-full mr-2" 
+                            style={{ backgroundColor: currentStage.color }}
+                          />
+                          <span className="font-medium capitalize text-sm">
+                            {currentStage.displayName || currentStage.name}
+                          </span>
                         </div>
                       ) : (
-                        <span className="text-gray-400 text-xs">No images</span>
-                      );
-                    })()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getDynamicFieldValue(srd, 'etd') !== 'N/A'
-                      ? new Date(getDynamicFieldValue(srd, 'etd')).toLocaleDateString()
-                      : 'N/A'}
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
-                    <Link href={`/srd/${srd._id}`}>
-                      <Button size="sm" variant="outline">
-                        View
+                        <span className="text-gray-400 text-xs">Not in production</span>
+                      )}
+                    </td>
+                    <td className="justify-center align-middle px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
+                      
+                      <Link href={`/srd/${srd._id}`}>
+                        <Button size="sm" variant="outline">
+                          View
+                        </Button>
+                      </Link>
+                      <Button size="icon" variant="outline" onClick={() => handleDuplicate(srd._id)} title="Duplicate SRD">
+                        <Copy className="h-4 w-4" />
                       </Button>
-                    </Link>
-                    <Button size="icon" variant="outline" onClick={() => handleDuplicate(srd._id)} title="Duplicate SRD">
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="outline" onClick={() => handleRedo(srd._id)} title="Redo SRD">
-                      <Repeat className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </tr>
+                      <Button size="icon" variant="outline" onClick={() => handleRedo(srd._id)} title="Redo SRD">
+                        <Repeat className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                  {isExpanded && (
+                      <tr>
+                          <td colSpan="7" className="p-0">
+                              <div className="p-4 bg-gray-100">
+                                  <h4 className="text-md font-semibold mb-3 text-gray-800">Additional Details</h4>
+                                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4 text-sm">
+                                      <div className="flex flex-col">
+                                          <span className="font-medium text-gray-500">Brand</span>
+                                          <span className="text-gray-900">{getDynamicFieldValue(srd, 'brand')}</span>
+                                      </div>
+                                      <div className="flex flex-col">
+                                          <span className="font-medium text-gray-500">Sample Type</span>
+                                          <span className="text-gray-900">{getDynamicFieldValue(srd, 'sample-type')}</span>
+                                      </div>
+                                      <div className="flex flex-col col-span-2 md:col-span-3 lg:col-span-4">
+                                          <span className="font-medium text-gray-500">Description</span>
+                                          <span className="text-gray-900 whitespace-pre-wrap">{getDynamicFieldValue(srd, 'description')}</span>
+                                      </div>
+                                      <div className="flex flex-col">
+                                          <span className="font-medium text-gray-500">Size</span>
+                                          <span className="text-gray-900">{getDynamicFieldValue(srd, 'size')}</span>
+                                      </div>
+                                      <div className="flex flex-col">
+                                          <span className="font-medium text-gray-500">QTY/PCS</span>
+                                          <span className="text-gray-900">{getDynamicFieldValue(srd, 'quantity')}</span>
+                                      </div>
+                                      <div className="flex flex-col">
+                                          <span className="font-medium text-gray-500">Color/Wash</span>
+                                          <span className="text-gray-900">{getDynamicFieldValue(srd, 'color-wash')}</span>
+                                      </div>
+                                      <div className="flex flex-col">
+                                          <span className="font-medium text-gray-500">Fabric</span>
+                                          <span className="text-gray-900">{getDynamicFieldValue(srd, 'fabric')}</span>
+                                      </div>
+                                      <div className="flex flex-col">
+                                          <span className="font-medium text-gray-500">Inquiry Status</span>
+                                          <span className="text-gray-900">{getDynamicFieldValue(srd, 'inquiry-status')}</span>
+                                      </div>
+                                      <div className="flex flex-col">
+                                          <span className="font-medium text-gray-500">ETD</span>
+                                          <span className="text-gray-900">{getDynamicFieldValue(srd, 'etd') !== 'N/A' ? new Date(getDynamicFieldValue(srd, 'etd')).toLocaleDateString() : 'N/A'}</span>
+                                      </div>
+                                  </div>
+                              </div>
+                          </td>
+                      </tr>
+                  )}
+                </Fragment>
               );
             })}
           </tbody>
