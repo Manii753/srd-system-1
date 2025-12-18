@@ -15,7 +15,7 @@ export async function GET(request) {
     }
 
     const userId = session.user.id;
-    const notifications = await Notification.find({ user: userId, read: false }).sort({ timestamp: -1 });
+    const notifications = await Notification.find({ user: userId }).sort({ timestamp: -1 });
 
     return NextResponse.json({ success: true, data: notifications });
   } catch (error) {
@@ -34,7 +34,13 @@ export async function PUT(request) {
     }
 
     const userId = session.user.id;
-    await Notification.updateMany({ user: userId, read: false }, { read: true });
+    const { ids } = await request.json();
+
+    if (ids && Array.isArray(ids)) {
+      await Notification.updateMany({ _id: { $in: ids }, user: userId }, { $set: { read: true } });
+    } else {
+      await Notification.updateMany({ user: userId, read: false }, { $set: { read: true } });
+    }
 
     return NextResponse.json({ success: true, message: 'Notifications marked as read' });
   } catch (error) {
