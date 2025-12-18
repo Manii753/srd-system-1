@@ -89,6 +89,26 @@ export default function SRDTable({ srds, department }) {
     }
   };
 
+  // Helper function to get dynamic field value by slug or name
+  const getDynamicFieldValue = (srd, fieldSlug) => {
+    const field = srd.dynamicFields?.find(f => 
+      f.slug === fieldSlug || 
+      f.name?.toLowerCase().replace(/\s+/g, '-') === fieldSlug ||
+      f.name?.toLowerCase() === fieldSlug.replace(/-/g, ' ')
+    );
+    
+    if (!field || field.value === null || field.value === undefined) {
+      return 'N/A';
+    }
+    
+    // Handle array values (like multi-select or file uploads)
+    if (Array.isArray(field.value)) {
+      return field.value.join(', ') || 'N/A';
+    }
+    
+    return field.value;
+  };
+
   const filteredAndSortedSRDs = srds
     .filter(srd => {
       const matchesSearch = (srd.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -210,11 +230,11 @@ export default function SRDTable({ srds, department }) {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 <button
-                  onClick={() => handleSort('refNo')}
+                  onClick={() => handleSort('createdAt')}
                   className="flex items-center space-x-1 hover:text-gray-700"
                 >
                   <span>Date</span>
-                  {sortField === 'refNo' && (
+                  {sortField === 'createdAt' && (
                     sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
                   )}
                 </button>
@@ -228,6 +248,9 @@ export default function SRDTable({ srds, department }) {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Style
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Description
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Size
@@ -251,10 +274,16 @@ export default function SRDTable({ srds, department }) {
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Images
+                Inquiry Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Inquiry Status
+                Picture
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                ETD
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                CU
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
@@ -270,29 +299,34 @@ export default function SRDTable({ srds, department }) {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {new Date(srd.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {srd.brand || 'N/A'}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {getDynamicFieldValue(srd, 'brand')}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {srd.sampleType || 'N/A'}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {getDynamicFieldValue(srd, 'sample-type')}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {srd.style || 'N/A'}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {getDynamicFieldValue(srd, 'style')}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {srd.size || 'N/A'}
+                  <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                    {getDynamicFieldValue(srd, 'description')}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {srd.quantity || 'N/A'}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {getDynamicFieldValue(srd, 'size')}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {srd.color || 'N/A'}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {getDynamicFieldValue(srd, 'quantity')}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {srd.fabric || 'N/A'}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {getDynamicFieldValue(srd, 'color-wash')}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {new Date(srd.createdAt).toLocaleDateString()}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {getDynamicFieldValue(srd, 'fabric')}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {getDynamicFieldValue(srd, 'sample-raise-date') !== 'N/A' 
+                      ? new Date(getDynamicFieldValue(srd, 'sample-raise-date')).toLocaleDateString()
+                      : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {srd.refNo}
@@ -304,13 +338,16 @@ export default function SRDTable({ srds, department }) {
                           className="w-3 h-3 rounded-full mr-2" 
                           style={{ backgroundColor: currentStage.color }}
                         />
-                        <span className="font-medium capitalize">
+                        <span className="font-medium capitalize text-sm">
                           {currentStage.displayName || currentStage.name}
                         </span>
                       </div>
                     ) : (
                       <span className="text-gray-400 text-xs">Not in production</span>
                     )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {getDynamicFieldValue(srd, 'inquiry-status')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {(() => {
@@ -342,7 +379,12 @@ export default function SRDTable({ srds, department }) {
                     })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    tobe implemented
+                    {getDynamicFieldValue(srd, 'etd') !== 'N/A'
+                      ? new Date(getDynamicFieldValue(srd, 'etd')).toLocaleDateString()
+                      : 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {getDynamicFieldValue(srd, 'cu')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
                     <Link href={`/srd/${srd._id}`}>
