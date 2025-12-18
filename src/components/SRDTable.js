@@ -192,10 +192,10 @@ export default function SRDTable({ srds, department }) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow">
+    <div className="flex flex-col w-[90vw] bg-white rounded-lg shadow">
       {/* Search and Filter */}
       <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
             <input
@@ -224,7 +224,7 @@ export default function SRDTable({ srds, department }) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-scroll">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>

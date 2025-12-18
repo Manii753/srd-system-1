@@ -390,7 +390,7 @@ export default function DepartmentPanel({
 
       return (
 
-        <div className="space-y-6">
+        <div className="flex flex-wrap justify-between items-center gap-4">
 
           {fieldDefs.map((field) => {
 
@@ -686,7 +686,7 @@ export default function DepartmentPanel({
 
                     {canEdit && (
 
-                      <div className="mt-2 mb-3">
+                      <div className="">
 
                         <UploadImage 
 
