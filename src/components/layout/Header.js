@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/lib/use-toast';
 import { initializePusher, bindPusherEvents } from '@/lib/pusher';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
 export default function Header() {
@@ -17,21 +17,20 @@ export default function Header() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await fetch('/api/notifications');
+      const data = await res.json();
+      if (data.success) {
+        setNotifications(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    }
+  }, []);
+
   useEffect(() => {
     if (session?.user) {
-      const fetchNotifications = async () => {
-        try {
-          const res = await fetch('/api/notifications');
-          const data = await res.json();
-          console.log('Fetched notifications:', data);
-          if (data.success) {
-            setNotifications(data.data);
-          }
-        } catch (error) {
-          console.error('Failed to fetch notifications:', error);
-        }
-      };
-
       fetchNotifications();
 
       initializePusher();
@@ -39,56 +38,26 @@ export default function Header() {
       const cleanup = bindPusherEvents({
         'srd:new': (data) => {
           console.log('Pusher event received: srd:new', data);
-          const newNotification = {
-            _id: `new-${data._id}-${Date.now()}`,
-            srd: data._id,
-            type: 'new',
-            message: `New SRD created: ${data.refNo}`,
-            timestamp: new Date(data.timestamp),
-            read: false,
-          };
-          setNotifications(prev => {
-            console.log('Updating notifications state:', [newNotification, ...prev]);
-            return [newNotification, ...prev];
-          });
-          
           toast({
             title: 'New SRD Created',
             description: `SRD ${data.refNo} has been created`,
           });
+          fetchNotifications();
         },
         'srd:update': (data) => {
-          const newNotification = {
-            ...data,
-            _id: data._id, // Use the _id from the database
-            type: 'update',
-            message: `SRD ${data.id} updated`,
-            timestamp: new Date(data.timestamp),
-            read: false,
-          };
-          setNotifications(prev => [newNotification, ...prev]);
-          
           toast({
             title: 'SRD Updated',
             description: `SRD ${data.id} has been updated`,
           });
+          fetchNotifications();
         },
         'srd:flag': (data) => {
-          const newNotification = {
-            ...data,
-            _id: data._id,
-            type: 'flag',
-            message: `SRD ${data.id} flagged by ${data.department}`,
-            timestamp: new Date(data.timestamp),
-            read: false,
-          };
-          setNotifications(prev => [newNotification, ...prev]);
-          
           toast({
             title: 'SRD Flagged',
             description: `SRD ${data.id} flagged: ${data.comment?.text}`,
             variant: 'destructive'
           });
+          fetchNotifications();
         }
       });
       
@@ -96,7 +65,7 @@ export default function Header() {
         cleanup();
       };
     }
-  }, [session, toast]);
+  }, [session, toast, fetchNotifications]);
 
   useEffect(() => {
     setUnreadCount(notifications.filter(n => !n.read).length);
@@ -107,6 +76,7 @@ export default function Header() {
   };
 
   const markOneAsRead = async (id) => {
+    const originalNotifications = notifications;
     setNotifications(prev => 
       prev.map(notif => notif._id === id ? { ...notif, read: true } : notif)
     );
@@ -116,14 +86,12 @@ export default function Header() {
       });
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
-      // Optionally revert state if API call fails
-      setNotifications(prev => 
-        prev.map(notif => notif._id === id ? { ...notif, read: false } : notif)
-      );
+      setNotifications(originalNotifications);
     }
   };
 
   const markAllAsRead = async () => {
+    const originalNotifications = notifications;
     try {
       const unreadIds = notifications.filter(n => !n.read).map(n => n._id);
       if (unreadIds.length === 0) return;
@@ -137,13 +105,12 @@ export default function Header() {
       });
     } catch (error) {
       console.error('Failed to mark notifications as read:', error);
-      // Revert state on error
-      setNotifications(prev => prev.map(notif => ({...notif, read: unreadIds.includes(notif._id) ? false : notif.read })));
+      setNotifications(originalNotifications);
     }
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <h1 className="text-2xl font-bold text-gray-900">SRD Tracking System</h1>
