@@ -295,7 +295,7 @@ export default function SRDTable({ srds, department }) {
                               <Star className="h-2.5 w-2.5 fill-current" />
                             </div>
                             {allImages.length > 1 && (
-                              <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold shadow">
+                              <span className="absolute -top-1 -left-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold shadow">
                                 {allImages.length}
                               </span>
                             )}

@@ -17,7 +17,6 @@ export const authOptions = {
         try {
           await dbConnect();
           console.log("Database connected");
-
           const user = await User.findOne({ email: credentials.email });
           console.log("User found:", user ? user.email : null);
           
