@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
@@ -12,6 +12,8 @@ import { AlertCircle, Mail, Lock } from 'lucide-react';
 
 
 
+
+
 export default function LoginPage() {
   const {data : session}= useSession();
   const [email, setEmail] = useState('');
@@ -20,27 +22,28 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    if(session){
-
-      console.log("session in login",session);
-      
-      if (session?.user?.role) {
+  useEffect(() => {
+    if (session) {
+      if (session?.user?.role){
+        console.log("session in login",session);
         const role = session.user.role;
-        
-        
         if (role === 'admin') {
           router.push('/dashboard/admin');
         } 
         else {
-          
           router.push(`/dashboard/${role}`);
         }
       } 
     }
+  }, [session, router]);
+  
+
+
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
     try {
       const result = await signIn('credentials', {
@@ -53,7 +56,6 @@ export default function LoginPage() {
         setError('Invalid email or password');
       } else {
         console.log('Login successful',result);
-        router.push(`/dashboard/${session.user.role}`);
       }
     } catch (error) {
       setError('An error occurred during login');
