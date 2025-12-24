@@ -15,7 +15,7 @@ export async function GET(request) {
         // return only active fields by default
         filter.active = true;
 
-        const fields = await Field.find(filter).sort({ name: 1 });
+        const fields = await Field.find(filter);
         return NextResponse.json(fields);
     } catch (error) {
         console.error('GET /api/newField error', error);

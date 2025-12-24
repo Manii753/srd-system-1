@@ -215,6 +215,7 @@ export default function Page() {
               required
             >
               <option value="">Select Type</option>
+              <option value="heading">Add Heading</option>
               <option value="text">Text</option>
               <option value="number">Number</option>
               <option value="date">Date</option>

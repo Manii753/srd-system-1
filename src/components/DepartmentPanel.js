@@ -199,8 +199,16 @@ export default function DepartmentPanel({
             case 'text':
             case 'number':
             case 'date':
+            case 'heading':
               const hasValue = hasFieldValue(name);
               const isEditing = editingFields.has(name);
+              if (type === 'heading') {
+                return (
+                  <div key={_id} className="md:col-span-3">
+                    <h3 className="text-xl font-semibold text-gray-700 border-b pb-1 mb-4">{name}</h3>
+                  </div>
+                );
+              } 
               return (
                 <div key={_id}>
                   <Label htmlFor={name}>{name}</Label>
@@ -271,6 +279,7 @@ export default function DepartmentPanel({
                   </div>
                 </div>
               );
+
 
             case 'boolean':
               const hasBoolValue = hasFieldValue(name);
@@ -441,4 +450,3 @@ export default function DepartmentPanel({
   );
 }
 
-  
