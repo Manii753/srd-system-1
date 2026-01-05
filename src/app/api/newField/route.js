@@ -16,7 +16,10 @@ export async function GET(request) {
         filter.active = true;
 
         // Sort by order field, then by creation date
-        const fields = await Field.find(filter).sort({ order: 1, createdAt: 1 });
+        const fields = await Field.find(filter)
+            .populate('parentHeading', 'name type')
+            .sort({ order: 1, createdAt: 1 });
+        
         return NextResponse.json(fields);
     } catch (error) {
         console.error('GET /api/newField error', error);
@@ -38,7 +41,9 @@ export async function POST(request) {
         }
         
         const newField = await Field.create(body);
-        return NextResponse.json(newField, { status: 201 });
+        const populatedField = await Field.findById(newField._id).populate('parentHeading', 'name type');
+        
+        return NextResponse.json(populatedField, { status: 201 });
     } catch (error) {
         console.error('POST /api/newField error', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
@@ -55,7 +60,9 @@ export async function PATCH(request) {
         const fieldId = id || body.id;
         if (!fieldId) return NextResponse.json({ error: 'Missing field id' }, { status: 400 });
 
-        const updated = await Field.findByIdAndUpdate(fieldId, body, { new: true });
+        const updated = await Field.findByIdAndUpdate(fieldId, body, { new: true })
+            .populate('parentHeading', 'name type');
+        
         return NextResponse.json(updated);
     } catch (error) {
         console.error('PATCH /api/newField error', error);
@@ -72,6 +79,16 @@ export async function DELETE(request) {
         if (!id) return NextResponse.json({ error: 'Missing field id' }, { status: 400 });
 
         await dbConnect();
+        
+        // If deleting a heading, also remove it as parent from child fields
+        const field = await Field.findById(id);
+        if (field && field.type === 'heading') {
+            await Field.updateMany(
+                { parentHeading: id },
+                { $unset: { parentHeading: 1 } }
+            );
+        }
+        
         if (hard) {
             await Field.findByIdAndDelete(id);
             return NextResponse.json({ success: true });

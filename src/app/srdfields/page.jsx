@@ -1,7 +1,7 @@
 'use client'
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { PlusCircleIcon, GripVertical, Folder, FolderOpen } from "lucide-react";
+import { PlusCircleIcon, GripVertical, Folder, FolderOpen, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   DndContext,
@@ -30,7 +30,7 @@ const DEPARTMENTS = [
 ];
 
 // Sortable Field Item Component
-function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level = 0 }) {
+function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level = 0, isExpanded, onToggleExpanded }) {
   const {
     attributes,
     listeners,
@@ -46,46 +46,135 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
     opacity: isDragging ? 0.5 : 1,
   };
 
+  if (isHeading) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`
+          bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg shadow-sm hover:shadow-md transition-all
+          ${isDragging ? 'z-50 shadow-lg' : ''}
+        `}
+      >
+        {/* Heading Header */}
+        <div className="flex items-center p-4">
+          {/* Drag Handle */}
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab hover:cursor-grabbing mr-3 text-blue-500 hover:text-blue-700"
+          >
+            <GripVertical className="h-5 w-5" />
+          </div>
+
+          {/* Expand/Collapse Button */}
+          <button
+            onClick={() => onToggleExpanded(field._id)}
+            className="mr-3 text-blue-600 hover:text-blue-800 transition-colors"
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-5 w-5" />
+            ) : (
+              <ChevronRight className="h-5 w-5" />
+            )}
+          </button>
+
+          {/* Heading Icon */}
+          <div className="mr-3">
+            {isExpanded ? (
+              <FolderOpen className="h-6 w-6 text-blue-600" />
+            ) : (
+              <Folder className="h-6 w-6 text-blue-600" />
+            )}
+          </div>
+
+          {/* Heading Info */}
+          <div className="flex-1">
+            <div className="flex items-center space-x-3">
+              <span className="font-semibold text-blue-900 text-lg">
+                📁 {field.name}
+              </span>
+              <span className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                Section Header
+              </span>
+              <span className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                {field.department?.toUpperCase() || 'GLOBAL'}
+              </span>
+            </div>
+            {children && (
+              <div className="text-sm text-blue-600 mt-1">
+                {Array.isArray(children) ? children.length : 0} fields in this section
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center space-x-2">
+            <button
+              className="text-blue-600 hover:text-blue-900 px-3 py-1 text-sm font-medium"
+              onClick={() => onEdit(field)}
+            >
+              Edit
+            </button>
+            <button
+              className="text-red-600 hover:text-red-900 px-3 py-1 text-sm font-medium"
+              onClick={() => onDelete(field)}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+
+        {/* Collapsible Children */}
+        {isExpanded && children && (
+          <div className="px-4 pb-4">
+            <div className="border-t border-blue-200 pt-3">
+              <div className="space-y-2">
+                {children}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Regular field item
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={`
-        bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow
+        bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-shadow
         ${isDragging ? 'z-50' : ''}
-        ${isHeading ? 'border-l-4 border-l-blue-500 bg-blue-50' : 'border-gray-200'}
-        ${level > 0 ? 'ml-8' : ''}
+        ${level > 0 ? 'ml-4' : ''}
       `}
     >
-      <div className="flex items-center p-4">
+      <div className="flex items-center p-3">
         {/* Drag Handle */}
         <div
           {...attributes}
           {...listeners}
           className="cursor-grab hover:cursor-grabbing mr-3 text-gray-400 hover:text-gray-600"
         >
-          <GripVertical className="h-5 w-5" />
+          <GripVertical className="h-4 w-4" />
         </div>
 
         {/* Field Icon */}
         <div className="mr-3">
-          {isHeading ? (
-            <FolderOpen className="h-5 w-5 text-blue-600" />
-          ) : (
-            <div className="w-3 h-3 rounded-full bg-gray-400"></div>
-          )}
+          <div className="w-3 h-3 rounded-full bg-gray-400"></div>
         </div>
 
         {/* Field Info */}
         <div className="flex-1">
           <div className="flex items-center space-x-3">
-            <span className={`font-medium ${isHeading ? 'text-blue-900' : 'text-gray-900'}`}>
+            <span className="font-medium text-gray-900">
               {field.name}
             </span>
-            <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
               {field.type}
             </span>
-            <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
               {field.department?.toUpperCase() || 'GLOBAL'}
             </span>
             {field.isRequired && (
@@ -104,26 +193,19 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
         {/* Actions */}
         <div className="flex items-center space-x-2">
           <button
-            className="text-blue-600 hover:text-blue-900 px-3 py-1 text-sm"
+            className="text-blue-600 hover:text-blue-900 px-2 py-1 text-sm"
             onClick={() => onEdit(field)}
           >
             Edit
           </button>
           <button
-            className="text-red-600 hover:text-red-900 px-3 py-1 text-sm"
+            className="text-red-600 hover:text-red-900 px-2 py-1 text-sm"
             onClick={() => onDelete(field)}
           >
             Delete
           </button>
         </div>
       </div>
-
-      {/* Children (for nested fields under headings) */}
-      {children && (
-        <div className="pb-2">
-          {children}
-        </div>
-      )}
     </div>
   );
 }
@@ -142,6 +224,7 @@ export default function Page() {
   const [editingId, setEditingId] = useState(null);
   const [selectedDepartment, setSelectedDepartment] = useState('vmd');
   const [saving, setSaving] = useState(false);
+  const [expandedSections, setExpandedSections] = useState(new Set());
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -154,6 +237,12 @@ export default function Page() {
     fetchFields();
   }, [selectedDepartment]);
 
+  // Auto-expand all sections when fields are loaded
+  useEffect(() => {
+    const headingIds = fields.filter(f => f.type === 'heading').map(f => f._id);
+    setExpandedSections(new Set(headingIds));
+  }, [fields]);
+
   async function fetchFields() {
     try {
       const res = await fetch(`/api/newField?department=${selectedDepartment}`);
@@ -164,14 +253,26 @@ export default function Page() {
     }
   }
 
-  function openNew() {
+  function toggleSection(headingId) {
+    setExpandedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(headingId)) {
+        newSet.delete(headingId);
+      } else {
+        newSet.add(headingId);
+      }
+      return newSet;
+    });
+  }
+
+  function openNew(parentHeading = null) {
     setValues({ 
       name: "", 
       type: "", 
       placeholder: "", 
       department: selectedDepartment, 
       isRequired: false,
-      parentHeading: null 
+      parentHeading: parentHeading 
     });
     setEditingId(null);
     setModalOpen(true);
@@ -273,7 +374,7 @@ export default function Page() {
     }
   }
 
-  // Group fields by headings
+  // Group fields by headings for display
   const groupedFields = () => {
     const headings = fields.filter(f => f.type === 'heading');
     const regularFields = fields.filter(f => f.type !== 'heading');
@@ -285,11 +386,13 @@ export default function Page() {
 
     // Add headings with their children
     headings.forEach(heading => {
-      result.push(heading);
       const childFields = regularFields.filter(f => 
         f.parentHeading && f.parentHeading.toString() === heading._id.toString()
       );
-      result.push(...childFields);
+      result.push({
+        ...heading,
+        children: childFields
+      });
     });
 
     return result;
@@ -304,7 +407,7 @@ export default function Page() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Manage SRD Fields</h1>
-          <p className="text-gray-600 mt-1">Drag and drop to reorder fields. Use headings to group related fields.</p>
+          <p className="text-gray-600 mt-1">Organize fields into sections and drag to reorder. Click sections to expand/collapse.</p>
         </div>
         <div className="flex items-center space-x-3">
           <select
@@ -321,7 +424,7 @@ export default function Page() {
           <Button
             variant="outline"
             className="flex items-center bg-black text-white border-gray-600 hover:bg-black/50 hover:border-gray-500"
-            onClick={openNew}
+            onClick={() => openNew()}
           >
             <PlusCircleIcon className="h-4 w-4 mr-2" />
             Add New Field
@@ -341,11 +444,15 @@ export default function Page() {
           <div className="text-center py-12 bg-gray-50 rounded-lg">
             <Folder className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No fields yet</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by creating your first field.</p>
-            <div className="mt-6">
-              <Button onClick={openNew}>
+            <p className="mt-1 text-sm text-gray-500">Get started by creating your first field or section.</p>
+            <div className="mt-6 flex justify-center space-x-3">
+              <Button onClick={() => openNew()}>
                 <PlusCircleIcon className="h-4 w-4 mr-2" />
-                Add New Field
+                Add Field
+              </Button>
+              <Button variant="outline" onClick={() => openNew()}>
+                <Folder className="h-4 w-4 mr-2" />
+                Add Section
               </Button>
             </div>
           </div>
@@ -356,20 +463,53 @@ export default function Page() {
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={displayFields.map(f => f._id)}
+              items={fields.map(f => f._id)}
               strategy={verticalListSortingStrategy}
             >
-              <div className="space-y-3">
-                {displayFields.map((field) => (
-                  <SortableFieldItem
-                    key={field._id}
-                    field={field}
-                    onEdit={openEdit}
-                    onDelete={handleDelete}
-                    isHeading={field.type === 'heading'}
-                    level={field.parentHeading ? 1 : 0}
-                  />
-                ))}
+              <div className="space-y-4">
+                {displayFields.map((field) => {
+                  if (field.type === 'heading') {
+                    const isExpanded = expandedSections.has(field._id);
+                    return (
+                      <div key={field._id} className="space-y-2">
+                        <SortableFieldItem
+                          field={field}
+                          onEdit={openEdit}
+                          onDelete={handleDelete}
+                          isHeading={true}
+                          isExpanded={isExpanded}
+                          onToggleExpanded={toggleSection}
+                          children={field.children}
+                        />
+                        
+                        {/* Add Field to Section Button */}
+                        {isExpanded && (
+                          <div className="ml-8">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openNew(field._id)}
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Field to "{field.name}"
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <SortableFieldItem
+                        key={field._id}
+                        field={field}
+                        onEdit={openEdit}
+                        onDelete={handleDelete}
+                        isHeading={false}
+                      />
+                    );
+                  }
+                })}
               </div>
             </SortableContext>
           </DndContext>
@@ -443,7 +583,7 @@ export default function Page() {
                 {values.type !== 'heading' && headingOptions.length > 0 && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Group Under Heading (Optional)
+                      Group Under Section (Optional)
                     </label>
                     <select
                       className="w-full p-2 border border-gray-300 rounded"
