@@ -127,7 +127,12 @@ export default function DynamicSidebar() {
         const data = await response.json();
         
         if (data.success) {
-          const userDept = data.data.find(d => d.slug === userRole);
+          // Find department by matching both uppercase and lowercase slugs
+          const userDept = data.data.find(d => 
+            d.slug === userRole || 
+            d.slug === userRole.toUpperCase() || 
+            d.slug.toLowerCase() === userRole
+          );
           
           if (userDept) {
             // Only VMD can create SRDs
@@ -148,7 +153,7 @@ export default function DynamicSidebar() {
             ];
 
             // Add Create SRD only for VMD
-            if (userRole === 'vmd') {
+            if (userRole === 'vmd' || userRole === 'VMD') {
               menuItems.push({ 
                 name: 'Create SRD', 
                 href: `/dashboard/${userRole}/create`, 
@@ -179,7 +184,7 @@ export default function DynamicSidebar() {
             );
 
             // Add Production and Ready For Production tabs for VMD
-            if (userRole === 'vmd') {
+            if (userRole === 'vmd' || userRole === 'VMD') {
               menuItems.push(
                 { 
                   name: 'Production', 
@@ -191,7 +196,21 @@ export default function DynamicSidebar() {
             }
 
             setMenuItems(menuItems);
+          } else {
+            // Fallback menu if department not found
+            setMenuItems([
+              { name: 'Home', href: `/dashboard/${userRole}`, icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
+              { name: 'Inbox', href: '/inbox', icon: Inbox, gradient: 'from-pink-500 to-rose-500', showBadge: true },
+              { name: 'SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
+            ]);
           }
+        } else {
+          // Fallback menu if API fails
+          setMenuItems([
+            { name: 'Home', href: `/dashboard/${userRole}`, icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
+            { name: 'Inbox', href: '/inbox', icon: Inbox, gradient: 'from-pink-500 to-rose-500', showBadge: true },
+            { name: 'SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
+          ]);
         }
       }
     } catch (error) {
@@ -199,6 +218,7 @@ export default function DynamicSidebar() {
       // Fallback to basic menu
       setMenuItems([
         { name: 'Home', href: `/dashboard/${userRole}`, icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
+        { name: 'Inbox', href: '/inbox', icon: Inbox, gradient: 'from-pink-500 to-rose-500', showBadge: true },
         { name: 'SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
       ]);
     } finally {

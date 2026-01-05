@@ -99,9 +99,15 @@ export default function VMDDashboard() {
 
   const getStats = () => {
     const total = srds.length;
-    const pending = srds.filter(srd => srd.status.vmd === 'pending').length;
-    const approved = srds.filter(srd => srd.status.vmd === 'approved').length;
-    const flagged = srds.filter(srd => srd.status.vmd === 'flagged').length;
+    const pending = srds.filter(srd => 
+      (srd.status?.vmd === 'pending' || srd.status?.VMD === 'pending')
+    ).length;
+    const approved = srds.filter(srd => 
+      (srd.status?.vmd === 'approved' || srd.status?.VMD === 'approved')
+    ).length;
+    const flagged = srds.filter(srd => 
+      (srd.status?.vmd === 'flagged' || srd.status?.VMD === 'flagged')
+    ).length;
     
     return { total, pending, approved, flagged };
   };

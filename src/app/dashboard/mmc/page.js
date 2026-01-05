@@ -51,10 +51,18 @@ export default function MMCDashboard() {
 
   const getStats = () => {
     const total = srds.length;
-    const pending = srds.filter(srd => srd.status.mmc === 'pending').length;
-    const inProgress = srds.filter(srd => srd.status.mmc === 'in-progress').length;
-    const approved = srds.filter(srd => srd.status.mmc === 'approved').length;
-    const flagged = srds.filter(srd => srd.status.mmc === 'flagged').length;
+    const pending = srds.filter(srd => 
+      (srd.status?.mmc === 'pending' || srd.status?.MMC === 'pending')
+    ).length;
+    const inProgress = srds.filter(srd => 
+      (srd.status?.mmc === 'in-progress' || srd.status?.MMC === 'in-progress')
+    ).length;
+    const approved = srds.filter(srd => 
+      (srd.status?.mmc === 'approved' || srd.status?.MMC === 'approved')
+    ).length;
+    const flagged = srds.filter(srd => 
+      (srd.status?.mmc === 'flagged' || srd.status?.MMC === 'flagged')
+    ).length;
     
     return { total, pending, inProgress, approved, flagged };
   };

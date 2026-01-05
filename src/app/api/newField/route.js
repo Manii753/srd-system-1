@@ -15,7 +15,8 @@ export async function GET(request) {
         // return only active fields by default
         filter.active = true;
 
-        const fields = await Field.find(filter);
+        // Sort by order field, then by creation date
+        const fields = await Field.find(filter).sort({ order: 1, createdAt: 1 });
         return NextResponse.json(fields);
     } catch (error) {
         console.error('GET /api/newField error', error);
@@ -28,6 +29,14 @@ export async function POST(request) {
     try {
         const body = await request.json();
         await dbConnect();
+        
+        // If no order specified, set it to the highest order + 1 for the department
+        if (body.order === undefined) {
+            const filter = { department: body.department || 'global', active: true };
+            const lastField = await Field.findOne(filter).sort({ order: -1 });
+            body.order = lastField ? lastField.order + 1 : 0;
+        }
+        
         const newField = await Field.create(body);
         return NextResponse.json(newField, { status: 201 });
     } catch (error) {

@@ -65,6 +65,14 @@ export default function SRDCard({ srd, department }) {
     }
   };
 
+  // Helper function to get status for department (handles both uppercase and lowercase)
+  const getDepartmentStatus = (srd, dept) => {
+    if (!srd.status) return 'pending';
+    return srd.status[dept] || srd.status[dept.toUpperCase()] || srd.status[dept.toLowerCase()] || 'pending';
+  };
+
+  const departmentStatus = getDepartmentStatus(srd, department);
+
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader>
@@ -72,8 +80,8 @@ export default function SRDCard({ srd, department }) {
           <div>
             <CardTitle className="text-lg font-semibold">{srd.refNo}</CardTitle>
           </div>
-          <Badge className={getStatusColor(department === 'admin' ? (srd.readyForProduction ? 'approved' : 'in-progress') : srd.status[department])}>
-            {srd.inProduction && srd.readyForProduction ?  "In Production"  : (srd.readyForProduction ? 'Ready for Production' : srd.status[department])}
+          <Badge className={getStatusColor(department === 'admin' ? (srd.readyForProduction ? 'approved' : 'in-progress') : departmentStatus)}>
+            {srd.inProduction && srd.readyForProduction ?  "In Production"  : (srd.readyForProduction ? 'Ready for Production' : departmentStatus)}
           </Badge>
         </div>
       </CardHeader>

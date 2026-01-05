@@ -30,7 +30,24 @@ const FieldSchema = new mongoose.Schema({
     active: {
         type: Boolean,
         default: true
+    },
+    // order/sequence for field display (lower numbers appear first)
+    order: {
+        type: Number,
+        default: 0
+    },
+    // parent heading field ID for grouping (null for top-level fields)
+    parentHeading: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Field',
+        default: null
     }
-})
+}, {
+    timestamps: true
+});
+
+// Index for efficient ordering queries
+FieldSchema.index({ department: 1, order: 1 });
+FieldSchema.index({ parentHeading: 1, order: 1 });
 
 export default mongoose.models.Field || mongoose.model("Field", FieldSchema);

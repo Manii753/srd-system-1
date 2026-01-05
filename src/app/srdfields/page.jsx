@@ -1,8 +1,26 @@
 'use client'
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { PlusCircleIcon } from "lucide-react";
+import { PlusCircleIcon, GripVertical, Folder, FolderOpen } from "lucide-react";
 import { useEffect, useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const DEPARTMENTS = [
   'vmd',
@@ -11,52 +29,174 @@ const DEPARTMENTS = [
   'mmc'
 ];
 
+// Sortable Field Item Component
+function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level = 0 }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: field._id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`
+        bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow
+        ${isDragging ? 'z-50' : ''}
+        ${isHeading ? 'border-l-4 border-l-blue-500 bg-blue-50' : 'border-gray-200'}
+        ${level > 0 ? 'ml-8' : ''}
+      `}
+    >
+      <div className="flex items-center p-4">
+        {/* Drag Handle */}
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab hover:cursor-grabbing mr-3 text-gray-400 hover:text-gray-600"
+        >
+          <GripVertical className="h-5 w-5" />
+        </div>
+
+        {/* Field Icon */}
+        <div className="mr-3">
+          {isHeading ? (
+            <FolderOpen className="h-5 w-5 text-blue-600" />
+          ) : (
+            <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+          )}
+        </div>
+
+        {/* Field Info */}
+        <div className="flex-1">
+          <div className="flex items-center space-x-3">
+            <span className={`font-medium ${isHeading ? 'text-blue-900' : 'text-gray-900'}`}>
+              {field.name}
+            </span>
+            <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+              {field.type}
+            </span>
+            <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+              {field.department?.toUpperCase() || 'GLOBAL'}
+            </span>
+            {field.isRequired && (
+              <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded">
+                Required
+              </span>
+            )}
+          </div>
+          {field.placeholder && (
+            <div className="text-sm text-gray-500 mt-1">
+              Placeholder: {field.placeholder}
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center space-x-2">
+          <button
+            className="text-blue-600 hover:text-blue-900 px-3 py-1 text-sm"
+            onClick={() => onEdit(field)}
+          >
+            Edit
+          </button>
+          <button
+            className="text-red-600 hover:text-red-900 px-3 py-1 text-sm"
+            onClick={() => onDelete(field)}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+
+      {/* Children (for nested fields under headings) */}
+      {children && (
+        <div className="pb-2">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Page() {
   const [modalOpen, setModalOpen] = useState(false);
-  // form values mirror Field model
-  const [values, setValues] = useState({ name: "", type: "", placeholder: "", department: 'VMD', isRequired: false });
-  // fields from API
+  const [values, setValues] = useState({ 
+    name: "", 
+    type: "", 
+    placeholder: "", 
+    department: 'vmd', 
+    isRequired: false,
+    parentHeading: null 
+  });
   const [fields, setFields] = useState([]);
-  // current editing id
   const [editingId, setEditingId] = useState(null);
+  const [selectedDepartment, setSelectedDepartment] = useState('vmd');
+  const [saving, setSaving] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
-    // fetch fields on mount
-    async function fetchFields() {
-      try {
-        const res = await fetch('/api/newField');
-        const data = await res.json();
-        setFields(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('Failed to fetch fields', err);
-      }
-    }
     fetchFields();
-  }, []);
+  }, [selectedDepartment]);
+
+  async function fetchFields() {
+    try {
+      const res = await fetch(`/api/newField?department=${selectedDepartment}`);
+      const data = await res.json();
+      setFields(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to fetch fields', err);
+    }
+  }
 
   function openNew() {
-    setValues({ name: "", type: "", placeholder: "", department: 'VMD', isRequired: false });
+    setValues({ 
+      name: "", 
+      type: "", 
+      placeholder: "", 
+      department: selectedDepartment, 
+      isRequired: false,
+      parentHeading: null 
+    });
     setEditingId(null);
     setModalOpen(true);
   }
 
-  function openEdit(idx) {
-    const f = fields[idx];
-    if (!f) return;
-    setValues({ name: f.name || '', type: f.type || 'text', placeholder: f.placeholder || '', department: f.department || 'VMD', isRequired: !!f.isRequired });
-    setEditingId(f._id);
+  function openEdit(field) {
+    setValues({ 
+      name: field.name || '', 
+      type: field.type || 'text', 
+      placeholder: field.placeholder || '', 
+      department: field.department || selectedDepartment, 
+      isRequired: !!field.isRequired,
+      parentHeading: field.parentHeading || null
+    });
+    setEditingId(field._id);
     setModalOpen(true);
   }
 
-  async function handleDelete(idx) {
-    const f = fields[idx];
-    if (!f) return;
-    if (!confirm(`Delete field "${f.name}"? This will disable the field for new SRDs but existing SRD values remain.`)) return;
+  async function handleDelete(field) {
+    if (!confirm(`Delete field "${field.name}"? This will disable the field for new SRDs but existing SRD values remain.`)) return;
+    
     try {
-      const res = await fetch(`/api/newField?id=${f._id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/newField?id=${field._id}`, { method: 'DELETE' });
       const data = await res.json();
-      // update list (soft-delete will set active=false and API returns updated doc)
-      setFields((prev) => prev.filter((p) => p._id !== f._id));
+      setFields((prev) => prev.filter((p) => p._id !== field._id));
     } catch (err) {
       console.error('Failed to delete field', err);
       alert('Failed to delete field');
@@ -95,15 +235,89 @@ export default function Page() {
     }
   }
 
+  async function handleDragEnd(event) {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      setSaving(true);
+      
+      const oldIndex = fields.findIndex(field => field._id === active.id);
+      const newIndex = fields.findIndex(field => field._id === over.id);
+      
+      const newFields = arrayMove(fields, oldIndex, newIndex);
+      setFields(newFields);
+
+      // Update order in database
+      try {
+        const fieldOrders = newFields.map((field, index) => ({
+          id: field._id,
+          order: index,
+          parentHeading: field.parentHeading
+        }));
+
+        await fetch('/api/newField/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            fieldOrders, 
+            department: selectedDepartment 
+          })
+        });
+      } catch (err) {
+        console.error('Failed to update field order', err);
+        // Revert on error
+        fetchFields();
+      } finally {
+        setSaving(false);
+      }
+    }
+  }
+
+  // Group fields by headings
+  const groupedFields = () => {
+    const headings = fields.filter(f => f.type === 'heading');
+    const regularFields = fields.filter(f => f.type !== 'heading');
+    const result = [];
+
+    // Add fields without parent heading first
+    const orphanFields = regularFields.filter(f => !f.parentHeading);
+    result.push(...orphanFields);
+
+    // Add headings with their children
+    headings.forEach(heading => {
+      result.push(heading);
+      const childFields = regularFields.filter(f => 
+        f.parentHeading && f.parentHeading.toString() === heading._id.toString()
+      );
+      result.push(...childFields);
+    });
+
+    return result;
+  };
+
+  const displayFields = groupedFields();
+  const headingOptions = fields.filter(f => f.type === 'heading');
+
   return (
     <Layout>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Edit SRD Fields</h1>
-          <p className="text-gray-600 mt-1">Manage SRD fields used in records.</p>
+          <h1 className="text-3xl font-bold text-gray-900">Manage SRD Fields</h1>
+          <p className="text-gray-600 mt-1">Drag and drop to reorder fields. Use headings to group related fields.</p>
         </div>
         <div className="flex items-center space-x-3">
+          <select
+            className="px-3 py-2 border border-gray-300 rounded-md"
+            value={selectedDepartment}
+            onChange={(e) => setSelectedDepartment(e.target.value)}
+          >
+            {DEPARTMENTS.map((dept) => (
+              <option key={dept} value={dept}>
+                {dept.toUpperCase()}
+              </option>
+            ))}
+          </select>
           <Button
             variant="outline"
             className="flex items-center bg-black text-white border-gray-600 hover:bg-black/50 hover:border-gray-500"
@@ -117,48 +331,48 @@ export default function Page() {
 
       {/* Content Area */}
       <div className="mt-8">
-        {fields.length === 0 ? (
-          <div className="text-gray-600">No fields yet. Click &quot;Add New Field&quot; to create one.</div>
-        ) : (
-          <div className="overflow-x-auto bg-white rounded shadow-sm">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Required</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {fields.map((f, idx) => (
-                  <tr key={f._id || idx}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{f.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{f.type}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{f.department || 'VMD'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{f.isRequired ? "Yes" : "No"}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                      <button
-                        className="text-blue-600 hover:text-blue-900 mr-4"
-                        onClick={() => openEdit(idx)}
-                        aria-label={`Edit ${f.name}`}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="text-red-600 hover:text-red-900"
-                        onClick={() => handleDelete(idx)}
-                        aria-label={`Delete ${f.name}`}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {saving && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="text-blue-800">Saving field order...</div>
           </div>
+        )}
+
+        {displayFields.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-lg">
+            <Folder className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No fields yet</h3>
+            <p className="mt-1 text-sm text-gray-500">Get started by creating your first field.</p>
+            <div className="mt-6">
+              <Button onClick={openNew}>
+                <PlusCircleIcon className="h-4 w-4 mr-2" />
+                Add New Field
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={displayFields.map(f => f._id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-3">
+                {displayFields.map((field) => (
+                  <SortableFieldItem
+                    key={field._id}
+                    field={field}
+                    onEdit={openEdit}
+                    onDelete={handleDelete}
+                    isHeading={field.type === 'heading'}
+                    level={field.parentHeading ? 1 : 0}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 
@@ -214,16 +428,37 @@ export default function Page() {
                     required
                   >
                     <option value="">Select Type</option>
-                    <option value="heading">Add Heading</option>
-                    <option value="text">Text</option>
-                    <option value="number">Number</option>
-                    <option value="date">Date</option>
-                    <option value="boolean">Boolean</option>
-                    <option value="textarea">Textarea</option>
-                    <option value="file">File Upload</option>
-                    <option value="image">Image Upload</option>
+                    <option value="heading">📁 Heading (Section Separator)</option>
+                    <option value="text">📝 Text</option>
+                    <option value="number">🔢 Number</option>
+                    <option value="date">📅 Date</option>
+                    <option value="boolean">☑️ Boolean (Yes/No)</option>
+                    <option value="textarea">📄 Textarea</option>
+                    <option value="file">📎 File Upload</option>
+                    <option value="image">🖼️ Image Upload</option>
                   </select>
                 </div>
+
+                {/* Parent Heading (only for non-heading fields) */}
+                {values.type !== 'heading' && headingOptions.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Group Under Heading (Optional)
+                    </label>
+                    <select
+                      className="w-full p-2 border border-gray-300 rounded"
+                      value={values.parentHeading || ''}
+                      onChange={(e) => setValues({ ...values, parentHeading: e.target.value || null })}
+                    >
+                      <option value="">No Grouping</option>
+                      {headingOptions.map((heading) => (
+                        <option key={heading._id} value={heading._id}>
+                          📁 {heading.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {/* Department */}
                 <div>
@@ -233,9 +468,7 @@ export default function Page() {
                   <select
                     className="w-full p-2 border border-gray-300 rounded"
                     value={values.department}
-                    onChange={(e) =>
-                      setValues({ ...values, department: e.target.value })
-                    }
+                    onChange={(e) => setValues({ ...values, department: e.target.value })}
                   >
                     {DEPARTMENTS.map((d) => (
                       <option key={d} value={d}>
@@ -246,7 +479,7 @@ export default function Page() {
                 </div>
 
                 {/* Placeholder */}
-                {values.type !== 'heading' &&
+                {values.type !== 'heading' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Placeholder (optional)
@@ -255,26 +488,23 @@ export default function Page() {
                       type="text"
                       className="w-full p-2 border border-gray-300 rounded"
                       value={values.placeholder}
-                      onChange={(e) =>
-                        setValues({ ...values, placeholder: e.target.value })
-                      }
+                      onChange={(e) => setValues({ ...values, placeholder: e.target.value })}
                     />
                   </div>
-                }
-
+                )}
 
                 {/* Required */}
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    className="form-checkbox h-4 w-4"
-                    checked={values.isRequired}
-                    onChange={(e) =>
-                      setValues({ ...values, isRequired: e.target.checked })
-                    }
-                  />
-                  <span className="text-sm text-gray-700">Required</span>
-                </div>
+                {values.type !== 'heading' && (
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      className="form-checkbox h-4 w-4"
+                      checked={values.isRequired}
+                      onChange={(e) => setValues({ ...values, isRequired: e.target.checked })}
+                    />
+                    <span className="text-sm text-gray-700">Required</span>
+                  </div>
+                )}
 
                 {/* Buttons */}
                 <div className="flex justify-end pt-3 border-t border-gray-200">
@@ -297,7 +527,6 @@ export default function Page() {
           </div>
         </>
       )}
-
     </Layout>
   );
 }

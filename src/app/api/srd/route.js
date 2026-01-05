@@ -20,21 +20,35 @@ export async function GET(request) {
 
     let query = {};
 
-    // Filter by department status
+    // Filter by department status (handle both uppercase and lowercase keys)
     if (department && department !== 'all') {
-      query[`status.${department}`] = { $exists: true };
+      const deptUpper = department.toUpperCase();
+      const deptLower = department.toLowerCase();
+      query['$or'] = [
+        { [`status.${deptUpper}`]: { $exists: true } },
+        { [`status.${deptLower}`]: { $exists: true } }
+      ];
     }
 
-    // Filter by status
+    // Filter by status (handle both uppercase and lowercase keys)
     if (status && status !== 'all') {
       if (department && department !== 'all') {
-        query[`status.${department}`] = status;
+        const deptUpper = department.toUpperCase();
+        const deptLower = department.toLowerCase();
+        query['$or'] = [
+          { [`status.${deptUpper}`]: status },
+          { [`status.${deptLower}`]: status }
+        ];
       } else {
         query['$or'] = [
           { 'status.vmd': status },
+          { 'status.VMD': status },
           { 'status.cad': status },
+          { 'status.CAD': status },
           { 'status.commercial': status },
+          { 'status.COMMERCIAL': status },
           { 'status.mmc': status },
+          { 'status.MMC': status },
         ];
       }
     }
@@ -121,7 +135,8 @@ export async function POST(request) {
       const excludedRoles = ['admin', 'production-manager'];
       allDepartments.forEach(dept => {
         if (!excludedRoles.includes(dept.slug)) {
-          initialStatus[dept.slug] = 'pending';
+          // Use lowercase keys to match the frontend expectations
+          initialStatus[dept.slug.toLowerCase()] = 'pending';
         }
       });
       body.status = initialStatus;

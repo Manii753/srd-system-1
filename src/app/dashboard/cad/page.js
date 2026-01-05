@@ -51,10 +51,18 @@ export default function CADDashboard() {
 
   const getStats = () => {
     const total = srds.length;
-    const pending = srds.filter(srd => srd.status.cad === 'pending').length;
-    const inProgress = srds.filter(srd => srd.status.cad === 'in-progress').length;
-    const approved = srds.filter(srd => srd.status.cad === 'approved').length;
-    const flagged = srds.filter(srd => srd.status.cad === 'flagged').length;
+    const pending = srds.filter(srd => 
+      (srd.status?.cad === 'pending' || srd.status?.CAD === 'pending')
+    ).length;
+    const inProgress = srds.filter(srd => 
+      (srd.status?.cad === 'in-progress' || srd.status?.CAD === 'in-progress')
+    ).length;
+    const approved = srds.filter(srd => 
+      (srd.status?.cad === 'approved' || srd.status?.CAD === 'approved')
+    ).length;
+    const flagged = srds.filter(srd => 
+      (srd.status?.cad === 'flagged' || srd.status?.CAD === 'flagged')
+    ).length;
     
     return { total, pending, inProgress, approved, flagged };
   };

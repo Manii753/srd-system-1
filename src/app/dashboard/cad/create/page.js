@@ -13,6 +13,7 @@ import { useToast } from '@/lib/use-toast';
 import { ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
 import UploadImage from '@/components/UploadImage';
+import DynamicFieldsRenderer from '@/components/DynamicFieldsRenderer';
 
 export default function CreateSRDPage() {
   const { data: session, status } = useSession();
@@ -204,38 +205,15 @@ export default function CreateSRDPage() {
             <CardHeader>
               <CardTitle className="text-lg font-semibold">CAD Fields</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {dynamicDefs.length === 0 ? (
-                <div className="text-gray-600">No dynamic fields defined for CAD. Add fields from Admin → Manage SRD Fields.</div>
-              ) : (
-                <div className="space-y-4">
-                  {dynamicDefs.map((def) => {
-                    const val = dynamicValues[def._id] ?? '';
-                    return (
-                      <div key={def._id}>
-                        <Label>{def.name}{def.isRequired ? ' *' : ''}</Label>
-                        {def.type === 'textarea' ? (
-                          <Textarea value={val} onChange={(e) => handleDynamicChange(def._id, e.target.value)} />
-                        ) : def.type === 'number' ? (
-                          <Input type="number" value={val} onChange={(e) => handleDynamicChange(def._id, e.target.value)} />
-                        ) : def.type === 'date' ? (
-                          <Input type="date" value={val} onChange={(e) => handleDynamicChange(def._id, e.target.value)} />
-                        ) : def.type === 'boolean' ? (
-                          <label className="inline-flex items-center space-x-2">
-                            <input type="checkbox" checked={!!val} onChange={(e) => handleDynamicChange(def._id, e.target.checked)} />
-                            <span className="text-sm text-gray-700">{def.placeholder || ''}</span>
-                          </label>
-                        ) : (
-                          <Input value={val} onChange={(e) => handleDynamicChange(def._id, e.target.value)} placeholder={def.placeholder || ''} />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+            <CardContent>
+              <DynamicFieldsRenderer
+                fields={dynamicDefs}
+                values={dynamicValues}
+                onChange={handleDynamicChange}
+              />
 
               {/* Image upload */}
-              <div>
+              <div className="mt-6 pt-6 border-t">
                 <Label>Images</Label>
                 <div className="mt-2">
                   <UploadImage onUploaded={(urls) => setFormData(prev => ({ ...prev, images: Array.isArray(urls) ? urls : (urls ? [urls] : []) }))} />
