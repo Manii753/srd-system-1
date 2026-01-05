@@ -33,35 +33,57 @@ export default function DepartmentPanel({
   const [modalImages, setModalImages] = useState([]);
 
   useEffect(() => {
-    async function fetchFields() {
-      try {
-        const res = await fetch(`/api/newField?department=${department}`);
-        const data = await res.json();
-        const activeFields = Array.isArray(data) ? data.filter(f => f.active) : [];
-        setFieldDefs(activeFields);
+    // For existing SRDs, use the immutable field snapshots stored in dynamicFields
+    // This ensures that changes to field definitions don't affect existing SRDs
+    const srdDynamicFields = srd.dynamicFields?.filter(f => f.department === department) || [];
+    
+    if (srdDynamicFields.length > 0) {
+      // Use the immutable snapshots from the SRD
+      const fieldDefsFromSRD = srdDynamicFields.map(f => ({
+        _id: f.originalFieldId || f.field,
+        name: f.name,
+        type: f.type,
+        placeholder: f.placeholder || '',
+        isRequired: f.isRequired || false,
+        order: f.order || 0,
+        parentHeading: f.parentHeading,
+        active: true // Assume active since it's in an SRD
+      }));
+      
+      setFieldDefs(fieldDefsFromSRD);
+      setFields(srdDynamicFields);
+    } else {
+      // Fallback to fetching current field definitions for new SRDs
+      async function fetchFields() {
+        try {
+          const res = await fetch(`/api/newField?department=${department}`);
+          const data = await res.json();
+          const activeFields = Array.isArray(data) ? data.filter(f => f.active) : [];
+          setFieldDefs(activeFields);
 
-        const existingFieldNames = fields.map(f => f.name);
-        const newFields = [...fields];
+          const existingFieldNames = fields.map(f => f.name);
+          const newFields = [...fields];
 
-        activeFields.forEach(fieldDef => {
-          if (!existingFieldNames.includes(fieldDef.name)) {
-            newFields.push({
-              name: fieldDef.name,
-              value: fieldDef.type === 'boolean' ? false : '',
-              department: department
-            });
+          activeFields.forEach(fieldDef => {
+            if (!existingFieldNames.includes(fieldDef.name)) {
+              newFields.push({
+                name: fieldDef.name,
+                value: fieldDef.type === 'boolean' ? false : '',
+                department: department
+              });
+            }
+          });
+
+          if (newFields.length > fields.length) {
+            setFields(newFields);
           }
-        });
-
-        if (newFields.length > fields.length) {
-          setFields(newFields);
+        } catch (err) {
+          console.error('Failed to fetch fields', err);
         }
-      } catch (err) {
-        console.error('Failed to fetch fields', err);
       }
+      fetchFields();
     }
-    fetchFields();
-  }, [department]);
+  }, [department, srd]);
 
   useEffect(() => {
     setStatus(srd.status?.[department] || 'pending');

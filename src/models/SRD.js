@@ -77,7 +77,12 @@ const srdSchema = new mongoose.Schema({
     slug: { type: String },
     type: { type: String },
     value: { type: mongoose.Schema.Types.Mixed },
-    isRequired: { type: Boolean, default: false }
+    isRequired: { type: Boolean, default: false },
+    placeholder: { type: String },
+    order: { type: Number, default: 0 },
+    parentHeading: { type: String }, // Store heading name, not ID for immutability
+    fieldVersion: { type: Date, default: Date.now }, // Track when field was captured
+    originalFieldId: { type: String } // Store original field ID for reference
   }],
   
   comments: [commentSchema],

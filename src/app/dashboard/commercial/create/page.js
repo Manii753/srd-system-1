@@ -112,7 +112,12 @@ export default function CreateSRDPage() {
             slug: d.slug || d.name.replace(/\s+/g, '_').toLowerCase(),
             type: d.type,
             value: dynamicValues[d._id] ?? null,
-            isRequired: !!d.isRequired
+            isRequired: !!d.isRequired,
+            placeholder: d.placeholder || '',
+            order: d.order || 0,
+            parentHeading: d.parentHeading ? (d.parentHeading.name || d.parentHeading) : null,
+            fieldVersion: new Date(),
+            originalFieldId: d._id
           }))
         }),
       });

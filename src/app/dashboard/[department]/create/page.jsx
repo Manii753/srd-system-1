@@ -112,7 +112,7 @@ export default function DynamicCreateSRD() {
         }
       }
 
-      // Prepare dynamic fields data
+      // Prepare dynamic fields data with immutable snapshots
       const dynamicFieldsArray = fields.map(field => ({
         field: field._id,
         department: field.department,
@@ -120,7 +120,12 @@ export default function DynamicCreateSRD() {
         slug: field.slug,
         type: field.type,
         value: formData.dynamicFields[field._id] || '',
-        isRequired: field.isRequired
+        isRequired: field.isRequired,
+        placeholder: field.placeholder || '',
+        order: field.order || 0,
+        parentHeading: field.parentHeading ? (field.parentHeading.name || field.parentHeading) : null,
+        fieldVersion: new Date(),
+        originalFieldId: field._id
       }));
 
       // Initialize status for all departments (exclude admin and production-manager)

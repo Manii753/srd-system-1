@@ -101,9 +101,9 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
                 {field.department?.toUpperCase() || 'GLOBAL'}
               </span>
             </div>
-            {children && (
+            {field.children && (
               <div className="text-sm text-blue-600 mt-1">
-                {Array.isArray(children) ? children.length : 0} fields in this section
+                {Array.isArray(field.children) ? field.children.length : 0} fields in this section
               </div>
             )}
           </div>
@@ -129,9 +129,7 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
         {isExpanded && children && (
           <div className="px-4 pb-4">
             <div className="border-t border-blue-200 pt-3">
-              <div className="space-y-2">
-                {children}
-              </div>
+              {children}
             </div>
           </div>
         )}
@@ -296,7 +294,7 @@ export default function Page() {
     
     try {
       const res = await fetch(`/api/newField?id=${field._id}`, { method: 'DELETE' });
-      const data = await res.json();
+      await res.json(); // Process response but don't store in unused variable
       setFields((prev) => prev.filter((p) => p._id !== field._id));
     } catch (err) {
       console.error('Failed to delete field', err);
@@ -345,7 +343,39 @@ export default function Page() {
       const oldIndex = fields.findIndex(field => field._id === active.id);
       const newIndex = fields.findIndex(field => field._id === over.id);
       
-      const newFields = arrayMove(fields, oldIndex, newIndex);
+      const draggedField = fields[oldIndex];
+      let newFields = [...fields];
+      
+      // If dragging a heading (section), we need to move it and all its children together
+      if (draggedField.type === 'heading') {
+        // Find all child fields of this heading
+        const childFields = fields.filter(f => 
+          f.parentHeading && f.parentHeading.toString() === draggedField._id.toString()
+        );
+        
+        // Create array of fields to move (heading + children)
+        const fieldsToMove = [draggedField, ...childFields];
+        
+        // Remove the heading and all its children from their current positions
+        newFields = newFields.filter(f => !fieldsToMove.some(moveField => moveField._id === f._id));
+        
+        // Calculate the correct insertion index
+        let insertIndex;
+        if (newIndex > oldIndex) {
+          // Moving down - insert after the target
+          insertIndex = Math.min(newFields.length, newIndex - fieldsToMove.length + 1);
+        } else {
+          // Moving up - insert at the target position
+          insertIndex = Math.max(0, newIndex);
+        }
+        
+        // Insert the heading and children at the new position
+        newFields.splice(insertIndex, 0, ...fieldsToMove);
+      } else {
+        // Regular field dragging - use simple array move
+        newFields = arrayMove(fields, oldIndex, newIndex);
+      }
+      
       setFields(newFields);
 
       // Update order in database
@@ -356,7 +386,7 @@ export default function Page() {
           parentHeading: field.parentHeading
         }));
 
-        await fetch('/api/newField/reorder', {
+        const response = await fetch('/api/newField/reorder', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -364,6 +394,10 @@ export default function Page() {
             department: selectedDepartment 
           })
         });
+
+        if (!response.ok) {
+          throw new Error('Failed to update field order');
+        }
       } catch (err) {
         console.error('Failed to update field order', err);
         // Revert on error
@@ -380,18 +414,25 @@ export default function Page() {
     const regularFields = fields.filter(f => f.type !== 'heading');
     const result = [];
 
-    // Add fields without parent heading first
+    // Add fields without parent heading first (orphan fields)
     const orphanFields = regularFields.filter(f => !f.parentHeading);
     result.push(...orphanFields);
 
     // Add headings with their children
     headings.forEach(heading => {
-      const childFields = regularFields.filter(f => 
-        f.parentHeading && f.parentHeading.toString() === heading._id.toString()
-      );
+      const childFields = regularFields.filter(f => {
+        if (!f.parentHeading) return false;
+        // Handle both string and ObjectId comparisons
+        const parentId = typeof f.parentHeading === 'object' ? f.parentHeading._id || f.parentHeading : f.parentHeading;
+        const headingId = heading._id;
+        return parentId.toString() === headingId.toString();
+      });
+      
+      // Add heading with children property
       result.push({
         ...heading,
-        children: childFields
+        children: childFields,
+        isHeading: true
       });
     });
 
@@ -479,8 +520,23 @@ export default function Page() {
                           isHeading={true}
                           isExpanded={isExpanded}
                           onToggleExpanded={toggleSection}
-                          children={field.children}
-                        />
+                        >
+                          {/* Render child fields inside the section */}
+                          {isExpanded && field.children && field.children.length > 0 && (
+                            <div className="space-y-2 mt-3">
+                              {field.children.map((childField) => (
+                                <SortableFieldItem
+                                  key={childField._id}
+                                  field={childField}
+                                  onEdit={openEdit}
+                                  onDelete={handleDelete}
+                                  isHeading={false}
+                                  level={1}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </SortableFieldItem>
                         
                         {/* Add Field to Section Button */}
                         {isExpanded && (
@@ -499,15 +555,19 @@ export default function Page() {
                       </div>
                     );
                   } else {
-                    return (
-                      <SortableFieldItem
-                        key={field._id}
-                        field={field}
-                        onEdit={openEdit}
-                        onDelete={handleDelete}
-                        isHeading={false}
-                      />
-                    );
+                    // Only render orphan fields (fields without parent heading) here
+                    if (!field.parentHeading) {
+                      return (
+                        <SortableFieldItem
+                          key={field._id}
+                          field={field}
+                          onEdit={openEdit}
+                          onDelete={handleDelete}
+                          isHeading={false}
+                        />
+                      );
+                    }
+                    return null;
                   }
                 })}
               </div>
