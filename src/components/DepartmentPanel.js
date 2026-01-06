@@ -211,96 +211,144 @@ export default function DepartmentPanel({
         </Alert>
       );
 
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {fieldDefs.map((field) => {
-          const { _id, name, type, placeholder, isRequired } = field;
-          const fieldValue = fields.find(f => f.name === name)?.value ?? '';
+    // Group fields by headings
+    const headings = fieldDefs.filter(f => f.type === 'heading');
+    const regularFields = fieldDefs.filter(f => f.type !== 'heading');
+    const result = [];
 
-          switch (type) {
-            case 'text':
-            case 'number':
-            case 'date':
-            case 'heading':
-              const hasValue = hasFieldValue(name);
-              const isEditing = editingFields.has(name);
-              if (type === 'heading') {
-                return (
-                  <div key={_id} className="md:col-span-3">
-                    <h3 className="text-xl font-semibold text-gray-700 border-b pb-1 mb-4">{name}</h3>
-                  </div>
-                );
-              } 
-              return (
-                <div key={_id}>
-                  <Label htmlFor={name}>{name}</Label>
-                  <div className="relative mt-1">
-                    {hasValue && !isEditing ? (
-                      <div className="relative">
-                        <div className="mt-1 p-3 bg-gray-50 border rounded-md min-h-[40px] flex items-center pr-10">
-                          <span className="text-sm font-medium text-gray-900">
-                            {type === 'date' && fieldValue ? new Date(fieldValue).toLocaleDateString() : fieldValue}
-                          </span>
-                        </div>
-                        {canEdit && (
-                          <Button variant="ghost" size="icon" onClick={() => toggleEditMode(name)} className="absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="relative">
-                        <Input
-                          id={name} type={type} placeholder={placeholder || ''} value={fieldValue}
-                          onChange={(e) => handleFieldChange(name, e.target.value)}
-                          required={isRequired} disabled={!canEdit} className="mt-1 pr-10"
-                        />
-                        {isEditing && canEdit && (
-                          <Button variant="ghost" size="icon" onClick={() => toggleEditMode(name)} className="absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8">
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
+    // First, render orphan fields (fields without parent heading)
+    const orphanFields = regularFields.filter(f => !f.parentHeading);
+    if (orphanFields.length > 0) {
+      result.push(
+        <div key="orphan-fields" className="mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {orphanFields.map(field => renderField(field))}
+          </div>
+        </div>
+      );
+    }
 
-            case 'textarea':
-              const hasTextValue = hasFieldValue(name);
-              const isTextEditing = editingFields.has(name);
-              return (
-                <div key={_id}>
-                  <Label htmlFor={name}>{name}</Label>
-                  <div className="relative mt-1">
-                    {hasTextValue && !isTextEditing ? (
-                      <div className="relative">
-                        <div className="mt-1 p-3 bg-gray-50 border rounded-md min-h-[80px] pr-10">
-                          <span className="text-sm text-gray-900 whitespace-pre-wrap">{fieldValue}</span>
-                        </div>
-                        {canEdit && (
-                          <Button variant="ghost" size="icon" onClick={() => toggleEditMode(name)} className="absolute top-2 right-1 h-8 w-8">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="relative">
-                        <Textarea
-                          id={name} placeholder={placeholder || ''} value={fieldValue}
-                          onChange={(e) => handleFieldChange(name, e.target.value)}
-                          required={isRequired} disabled={!canEdit} className="mt-1 pr-10"
-                        />
-                        {isTextEditing && canEdit && (
-                          <Button variant="ghost" size="icon" onClick={() => toggleEditMode(name)} className="absolute top-2 right-1 h-8 w-8">
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    )}
+    // Then render headings with their children
+    headings.forEach(heading => {
+      const childFields = regularFields.filter(f => {
+        if (!f.parentHeading) return false;
+        
+        // Handle populated parentHeading object vs ObjectId
+        let parentId;
+        if (typeof f.parentHeading === 'object' && f.parentHeading !== null) {
+          parentId = f.parentHeading._id;
+        } else {
+          parentId = f.parentHeading;
+        }
+        
+        const headingId = heading._id;
+        return parentId && parentId.toString() === headingId.toString();
+      });
+
+      if (childFields.length > 0) {
+        result.push(
+          <div key={`section-${heading._id}`} className="mb-8">
+            {/* Section Heading */}
+            <div className="mb-4">
+              <h3 className="text-xl font-semibold text-gray-700 border-b-2 border-blue-200 pb-2 mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 rounded-lg">
+                📁 {heading.name}
+              </h3>
+            </div>
+            
+            {/* Section Fields */}
+            <div className="pl-4 border-l-4 border-blue-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {childFields.map(field => renderField(field))}
+              </div>
+            </div>
+          </div>
+        );
+      }
+    });
+
+    return <div className="space-y-6">{result}</div>;
+  };
+
+  const renderField = (field) => {
+    const { _id, name, type, placeholder, isRequired } = field;
+    const fieldValue = fields.find(f => f.name === name)?.value ?? '';
+
+    switch (type) {
+      case 'text':
+      case 'number':
+      case 'date':
+        const hasValue = hasFieldValue(name);
+        const isEditing = editingFields.has(name);
+        return (
+          <div key={_id}>
+            <Label htmlFor={name}>{name}</Label>
+            <div className="relative mt-1">
+              {hasValue && !isEditing ? (
+                <div className="relative">
+                  <div className="mt-1 p-3 bg-gray-50 border rounded-md min-h-[40px] flex items-center pr-10">
+                    <span className="text-sm font-medium text-gray-900">
+                      {type === 'date' && fieldValue ? new Date(fieldValue).toLocaleDateString() : fieldValue}
+                    </span>
                   </div>
+                  {canEdit && (
+                    <Button variant="ghost" size="icon" onClick={() => toggleEditMode(name)} className="absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
-              );
+              ) : (
+                <div className="relative">
+                  <Input
+                    id={name} type={type} placeholder={placeholder || ''} value={fieldValue}
+                    onChange={(e) => handleFieldChange(name, e.target.value)}
+                    required={isRequired} disabled={!canEdit} className="mt-1 pr-10"
+                  />
+                  {isEditing && canEdit && (
+                    <Button variant="ghost" size="icon" onClick={() => toggleEditMode(name)} className="absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 'textarea':
+        const hasTextValue = hasFieldValue(name);
+        const isTextEditing = editingFields.has(name);
+        return (
+          <div key={_id}>
+            <Label htmlFor={name}>{name}</Label>
+            <div className="relative mt-1">
+              {hasTextValue && !isTextEditing ? (
+                <div className="relative">
+                  <div className="mt-1 p-3 bg-gray-50 border rounded-md min-h-[80px] pr-10">
+                    <span className="text-sm text-gray-900 whitespace-pre-wrap">{fieldValue}</span>
+                  </div>
+                  {canEdit && (
+                    <Button variant="ghost" size="icon" onClick={() => toggleEditMode(name)} className="absolute top-2 right-1 h-8 w-8">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="relative">
+                  <Textarea
+                    id={name} placeholder={placeholder || ''} value={fieldValue}
+                    onChange={(e) => handleFieldChange(name, e.target.value)}
+                    required={isRequired} disabled={!canEdit} className="mt-1 pr-10"
+                  />
+                  {isTextEditing && canEdit && (
+                    <Button variant="ghost" size="icon" onClick={() => toggleEditMode(name)} className="absolute top-2 right-1 h-8 w-8">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
 
 
             case 'boolean':
@@ -401,13 +449,11 @@ export default function DepartmentPanel({
                   )}
                 </div>
               );
+            
             default:
               return null;
           }
-        })}
-      </div>
-    );
-  };
+        };
 
   return (
     <Card>

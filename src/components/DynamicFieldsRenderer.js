@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ChevronDown, ChevronRight, Folder, FolderOpen } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function DynamicFieldsRenderer({ 
   fields, 
@@ -15,10 +15,10 @@ export default function DynamicFieldsRenderer({
   const [expandedSections, setExpandedSections] = useState(new Set());
 
   // Auto-expand all sections on first render
-  useState(() => {
+  useEffect(() => {
     const headingIds = fields.filter(f => f.type === 'heading').map(f => f._id);
     setExpandedSections(new Set(headingIds));
-  });
+  }, [fields]);
 
   const toggleSection = (headingId) => {
     setExpandedSections(prev => {
@@ -35,127 +35,46 @@ export default function DynamicFieldsRenderer({
   // Group fields by headings and maintain order
   const renderFields = () => {
     const result = [];
-    let currentGroup = [];
-    let currentHeading = null;
+    const headings = fields.filter(f => f.type === 'heading');
+    const regularFields = fields.filter(f => f.type !== 'heading');
     
-    fields.forEach((field) => {
-      if (field.type === 'heading') {
-        // Render previous group if exists
-        if (currentGroup.length > 0 && currentHeading) {
-          const isExpanded = expandedSections.has(currentHeading._id);
-          result.push(
-            <div key={`section-${currentHeading._id}`} className="mb-6">
-              {/* Collapsible Heading */}
-              <div 
-                className="flex items-center space-x-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg cursor-pointer hover:from-blue-100 hover:to-indigo-100 transition-colors"
-                onClick={() => toggleSection(currentHeading._id)}
-              >
-                <div className="text-blue-600">
-                  {isExpanded ? (
-                    <ChevronDown className="h-5 w-5" />
-                  ) : (
-                    <ChevronRight className="h-5 w-5" />
-                  )}
-                </div>
-                <div className="text-blue-600">
-                  {isExpanded ? (
-                    <FolderOpen className="h-6 w-6" />
-                  ) : (
-                    <Folder className="h-6 w-6" />
-                  )}
-                </div>
-                <h3 className="text-lg font-semibold text-blue-900">
-                  📁 {currentHeading.name}
-                </h3>
-                <div className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
-                  {currentGroup.length} field{currentGroup.length !== 1 ? 's' : ''}
-                </div>
-              </div>
-              
-              {/* Collapsible Content */}
-              {isExpanded && (
-                <div className="mt-4 pl-6 space-y-4 border-l-4 border-blue-200">
-                  {currentGroup}
-                </div>
-              )}
-            </div>
-          );
-          currentGroup = [];
-        }
-        
-        // Set new heading
-        currentHeading = field;
-      } else {
-        // Check if this field belongs to the current heading or is an orphan
-        const fieldParentId = field.parentHeading ? 
-          (typeof field.parentHeading === 'object' ? field.parentHeading._id || field.parentHeading : field.parentHeading) 
-          : null;
-        
-        if (currentHeading && fieldParentId && fieldParentId.toString() === currentHeading._id.toString()) {
-          // Field belongs to current heading
-          currentGroup.push(renderField(field));
-        } else if (!fieldParentId) {
-          // Orphan field (no parent heading)
-          if (currentGroup.length > 0 && currentHeading) {
-            // Render previous group first
-            const isExpanded = expandedSections.has(currentHeading._id);
-            result.push(
-              <div key={`section-${currentHeading._id}`} className="mb-6">
-                <div 
-                  className="flex items-center space-x-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg cursor-pointer hover:from-blue-100 hover:to-indigo-100 transition-colors"
-                  onClick={() => toggleSection(currentHeading._id)}
-                >
-                  <div className="text-blue-600">
-                    {isExpanded ? (
-                      <ChevronDown className="h-5 w-5" />
-                    ) : (
-                      <ChevronRight className="h-5 w-5" />
-                    )}
-                  </div>
-                  <div className="text-blue-600">
-                    {isExpanded ? (
-                      <FolderOpen className="h-6 w-6" />
-                    ) : (
-                      <Folder className="h-6 w-6" />
-                    )}
-                  </div>
-                  <h3 className="text-lg font-semibold text-blue-900">
-                    📁 {currentHeading.name}
-                  </h3>
-                  <div className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
-                    {currentGroup.length} field{currentGroup.length !== 1 ? 's' : ''}
-                  </div>
-                </div>
-                
-                {isExpanded && (
-                  <div className="mt-4 pl-6 space-y-4 border-l-4 border-blue-200">
-                    {currentGroup}
-                  </div>
-                )}
-              </div>
-            );
-            currentGroup = [];
-            currentHeading = null;
-          }
-          
-          // Add orphan field directly to result
-          result.push(
-            <div key={`orphan-${field._id}`} className="mb-4">
-              {renderField(field)}
-            </div>
-          );
-        }
-      }
+    // First, render orphan fields (fields without parent heading)
+    const orphanFields = regularFields.filter(f => !f.parentHeading);
+    orphanFields.forEach(field => {
+      result.push(
+        <div key={`orphan-${field._id}`} className="mb-4">
+          {renderField(field)}
+        </div>
+      );
     });
     
-    // Add remaining fields
-    if (currentGroup.length > 0 && currentHeading) {
-      const isExpanded = expandedSections.has(currentHeading._id);
+    // Then render headings with their children
+    headings.forEach(heading => {
+      const childFields = regularFields.filter(f => {
+        if (!f.parentHeading) return false;
+        
+        // Handle populated parentHeading object vs ObjectId
+        let parentId;
+        if (typeof f.parentHeading === 'object' && f.parentHeading !== null) {
+          // parentHeading is populated with the actual heading object
+          parentId = f.parentHeading._id;
+        } else {
+          // parentHeading is just an ObjectId string
+          parentId = f.parentHeading;
+        }
+        
+        const headingId = heading._id;
+        return parentId && parentId.toString() === headingId.toString();
+      });
+      
+      const isExpanded = expandedSections.has(heading._id);
+      
       result.push(
-        <div key={`section-${currentHeading._id}`} className="mb-6">
+        <div key={`section-${heading._id}`} className="mb-6">
+          {/* Collapsible Heading */}
           <div 
             className="flex items-center space-x-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg cursor-pointer hover:from-blue-100 hover:to-indigo-100 transition-colors"
-            onClick={() => toggleSection(currentHeading._id)}
+            onClick={() => toggleSection(heading._id)}
           >
             <div className="text-blue-600">
               {isExpanded ? (
@@ -172,21 +91,22 @@ export default function DynamicFieldsRenderer({
               )}
             </div>
             <h3 className="text-lg font-semibold text-blue-900">
-              📁 {currentHeading.name}
+              📁 {heading.name}
             </h3>
             <div className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
-              {currentGroup.length} field{currentGroup.length !== 1 ? 's' : ''}
+              {childFields.length} field{childFields.length !== 1 ? 's' : ''}
             </div>
           </div>
           
-          {isExpanded && (
+          {/* Collapsible Content */}
+          {isExpanded && childFields.length > 0 && (
             <div className="mt-4 pl-6 space-y-4 border-l-4 border-blue-200">
-              {currentGroup}
+              {childFields.map(field => renderField(field))}
             </div>
           )}
         </div>
       );
-    }
+    });
     
     return result;
   };
