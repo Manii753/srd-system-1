@@ -33,27 +33,36 @@ export default function DepartmentPanel({
   const [modalImages, setModalImages] = useState([]);
 
   useEffect(() => {
-    // For existing SRDs, use the immutable field snapshots stored in dynamicFields
-    // This ensures that changes to field definitions don't affect existing SRDs
+    // Sync status from SRD
+    setStatus(srd.status?.[department] || 'pending');
+
+    // Get fields for this department
     const srdDynamicFields = srd.dynamicFields?.filter(f => f.department === department) || [];
     
     if (srdDynamicFields.length > 0) {
-      // Use the immutable snapshots from the SRD
-      const fieldDefsFromSRD = srdDynamicFields.map(f => ({
-        _id: f.originalFieldId || f.field,
-        name: f.name,
-        type: f.type,
-        placeholder: f.placeholder || '',
-        isRequired: f.isRequired || false,
-        order: f.order || 0,
-        parentHeading: f.parentHeading,
-        active: true // Assume active since it's in an SRD
-      }));
+      // Use the immutable snapshots from the SRD to build field definitions
+      const fieldDefsFromSRD = srdDynamicFields.map(f => {
+        // Robust ID extraction
+        const fieldId = f.originalFieldId || 
+                       (f.field && typeof f.field === 'object' ? f.field._id : f.field) || 
+                       f._id;
+                       
+        return {
+          _id: fieldId,
+          name: f.name,
+          type: f.type,
+          placeholder: f.placeholder || '',
+          isRequired: f.isRequired || false,
+          order: f.order || 0,
+          parentHeading: f.parentHeading,
+          active: true
+        };
+      });
       
       setFieldDefs(fieldDefsFromSRD);
       setFields(srdDynamicFields);
     } else {
-      // Fallback to fetching current field definitions for new SRDs
+      // Fallback for new SRDs or departments without fields yet
       async function fetchFields() {
         try {
           const res = await fetch(`/api/newField?department=${department}`);
@@ -61,22 +70,19 @@ export default function DepartmentPanel({
           const activeFields = Array.isArray(data) ? data.filter(f => f.active) : [];
           setFieldDefs(activeFields);
 
-          const existingFieldNames = fields.map(f => f.name);
-          const newFields = [...fields];
-
-          activeFields.forEach(fieldDef => {
-            if (!existingFieldNames.includes(fieldDef.name)) {
-              newFields.push({
-                name: fieldDef.name,
-                value: fieldDef.type === 'boolean' ? false : '',
-                department: department
-              });
-            }
-          });
-
-          if (newFields.length > fields.length) {
-            setFields(newFields);
-          }
+          // Initialize fields from definitions
+          const newFields = activeFields.map(fieldDef => ({
+            name: fieldDef.name,
+            value: fieldDef.type === 'boolean' ? false : '',
+            department: department,
+            type: fieldDef.type, // Preserve type for consistency
+            isRequired: fieldDef.isRequired,
+            placeholder: fieldDef.placeholder,
+            order: fieldDef.order,
+            parentHeading: fieldDef.parentHeading?.name || fieldDef.parentHeading
+          }));
+          
+          setFields(newFields);
         } catch (err) {
           console.error('Failed to fetch fields', err);
         }
@@ -84,12 +90,6 @@ export default function DepartmentPanel({
       fetchFields();
     }
   }, [department, srd]);
-
-  useEffect(() => {
-    setStatus(srd.status?.[department] || 'pending');
-    const deptFields = srd.dynamicFields?.filter(f => f.department === department) || [];
-    setFields(deptFields);
-  }, [srd, department]);
 
   const handleFieldChange = (name, value) => {
     if (!editingFields.has(name)) {
@@ -215,37 +215,37 @@ export default function DepartmentPanel({
     const headings = fieldDefs.filter(f => f.type === 'heading');
     const regularFields = fieldDefs.filter(f => f.type !== 'heading');
     const result = [];
+    
+    // Track which fields are assigned to a heading
+    const assignedFieldIds = new Set();
 
-    // First, render orphan fields (fields without parent heading)
-    const orphanFields = regularFields.filter(f => !f.parentHeading);
-    if (orphanFields.length > 0) {
-      result.push(
-        <div key="orphan-fields" className="mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {orphanFields.map(field => renderField(field))}
-          </div>
-        </div>
-      );
-    }
-
-    // Then render headings with their children
+    // Render headings with their children
     headings.forEach(heading => {
       const childFields = regularFields.filter(f => {
         if (!f.parentHeading) return false;
         
-        // Handle populated parentHeading object vs ObjectId
-        let parentId;
+        // Handle populated parentHeading object vs ObjectId vs Name
+        let parentIdentifier = f.parentHeading;
         if (typeof f.parentHeading === 'object' && f.parentHeading !== null) {
-          parentId = f.parentHeading._id;
-        } else {
-          parentId = f.parentHeading;
+          parentIdentifier = f.parentHeading._id || f.parentHeading.name;
         }
         
-        const headingId = heading._id;
-        return parentId && parentId.toString() === headingId.toString();
+        // Match by ID
+        if (heading._id && parentIdentifier && parentIdentifier.toString() === heading._id.toString()) {
+            return true;
+        }
+        
+        // Match by Name
+        if (heading.name && parentIdentifier === heading.name) {
+            return true;
+        }
+        
+        return false;
       });
 
       if (childFields.length > 0) {
+        childFields.forEach(f => assignedFieldIds.add(f._id));
+        
         result.push(
           <div key={`section-${heading._id}`} className="mb-8">
             {/* Section Heading */}
@@ -265,6 +265,19 @@ export default function DepartmentPanel({
         );
       }
     });
+
+    // Render orphan fields (fields not assigned to any heading)
+    const orphanFields = regularFields.filter(f => !assignedFieldIds.has(f._id));
+
+    if (orphanFields.length > 0) {
+      result.unshift(
+        <div key="orphan-fields" className="mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {orphanFields.map(field => renderField(field))}
+          </div>
+        </div>
+      );
+    }
 
     return <div className="space-y-6">{result}</div>;
   };

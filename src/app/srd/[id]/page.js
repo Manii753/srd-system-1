@@ -52,6 +52,7 @@ export default function SRDDetailPage() {
         console.error('Error fetching SRD:', error);
         router.push('/dashboard/vmd');
       } finally {
+        
         setLoading(false);
       }
     };

@@ -69,14 +69,18 @@ export async function PATCH(request, context) {
         );
         
         if (existingFieldIndex > -1) {
-          // Update existing field
-          srd.dynamicFields[existingFieldIndex].value = updatedField.value;
+          // Update existing field - preserve metadata
+          const currentField = srd.dynamicFields[existingFieldIndex];
+          srd.dynamicFields[existingFieldIndex] = {
+            ...currentField.toObject(),
+            ...updatedField,
+            department: dept // Ensure department stays correct
+          };
         } else {
-          // Add new field
+          // Add new field - include all metadata
           srd.dynamicFields.push({
-            department: dept,
-            name: updatedField.name,
-            value: updatedField.value
+            ...updatedField,
+            department: dept
           });
         }
       });
