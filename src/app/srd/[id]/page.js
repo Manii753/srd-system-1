@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import DepartmentPanel from '@/components/DepartmentPanel';
 import ProductionControl from '@/components/ProductionControl';
-import SRDDiagnostic from '@/components/SRDDiagnostic';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -14,8 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/lib/use-toast';
 import { 
   FileText, 
-  Calendar, 
-  User, 
   MessageCircle, 
   Clock
 } from 'lucide-react';
@@ -173,7 +170,7 @@ export default function SRDDetailPage() {
         </div>
 
         {/* SRD Info */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle className="text-lg font-semibold">SRD Information</CardTitle>
           </CardHeader>
@@ -206,7 +203,7 @@ export default function SRDDetailPage() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Department Status */}
         <Card>
@@ -232,12 +229,7 @@ export default function SRDDetailPage() {
         </Card>
 
         {/* SRD Diagnostic Tool - For Admin and Production Manager */}
-        {(userRole === 'admin' || userRole === 'vmd') && (
-          <SRDDiagnostic 
-            srdId={srd._id}
-            onFixed={() => window.location.reload()}
-          />
-        )}
+        
 
         {/* Production Control - Only for Production Manager */}
         {(userRole === 'production-manager' || userRole === 'admin') && (
