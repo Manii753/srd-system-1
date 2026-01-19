@@ -1,8 +1,10 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
@@ -18,7 +20,6 @@ import {
   CheckCircle,
   Inbox,
   Factory,
-  BadgeCheckIcon,
   Edit,
   FileSpreadsheet,
 } from 'lucide-react';
@@ -44,6 +45,10 @@ export default function DynamicSidebar() {
 
   const userRole = session?.user?.role;
 
+  const handleLogout = () => {
+    signOut({ callbackUrl: '/login' });
+  };
+
   // Fetch unread count
   useEffect(() => {
     if (session?.user?.email) {
@@ -60,14 +65,14 @@ export default function DynamicSidebar() {
       };
 
       fetchUnreadCount();
-      
+
       // Refresh every 10 seconds
       const interval = setInterval(fetchUnreadCount, 10000);
-      
+
       // Listen for manual refresh events
       const handleRefresh = () => fetchUnreadCount();
       window.addEventListener('refreshUnreadCount', handleRefresh);
-      
+
       return () => {
         clearInterval(interval);
         window.removeEventListener('refreshUnreadCount', handleRefresh);
@@ -105,18 +110,18 @@ export default function DynamicSidebar() {
           finishing: 'Finishing',
           dispatch: 'Dispatch'
         };
-        
+
         setMenuItems([
-          { 
-            name: `${stageNames[userRole]} Dashboard`, 
-            href: `/dashboard/${userRole}`, 
-            icon: LayoutDashboard, 
-            gradient: 'from-blue-500 to-cyan-500' 
+          {
+            name: `${stageNames[userRole]} Dashboard`,
+            href: `/dashboard/${userRole}`,
+            icon: LayoutDashboard,
+            gradient: 'from-blue-500 to-cyan-500'
           },
-          { 
-            name: 'Inbox', 
-            href: '/inbox', 
-            icon: Inbox, 
+          {
+            name: 'Inbox',
+            href: '/inbox',
+            icon: Inbox,
             gradient: 'from-pink-500 to-rose-500',
             showBadge: true
           },
@@ -125,28 +130,28 @@ export default function DynamicSidebar() {
         // Fetch department info for dynamic menu
         const response = await fetch('/api/departments');
         const data = await response.json();
-        
+
         if (data.success) {
           // Find department by matching both uppercase and lowercase slugs
-          const userDept = data.data.find(d => 
-            d.slug === userRole || 
-            d.slug === userRole.toUpperCase() || 
+          const userDept = data.data.find(d =>
+            d.slug === userRole ||
+            d.slug === userRole.toUpperCase() ||
             d.slug.toLowerCase() === userRole
           );
-          
+
           if (userDept) {
             // Only VMD can create SRDs
             const menuItems = [
-              { 
-                name: 'Home', 
-                href: `/dashboard/${userRole}`, 
-                icon: LayoutDashboard, 
-                gradient: 'from-blue-500 to-cyan-500' 
+              {
+                name: 'Home',
+                href: `/dashboard/${userRole}`,
+                icon: LayoutDashboard,
+                gradient: 'from-blue-500 to-cyan-500'
               },
-              { 
-                name: 'Inbox', 
-                href: '/inbox', 
-                icon: Inbox, 
+              {
+                name: 'Inbox',
+                href: '/inbox',
+                icon: Inbox,
                 gradient: 'from-pink-500 to-rose-500',
                 showBadge: true
               }
@@ -154,43 +159,43 @@ export default function DynamicSidebar() {
 
             // Add Create SRD only for VMD
             if (userRole === 'vmd' || userRole === 'VMD') {
-              menuItems.push({ 
-                name: 'Create SRD', 
-                href: `/dashboard/${userRole}/create`, 
-                icon: Plus, 
-                gradient: 'from-emerald-500 to-teal-500' 
+              menuItems.push({
+                name: 'Create SRD',
+                href: `/dashboard/${userRole}/create`,
+                icon: Plus,
+                gradient: 'from-emerald-500 to-teal-500'
               });
             }
 
             menuItems.push(
-              { 
-                name: 'My SRDs', 
-                href: `/srd?department=${userRole}`, 
-                icon: FileText, 
-                gradient: 'from-purple-500 to-pink-500' 
+              {
+                name: 'My SRDs',
+                href: `/srd?department=${userRole}`,
+                icon: FileText,
+                gradient: 'from-purple-500 to-pink-500'
               },
-              { 
-                name: 'In Progress', 
-                href: `/srd?department=${userRole}&status=in-progress`, 
-                icon: Package, 
-                gradient: 'from-yellow-500 to-orange-500' 
+              {
+                name: 'In Progress',
+                href: `/srd?department=${userRole}&status=in-progress`,
+                icon: Package,
+                gradient: 'from-yellow-500 to-orange-500'
               },
-              { 
-                name: 'Completed', 
-                href: `/srd?department=${userRole}&status=approved`, 
-                icon: CheckCircle, 
-                gradient: 'from-green-500 to-emerald-500' 
+              {
+                name: 'Completed',
+                href: `/srd?department=${userRole}&status=approved`,
+                icon: CheckCircle,
+                gradient: 'from-green-500 to-emerald-500'
               }
             );
 
             // Add Production and Ready For Production tabs for VMD
             if (userRole === 'vmd' || userRole === 'VMD') {
               menuItems.push(
-                { 
-                  name: 'Production', 
-                  href: '/dashboard/vmd/production', 
-                  icon: Factory, 
-                  gradient: 'from-orange-500 to-red-500' 
+                {
+                  name: 'Production',
+                  href: '/dashboard/vmd/production',
+                  icon: Factory,
+                  gradient: 'from-orange-500 to-red-500'
                 }
               );
             }
@@ -320,7 +325,7 @@ export default function DynamicSidebar() {
                         item.gradient
                       )} />
                     )}
-                    
+
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
@@ -357,14 +362,14 @@ export default function DynamicSidebar() {
                             )}>
                               {item.name}
                             </span>
-                            
+
                             {/* Unread count badge */}
                             {item.showBadge && unreadCount > 0 && (
                               <span className="ml-auto mr-2 px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full min-w-[20px] text-center">
                                 {unreadCount > 99 ? '99+' : unreadCount}
                               </span>
                             )}
-                            
+
                             <ChevronRight className={cn(
                               "ml-auto h-4 w-4 shrink-0",
                               isActive
@@ -373,7 +378,7 @@ export default function DynamicSidebar() {
                             )} />
                           </>
                         )}
-                        
+
                         {/* Unread badge when collapsed */}
                         {!open && item.showBadge && unreadCount > 0 && (
                           <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full min-w-[18px] text-center">
@@ -392,7 +397,56 @@ export default function DynamicSidebar() {
                   </div>
                 );
               })}
+              {/* Logout Button styled as navigation item */}
+              <div className="relative group">
+                <SidebarMenuButton
+                  asChild
+                  tooltip={!open ? "Logout" : undefined}
+                  className={cn(
+                    "relative rounded-xl hover:shadow-lg",
+                    "hover:bg-white/60 text-gray-700 hover:text-gray-900",
+                    open ? "h-12 px-4" : "h-12 px-2 mb-2 justify-center"
+                  )}
+                >
+                  <button 
+                    onClick={handleLogout}
+                    className={cn(
+                      "flex items-center w-full h-full",
+                      open ? "gap-3" : "justify-center"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+                      "bg-slate-100 group-hover:bg-white"
+                    )}>
+                      <LogOut className="h-5 w-5 text-gray-600 group-hover:text-gray-900" />
+                    </div>
+                    {open && (
+                      <>
+                        <span className="font-medium text-sm">
+                          Logout
+                        </span>
+                        <ChevronRight className="ml-auto h-4 w-4 shrink-0 opacity-0 group-hover:opacity-100" />
+                      </>
+                    )}
+                  </button>
+                </SidebarMenuButton>
+
+                <div className={cn(
+                  "absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 -z-10 blur-xl",
+                  "bg-gradient-to-r from-red-500 to-pink-500"
+                )} />
+              </div>
             </SidebarMenu>
+
+            {/* User Info Section */}
+            {open && (
+              <div className="mt-4 px-4 py-3 bg-white/40 rounded-xl border border-slate-200/50">
+                <p className="text-sm font-medium text-gray-900">{session?.user?.name}</p>
+                <p className="text-xs text-gray-500">{session?.user?.role?.toUpperCase()}</p>
+              </div>
+            )}
+
           </SidebarGroup>
 
           <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-50/50 to-transparent pointer-events-none" />
