@@ -14,13 +14,16 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/lib/use-toast';
 import { cn } from '@/lib/utils';
-import { 
-  FileText, 
-  MessageCircle, 
+import Cookies from 'js-cookie';
+
+import {
+  FileText,
+  MessageCircle,
   Clock,
   Table,
   Grid3X3
 } from 'lucide-react';
+import { set } from 'mongoose';
 
 export default function SRDDetailPage() {
   const { data: session, status } = useSession();
@@ -30,16 +33,29 @@ export default function SRDDetailPage() {
   const [srd, setSrd] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeline, setTimeline] = useState([]);
-  const [viewMode, setViewMode] = useState('form'); // 'form' or 'excel'
+  const [viewMode, setViewMode] = useState(); // 'form' or 'excel'
+  const [mode, setMode] = useState()
   const allowedDepartments = ['vmd', 'cad', 'mmc', 'commercial'];
+  useEffect(() => {
+    const view = Cookies.get('mode')
+    setViewMode(view)
+  })
+
+  const toogleView = (mode) => {
+        Cookies.set('mode', mode)
+        setViewMode(mode)
+  }
+
 
   useEffect(() => {
     if (status === 'loading') return;
-    
+
     if (!session) {
       router.push('/login');
       return;
     }
+
+
 
     const fetchSRD = async () => {
       try {
@@ -55,7 +71,7 @@ export default function SRDDetailPage() {
         console.error('Error fetching SRD:', error);
         router.push('/dashboard/vmd');
       } finally {
-        
+
         setLoading(false);
       }
     };
@@ -79,7 +95,7 @@ export default function SRDDetailPage() {
   const handleDepartmentUpdate = async (department, updateData) => {
     try {
       console.log('[Frontend] Sending update:', department, updateData);
-      
+
       const response = await fetch(`/api/srd/${params.id}/department/${department}`, {
         method: 'PATCH',
         headers: {
@@ -90,14 +106,14 @@ export default function SRDDetailPage() {
 
       const data = await response.json();
       console.log('[Frontend] Response:', data);
-      
+
       if (data.success) {
         setSrd(data.data);
         toast({
           title: 'Success',
           description: `${department.toUpperCase()} updated successfully`,
         });
-        
+
         // Refresh timeline
         const timelineResponse = await fetch(`/api/srd/${params.id}/timeline`);
         const timelineData = await timelineResponse.json();
@@ -237,12 +253,12 @@ export default function SRDDetailPage() {
         )}
 
         {/* SRD Diagnostic Tool - For Admin and Production Manager */}
-        
+
 
         {/* Production Control - Only for Production Manager */}
         {(userRole === 'production-manager' || userRole === 'admin') && (
-          <ProductionControl 
-            srdId={srd._id} 
+          <ProductionControl
+            srdId={srd._id}
             initialData={srd}
             onUpdate={(updatedSrd) => setSrd(updatedSrd)}
           />
@@ -255,7 +271,7 @@ export default function SRDDetailPage() {
             <Button
               variant={viewMode === 'form' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setViewMode('form')}
+              onClick={() => toogleView('form')}
               className="flex items-center gap-2"
             >
               <Grid3X3 className="h-4 w-4" />
@@ -264,7 +280,7 @@ export default function SRDDetailPage() {
             <Button
               variant={viewMode === 'excel' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setViewMode('excel')}
+              onClick={() => toogleView('excel')}
               className="flex items-center gap-2"
             >
               <Table className="h-4 w-4" />

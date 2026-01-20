@@ -41,7 +41,7 @@ export default function SRDTable({ srds, department }) {
     try {
       const stagesRes = await fetch('/api/production-stages');
       const stagesData = await stagesRes.json();
-    
+
       if (stagesData.success) setProductionStages(stagesData.data.filter(s => s.isActive));
 
       // Fetch fields with isShownInQuickDetails: true
@@ -59,7 +59,7 @@ export default function SRDTable({ srds, department }) {
 
   const handleDuplicate = async (srdId) => {
     if (!confirm('Are you sure you want to duplicate this SRD?')) return;
-    
+
     try {
       const response = await fetch(`/api/srd/${srdId}/duplicate`, { method: 'POST' });
       const result = await response.json();
@@ -112,28 +112,28 @@ export default function SRDTable({ srds, department }) {
 
   // Helper function to get dynamic field value by slug or name
   const getDynamicFieldValue = (srd, fieldSlug) => {
-    const field = srd.dynamicFields?.find(f => 
-      f.slug === fieldSlug || 
+    const field = srd.dynamicFields?.find(f =>
+      f.slug === fieldSlug ||
       f.name?.toLowerCase().replace(/\s+/g, '-') === fieldSlug ||
       f.name?.toLowerCase() === fieldSlug.replace(/-/g, ' ')
     );
-    
+
     if (!field || field.value === null || field.value === undefined) {
       return 'N/A';
     }
-    
+
     // Handle array values (like multi-select or file uploads)
     if (Array.isArray(field.value)) {
       return field.value.join(', ') || 'N/A';
     }
-    
+
     return field.value;
   };
 
   // Helper function to get quick details fields for an SRD
   const getQuickDetailsFields = (srd) => {
     if (!srd.dynamicFields || quickDetailsFields.length === 0) return [];
-    
+
     return quickDetailsFields
       .map(quickField => {
         // Find matching dynamic field by name, slug, or originalFieldId
@@ -144,26 +144,26 @@ export default function SRDTable({ srds, department }) {
             const qfId = String(quickField._id);
             if (dfId === qfId) return true;
           }
-          
+
           // Match by name (case-insensitive)
           const dfName = df.name?.toLowerCase().trim();
           const qfName = quickField.name?.toLowerCase().trim();
           if (dfName && qfName && dfName === qfName) return true;
-          
+
           // Match by slug (case-insensitive)
           const dfSlug = df.slug?.toLowerCase().trim();
           const qfSlug = quickField.slug?.toLowerCase().trim();
           if (dfSlug && qfSlug && dfSlug === qfSlug) return true;
-          
+
           // Match by name to slug conversion
           if (dfName && qfSlug && dfName.replace(/\s+/g, '-') === qfSlug) return true;
           if (qfName && dfSlug && qfName.replace(/\s+/g, '-') === dfSlug) return true;
-          
+
           return false;
         });
-        
+
         if (!dynamicField) return null;
-        
+
         let displayValue = dynamicField.value;
         if (displayValue === null || displayValue === undefined || displayValue === '') {
           displayValue = 'N/A';
@@ -179,7 +179,7 @@ export default function SRDTable({ srds, department }) {
             // Keep original value if date parsing fails
           }
         }
-        
+
         return {
           name: dynamicField.name || quickField.name,
           value: String(displayValue)
@@ -214,28 +214,28 @@ export default function SRDTable({ srds, department }) {
   // Helper function to get all images for an SRD
   const getAllImages = (srd) => {
     const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-    
+
     const deptImageFields = srd.dynamicFields?.filter(f => {
       if (f.department !== department) return false;
       if (!f.value) return false;
-      
+
       if (typeof f.value === 'string' && (f.value.startsWith('/') || f.value.startsWith('http'))) {
         return true;
       }
-      
+
       if (Array.isArray(f.value) && f.value.length > 0) {
         return f.value.some(v => typeof v === 'string' && (v.startsWith('/') || v.startsWith('http')));
       }
-      
+
       return false;
     }) || [];
-    
-    const deptImages = deptImageFields.flatMap(field => 
+
+    const deptImages = deptImageFields.flatMap(field =>
       Array.isArray(field.value) ? field.value : [field.value]
     );
-    
+
     const allImages = Array.from(new Set([...globalImages, ...deptImages])).filter(Boolean);
-    
+
     return allImages;
   };
 
@@ -269,6 +269,9 @@ export default function SRDTable({ srds, department }) {
     }
     return productionStages.find(stage => String(stage._id) === String(srd.currentProductionStage));
   };
+
+
+  console.log("srd", srds)
 
   return (
     <div className="flex flex-col w-full bg-white rounded-lg shadow">
@@ -330,14 +333,14 @@ export default function SRDTable({ srds, department }) {
             {filteredAndSortedSRDs.map((srd) => {
               const currentStage = getCurrentProductionStage(srd);
               const isExpanded = expandedRows.has(srd._id);
-              
+
               return (
                 <Fragment key={srd._id}>
                   <tr className="hover:bg-gray-50">
                     <td className="px-2 py-4">
-                        <Button size="sm" variant="ghost" onClick={() => toggleRowExpansion(srd._id)} className="w-10">
-                            {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                        </Button>
+                      <Button size="sm" variant="ghost" onClick={() => toggleRowExpansion(srd._id)} className="w-10">
+                        {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                      </Button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {new Date(srd.createdAt).toLocaleDateString()}
@@ -346,13 +349,13 @@ export default function SRDTable({ srds, department }) {
                       {(() => {
                         const allImages = getAllImages(srd);
                         return allImages.length > 0 ? (
-                          <div 
+                          <div
                             className="cursor-pointer hover:opacity-80 transition-opacity relative group"
                             onClick={() => openImageSlider(allImages)}
                           >
-                            <Image 
-                              src={allImages[0]} 
-                              width={60} 
+                            <Image
+                              src={allImages[0]}
+                              width={60}
                               height={60}
                               alt="SRD cover"
                               className="rounded object-cover border-2 border-yellow-400"
@@ -378,10 +381,10 @@ export default function SRDTable({ srds, department }) {
                       {getDynamicFieldValue(srd, 'style')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                       {srd.inProduction && currentStage ? (
+                      {srd.inProduction && currentStage ? (
                         <div className="flex items-center">
-                          <div 
-                            className="w-3 h-3 rounded-full mr-2" 
+                          <div
+                            className="w-3 h-3 rounded-full mr-2"
                             style={{ backgroundColor: currentStage.color }}
                           />
                           <span className="font-medium capitalize text-sm">
@@ -389,11 +392,29 @@ export default function SRDTable({ srds, department }) {
                           </span>
                         </div>
                       ) : (
-                        <span className="text-gray-400 text-xs">Not in production</span>
+                        <span className="text-gray-400 text-xs flex gap-4">
+
+                          <div className="p-1 px-2 bg-gray-400 rounded-lg w-fit font-bold text-white text-center">
+                            <div>vmd</div>
+                            <div>{srd.status.vmd}</div>
+                          </div>
+                          <div className="p-1 px-2 bg-gray-400 rounded-lg w-fit font-bold text-white text-center">
+                            <div>cad</div>
+                            <div>{srd.status.cad}</div>
+                          </div>
+                          <div className="p-1 px-2 bg-gray-400 rounded-lg w-fit font-bold text-white text-center">
+                            <div>mmc</div>
+                            <div>{srd.status.mmc}</div>
+                          </div>
+                          <div className="p-1 px-2 bg-gray-400 rounded-lg w-fit font-bold text-white text-center">
+                            <div>commercial</div>
+                            <div>{srd.status.commercial}</div>
+                          </div>
+                        </span>
                       )}
                     </td>
                     <td className="justify-center align-middle px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
-                      
+
                       <Link href={`/srd/${srd._id}`}>
                         <Button size="sm" variant="outline">
                           View
@@ -408,30 +429,30 @@ export default function SRDTable({ srds, department }) {
                     </td>
                   </tr>
                   {isExpanded && (
-                      <tr>
-                          <td colSpan="7" className="p-0">
-                              <div className="p-4 bg-gray-100">
-                                  <h4 className="text-md font-semibold mb-3 text-gray-800">Additional Details</h4>
-                                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4 text-sm">
-                                      {(() => {
-                                        const quickDetails = getQuickDetailsFields(srd);
-                                        return quickDetails.length > 0 ? (
-                                          quickDetails.map((field, index) => (
-                                            <div key={index} className="flex flex-col">
-                                              <span className="font-medium text-gray-500">{field.name}</span>
-                                              <span className="text-gray-900 whitespace-pre-wrap">{field.value}</span>
-                                            </div>
-                                          ))
-                                        ) : (
-                                          <div className="col-span-full text-gray-500 text-sm">
-                                            No quick details fields configured. Enable "Show in Quick Details" for fields in the Fields Management page.
-                                          </div>
-                                        );
-                                      })()}
+                    <tr>
+                      <td colSpan="7" className="p-0">
+                        <div className="p-4 bg-gray-100">
+                          <h4 className="text-md font-semibold mb-3 text-gray-800">Additional Details</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4 text-sm">
+                            {(() => {
+                              const quickDetails = getQuickDetailsFields(srd);
+                              return quickDetails.length > 0 ? (
+                                quickDetails.map((field, index) => (
+                                  <div key={index} className="flex flex-col">
+                                    <span className="font-medium text-gray-500">{field.name}</span>
+                                    <span className="text-gray-900 whitespace-pre-wrap">{field.value}</span>
                                   </div>
-                              </div>
-                          </td>
-                      </tr>
+                                ))
+                              ) : (
+                                <div className="col-span-full text-gray-500 text-sm">
+                                  No quick details fields configured. Enable "Show in Quick Details" for fields in the Fields Management page.
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
                   )}
                 </Fragment>
               );
@@ -448,7 +469,7 @@ export default function SRDTable({ srds, department }) {
 
       {/* Image Slider Modal */}
       {selectedImages && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90"
           onClick={closeImageSlider}
         >
@@ -459,7 +480,7 @@ export default function SRDTable({ srds, department }) {
             <X className="h-8 w-8" />
           </button>
 
-          <div 
+          <div
             className="relative max-w-5xl max-h-[90vh] w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >

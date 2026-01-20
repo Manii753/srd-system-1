@@ -144,7 +144,7 @@ export default function VMDDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="w-[7vw] bg-white shadow-lg rounded-lg">
+        {/* <div className="w-[7vw] bg-white shadow-lg rounded-lg">
           <div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm ">Total SRDs</CardTitle>
@@ -180,7 +180,7 @@ export default function VMDDashboard() {
               <div className="font-bold">{stats.flagged}</div>
             </CardContent>
           </div>
-        </div>
+        </div> */}
 
         {/* View Toggle */}
         <div className="flex items-center justify-between">
