@@ -30,7 +30,7 @@ const DEPARTMENTS = [
 ];
 
 // Sortable Field Item Component
-function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level = 0, isExpanded, onToggleExpanded }) {
+function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level = 0, isExpanded, onToggleExpanded, onToggleQuickDetails }) {
   const {
     attributes,
     listeners,
@@ -190,6 +190,17 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
 
         {/* Actions */}
         <div className="flex items-center space-x-2">
+          {!isHeading && (
+            <label className="flex items-center space-x-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={field.isShownInQuickDetails || false}
+                onChange={() => onToggleQuickDetails(field)}
+                className="form-checkbox h-4 w-4 text-blue-600 rounded"
+              />
+              <span className="text-xs text-gray-600">Quick Details</span>
+            </label>
+          )}
           <button
             className="text-blue-600 hover:text-blue-900 px-2 py-1 text-sm"
             onClick={() => onEdit(field)}
@@ -216,7 +227,8 @@ export default function Page() {
     placeholder: "", 
     department: 'vmd', 
     isRequired: false,
-    parentHeading: null 
+    parentHeading: null,
+    isShownInQuickDetails: false
   });
   const [fields, setFields] = useState([]);
   const [editingId, setEditingId] = useState(null);
@@ -270,7 +282,8 @@ export default function Page() {
       placeholder: "", 
       department: selectedDepartment, 
       isRequired: false,
-      parentHeading: parentHeading 
+      parentHeading: parentHeading,
+      isShownInQuickDetails: false
     });
     setEditingId(null);
     setModalOpen(true);
@@ -283,7 +296,8 @@ export default function Page() {
       placeholder: field.placeholder || '', 
       department: field.department || selectedDepartment, 
       isRequired: !!field.isRequired,
-      parentHeading: field.parentHeading || null
+      parentHeading: field.parentHeading || null,
+      isShownInQuickDetails: !!field.isShownInQuickDetails
     });
     setEditingId(field._id);
     setModalOpen(true);
@@ -299,6 +313,22 @@ export default function Page() {
     } catch (err) {
       console.error('Failed to delete field', err);
       alert('Failed to delete field');
+    }
+  }
+
+  async function handleToggleQuickDetails(field) {
+    try {
+      const newValue = !field.isShownInQuickDetails;
+      const res = await fetch(`/api/newField?id=${field._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isShownInQuickDetails: newValue })
+      });
+      const updated = await res.json();
+      setFields((prev) => prev.map(f => f._id === updated._id ? updated : f));
+    } catch (err) {
+      console.error('Failed to toggle quick details', err);
+      alert('Failed to update field');
     }
   }
 
@@ -532,6 +562,7 @@ export default function Page() {
                                   onDelete={handleDelete}
                                   isHeading={false}
                                   level={1}
+                                  onToggleQuickDetails={handleToggleQuickDetails}
                                 />
                               ))}
                             </div>
@@ -564,6 +595,7 @@ export default function Page() {
                           onEdit={openEdit}
                           onDelete={handleDelete}
                           isHeading={false}
+                          onToggleQuickDetails={handleToggleQuickDetails}
                         />
                       );
                     }
@@ -703,6 +735,19 @@ export default function Page() {
                       onChange={(e) => setValues({ ...values, isRequired: e.target.checked })}
                     />
                     <span className="text-sm text-gray-700">Required</span>
+                  </div>
+                )}
+
+                {/* Show in Quick Details */}
+                {values.type !== 'heading' && (
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      className="form-checkbox h-4 w-4"
+                      checked={values.isShownInQuickDetails}
+                      onChange={(e) => setValues({ ...values, isShownInQuickDetails: e.target.checked })}
+                    />
+                    <span className="text-sm text-gray-700">Show in Quick Details</span>
                   </div>
                 )}
 

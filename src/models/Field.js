@@ -41,6 +41,10 @@ const FieldSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Field',
         default: null
+    },
+    isShownInQuickDetails: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true

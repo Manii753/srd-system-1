@@ -19,6 +19,7 @@ export default function SRDTable({ srds, department }) {
   const [productionStages, setProductionStages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expandedRows, setExpandedRows] = useState(new Set());
+  const [quickDetailsFields, setQuickDetailsFields] = useState([]);
 
   const toggleRowExpansion = (srdId) => {
     setExpandedRows(prev => {
@@ -42,6 +43,13 @@ export default function SRDTable({ srds, department }) {
       const stagesData = await stagesRes.json();
     
       if (stagesData.success) setProductionStages(stagesData.data.filter(s => s.isActive));
+
+      // Fetch fields with isShownInQuickDetails: true
+      const fieldsRes = await fetch('/api/newField');
+      const fieldsData = await fieldsRes.json();
+      if (Array.isArray(fieldsData)) {
+        setQuickDetailsFields(fieldsData.filter(f => f.isShownInQuickDetails && f.active));
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -120,6 +128,64 @@ export default function SRDTable({ srds, department }) {
     }
     
     return field.value;
+  };
+
+  // Helper function to get quick details fields for an SRD
+  const getQuickDetailsFields = (srd) => {
+    if (!srd.dynamicFields || quickDetailsFields.length === 0) return [];
+    
+    return quickDetailsFields
+      .map(quickField => {
+        // Find matching dynamic field by name, slug, or originalFieldId
+        const dynamicField = srd.dynamicFields.find(df => {
+          // Match by originalFieldId if available
+          if (quickField._id && df.originalFieldId) {
+            const dfId = String(df.originalFieldId);
+            const qfId = String(quickField._id);
+            if (dfId === qfId) return true;
+          }
+          
+          // Match by name (case-insensitive)
+          const dfName = df.name?.toLowerCase().trim();
+          const qfName = quickField.name?.toLowerCase().trim();
+          if (dfName && qfName && dfName === qfName) return true;
+          
+          // Match by slug (case-insensitive)
+          const dfSlug = df.slug?.toLowerCase().trim();
+          const qfSlug = quickField.slug?.toLowerCase().trim();
+          if (dfSlug && qfSlug && dfSlug === qfSlug) return true;
+          
+          // Match by name to slug conversion
+          if (dfName && qfSlug && dfName.replace(/\s+/g, '-') === qfSlug) return true;
+          if (qfName && dfSlug && qfName.replace(/\s+/g, '-') === dfSlug) return true;
+          
+          return false;
+        });
+        
+        if (!dynamicField) return null;
+        
+        let displayValue = dynamicField.value;
+        if (displayValue === null || displayValue === undefined || displayValue === '') {
+          displayValue = 'N/A';
+        } else if (Array.isArray(displayValue)) {
+          displayValue = displayValue.length > 0 ? displayValue.join(', ') : 'N/A';
+        } else if (dynamicField.type === 'date' && displayValue !== 'N/A') {
+          try {
+            const dateValue = new Date(displayValue);
+            if (!isNaN(dateValue.getTime())) {
+              displayValue = dateValue.toLocaleDateString();
+            }
+          } catch (e) {
+            // Keep original value if date parsing fails
+          }
+        }
+        
+        return {
+          name: dynamicField.name || quickField.name,
+          value: String(displayValue)
+        };
+      })
+      .filter(Boolean);
   };
 
   const filteredAndSortedSRDs = srds
@@ -347,42 +413,21 @@ export default function SRDTable({ srds, department }) {
                               <div className="p-4 bg-gray-100">
                                   <h4 className="text-md font-semibold mb-3 text-gray-800">Additional Details</h4>
                                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4 text-sm">
-                                      <div className="flex flex-col">
-                                          <span className="font-medium text-gray-500">Brand</span>
-                                          <span className="text-gray-900">{getDynamicFieldValue(srd, 'brand')}</span>
-                                      </div>
-                                      <div className="flex flex-col">
-                                          <span className="font-medium text-gray-500">Sample Type</span>
-                                          <span className="text-gray-900">{getDynamicFieldValue(srd, 'sample-type')}</span>
-                                      </div>
-                                      <div className="flex flex-col col-span-2 md:col-span-3 lg:col-span-4">
-                                          <span className="font-medium text-gray-500">Description</span>
-                                          <span className="text-gray-900 whitespace-pre-wrap">{getDynamicFieldValue(srd, 'description')}</span>
-                                      </div>
-                                      <div className="flex flex-col">
-                                          <span className="font-medium text-gray-500">Size</span>
-                                          <span className="text-gray-900">{getDynamicFieldValue(srd, 'size')}</span>
-                                      </div>
-                                      <div className="flex flex-col">
-                                          <span className="font-medium text-gray-500">QTY/PCS</span>
-                                          <span className="text-gray-900">{getDynamicFieldValue(srd, 'quantity')}</span>
-                                      </div>
-                                      <div className="flex flex-col">
-                                          <span className="font-medium text-gray-500">Color/Wash</span>
-                                          <span className="text-gray-900">{getDynamicFieldValue(srd, 'color-wash')}</span>
-                                      </div>
-                                      <div className="flex flex-col">
-                                          <span className="font-medium text-gray-500">Fabric</span>
-                                          <span className="text-gray-900">{getDynamicFieldValue(srd, 'fabric')}</span>
-                                      </div>
-                                      <div className="flex flex-col">
-                                          <span className="font-medium text-gray-500">Inquiry Status</span>
-                                          <span className="text-gray-900">{getDynamicFieldValue(srd, 'inquiry-status')}</span>
-                                      </div>
-                                      <div className="flex flex-col">
-                                          <span className="font-medium text-gray-500">ETD</span>
-                                          <span className="text-gray-900">{getDynamicFieldValue(srd, 'etd') !== 'N/A' ? new Date(getDynamicFieldValue(srd, 'etd')).toLocaleDateString() : 'N/A'}</span>
-                                      </div>
+                                      {(() => {
+                                        const quickDetails = getQuickDetailsFields(srd);
+                                        return quickDetails.length > 0 ? (
+                                          quickDetails.map((field, index) => (
+                                            <div key={index} className="flex flex-col">
+                                              <span className="font-medium text-gray-500">{field.name}</span>
+                                              <span className="text-gray-900 whitespace-pre-wrap">{field.value}</span>
+                                            </div>
+                                          ))
+                                        ) : (
+                                          <div className="col-span-full text-gray-500 text-sm">
+                                            No quick details fields configured. Enable "Show in Quick Details" for fields in the Fields Management page.
+                                          </div>
+                                        );
+                                      })()}
                                   </div>
                               </div>
                           </td>
