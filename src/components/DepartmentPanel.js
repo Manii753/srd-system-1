@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,78 @@ export default function DepartmentPanel({
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imageModalIndex, setImageModalIndex] = useState(0);
   const [modalImages, setModalImages] = useState([]);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // Auto-save functionality
+  const autoSaveTimeoutRef = useRef(null);
+  const lastSavedFieldsRef = useRef(JSON.stringify(fields));
 
+  // Auto-save function with debouncing
+  const debouncedAutoSave = useCallback(async (fieldsToSave) => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+    
+    autoSaveTimeoutRef.current = setTimeout(async () => {
+      const currentFieldsString = JSON.stringify(fieldsToSave);
+      
+      // Only save if fields have actually changed
+      if (currentFieldsString !== lastSavedFieldsRef.current && !isSubmitting) {
+        try {
+          setIsSubmitting(true);
+          
+          const updateData = {
+            status: status,
+            fields: fieldsToSave,
+          };
+
+          console.log('[Auto-save] Saving fields:', department, updateData);
+          
+          await onUpdate(updateData);
+          
+          // Update the last saved reference
+          lastSavedFieldsRef.current = currentFieldsString;
+          setHasUnsavedChanges(false);
+          
+          // Show subtle success indication
+          toast({
+            title: 'Auto-saved',
+            description: 'Changes saved automatically',
+            duration: 2000,
+          });
+          
+        } catch (error) {
+          console.error('[Auto-save] Failed:', error);
+          toast({
+            title: 'Auto-save failed',
+            description: 'Please try saving manually',
+            variant: 'destructive',
+            duration: 3000,
+          });
+        } finally {
+          setIsSubmitting(false);
+        }
+      }
+    }, 1500); // 1.5 second delay
+  }, [status, onUpdate, isSubmitting, department, toast]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Auto-save when fields change
+  useEffect(() => {
+    const currentFieldsString = JSON.stringify(fields);
+    if (currentFieldsString !== lastSavedFieldsRef.current) {
+      setHasUnsavedChanges(true);
+      debouncedAutoSave(fields);
+    }
+  }, [fields, debouncedAutoSave]);
   useEffect(() => {
     // Sync status from SRD
     setStatus(srd.status?.[department] || 'pending');
@@ -61,6 +132,9 @@ export default function DepartmentPanel({
       
       setFieldDefs(fieldDefsFromSRD);
       setFields(srdDynamicFields);
+      
+      // Update the reference for auto-save comparison
+      lastSavedFieldsRef.current = JSON.stringify(srdDynamicFields);
     } else {
       // Fallback for new SRDs or departments without fields yet
       async function fetchFields() {
@@ -83,6 +157,9 @@ export default function DepartmentPanel({
           }));
           
           setFields(newFields);
+          
+          // Update the reference for auto-save comparison
+          lastSavedFieldsRef.current = JSON.stringify(newFields);
         } catch (err) {
           console.error('Failed to fetch fields', err);
         }
@@ -95,6 +172,7 @@ export default function DepartmentPanel({
     if (!editingFields.has(name)) {
       setEditingFields(prev => new Set(prev).add(name));
     }
+    
     setFields(prev => {
       const existingFieldIndex = prev.findIndex(f => f.name === name);
       if (existingFieldIndex > -1) {
@@ -105,6 +183,9 @@ export default function DepartmentPanel({
         return [...prev, { name, value, department }];
       }
     });
+    
+    // Mark as having unsaved changes
+    setHasUnsavedChanges(true);
   };
 
   const toggleEditMode = (fieldName) => {
@@ -137,7 +218,7 @@ export default function DepartmentPanel({
       handleFieldChange(fieldName, updatedImages);
       toast({
         title: 'Image removed',
-        description: 'Click "Save Changes" to confirm removal.',
+        description: 'Changes will be saved automatically',
       });
     } else {
       toast({
@@ -157,7 +238,7 @@ export default function DepartmentPanel({
     handleFieldChange(fieldName, reorderedImages);
     toast({
       title: 'Cover image set',
-      description: 'Click "Save Changes" to confirm.',
+      description: 'Changes will be saved automatically',
     });
   };
 
@@ -414,7 +495,7 @@ export default function DepartmentPanel({
                             handleFieldChange(name, updatedImages);
                             toast({
                               title: 'Images uploaded',
-                              description: `${imageArray.length} image(s) uploaded. Click "Save Changes" to save them.`,
+                              description: `${imageArray.length} image(s) uploaded. Changes will be saved automatically.`,
                             });
                           }
                         }}
@@ -483,7 +564,15 @@ export default function DepartmentPanel({
         {renderDynamicFields()}
         {canEdit && (
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Update Status</h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-gray-700">Update Status</h4>
+              {hasUnsavedChanges && (
+                <div className="flex items-center text-xs text-amber-600">
+                  <div className="animate-pulse w-2 h-2 bg-amber-400 rounded-full mr-2"></div>
+                  Auto-saving...
+                </div>
+              )}
+            </div>
             <div className="space-y-3">
               <select value={status} onChange={(e) => handleStatusChange(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full" disabled={isSubmitting}>
                 <option value="pending">Pending</option>
@@ -496,8 +585,11 @@ export default function DepartmentPanel({
                 <Textarea id="updateComment" value={updateComment} onChange={(e) => setUpdateComment(e.target.value)} placeholder={status === 'flagged' ? 'Describe the issue... (Required)' : 'Add a comment...'} required={status === 'flagged'} className="min-h-[100px] mt-1" />
               </div>
               <Button onClick={handleSaveChanges} disabled={isSubmitting} className="px-4 py-2 w-full">
-                {isSubmitting ? 'Updating...' : 'Save Changes'}
+                {isSubmitting ? 'Updating Status...' : 'Update Status & Comment'}
               </Button>
+              <p className="text-xs text-gray-500 text-center">
+                Field changes are saved automatically. Use this button only to update status or add comments.
+              </p>
             </div>
           </div>
         )}

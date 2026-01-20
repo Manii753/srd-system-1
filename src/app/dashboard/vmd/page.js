@@ -130,7 +130,7 @@ export default function VMDDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">VMD Portal</h1>
+            <h1 className="text-3xl font-bold text-gray-900">VMD</h1>
             <p className="text-gray-600 mt-1">Manage sample requests and track development progress</p>
           </div>
           <Button 
@@ -144,50 +144,42 @@ export default function VMDDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
+        <div className="w-[7vw] bg-white shadow-lg rounded-lg">
+          <div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total SRDs</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm ">Total SRDs</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs text-muted-foreground">All SRDs created</p>
+              <div className="font-bold">{stats.total}</div>
             </CardContent>
-          </Card>
+          </div>
           
-          <Card>
+          <div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm">Pending Review</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pending}</div>
-              <p className="text-xs text-muted-foreground">Awaiting review</p>
+              <div className="font-bold">{stats.pending}</div>
             </CardContent>
-          </Card>
+          </div>
           
-          <Card>
+          <div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Approved</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm">Approved</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.approved}</div>
-              <p className="text-xs text-muted-foreground">Successfully approved</p>
+              <div className="font-bold">{stats.approved}</div>
             </CardContent>
-          </Card>
+          </div>
           
-          <Card>
+          <div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Flagged</CardTitle>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm">Flagged</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.flagged}</div>
-              <p className="text-xs text-muted-foreground">Issues flagged</p>
+              <div className="font-bold">{stats.flagged}</div>
             </CardContent>
-          </Card>
+          </div>
         </div>
 
         {/* View Toggle */}
