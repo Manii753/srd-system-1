@@ -5,16 +5,21 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import DepartmentPanel from '@/components/DepartmentPanel';
+import DepartmentPanelExcel from '@/components/DepartmentPanelExcel';
 import ProductionControl from '@/components/ProductionControl';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/lib/use-toast';
+import { cn } from '@/lib/utils';
 import { 
   FileText, 
   MessageCircle, 
-  Clock
+  Clock,
+  Table,
+  Grid3X3
 } from 'lucide-react';
 
 export default function SRDDetailPage() {
@@ -25,6 +30,7 @@ export default function SRDDetailPage() {
   const [srd, setSrd] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeline, setTimeline] = useState([]);
+  const [viewMode, setViewMode] = useState('form'); // 'form' or 'excel'
   const allowedDepartments = ['vmd', 'cad', 'mmc', 'commercial'];
 
   useEffect(() => {
@@ -152,7 +158,7 @@ export default function SRDDetailPage() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className={cn("space-y-6", viewMode === 'excel' && "space-y-3")}>
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -205,28 +211,30 @@ export default function SRDDetailPage() {
           </CardContent>
         </Card> */}
 
-        {/* Department Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Department Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {srd.status && Object.entries(srd.status)
-                .filter(([dept]) => allowedDepartments.includes(dept))
-                .map(([dept, status]) => (
-                  <div key={dept} className="text-center">
-                    <Badge className={getStatusColor(status)}>
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
-                    </Badge>
-                    <div className="mt-2 text-sm font-medium text-gray-900">
-                      {dept.toUpperCase()}
+        {/* Department Status - Hide in Excel mode to save space */}
+        {viewMode !== 'excel' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Department Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {srd.status && Object.entries(srd.status)
+                  .filter(([dept]) => allowedDepartments.includes(dept))
+                  .map(([dept, status]) => (
+                    <div key={dept} className="text-center">
+                      <Badge className={getStatusColor(status)}>
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </Badge>
+                      <div className="mt-2 text-sm font-medium text-gray-900">
+                        {dept.toUpperCase()}
+                      </div>
                     </div>
-                  </div>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* SRD Diagnostic Tool - For Admin and Production Manager */}
         
@@ -240,77 +248,115 @@ export default function SRDDetailPage() {
           />
         )}
 
+        {/* View Mode Toggle */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Department Details</h2>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant={viewMode === 'form' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('form')}
+              className="flex items-center gap-2"
+            >
+              <Grid3X3 className="h-4 w-4" />
+              Form View
+            </Button>
+            <Button
+              variant={viewMode === 'excel' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('excel')}
+              className="flex items-center gap-2"
+            >
+              <Table className="h-4 w-4" />
+              Excel View
+            </Button>
+          </div>
+        </div>
+
         {/* Department Tabs */}
-        <Tabs defaultValue={userRole} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            {allowedDepartments.filter(dept => (canViewAll ? true : dept === userRole)).map((dept) => (
-              <TabsTrigger key={dept} value={dept}>
-                {dept.toUpperCase()}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        <div className={cn("w-full", viewMode === 'excel' && "space-y-2")}>
+          <Tabs defaultValue={userRole} className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              {allowedDepartments.filter(dept => (canViewAll ? true : dept === userRole)).map((dept) => (
+                <TabsTrigger key={dept} value={dept}>
+                  {dept.toUpperCase()}
+                </TabsTrigger>
+              ))}
+            </TabsList>
 
-          {srd.status && allowedDepartments.filter(dept => (canViewAll ? true : dept === userRole)).map((dept) => {
-            const canEdit = userRole === dept || userRole === 'admin' || userRole === 'vmd';
+            {srd.status && allowedDepartments.filter(dept => (canViewAll ? true : dept === userRole)).map((dept) => {
+              const canEdit = userRole === dept || userRole === 'admin' || userRole === 'vmd';
 
-            return (
-              <TabsContent key={dept} value={dept}>
-                <DepartmentPanel
-                  srd={srd}
-                  department={dept}
-                  onUpdate={(data) => handleDepartmentUpdate(dept, data)}
-                  canEdit={canEdit}
-                />
-              </TabsContent>
-            );
-          })}
-        </Tabs>
+              return (
+                <TabsContent key={dept} value={dept} className={cn(viewMode === 'excel' && "mt-2")}>
+                  {viewMode === 'excel' ? (
+                    <DepartmentPanelExcel
+                      srd={srd}
+                      department={dept}
+                      onUpdate={(data) => handleDepartmentUpdate(dept, data)}
+                      canEdit={canEdit}
+                    />
+                  ) : (
+                    <DepartmentPanel
+                      srd={srd}
+                      department={dept}
+                      onUpdate={(data) => handleDepartmentUpdate(dept, data)}
+                      canEdit={canEdit}
+                    />
+                  )}
+                </TabsContent>
+              );
+            })}
+          </Tabs>
+        </div>
 
 
-        {/* Timeline */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Activity Timeline</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {timeline.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No activity yet</p>
-              ) : (
-                timeline.map((item, index) => (
-                  <div key={index} className="flex items-start space-x-3">
-                    <div className="flex-shrink-0">
-                      {item.type === 'audit' ? (
-                        <Clock className="h-5 w-5 text-gray-400" />
-                      ) : (
-                        <MessageCircle className="h-5 w-5 text-blue-500" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium">
-                          {item.type === 'audit' ? item.action : item.author}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {item.department && `${item.department.toUpperCase()} • `}
-                          {new Date(item.timestamp || item.date).toLocaleString()}
-                        </span>
+        {/* Timeline - Hide in Excel mode to save space */}
+        {viewMode !== 'excel' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Activity Timeline</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {timeline.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">No activity yet</p>
+                ) : (
+                  timeline.map((item, index) => (
+                    <div key={index} className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        {item.type === 'audit' ? (
+                          <Clock className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <MessageCircle className="h-5 w-5 text-blue-500" />
+                        )}
                       </div>
-                      {item.type === 'comment' && (
-                        <p className="text-sm text-gray-600 mt-1">{item.text}</p>
-                      )}
-                      {item.type === 'audit' && item.details && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          Status: {item.details.status}
-                        </p>
-                      )}
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-medium">
+                            {item.type === 'audit' ? item.action : item.author}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {item.department && `${item.department.toUpperCase()} • `}
+                            {new Date(item.timestamp || item.date).toLocaleString()}
+                          </span>
+                        </div>
+                        {item.type === 'comment' && (
+                          <p className="text-sm text-gray-600 mt-1">{item.text}</p>
+                        )}
+                        {item.type === 'audit' && item.details && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            Status: {item.details.status}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </Layout>
   );
