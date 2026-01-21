@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import SRD from '@/models/SRD';
 import ProductionStage from '@/models/ProductionStage';
+import { notifySRDUpdate } from '@/lib/emailService';
 
 // Start production for an SRD
 export async function POST(request, { params }) {
@@ -57,6 +58,18 @@ export async function POST(request, { params }) {
     });
 
     await srd.save();
+
+    // Notify users
+    try {
+      const updateDetails = {
+        action: 'Production Started',
+        stage: firstStage.name,
+        startDate: new Date().toLocaleString()
+      };
+      await notifySRDUpdate(srd, updateDetails);
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+    }
 
     return NextResponse.json({
       success: true,
@@ -156,6 +169,20 @@ export async function PATCH(request, { params }) {
 
       await srd.save();
 
+      // Notify users
+      try {
+        const updateDetails = {
+          action: nextStage ? 'Production Stage Completed' : 'Production Completed',
+          completedStage: currentStage.name,
+          nextStage: nextStage ? nextStage.name : 'N/A',
+          completedBy: completedBy || 'Unknown',
+          notes: notes || 'N/A'
+        };
+        await notifySRDUpdate(srd, updateDetails);
+      } catch (emailError) {
+        console.error('Failed to send email notification:', emailError);
+      }
+
       return NextResponse.json({
         success: true,
         data: srd,
@@ -174,6 +201,19 @@ export async function PATCH(request, { params }) {
       }
 
       await srd.save();
+
+      // Notify users
+      try {
+        const updateDetails = {
+          action: 'Production Stage Updated',
+          stageId,
+          status: body.status,
+          notes: notes
+        };
+        await notifySRDUpdate(srd, updateDetails);
+      } catch (emailError) {
+        console.error('Failed to send email notification:', emailError);
+      }
 
       return NextResponse.json({
         success: true,

@@ -5,6 +5,7 @@ import User from '@/models/User';
 import Notification from '@/models/Notification';
 import pusher from '@/lib/pusher-server';
 import mongoose from 'mongoose';
+import { notifySRDCreation } from '@/lib/emailService';
 
 export async function GET(request) {
   try {
@@ -200,6 +201,14 @@ export async function POST(request) {
       }
     } catch (pusherError) {
       console.warn('Pusher trigger failed (non-blocking):', pusherError.message);
+    }
+
+    // --- Send Email Notification (non-blocking) ---
+    try {
+      await notifySRDCreation(newSRD);
+      console.log('Email notification sent for SRD:', newSRD.refNo);
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
     }
 
     return NextResponse.json({

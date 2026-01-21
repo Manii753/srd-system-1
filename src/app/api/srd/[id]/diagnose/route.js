@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import SRD from '@/models/SRD';
 import Department from '@/models/Department';
+import { notifySRDUpdate } from '@/lib/emailService';
 
 export async function GET(request, { params }) {
   await dbConnect();
@@ -190,6 +191,17 @@ export async function POST(request, { params }) {
     if (changes.length > 0) {
       await srd.save();
       changes.push('Recalculated progress and readyForProduction');
+      
+      // Notify users about auto-fix
+      try {
+        const updateDetails = {
+          action: 'System Auto-Fix',
+          details: changes
+        };
+        await notifySRDUpdate(srd, updateDetails);
+      } catch (emailError) {
+        console.error('Failed to send email notification:', emailError);
+      }
     }
 
     return NextResponse.json({

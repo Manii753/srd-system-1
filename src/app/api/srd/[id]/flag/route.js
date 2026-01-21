@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import SRD from '@/models/SRD';
 import pusher from '@/lib/pusher-server';
+import { notifySRDUpdate } from '@/lib/emailService';
 
 export async function PATCH(request, context) {
   try {
@@ -45,6 +46,19 @@ export async function PATCH(request, context) {
       status: 'flagged',
       comment: { text: comment, author, role },
     });
+
+    // Send email notification
+    try {
+      const changes = {
+        action: 'Flagged',
+        department,
+        comment,
+        flaggedBy: author
+      };
+      await notifySRDUpdate(updatedSRD, changes);
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+    }
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import SRD from '@/models/SRD';
+import { notifySRDCreation } from '@/lib/emailService';
 
 // Function to generate the next available refNo for duplicates/redos
 const getNextRefNo = async (baseRefNo, isRedo) => {
@@ -124,6 +125,13 @@ export async function POST(request, { params }) {
     });
 
     await newSrd.save();
+
+    // Notify users
+    try {
+      await notifySRDCreation(newSrd);
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+    }
 
     // If this is a redo, delete the original SRD
     if (isRedo) {

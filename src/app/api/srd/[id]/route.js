@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import SRD from '@/models/SRD';
+import { notifySRDCompletion, notifySRDUpdate } from '@/lib/emailService';
 
 export async function GET(request, { params }) {
   try {
@@ -40,6 +41,23 @@ export async function PATCH(request, { params }) {
         success: false,
         error: 'SRD not found'
       }, { status: 404 });
+    }
+
+    // Email Notifications
+    try {
+      // Check if this update marks the SRD as completed
+      // Checking both isComplete boolean and status string/object just in case
+      const isCompleted = body.isComplete === true || body.status === 'completed';
+
+      if (isCompleted) {
+        await notifySRDCompletion(updatedSRD);
+      } else {
+        // Send update notification for other changes
+        await notifySRDUpdate(updatedSRD, body);
+      }
+    } catch (emailError) {
+      console.error('Failed to send email notification:', emailError);
+      // Continue execution, do not fail the request
     }
     
     return NextResponse.json({
