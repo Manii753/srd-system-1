@@ -261,43 +261,75 @@ export default function DepartmentPanelExcel({
         };
       });
 
+      // Collect all images with references
+      let imageCounter = 1;
+      const allImages = [];
+
+      // Function to convert image to base64
+      const convertImageToBase64 = (imgSrc) => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            try {
+              const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+              resolve(dataURL);
+            } catch (e) {
+              resolve(imgSrc); // Fallback to original URL
+            }
+          };
+          img.onerror = () => resolve(imgSrc); // Fallback to original URL
+          img.src = imgSrc;
+        });
+      };
+
       // Build department sections HTML
       let departmentSectionsHTML = '';
       allDepartmentFields.forEach(deptData => {
         let fieldsHTML = '';
         deptData.fields.forEach(field => {
           const fieldValue = field.value || '';
-          const fieldName = field.name.length > 15 ? field.name.substring(0, 15) + '...' : field.name;
+          const fieldName = field.name.length > 12 ? field.name.substring(0, 12) + '...' : field.name;
           
           if (field.type === 'boolean') {
             fieldsHTML += `
               <div class="field-item checkbox-field">
                 <span class="field-label">${fieldName}${field.isRequired ? '*' : ''}:</span>
                 <div class="checkbox">${fieldValue ? '✓' : ''}</div>
-                <span style="font-size: 6px;">Y</span>
+                <span style="font-size: 7px; margin: 0 2px;">Y</span>
                 <div class="checkbox">${!fieldValue ? '✓' : ''}</div>
-                <span style="font-size: 6px;">N</span>
+                <span style="font-size: 7px;">N</span>
               </div>
             `;
           } else if (field.type === 'image') {
             const images = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
             const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-            const allImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
+            const fieldImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
             
-            if (allImages.length > 0) {
-              let imagesHTML = '';
-              allImages.slice(0, 2).forEach((imgSrc, idx) => {
-                imagesHTML += `<img src="${imgSrc}" style="width: 30px; height: 30px; object-fit: cover; border: 1px solid #666; margin: 1px;" alt="Image ${idx + 1}" onerror="this.style.display='none'; this.nextSibling.style.display='inline';" /><span style="display: none; font-size: 6px; color: #999;">[IMG]</span>`;
+            if (fieldImages.length > 0) {
+              // Create image references
+              const imageRefs = [];
+              fieldImages.forEach(imgSrc => {
+                const refNumber = imageCounter++;
+                imageRefs.push(`${refNumber}`);
+                allImages.push({
+                  src: imgSrc,
+                  ref: refNumber,
+                  field: fieldName,
+                  department: deptData.department.toUpperCase()
+                });
               });
-              if (allImages.length > 2) {
-                imagesHTML += `<span style="font-size: 6px; margin-left: 2px;">+${allImages.length - 2}</span>`;
-              }
               
               fieldsHTML += `
-                <div class="field-item image-item">
+                <div class="field-item">
                   <span class="field-label">${fieldName}${field.isRequired ? '*' : ''}:</span>
-                  <div class="image-field">
-                    ${imagesHTML}
+                  <div class="field-value image-reference">
+                    IMG: ${imageRefs.join(',')}
                   </div>
                 </div>
               `;
@@ -305,9 +337,7 @@ export default function DepartmentPanelExcel({
               fieldsHTML += `
                 <div class="field-item">
                   <span class="field-label">${fieldName}${field.isRequired ? '*' : ''}:</span>
-                  <div class="image-field">
-                    [ NO IMAGES ]
-                  </div>
+                  <div class="field-value">[ NO IMG ]</div>
                 </div>
               `;
             }
@@ -324,7 +354,7 @@ export default function DepartmentPanelExcel({
         departmentSectionsHTML += `
           <div class="department-section">
             <div class="dept-header">
-              ${deptData.department.toUpperCase()} Department - Status: ${deptData.status.toUpperCase()}
+              ${deptData.department.toUpperCase()} - ${deptData.status.toUpperCase()}
             </div>
             <div class="fields-grid">
               ${fieldsHTML}
@@ -332,6 +362,29 @@ export default function DepartmentPanelExcel({
           </div>
         `;
       });
+
+      // Build compact images section HTML for single page
+      let imagesSectionHTML = '';
+      if (allImages.length > 0) {
+        let imagesHTML = '';
+        allImages.forEach(img => {
+          imagesHTML += `
+            <div class="image-container">
+              <div class="image-ref">${img.ref}</div>
+              <img src="${img.src}" alt="${img.ref}" crossorigin="anonymous" />
+            </div>
+          `;
+        });
+        
+        imagesSectionHTML = `
+          <div class="images-section">
+            <div class="images-header">IMAGES</div>
+            <div class="images-grid">
+              ${imagesHTML}
+            </div>
+          </div>
+        `;
+      }
 
       const printContent = `<!DOCTYPE html>
 <html>
@@ -345,8 +398,8 @@ export default function DepartmentPanelExcel({
     
     body {
       font-family: Arial, sans-serif;
-      font-size: 8px;
-      line-height: 1.1;
+      font-size: 10px;
+      line-height: 1.25;
       margin: 0;
       padding: 0;
       -webkit-print-color-adjust: exact;
@@ -356,23 +409,23 @@ export default function DepartmentPanelExcel({
     .header {
       text-align: center;
       border-bottom: 2px solid #000;
-      padding-bottom: 8px;
-      margin-bottom: 12px;
+      padding-bottom: 7px;
+      margin-bottom: 9px;
     }
     
     .header h1 {
-      font-size: 14px;
+      font-size: 16px;
       font-weight: bold;
-      margin: 0 0 4px 0;
+      margin: 0 0 5px 0;
       text-transform: uppercase;
     }
     
     .header-info {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-      font-size: 8px;
-      margin-top: 4px;
+      gap: 10px;
+      font-size: 10px;
+      margin-top: 5px;
     }
     
     .department-section {
@@ -383,47 +436,48 @@ export default function DepartmentPanelExcel({
     .dept-header {
       background-color: #f0f0f0;
       border: 1px solid #000;
-      padding: 2px 4px;
+      padding: 4px 5px;
       font-weight: bold;
-      font-size: 9px;
+      font-size: 11px;
       text-align: center;
       text-transform: uppercase;
-      margin-bottom: 4px;
+      margin-bottom: 5px;
     }
     
     .fields-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 2px 8px;
-      font-size: 7px;
+      gap: 4px 10px;
+      font-size: 9px;
     }
     
     .field-item {
       display: flex;
       align-items: center;
-      padding: 1px 0;
-      min-height: 14px;
-    }
-    
-    .field-item.image-item {
-      flex-direction: column;
-      align-items: flex-start;
-      min-height: 36px;
+      padding: 2px 0;
+      min-height: 16px;
     }
     
     .field-label {
       font-weight: bold;
       text-transform: uppercase;
-      margin-right: 4px;
-      min-width: 40px;
-      font-size: 6px;
+      margin-right: 5px;
+      min-width: 45px;
+      font-size: 8px;
     }
     
     .field-value {
       flex: 1;
       border-bottom: 1px dotted #666;
-      min-height: 10px;
-      padding: 0 2px;
+      min-height: 12px;
+      padding: 0 4px;
+      font-size: 9px;
+    }
+    
+    .image-reference {
+      font-style: italic;
+      color: #666;
+      font-weight: bold;
     }
     
     .checkbox-field {
@@ -432,43 +486,66 @@ export default function DepartmentPanelExcel({
     }
     
     .checkbox {
-      width: 8px;
-      height: 8px;
+      width: 12px;
+      height: 12px;
       border: 1px solid #000;
-      margin: 0 2px;
+      margin: 0 4px;
       text-align: center;
-      font-size: 6px;
-      line-height: 8px;
+      font-size: 8px;
+      line-height: 12px;
     }
     
-    .image-field {
-      border: 1px solid #666;
-      min-height: 32px;
-      text-align: center;
-      padding: 2px;
-      font-size: 6px;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: center;
+    .images-section {
+      margin-top: 12px;
+      border-top: 1px solid #ccc;
+      padding-top: 7px;
     }
     
-    .image-field img {
-      width: 30px;
-      height: 30px;
+    .images-header {
+      background-color: #000;
+      color: white;
+      padding: 5px;
+      font-weight: bold;
+      font-size: 11px;
+      text-align: center;
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+    
+    .images-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+    }
+    
+    .image-container {
+      text-align: center;
+      border: 1px solid #ccc;
+      padding: 4px;
+    }
+    
+    .image-ref {
+      font-weight: bold;
+      font-size: 9px;
+      margin-bottom: 3px;
+      color: #000;
+    }
+    
+    .image-container img {
+      width: 100%;
+      max-height: 70px;
       object-fit: cover;
       border: 1px solid #666;
-      margin: 1px;
     }
     
     .footer {
       margin-top: 12px;
-      padding-top: 8px;
+      padding-top: 7px;
       border-top: 1px solid #000;
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 16px;
-      font-size: 7px;
+      gap: 18px;
+      font-size: 9px;
     }
     
     .signature-box {
@@ -477,8 +554,18 @@ export default function DepartmentPanelExcel({
     
     .signature-line {
       border-bottom: 1px dotted #666;
-      height: 12px;
-      margin: 4px 0;
+      height: 14px;
+      margin: 5px 0;
+    }
+    
+    @media print {
+      body { 
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+      .images-section {
+        page-break-inside: avoid;
+      }
     }
   </style>
 </head>
@@ -493,6 +580,8 @@ export default function DepartmentPanelExcel({
   </div>
   
   ${departmentSectionsHTML}
+  
+  ${imagesSectionHTML}
   
   <div class="footer">
     <div class="signature-box">
@@ -517,12 +606,48 @@ export default function DepartmentPanelExcel({
       printWindow.document.write(printContent);
       printWindow.document.close();
       
-      // Wait for content to load before printing
+      // Wait for images to load before printing
       setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-      }, 500);
+        // Ensure all images are loaded
+        const images = printWindow.document.querySelectorAll('img');
+        let loadedImages = 0;
+        const totalImages = images.length;
+        
+        if (totalImages === 0) {
+          printWindow.focus();
+          printWindow.print();
+          printWindow.close();
+          return;
+        }
+        
+        const checkAllLoaded = () => {
+          loadedImages++;
+          if (loadedImages >= totalImages) {
+            setTimeout(() => {
+              printWindow.focus();
+              printWindow.print();
+              printWindow.close();
+            }, 200);
+          }
+        };
+        
+        images.forEach(img => {
+          if (img.complete) {
+            checkAllLoaded();
+          } else {
+            img.onload = checkAllLoaded;
+            img.onerror = checkAllLoaded;
+          }
+        });
+        
+        // Fallback timeout
+        setTimeout(() => {
+          printWindow.focus();
+          printWindow.print();
+          printWindow.close();
+        }, 3000);
+        
+      }, 1000);
 
     } catch (error) {
       console.error('Print error:', error);

@@ -91,6 +91,22 @@ export default function SRDTable({ srds, department }) {
     }
   };
 
+  // Helper function to get status-based colors for department badges
+  const getDepartmentStatusColor = (status) => {
+    switch (status) {
+      case 'approved':
+        return 'bg-gradient-to-r from-green-500 to-green-600';
+      case 'flagged':
+        return 'bg-gradient-to-r from-red-500 to-red-600';
+      case 'pending':
+        return 'bg-gradient-to-r from-orange-500 to-orange-600';
+      case 'in-progress':
+        return 'bg-gradient-to-r from-blue-500 to-blue-600';
+      default:
+        return 'bg-gradient-to-r from-gray-500 to-gray-600';
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'approved': return 'bg-green-100 text-green-800';
@@ -274,26 +290,26 @@ export default function SRDTable({ srds, department }) {
   console.log("srd", srds)
 
   return (
-    <div className="flex flex-col w-full bg-white rounded-lg shadow">
+    <div className="flex flex-col w-full bg-white rounded-xl shadow-lg border border-gray-100">
       {/* Search and Filter */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center">
+      <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+        <div className="flex items-center space-x-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search SRDs..."
+              placeholder="Search SRDs by reference or title..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white shadow-sm"
             />
           </div>
-          <div className="flex items-center space-x-2">
-            <Filter className="h-5 w-5 text-gray-400" />
+          <div className="flex items-center space-x-3 bg-white rounded-xl px-4 py-3 border border-gray-200 shadow-sm">
+            <Filter className="h-5 w-5 text-gray-500" />
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="border-0 focus:ring-0 focus:outline-none bg-transparent text-gray-700 font-medium"
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -308,144 +324,202 @@ export default function SRDTable({ srds, department }) {
       {/* Table */}
       <div className="w-full">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <tr>
-              <th className="px-2 py-3 w-12"></th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-4 w-12"></th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 <button
                   onClick={() => handleSort('createdAt')}
-                  className="flex items-center space-x-1 hover:text-gray-700"
+                  className="flex items-center space-x-2 hover:text-gray-800 transition-colors duration-200 group"
                 >
                   <span>Date</span>
                   {sortField === 'createdAt' && (
-                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                    sortDirection === 'asc' ? 
+                    <ChevronUp className="h-4 w-4 text-blue-500" /> : 
+                    <ChevronDown className="h-4 w-4 text-blue-500" />
+                  )}
+                  {sortField !== 'createdAt' && (
+                    <ChevronDown className="h-4 w-4 opacity-0 group-hover:opacity-50 transition-opacity" />
                   )}
                 </button>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Picture</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inquiry #</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Style</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Picture</th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Inquiry #</th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Style</th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-100">
             {filteredAndSortedSRDs.map((srd) => {
               const currentStage = getCurrentProductionStage(srd);
               const isExpanded = expandedRows.has(srd._id);
 
               return (
                 <Fragment key={srd._id}>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-2 py-4">
-                      <Button size="sm" variant="ghost" onClick={() => toggleRowExpansion(srd._id)} className="w-10">
-                        {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                  <tr className="hover:bg-blue-50 transition-colors duration-200 group">
+                    <td className="px-3 py-5">
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={() => toggleRowExpansion(srd._id)} 
+                        className="w-8 h-8 rounded-full hover:bg-blue-100 transition-colors duration-200"
+                      >
+                        {isExpanded ? 
+                          <ChevronUp className="h-4 w-4 text-gray-600" /> : 
+                          <ChevronDown className="h-4 w-4 text-gray-600" />
+                        }
                       </Button>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {new Date(srd.createdAt).toLocaleDateString()}
+                    <td className="px-6 py-5 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-gray-900">
+                        {new Date(srd.createdAt).toLocaleDateString()}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(srd.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-5 whitespace-nowrap">
                       {(() => {
                         const allImages = getAllImages(srd);
                         return allImages.length > 0 ? (
                           <div
-                            className="cursor-pointer hover:opacity-80 transition-opacity relative group"
+                            className="cursor-pointer hover:scale-105 transition-transform duration-200 relative group"
                             onClick={() => openImageSlider(allImages)}
                           >
-                            <Image
-                              src={allImages[0]}
-                              width={60}
-                              height={60}
-                              alt="SRD cover"
-                              className="rounded object-cover border-2 border-yellow-400"
-                            />
-                            <div className="absolute top-0 left-0 bg-yellow-400 text-yellow-900 px-1 py-0.5 rounded-tl rounded-br text-xs font-semibold flex items-center gap-0.5">
-                              <Star className="h-2.5 w-2.5 fill-current" />
+                            <div className="relative">
+                              <Image
+                                src={allImages[0]}
+                                width={70}
+                                height={70}
+                                alt="SRD cover"
+                                className="rounded-xl object-cover border-2 border-yellow-400 shadow-md"
+                              />
+                              <div className="absolute top-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 px-2 py-1 rounded-tl-xl rounded-br-xl text-xs font-bold flex items-center gap-1 shadow-sm">
+                                <Star className="h-3 w-3 fill-current" />
+                                <span>Cover</span>
+                              </div>
+                              {allImages.length > 1 && (
+                                <span className="absolute -top-2 -right-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold shadow-lg border-2 border-white">
+                                  {allImages.length}
+                                </span>
+                              )}
                             </div>
-                            {allImages.length > 1 && (
-                              <span className="absolute -top-1 -left-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold shadow">
-                                {allImages.length}
-                              </span>
-                            )}
                           </div>
                         ) : (
-                          <span className="text-gray-400 text-xs">No images</span>
+                          <div className="w-16 h-16 bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center">
+                            <span className="text-gray-400 text-xs font-medium">No Image</span>
+                          </div>
                         );
                       })()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {srd.refNo}
+                    <td className="px-6 py-5 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
+                          {srd.refNo}
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {getDynamicFieldValue(srd, 'style')}
+                    <td className="px-6 py-5 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {getDynamicFieldValue(srd, 'style')}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-5 whitespace-nowrap">
                       {srd.inProduction && currentStage ? (
-                        <div className="flex items-center">
+                        <div className="flex items-center bg-white rounded-lg px-3 py-2 border border-gray-200 shadow-sm">
                           <div
-                            className="w-3 h-3 rounded-full mr-2"
+                            className="w-3 h-3 rounded-full mr-3 shadow-sm"
                             style={{ backgroundColor: currentStage.color }}
                           />
-                          <span className="font-medium capitalize text-sm">
+                          <span className="font-semibold capitalize text-sm text-gray-800">
                             {currentStage.displayName || currentStage.name}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-gray-400 text-xs flex gap-4">
-
-                          <div className="p-1 px-2 bg-gray-400 rounded-lg w-fit font-bold text-white text-center">
-                            <div>vmd</div>
-                            <div>{srd.status.vmd}</div>
+                        <div className="flex gap-1 flex-wrap">
+                          <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.vmd)} rounded-lg text-white text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
+                            <div className="text-center">
+                              <div className="uppercase font-bold text-xs">VMD</div>
+                              <div className="text-white/80 text-xs capitalize">{srd.status.vmd}</div>
+                            </div>
                           </div>
-                          <div className="p-1 px-2 bg-gray-400 rounded-lg w-fit font-bold text-white text-center">
-                            <div>cad</div>
-                            <div>{srd.status.cad}</div>
+                          <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.cad)} rounded-lg text-white text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
+                            <div className="text-center">
+                              <div className="uppercase font-bold text-xs">CAD</div>
+                              <div className="text-white/80 text-xs capitalize">{srd.status.cad}</div>
+                            </div>
                           </div>
-                          <div className="p-1 px-2 bg-gray-400 rounded-lg w-fit font-bold text-white text-center">
-                            <div>mmc</div>
-                            <div>{srd.status.mmc}</div>
+                          <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.mmc)} rounded-lg text-white text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
+                            <div className="text-center">
+                              <div className="uppercase font-bold text-xs">MMC</div>
+                              <div className="text-white/80 text-xs capitalize">{srd.status.mmc}</div>
+                            </div>
                           </div>
-                          <div className="p-1 px-2 bg-gray-400 rounded-lg w-fit font-bold text-white text-center">
-                            <div>commercial</div>
-                            <div>{srd.status.commercial}</div>
+                          <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.commercial)} rounded-lg text-white text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
+                            <div className="text-center">
+                              <div className="uppercase font-bold text-xs">COM</div>
+                              <div className="text-white/80 text-xs capitalize">{srd.status.commercial}</div>
+                            </div>
                           </div>
-                        </span>
+                        </div>
                       )}
                     </td>
-                    <td className="justify-center align-middle px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
-
-                      <Link href={`/srd/${srd._id}`}>
-                        <Button size="sm" variant="outline">
-                          View
+                    <td className="justify-center align-middle px-6 py-5 whitespace-nowrap text-sm font-medium">
+                      <div className="flex gap-2 justify-center">
+                        <Link href={`/srd/${srd._id}`}>
+                          <Button 
+                            size="sm" 
+                            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md transition-all duration-200"
+                          >
+                            View Details
+                          </Button>
+                        </Link>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => handleDuplicate(srd._id)} 
+                          title="Duplicate SRD"
+                          className="border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-colors duration-200"
+                        >
+                          <Copy className="h-4 w-4" />
                         </Button>
-                      </Link>
-                      <Button size="icon" variant="outline" onClick={() => handleDuplicate(srd._id)} title="Duplicate SRD">
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="outline" onClick={() => handleRedo(srd._id)} title="Redo SRD">
-                        <Repeat className="h-4 w-4" />
-                      </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => handleRedo(srd._id)} 
+                          title="Redo SRD"
+                          className="border-gray-300 hover:border-green-500 hover:text-green-600 transition-colors duration-200"
+                        >
+                          <Repeat className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                   {isExpanded && (
                     <tr>
                       <td colSpan="7" className="p-0">
-                        <div className="p-4 bg-gray-100">
-                          <h4 className="text-md font-semibold mb-3 text-gray-800">Additional Details</h4>
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4 text-sm">
+                        <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-100">
+                          <h4 className="text-lg font-bold mb-4 text-gray-800 flex items-center">
+                            <div className="w-1 h-6 bg-blue-500 rounded-full mr-3"></div>
+                            Additional Details
+                          </h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 text-sm">
                             {(() => {
                               const quickDetails = getQuickDetailsFields(srd);
                               return quickDetails.length > 0 ? (
                                 quickDetails.map((field, index) => (
-                                  <div key={index} className="flex flex-col">
-                                    <span className="font-medium text-gray-500">{field.name}</span>
-                                    <span className="text-gray-900 whitespace-pre-wrap">{field.value}</span>
+                                  <div key={index} className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+                                    <span className="font-semibold text-gray-600 text-xs uppercase tracking-wide block mb-2">{field.name}</span>
+                                    <span className="text-gray-900 font-medium whitespace-pre-wrap">{field.value}</span>
                                   </div>
                                 ))
                               ) : (
-                                <div className="col-span-full text-gray-500 text-sm">
-                                  No quick details fields configured. Enable "Show in Quick Details" for fields in the Fields Management page.
+                                <div className="col-span-full bg-white rounded-lg p-6 text-center border border-gray-200">
+                                  <div className="text-gray-500 text-sm">
+                                    <div className="text-lg mb-2">📋</div>
+                                    No quick details fields configured. Enable "Show in Quick Details" for fields in the Fields Management page.
+                                  </div>
                                 </div>
                               );
                             })()}

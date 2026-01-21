@@ -7,6 +7,7 @@ import Layout from '@/components/layout/Layout';
 import DepartmentPanel from '@/components/DepartmentPanel';
 import DepartmentPanelExcel from '@/components/DepartmentPanelExcel';
 import ProductionControl from '@/components/ProductionControl';
+import SRDTracker from '@/components/SRDTracker';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -227,6 +228,7 @@ export default function SRDDetailPage() {
           </CardContent>
         </Card> */}
 
+        {/* SRD Progress Tracker */}
         {/* Department Status - Hide in Excel mode to save space */}
         {viewMode !== 'excel' && (
           <Card>
