@@ -236,335 +236,145 @@ export default function DepartmentPanelExcel({
     }
   };
 
-  const handlePrint = () => {
-    try {
-      // Create a comprehensive print view with all departments
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        toast({
-          title: 'Print blocked',
-          description: 'Please allow popups for this site to enable printing',
-          variant: 'destructive',
-        });
-        return;
-      }
+  const handlePrint = async () => {
+  try {
+    // Fetch the active print template for this department
+    const templateRes = await fetch(`/api/printTemplate?department=${department}`);
+    const templates = await templateRes.json();
+    
+    // Use the first active template, or fall back to default layout
+    const template = Array.isArray(templates) && templates.length > 0 ? templates[0] : null;
+    
+    if (!template) {
+      // Fall back to your existing print logic
+      alert('No print template found for this department. Please create one in the template designer.');
+      return;
+    }
 
-      const allDepartments = ['vmd', 'cad', 'mmc', 'commercial'];
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: 'Print blocked',
+        description: 'Please allow popups for this site to enable printing',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Build the print content using the template
+    const gridColumns = template.gridColumns || 6;
+    let fieldsHTML = '';
+    
+    template.cells.forEach(cell => {
+      const field = srd.dynamicFields?.find(f => 
+        f.field?._id === cell.fieldId || f.originalFieldId === cell.fieldId
+      );
       
-      // Gather all fields from all departments
-      const allDepartmentFields = allDepartments.map(dept => {
-        const deptFields = srd.dynamicFields?.filter(f => f.department === dept) || [];
-        return {
-          department: dept,
-          fields: deptFields,
-          status: srd.status?.[dept] || 'pending'
-        };
-      });
+      if (!field) return;
+      
+      const fieldValue = field.value || '';
+      const colSpan = cell.position.colSpan || 1;
+      const height = cell.position.height || 'auto';
+      
+      const minHeight = 
+        height === 'small' ? '40px' :
+        height === 'medium' ? '80px' :
+        height === 'large' ? '120px' :
+        height === 'xlarge' ? '200px' : 'auto';
+      
+      fieldsHTML += `
+        <div class="field-cell" style="grid-column: span ${colSpan}; min-height: ${minHeight};">
+          <div class="field-label">${field.name}${field.isRequired ? '*' : ''}:</div>
+          <div class="field-value">${
+            field.type === 'boolean' 
+              ? `<span class="checkbox">${fieldValue ? '✓' : ''}</span> YES <span class="checkbox">${!fieldValue ? '✓' : ''}</span> NO`
+              : field.type === 'image'
+              ? `[${Array.isArray(fieldValue) ? fieldValue.length : (fieldValue ? 1 : 0)} IMAGE(S)]`
+              : fieldValue
+          }</div>
+        </div>
+      `;
+    });
 
-      // Collect all images with references
-      let imageCounter = 1;
-      const allImages = [];
-
-      // Function to convert image to base64
-      const convertImageToBase64 = (imgSrc) => {
-        return new Promise((resolve) => {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-            try {
-              const dataURL = canvas.toDataURL('image/jpeg', 0.8);
-              resolve(dataURL);
-            } catch (e) {
-              resolve(imgSrc); // Fallback to original URL
-            }
-          };
-          img.onerror = () => resolve(imgSrc); // Fallback to original URL
-          img.src = imgSrc;
-        });
-      };
-
-      // Build department sections HTML
-      let departmentSectionsHTML = '';
-      allDepartmentFields.forEach(deptData => {
-        let fieldsHTML = '';
-        deptData.fields.forEach(field => {
-          const fieldValue = field.value || '';
-          const fieldName = field.name.length > 12 ? field.name.substring(0, 12) + '...' : field.name;
-          
-          if (field.type === 'boolean') {
-            fieldsHTML += `
-              <div class="field-item checkbox-field">
-                <span class="field-label">${fieldName}${field.isRequired ? '*' : ''}:</span>
-                <div class="checkbox">${fieldValue ? '✓' : ''}</div>
-                <span style="font-size: 7px; margin: 0 2px;">Y</span>
-                <div class="checkbox">${!fieldValue ? '✓' : ''}</div>
-                <span style="font-size: 7px;">N</span>
-              </div>
-            `;
-          } else if (field.type === 'image') {
-            const images = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-            const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-            const fieldImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
-            
-            if (fieldImages.length > 0) {
-              // Create image references
-              const imageRefs = [];
-              fieldImages.forEach(imgSrc => {
-                const refNumber = imageCounter++;
-                imageRefs.push(`${refNumber}`);
-                allImages.push({
-                  src: imgSrc,
-                  ref: refNumber,
-                  field: fieldName,
-                  department: deptData.department.toUpperCase()
-                });
-              });
-              
-              fieldsHTML += `
-                <div class="field-item">
-                  <span class="field-label">${fieldName}${field.isRequired ? '*' : ''}:</span>
-                  <div class="field-value image-reference">
-                    IMG: ${imageRefs.join(',')}
-                  </div>
-                </div>
-              `;
-            } else {
-              fieldsHTML += `
-                <div class="field-item">
-                  <span class="field-label">${fieldName}${field.isRequired ? '*' : ''}:</span>
-                  <div class="field-value">[ NO IMG ]</div>
-                </div>
-              `;
-            }
-          } else {
-            fieldsHTML += `
-              <div class="field-item">
-                <span class="field-label">${fieldName}${field.isRequired ? '*' : ''}:</span>
-                <div class="field-value">${fieldValue}</div>
-              </div>
-            `;
-          }
-        });
-
-        departmentSectionsHTML += `
-          <div class="department-section">
-            <div class="dept-header">
-              ${deptData.department.toUpperCase()} - ${deptData.status.toUpperCase()}
-            </div>
-            <div class="fields-grid">
-              ${fieldsHTML}
-            </div>
-          </div>
-        `;
-      });
-
-      // Build compact images section HTML for single page
-      let imagesSectionHTML = '';
-      if (allImages.length > 0) {
-        let imagesHTML = '';
-        allImages.forEach(img => {
-          imagesHTML += `
-            <div class="image-container">
-              <div class="image-ref">${img.ref}</div>
-              <img src="${img.src}" alt="${img.ref}" crossorigin="anonymous" />
-            </div>
-          `;
-        });
-        
-        imagesSectionHTML = `
-          <div class="images-section">
-            <div class="images-header">IMAGES</div>
-            <div class="images-grid">
-              ${imagesHTML}
-            </div>
-          </div>
-        `;
-      }
-
-      const printContent = `<!DOCTYPE html>
+    const printContent = `<!DOCTYPE html>
 <html>
 <head>
-  <title>SRD Complete Form - ${srd.refNo}</title>
+  <title>SRD Form - ${srd.refNo}</title>
   <style>
     @page {
       size: A4;
-      margin: 0.2in;
+      margin: 0.5in;
     }
     
     body {
       font-family: Arial, sans-serif;
       font-size: 10px;
-      line-height: 1.25;
+      line-height: 1.3;
       margin: 0;
       padding: 0;
-      -webkit-print-color-adjust: exact;
-      color-adjust: exact;
     }
     
     .header {
       text-align: center;
       border-bottom: 2px solid #000;
-      padding-bottom: 7px;
-      margin-bottom: 9px;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
     }
     
     .header h1 {
-      font-size: 16px;
-      font-weight: bold;
-      margin: 0 0 5px 0;
-      text-transform: uppercase;
+      font-size: 18px;
+      margin: 0 0 8px 0;
     }
     
     .header-info {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
+      gap: 15px;
       font-size: 10px;
-      margin-top: 5px;
     }
     
-    .department-section {
-      margin-bottom: 8px;
-      page-break-inside: avoid;
-    }
-    
-    .dept-header {
-      background-color: #f0f0f0;
-      border: 1px solid #000;
-      padding: 4px 5px;
-      font-weight: bold;
-      font-size: 11px;
-      text-align: center;
-      text-transform: uppercase;
-      margin-bottom: 5px;
-    }
-    
-    .fields-grid {
+    .template-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 4px 10px;
-      font-size: 9px;
+      grid-template-columns: repeat(${gridColumns}, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 20px;
     }
     
-    .field-item {
-      display: flex;
-      align-items: center;
-      padding: 2px 0;
-      min-height: 16px;
+    .field-cell {
+      border: 1px solid #ccc;
+      padding: 8px;
+      border-radius: 4px;
     }
     
     .field-label {
       font-weight: bold;
+      font-size: 9px;
+      margin-bottom: 4px;
       text-transform: uppercase;
-      margin-right: 5px;
-      min-width: 45px;
-      font-size: 8px;
     }
     
     .field-value {
-      flex: 1;
       border-bottom: 1px dotted #666;
-      min-height: 12px;
-      padding: 0 4px;
-      font-size: 9px;
-    }
-    
-    .image-reference {
-      font-style: italic;
-      color: #666;
-      font-weight: bold;
-    }
-    
-    .checkbox-field {
-      display: flex;
-      align-items: center;
+      min-height: 20px;
+      padding: 2px;
+      font-size: 10px;
     }
     
     .checkbox {
-      width: 12px;
-      height: 12px;
+      display: inline-block;
+      width: 14px;
+      height: 14px;
       border: 1px solid #000;
       margin: 0 4px;
       text-align: center;
-      font-size: 8px;
-      line-height: 12px;
-    }
-    
-    .images-section {
-      margin-top: 12px;
-      border-top: 1px solid #ccc;
-      padding-top: 7px;
-    }
-    
-    .images-header {
-      background-color: #000;
-      color: white;
-      padding: 5px;
-      font-weight: bold;
-      font-size: 11px;
-      text-align: center;
-      text-transform: uppercase;
-      margin-bottom: 7px;
-    }
-    
-    .images-grid {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 6px;
-    }
-    
-    .image-container {
-      text-align: center;
-      border: 1px solid #ccc;
-      padding: 4px;
-    }
-    
-    .image-ref {
-      font-weight: bold;
-      font-size: 9px;
-      margin-bottom: 3px;
-      color: #000;
-    }
-    
-    .image-container img {
-      width: 100%;
-      max-height: 70px;
-      object-fit: cover;
-      border: 1px solid #666;
-    }
-    
-    .footer {
-      margin-top: 12px;
-      padding-top: 7px;
-      border-top: 1px solid #000;
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 18px;
-      font-size: 9px;
-    }
-    
-    .signature-box {
-      text-align: center;
-    }
-    
-    .signature-line {
-      border-bottom: 1px dotted #666;
-      height: 14px;
-      margin: 5px 0;
+      font-size: 10px;
+      line-height: 14px;
     }
     
     @media print {
       body { 
         -webkit-print-color-adjust: exact !important;
         color-adjust: exact !important;
-      }
-      .images-section {
-        page-break-inside: avoid;
       }
     }
   </style>
@@ -574,90 +384,35 @@ export default function DepartmentPanelExcel({
     <h1>Sample Request and Development Form</h1>
     <div class="header-info">
       <div><strong>SRD REF:</strong> ${srd.refNo}</div>
-      <div><strong>STATUS:</strong> ${Object.values(srd.status || {}).join(', ')}</div>
+      <div><strong>DEPT:</strong> ${department.toUpperCase()}</div>
       <div><strong>DATE:</strong> ${new Date().toLocaleDateString()}</div>
     </div>
   </div>
   
-  ${departmentSectionsHTML}
-  
-  ${imagesSectionHTML}
-  
-  <div class="footer">
-    <div class="signature-box">
-      <div><strong>PREPARED BY:</strong></div>
-      <div class="signature-line"></div>
-      <div>SIGNATURE & DATE</div>
-    </div>
-    <div class="signature-box">
-      <div><strong>REVIEWED BY:</strong></div>
-      <div class="signature-line"></div>
-      <div>SIGNATURE & DATE</div>
-    </div>
-    <div class="signature-box">
-      <div><strong>APPROVED BY:</strong></div>
-      <div class="signature-line"></div>
-      <div>SIGNATURE & DATE</div>
-    </div>
+  <div class="template-grid">
+    ${fieldsHTML}
   </div>
 </body>
 </html>`;
 
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      
-      // Wait for images to load before printing
-      setTimeout(() => {
-        // Ensure all images are loaded
-        const images = printWindow.document.querySelectorAll('img');
-        let loadedImages = 0;
-        const totalImages = images.length;
-        
-        if (totalImages === 0) {
-          printWindow.focus();
-          printWindow.print();
-          printWindow.close();
-          return;
-        }
-        
-        const checkAllLoaded = () => {
-          loadedImages++;
-          if (loadedImages >= totalImages) {
-            setTimeout(() => {
-              printWindow.focus();
-              printWindow.print();
-              printWindow.close();
-            }, 200);
-          }
-        };
-        
-        images.forEach(img => {
-          if (img.complete) {
-            checkAllLoaded();
-          } else {
-            img.onload = checkAllLoaded;
-            img.onerror = checkAllLoaded;
-          }
-        });
-        
-        // Fallback timeout
-        setTimeout(() => {
-          printWindow.focus();
-          printWindow.print();
-          printWindow.close();
-        }, 3000);
-        
-      }, 1000);
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }, 500);
 
-    } catch (error) {
-      console.error('Print error:', error);
-      toast({
-        title: 'Print failed',
-        description: 'There was an error generating the print document',
-        variant: 'destructive',
-      });
-    }
-  };
+  } catch (error) {
+    console.error('Print error:', error);
+    toast({
+      title: 'Print failed',
+      description: 'There was an error generating the print document',
+      variant: 'destructive',
+    });
+  }
+};
 
   // Group fields by headings for Excel-like layout
   const groupFieldsByHeading = () => {

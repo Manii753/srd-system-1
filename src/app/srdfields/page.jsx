@@ -1,6 +1,7 @@
 'use client'
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
+import { useRouter } from 'next/navigation';
 import { PlusCircleIcon, GripVertical, Folder, FolderOpen, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
@@ -39,7 +40,7 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
     transition,
     isDragging,
   } = useSortable({ id: field._id });
-
+  
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -230,6 +231,7 @@ export default function Page() {
     parentHeading: null,
     isShownInQuickDetails: false
   });
+  const router = useRouter();
   const [fields, setFields] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [selectedDepartment, setSelectedDepartment] = useState('vmd');
@@ -492,6 +494,16 @@ export default function Page() {
               </option>
             ))}
           </select>
+          
+          <Button
+            variant="outline"
+            onClick={() => router.push('/print-templates')}
+            className="flex items-center"
+          >
+            
+            Print Templates
+          </Button>
+          
           <Button
             variant="outline"
             className="flex items-center bg-black text-white border-gray-600 hover:bg-black/50 hover:border-gray-500"
@@ -500,6 +512,7 @@ export default function Page() {
             <PlusCircleIcon className="h-4 w-4 mr-2" />
             Add New Field
           </Button>
+          
         </div>
       </div>
 
