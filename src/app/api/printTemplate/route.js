@@ -4,17 +4,16 @@ import PrintTemplate from '@/models/PrintTemplate';
 export async function GET(request) {
   await connectDB();
   const { searchParams } = new URL(request.url);
-  const department = searchParams.get('department');
   const id = searchParams.get('id');
 
   try {
     if (id) {
-      const template = await PrintTemplate.findById(id);
+      const template = await PrintTemplate.findById(id).populate('cells.fieldId');
       return Response.json(template);
     }
     
-    const query = department ? { department } : {};
-    const templates = await PrintTemplate.find(query).sort({ createdAt: -1 });
+    // Get all templates (no department filter)
+    const templates = await PrintTemplate.find().sort({ createdAt: -1 });
     return Response.json(templates);
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

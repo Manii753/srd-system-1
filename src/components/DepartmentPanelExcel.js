@@ -236,18 +236,22 @@ export default function DepartmentPanelExcel({
     }
   };
 
-  const handlePrint = async () => {
+const handlePrint = async () => {
   try {
-    // Fetch the active print template for this department
-    const templateRes = await fetch(`/api/printTemplate?department=${department}`);
+    // Fetch the active print template
+    const templateRes = await fetch('/api/printTemplate');
     const templates = await templateRes.json();
     
-    // Use the first active template, or fall back to default layout
-    const template = Array.isArray(templates) && templates.length > 0 ? templates[0] : null;
+    const activeTemplate = Array.isArray(templates) 
+      ? templates.find(t => t.isActive) 
+      : null;
     
-    if (!template) {
-      // Fall back to your existing print logic
-      alert('No print template found for this department. Please create one in the template designer.');
+    if (!activeTemplate) {
+      toast({
+        title: 'No active template',
+        description: 'Please create and activate a print template in the template designer.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -261,18 +265,35 @@ export default function DepartmentPanelExcel({
       return;
     }
 
+    // Fetch all department fields for this SRD
+    const allDepartmentFields = {};
+    ['vmd', 'cad', 'commercial', 'mmc'].forEach(dept => {
+      allDepartmentFields[dept] = srd.dynamicFields?.filter(f => f.department === dept) || [];
+    });
+
     // Build the print content using the template
-    const gridColumns = template.gridColumns || 6;
+    const gridColumns = activeTemplate.gridColumns || 6;
     let fieldsHTML = '';
     
-    template.cells.forEach(cell => {
-      const field = srd.dynamicFields?.find(f => 
-        f.field?._id === cell.fieldId || f.originalFieldId === cell.fieldId
-      );
+    activeTemplate.cells.forEach(cell => {
+      // Find the field value from any department
+      let fieldData = null;
+      let fieldValue = '';
       
-      if (!field) return;
+      for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
+        const found = allDepartmentFields[dept].find(f => 
+          (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
+          (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString())
+        );
+        if (found) {
+          fieldData = found;
+          fieldValue = found.value || '';
+          break;
+        }
+      }
       
-      const fieldValue = field.value || '';
+      if (!fieldData) return; // Skip if field not found
+      
       const colSpan = cell.position.colSpan || 1;
       const height = cell.position.height || 'auto';
       
@@ -282,16 +303,38 @@ export default function DepartmentPanelExcel({
         height === 'large' ? '120px' :
         height === 'xlarge' ? '200px' : 'auto';
       
+      let valueDisplay = '';
+      if (fieldData.type === 'boolean') {
+        valueDisplay = `
+          <div class="checkbox-field">
+            <span class="checkbox">${fieldValue ? '✓' : ''}</span>
+            <span class="label-text">YES</span>
+            <span class="checkbox">${!fieldValue ? '✓' : ''}</span>
+            <span class="label-text">NO</span>
+          </div>
+        `;
+      } else if (fieldData.type === 'image') {
+        const images = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+        const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
+        const allImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
+        valueDisplay = allImages.length > 0 
+          ? `<span class="image-count">${allImages.length} IMAGE(S)</span>`
+          : '<span class="no-value">[ NO IMAGES ]</span>';
+      } else if (fieldData.type === 'heading') {
+        valueDisplay = '<div class="heading-separator"></div>';
+      } else {
+        valueDisplay = fieldValue || '<span class="no-value">—</span>';
+      }
+      
       fieldsHTML += `
         <div class="field-cell" style="grid-column: span ${colSpan}; min-height: ${minHeight};">
-          <div class="field-label">${field.name}${field.isRequired ? '*' : ''}:</div>
-          <div class="field-value">${
-            field.type === 'boolean' 
-              ? `<span class="checkbox">${fieldValue ? '✓' : ''}</span> YES <span class="checkbox">${!fieldValue ? '✓' : ''}</span> NO`
-              : field.type === 'image'
-              ? `[${Array.isArray(fieldValue) ? fieldValue.length : (fieldValue ? 1 : 0)} IMAGE(S)]`
-              : fieldValue
-          }</div>
+          <div class="field-header">
+            <span class="field-label">${fieldData.name}${fieldData.isRequired ? '*' : ''}</span>
+            <span class="field-dept">${fieldData.department?.toUpperCase()}</span>
+          </div>
+          <div class="field-value ${fieldData.type === 'heading' ? 'heading-type' : ''}">
+            ${valueDisplay}
+          </div>
         </div>
       `;
     });
@@ -299,7 +342,7 @@ export default function DepartmentPanelExcel({
     const printContent = `<!DOCTYPE html>
 <html>
 <head>
-  <title>SRD Form - ${srd.refNo}</title>
+  <title>SRD Complete Form - ${srd.refNo}</title>
   <style>
     @page {
       size: A4;
@@ -312,6 +355,8 @@ export default function DepartmentPanelExcel({
       line-height: 1.3;
       margin: 0;
       padding: 0;
+      -webkit-print-color-adjust: exact;
+      color-adjust: exact;
     }
     
     .header {
@@ -324,13 +369,15 @@ export default function DepartmentPanelExcel({
     .header h1 {
       font-size: 18px;
       margin: 0 0 8px 0;
+      font-weight: bold;
     }
     
     .header-info {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 15px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
       font-size: 10px;
+      margin-top: 8px;
     }
     
     .template-grid {
@@ -342,22 +389,50 @@ export default function DepartmentPanelExcel({
     
     .field-cell {
       border: 1px solid #ccc;
-      padding: 8px;
-      border-radius: 4px;
+      padding: 6px;
+      border-radius: 3px;
+      background: white;
+    }
+    
+    .field-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
     }
     
     .field-label {
       font-weight: bold;
       font-size: 9px;
-      margin-bottom: 4px;
       text-transform: uppercase;
+      color: #333;
+    }
+    
+    .field-dept {
+      font-size: 7px;
+      background: #f0f0f0;
+      padding: 2px 4px;
+      border-radius: 2px;
+      color: #666;
     }
     
     .field-value {
       border-bottom: 1px dotted #666;
-      min-height: 20px;
-      padding: 2px;
+      min-height: 18px;
+      padding: 2px 4px;
       font-size: 10px;
+    }
+    
+    .field-value.heading-type {
+      border-bottom: 2px solid #000;
+      font-weight: bold;
+      text-align: center;
+    }
+    
+    .checkbox-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     
     .checkbox {
@@ -365,10 +440,50 @@ export default function DepartmentPanelExcel({
       width: 14px;
       height: 14px;
       border: 1px solid #000;
-      margin: 0 4px;
       text-align: center;
       font-size: 10px;
       line-height: 14px;
+    }
+    
+    .label-text {
+      font-size: 9px;
+      font-weight: normal;
+    }
+    
+    .image-count {
+      font-style: italic;
+      color: #666;
+      font-size: 9px;
+    }
+    
+    .no-value {
+      color: #999;
+      font-style: italic;
+    }
+    
+    .heading-separator {
+      height: 2px;
+      background: #000;
+    }
+    
+    .footer {
+      margin-top: 20px;
+      padding-top: 10px;
+      border-top: 2px solid #000;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      font-size: 9px;
+    }
+    
+    .signature-box {
+      text-align: center;
+    }
+    
+    .signature-line {
+      border-bottom: 1px dotted #666;
+      height: 20px;
+      margin: 8px 0;
     }
     
     @media print {
@@ -381,16 +496,35 @@ export default function DepartmentPanelExcel({
 </head>
 <body>
   <div class="header">
-    <h1>Sample Request and Development Form</h1>
+    <h1>SAMPLE REQUEST AND DEVELOPMENT FORM</h1>
     <div class="header-info">
       <div><strong>SRD REF:</strong> ${srd.refNo}</div>
-      <div><strong>DEPT:</strong> ${department.toUpperCase()}</div>
-      <div><strong>DATE:</strong> ${new Date().toLocaleDateString()}</div>
+      <div><strong>VMD:</strong> ${srd.status?.vmd || 'Pending'}</div>
+      <div><strong>CAD:</strong> ${srd.status?.cad || 'Pending'}</div>
+      <div><strong>COMMERCIAL:</strong> ${srd.status?.commercial || 'Pending'}</div>
     </div>
   </div>
   
   <div class="template-grid">
     ${fieldsHTML}
+  </div>
+  
+  <div class="footer">
+    <div class="signature-box">
+      <div><strong>PREPARED BY:</strong></div>
+      <div class="signature-line"></div>
+      <div>SIGNATURE & DATE</div>
+    </div>
+    <div class="signature-box">
+      <div><strong>REVIEWED BY:</strong></div>
+      <div class="signature-line"></div>
+      <div>SIGNATURE & DATE</div>
+    </div>
+    <div class="signature-box">
+      <div><strong>APPROVED BY:</strong></div>
+      <div class="signature-line"></div>
+      <div>SIGNATURE & DATE</div>
+    </div>
   </div>
 </body>
 </html>`;

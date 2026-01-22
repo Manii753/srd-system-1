@@ -5,11 +5,6 @@ const PrintTemplateSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  department: {
-    type: String,
-    required: true,
-    enum: ['vmd', 'cad', 'commercial', 'mmc'],
-  },
   gridColumns: {
     type: Number,
     default: 6,
@@ -34,7 +29,7 @@ const PrintTemplateSchema = new mongoose.Schema({
   }],
   isActive: {
     type: Boolean,
-    default: true,
+    default: false,
   },
 }, {
   timestamps: true,

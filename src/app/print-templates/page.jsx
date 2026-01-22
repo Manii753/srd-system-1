@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { 
   GripVertical, 
   Save, 
@@ -12,9 +12,10 @@ import {
   Trash2, 
   Plus,
   Grid3x3,
-  Maximize2,
   Copy,
-  Layout
+  Layout,
+  CheckCircle2,
+  Filter
 } from 'lucide-react';
 import {
   DndContext,
@@ -23,7 +24,6 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragOverlay,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -87,13 +87,24 @@ function SortableTemplateCell({ id, field, position, onRemove, onResize }) {
     }
   };
 
+  const getDeptColor = (dept) => {
+    switch(dept) {
+      case 'vmd': return 'bg-blue-100 text-blue-700 border-blue-300';
+      case 'cad': return 'bg-green-100 text-green-700 border-green-300';
+      case 'commercial': return 'bg-purple-100 text-purple-700 border-purple-300';
+      case 'mmc': return 'bg-orange-100 text-orange-700 border-orange-300';
+      default: return 'bg-gray-100 text-gray-700 border-gray-300';
+    }
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={`
-        border-2 border-dashed border-blue-300 rounded-lg p-3 bg-blue-50
-        hover:border-blue-500 hover:bg-blue-100 transition-all
+        border-2 border-dashed rounded-lg p-3 transition-all
+        ${getDeptColor(field.department)}
+        hover:shadow-md
         ${isDragging ? 'shadow-lg z-50' : ''}
       `}
     >
@@ -101,14 +112,14 @@ function SortableTemplateCell({ id, field, position, onRemove, onResize }) {
         <div
           {...attributes}
           {...listeners}
-          className="cursor-grab hover:cursor-grabbing text-blue-600"
+          className="cursor-grab hover:cursor-grabbing"
         >
           <GripVertical className="h-4 w-4" />
         </div>
         
         <div className="flex items-center space-x-1">
           <select
-            className="text-xs border border-blue-300 rounded px-1 py-0.5"
+            className="text-xs border rounded px-1 py-0.5 bg-white"
             value={position.colSpan || 1}
             onChange={(e) => onResize(id, 'colSpan', parseInt(e.target.value))}
             onClick={(e) => e.stopPropagation()}
@@ -119,7 +130,7 @@ function SortableTemplateCell({ id, field, position, onRemove, onResize }) {
           </select>
           
           <select
-            className="text-xs border border-blue-300 rounded px-1 py-0.5"
+            className="text-xs border rounded px-1 py-0.5 bg-white"
             value={position.height || 'auto'}
             onChange={(e) => onResize(id, 'height', e.target.value)}
             onClick={(e) => e.stopPropagation()}
@@ -138,14 +149,19 @@ function SortableTemplateCell({ id, field, position, onRemove, onResize }) {
         </div>
       </div>
       
-      <div className="text-sm font-medium text-blue-900">
+      <div className="text-sm font-medium">
         {getFieldIcon(field.type)} {field.name}
       </div>
       
-      <div className="text-xs text-blue-600 mt-1 space-x-2">
-        <span className="bg-blue-200 px-1.5 py-0.5 rounded">{field.type}</span>
+      <div className="flex items-center space-x-2 mt-2">
+        <Badge variant="outline" className="text-xs">
+          {field.department?.toUpperCase() || 'ALL'}
+        </Badge>
+        <Badge variant="outline" className="text-xs">
+          {field.type}
+        </Badge>
         {field.isRequired && (
-          <span className="bg-red-200 text-red-700 px-1.5 py-0.5 rounded">Required</span>
+          <Badge variant="destructive" className="text-xs">Required</Badge>
         )}
       </div>
     </div>
@@ -153,12 +169,14 @@ function SortableTemplateCell({ id, field, position, onRemove, onResize }) {
 }
 
 // Available fields sidebar
-function AvailableFieldsList({ fields, onAddField }) {
+function AvailableFieldsList({ allFields, onAddField, filterDepartment, setFilterDepartment }) {
   const [searchTerm, setSearchTerm] = useState('');
   
-  const filteredFields = fields.filter(f => 
-    f.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredFields = allFields.filter(f => {
+    const matchesSearch = f.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDept = filterDepartment === 'all' || f.department === filterDepartment;
+    return matchesSearch && matchesDept;
+  });
 
   const getFieldIcon = (type) => {
     switch(type) {
@@ -173,16 +191,41 @@ function AvailableFieldsList({ fields, onAddField }) {
     }
   };
 
+  const getDeptColor = (dept) => {
+    switch(dept) {
+      case 'vmd': return 'border-blue-300 hover:border-blue-500 hover:bg-blue-50';
+      case 'cad': return 'border-green-300 hover:border-green-500 hover:bg-green-50';
+      case 'commercial': return 'border-purple-300 hover:border-purple-500 hover:bg-purple-50';
+      case 'mmc': return 'border-orange-300 hover:border-orange-500 hover:bg-orange-50';
+      default: return 'border-gray-300 hover:border-gray-500 hover:bg-gray-50';
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b">
-        <h3 className="font-semibold text-gray-900 mb-2">Available Fields</h3>
+      <div className="p-4 border-b space-y-3">
+        <h3 className="font-semibold text-gray-900">All Department Fields</h3>
+        
         <Input
           placeholder="Search fields..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="text-sm"
         />
+        
+        <div className="flex items-center space-x-2">
+          <Filter className="h-4 w-4 text-gray-500" />
+          <select
+            value={filterDepartment}
+            onChange={(e) => setFilterDepartment(e.target.value)}
+            className="flex-1 text-sm border border-gray-300 rounded px-2 py-1"
+          >
+            <option value="all">All Departments</option>
+            {DEPARTMENTS.map(dept => (
+              <option key={dept} value={dept}>{dept.toUpperCase()}</option>
+            ))}
+          </select>
+        </div>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -190,18 +233,23 @@ function AvailableFieldsList({ fields, onAddField }) {
           <button
             key={field._id}
             onClick={() => onAddField(field)}
-            className="w-full text-left p-3 border border-gray-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all"
+            className={`w-full text-left p-3 border-2 rounded-lg transition-all ${getDeptColor(field.department)}`}
           >
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="font-medium text-sm text-gray-900">
                   {getFieldIcon(field.type)} {field.name}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  <span className="bg-gray-100 px-2 py-0.5 rounded">{field.type}</span>
+                <div className="flex items-center space-x-2 mt-1">
+                  <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">
+                    {field.type}
+                  </span>
+                  <span className="text-xs font-medium text-gray-600">
+                    {field.department?.toUpperCase() || 'ALL'}
+                  </span>
                 </div>
               </div>
-              <Plus className="h-4 w-4 text-blue-500" />
+              <Plus className="h-4 w-4 text-gray-400" />
             </div>
           </button>
         ))}
@@ -217,15 +265,15 @@ function AvailableFieldsList({ fields, onAddField }) {
 }
 
 export default function PrintTemplateDesigner() {
-  const [selectedDepartment, setSelectedDepartment] = useState('vmd');
-  const [fields, setFields] = useState([]);
+  const [allFields, setAllFields] = useState([]);
   const [templateCells, setTemplateCells] = useState([]);
   const [gridColumns, setGridColumns] = useState(6);
   const [templateName, setTemplateName] = useState('');
   const [savedTemplates, setSavedTemplates] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [activeTemplate, setActiveTemplate] = useState(null);
+  const [activeTemplateId, setActiveTemplateId] = useState(null);
+  const [filterDepartment, setFilterDepartment] = useState('all');
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -235,15 +283,22 @@ export default function PrintTemplateDesigner() {
   );
 
   useEffect(() => {
-    fetchFields();
+    fetchAllFields();
     fetchTemplates();
-  }, [selectedDepartment]);
+  }, []);
 
-  const fetchFields = async () => {
+  const fetchAllFields = async () => {
     try {
-      const res = await fetch(`/api/newField?department=${selectedDepartment}`);
-      const data = await res.json();
-      setFields(Array.isArray(data) ? data : []);
+      // Fetch fields from all departments
+      const allFieldsData = [];
+      for (const dept of DEPARTMENTS) {
+        const res = await fetch(`/api/newField?department=${dept}`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          allFieldsData.push(...data);
+        }
+      }
+      setAllFields(allFieldsData);
     } catch (err) {
       console.error('Failed to fetch fields', err);
     }
@@ -251,9 +306,15 @@ export default function PrintTemplateDesigner() {
 
   const fetchTemplates = async () => {
     try {
-      const res = await fetch(`/api/printTemplate?department=${selectedDepartment}`);
+      const res = await fetch('/api/printTemplate');
       const data = await res.json();
       setSavedTemplates(Array.isArray(data) ? data : []);
+      
+      // Find active template
+      const active = data.find(t => t.isActive);
+      if (active) {
+        setActiveTemplateId(active._id);
+      }
     } catch (err) {
       console.error('Failed to fetch templates', err);
     }
@@ -308,12 +369,12 @@ export default function PrintTemplateDesigner() {
     try {
       const templateData = {
         name: templateName,
-        department: selectedDepartment,
         gridColumns,
         cells: templateCells.map(cell => ({
           fieldId: cell.fieldId,
           position: cell.position,
         })),
+        isActive: false, // Don't auto-activate
       };
 
       const res = await fetch('/api/printTemplate', {
@@ -327,6 +388,7 @@ export default function PrintTemplateDesigner() {
         fetchTemplates();
         setTemplateName('');
       } else {
+        console.log(res)
         alert('Failed to save template');
       }
     } catch (err) {
@@ -342,19 +404,35 @@ export default function PrintTemplateDesigner() {
     setGridColumns(template.gridColumns || 6);
     
     // Reconstruct cells with field data
-    const cells = await Promise.all(
-      template.cells.map(async (cell) => {
-        const field = fields.find(f => f._id === cell.fieldId);
-        return {
-          id: `cell-${Date.now()}-${Math.random()}`,
-          fieldId: cell.fieldId,
-          field: field || { name: 'Unknown Field', type: 'text' },
-          position: cell.position,
-        };
-      })
-    );
+    const cells = template.cells.map((cell) => {
+      const field = allFields.find(f => f._id === cell.fieldId);
+      return {
+        id: `cell-${Date.now()}-${Math.random()}`,
+        fieldId: cell.fieldId,
+        field: field || { name: 'Unknown Field', type: 'text', department: 'unknown' },
+        position: cell.position,
+      };
+    });
     
     setTemplateCells(cells);
+  };
+
+  const setActiveTemplate = async (templateId) => {
+    try {
+      // Deactivate all templates first
+      await fetch('/api/printTemplate/setActive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId }),
+      });
+      
+      setActiveTemplateId(templateId);
+      fetchTemplates();
+      alert('Template set as active!');
+    } catch (err) {
+      console.error('Failed to set active template', err);
+      alert('Failed to set active template');
+    }
   };
 
   const deleteTemplate = async (templateId) => {
@@ -363,10 +441,20 @@ export default function PrintTemplateDesigner() {
     try {
       await fetch(`/api/printTemplate?id=${templateId}`, { method: 'DELETE' });
       fetchTemplates();
+      if (activeTemplateId === templateId) {
+        setActiveTemplateId(null);
+      }
     } catch (err) {
       console.error('Failed to delete template', err);
     }
   };
+
+  // Group template cells by department for stats
+  const cellsByDepartment = templateCells.reduce((acc, cell) => {
+    const dept = cell.field.department || 'unknown';
+    acc[dept] = (acc[dept] || 0) + 1;
+    return acc;
+  }, {});
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
@@ -376,21 +464,11 @@ export default function PrintTemplateDesigner() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Print Template Designer</h1>
             <p className="text-sm text-gray-600 mt-1">
-              Drag and drop fields to create custom print layouts
+              Create a unified print layout with fields from all departments
             </p>
           </div>
           
           <div className="flex items-center space-x-3">
-            <select
-              value={selectedDepartment}
-              onChange={(e) => setSelectedDepartment(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2"
-            >
-              {DEPARTMENTS.map(dept => (
-                <option key={dept} value={dept}>{dept.toUpperCase()}</option>
-              ))}
-            </select>
-            
             <Button
               onClick={() => setShowPreview(!showPreview)}
               variant="outline"
@@ -402,42 +480,59 @@ export default function PrintTemplateDesigner() {
         </div>
         
         {/* Template Controls */}
-        <div className="mt-4 flex items-center space-x-3">
-          <Input
-            placeholder="Template name..."
-            value={templateName}
-            onChange={(e) => setTemplateName(e.target.value)}
-            className="max-w-xs"
-          />
-          
-          <div className="flex items-center space-x-2">
-            <Label className="text-sm">Grid:</Label>
-            <select
-              value={gridColumns}
-              onChange={(e) => setGridColumns(parseInt(e.target.value))}
-              className="border border-gray-300 rounded px-2 py-1 text-sm"
+        <div className="mt-4 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Input
+              placeholder="Template name..."
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              className="w-64"
+            />
+            
+            <div className="flex items-center space-x-2">
+              <Label className="text-sm">Grid:</Label>
+              <select
+                value={gridColumns}
+                onChange={(e) => setGridColumns(parseInt(e.target.value))}
+                className="border border-gray-300 rounded px-2 py-1 text-sm"
+              >
+                {GRID_SIZES.map(size => (
+                  <option key={size.value} value={size.value}>{size.label}</option>
+                ))}
+              </select>
+            </div>
+            
+            <Button onClick={saveTemplate} disabled={saving}>
+              <Save className="h-4 w-4 mr-2" />
+              {saving ? 'Saving...' : 'Save Template'}
+            </Button>
+            
+            <Button
+              onClick={() => {
+                setTemplateCells([]);
+                setTemplateName('');
+              }}
+              variant="outline"
             >
-              {GRID_SIZES.map(size => (
-                <option key={size.value} value={size.value}>{size.label}</option>
-              ))}
-            </select>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Clear All
+            </Button>
           </div>
           
-          <Button onClick={saveTemplate} disabled={saving}>
-            <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Saving...' : 'Save Template'}
-          </Button>
-          
-          <Button
-            onClick={() => {
-              setTemplateCells([]);
-              setTemplateName('');
-            }}
-            variant="outline"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Clear All
-          </Button>
+          {/* Department Stats */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-600">Fields:</span>
+            {DEPARTMENTS.map(dept => (
+              cellsByDepartment[dept] > 0 && (
+                <Badge key={dept} variant="outline" className="text-xs">
+                  {dept.toUpperCase()}: {cellsByDepartment[dept]}
+                </Badge>
+              )
+            ))}
+            <Badge variant="outline" className="text-xs font-semibold">
+              Total: {templateCells.length}
+            </Badge>
+          </div>
         </div>
       </div>
 
@@ -445,7 +540,12 @@ export default function PrintTemplateDesigner() {
       <div className="flex-1 flex overflow-hidden">
         {/* Available Fields Sidebar */}
         <div className="w-80 bg-white border-r overflow-hidden">
-          <AvailableFieldsList fields={fields} onAddField={addFieldToTemplate} />
+          <AvailableFieldsList 
+            allFields={allFields} 
+            onAddField={addFieldToTemplate}
+            filterDepartment={filterDepartment}
+            setFilterDepartment={setFilterDepartment}
+          />
         </div>
 
         {/* Template Canvas */}
@@ -453,7 +553,7 @@ export default function PrintTemplateDesigner() {
           <Card className="h-full">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>Template Canvas</span>
+                <span>Template Canvas - All Departments</span>
                 <div className="text-sm font-normal text-gray-600">
                   {templateCells.length} fields added
                 </div>
@@ -467,9 +567,27 @@ export default function PrintTemplateDesigner() {
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
                     Start Building Your Template
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-gray-600 mb-4">
                     Click on fields from the left sidebar to add them to your template
                   </p>
+                  <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
+                    <div className="flex items-center space-x-1">
+                      <div className="w-3 h-3 bg-blue-200 rounded"></div>
+                      <span>VMD</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="w-3 h-3 bg-green-200 rounded"></div>
+                      <span>CAD</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="w-3 h-3 bg-purple-200 rounded"></div>
+                      <span>Commercial</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="w-3 h-3 bg-orange-200 rounded"></div>
+                      <span>MMC</span>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <DndContext
@@ -518,11 +636,20 @@ export default function PrintTemplateDesigner() {
               {savedTemplates.map(template => (
                 <div
                   key={template._id}
-                  className="border border-gray-200 rounded-lg p-3 hover:border-blue-400 transition-all"
+                  className={`border-2 rounded-lg p-3 transition-all ${
+                    activeTemplateId === template._id 
+                      ? 'border-green-500 bg-green-50' 
+                      : 'border-gray-200 hover:border-blue-400'
+                  }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
-                      <div className="font-medium text-sm">{template.name}</div>
+                      <div className="flex items-center space-x-2">
+                        <div className="font-medium text-sm">{template.name}</div>
+                        {activeTemplateId === template._id && (
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        )}
+                      </div>
                       <div className="text-xs text-gray-500 mt-1">
                         {template.cells?.length || 0} fields · {template.gridColumns} columns
                       </div>
@@ -539,6 +666,18 @@ export default function PrintTemplateDesigner() {
                       <Copy className="h-3 w-3 mr-1" />
                       Load
                     </Button>
+                    
+                    {activeTemplateId !== template._id && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setActiveTemplate(template._id)}
+                        className="flex-1 text-xs text-green-600 hover:bg-green-50"
+                      >
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Set Active
+                      </Button>
+                    )}
                     
                     <Button
                       size="sm"
@@ -559,9 +698,9 @@ export default function PrintTemplateDesigner() {
       {/* Preview Modal */}
       {showPreview && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-8">
-          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-auto">
+          <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-auto">
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Print Preview</h2>
+              <h2 className="text-xl font-semibold">Print Preview - All Departments</h2>
               <Button variant="outline" onClick={() => setShowPreview(false)}>
                 Close
               </Button>
@@ -570,9 +709,12 @@ export default function PrintTemplateDesigner() {
             <div className="p-8">
               <div className="bg-white border rounded-lg p-6">
                 <div className="text-center border-b pb-4 mb-4">
-                  <h1 className="text-2xl font-bold">Sample Request Form</h1>
-                  <div className="text-sm text-gray-600 mt-2">
-                    Department: {selectedDepartment.toUpperCase()}
+                  <h1 className="text-2xl font-bold">Sample Request and Development Form</h1>
+                  <div className="grid grid-cols-4 gap-4 mt-3 text-sm">
+                    <div><strong>SRD REF:</strong> SAMPLE-001</div>
+                    <div><strong>VMD:</strong> Pending</div>
+                    <div><strong>CAD:</strong> Pending</div>
+                    <div><strong>Commercial:</strong> Pending</div>
                   </div>
                 </div>
                 
@@ -594,15 +736,38 @@ export default function PrintTemplateDesigner() {
                                    cell.position.height === 'xlarge' ? '200px' : 'auto',
                       }}
                     >
-                      <div className="text-sm font-medium text-gray-700 mb-1">
-                        {cell.field.name}
-                        {cell.field.isRequired && (
-                          <span className="text-red-500 ml-1">*</span>
-                        )}
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="text-sm font-medium text-gray-700">
+                          {cell.field.name}
+                          {cell.field.isRequired && (
+                            <span className="text-red-500 ml-1">*</span>
+                          )}
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {cell.field.department?.toUpperCase()}
+                        </Badge>
                       </div>
                       <div className="border-b border-gray-300 min-h-[24px]"></div>
                     </div>
                   ))}
+                </div>
+                
+                <div className="mt-6 pt-4 border-t grid grid-cols-3 gap-6 text-sm">
+                  <div className="text-center">
+                    <div className="font-bold mb-2">PREPARED BY:</div>
+                    <div className="border-b border-dotted border-gray-400 h-8 mb-1"></div>
+                    <div className="text-xs">SIGNATURE & DATE</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-bold mb-2">REVIEWED BY:</div>
+                    <div className="border-b border-dotted border-gray-400 h-8 mb-1"></div>
+                    <div className="text-xs">SIGNATURE & DATE</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-bold mb-2">APPROVED BY:</div>
+                    <div className="border-b border-dotted border-gray-400 h-8 mb-1"></div>
+                    <div className="text-xs">SIGNATURE & DATE</div>
+                  </div>
                 </div>
               </div>
             </div>
