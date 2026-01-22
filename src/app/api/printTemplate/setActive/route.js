@@ -1,4 +1,4 @@
-import connectDB from '@/lib/mongodb';
+import connectDB from '@/lib/db';
 import PrintTemplate from '@/models/PrintTemplate';
 
 export async function POST(request) {

@@ -388,8 +388,9 @@ export default function PrintTemplateDesigner() {
         fetchTemplates();
         setTemplateName('');
       } else {
-        console.log(res)
-        alert('Failed to save template');
+        const errorData = await res.json();
+        console.error('Failed to save template:', errorData);
+        alert(`Failed to save template: ${errorData.error || 'Unknown error'}`);
       }
     } catch (err) {
       console.error('Failed to save template', err);
