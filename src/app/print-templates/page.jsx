@@ -13,9 +13,16 @@ import {
   Plus,
   Grid3x3,
   Copy,
-  Layout,
   CheckCircle2,
-  Filter
+  Filter,
+  Download,
+  Upload,
+  Settings,
+  Palette,
+  Maximize2,
+  Minimize2,
+  RotateCcw,
+  Zap
 } from 'lucide-react';
 import {
   DndContext,
@@ -37,23 +44,30 @@ import { CSS } from '@dnd-kit/utilities';
 const DEPARTMENTS = ['vmd', 'cad', 'commercial', 'mmc'];
 
 const GRID_SIZES = [
-  { value: 1, label: '1 Column' },
-  { value: 2, label: '2 Columns' },
-  { value: 3, label: '3 Columns' },
-  { value: 4, label: '4 Columns' },
-  { value: 6, label: '6 Columns' },
+  { value: 1, label: '1 Column', icon: '│' },
+  { value: 2, label: '2 Columns', icon: '││' },
+  { value: 3, label: '3 Columns', icon: '│││' },
+  { value: 4, label: '4 Columns', icon: '││││' },
+  { value: 6, label: '6 Columns', icon: '││││││' },
 ];
 
 const CELL_HEIGHTS = [
-  { value: 'auto', label: 'Auto' },
-  { value: 'small', label: 'Small (40px)' },
-  { value: 'medium', label: 'Medium (80px)' },
-  { value: 'large', label: 'Large (120px)' },
-  { value: 'xlarge', label: 'Extra Large (200px)' },
+  { value: 'auto', label: 'Auto Height', px: 'auto' },
+  { value: 'small', label: 'Small', px: '40px' },
+  { value: 'medium', label: 'Medium', px: '80px' },
+  { value: 'large', label: 'Large', px: '120px' },
+  { value: 'xlarge', label: 'Extra Large', px: '200px' },
 ];
 
-// Sortable template cell component
-function SortableTemplateCell({ id, field, position, onRemove, onResize }) {
+const TEMPLATE_THEMES = [
+  { value: 'default', label: 'Default', colors: 'bg-white border-gray-300' },
+  { value: 'modern', label: 'Modern', colors: 'bg-gray-50 border-gray-400' },
+  { value: 'professional', label: 'Professional', colors: 'bg-blue-50 border-blue-300' },
+  { value: 'minimal', label: 'Minimal', colors: 'bg-white border-gray-200' },
+];
+
+// Enhanced Sortable template cell component
+function SortableTemplateCell({ id, field, position, onRemove, onResize, theme = 'default' }) {
   const {
     attributes,
     listeners,
@@ -76,24 +90,25 @@ function SortableTemplateCell({ id, field, position, onRemove, onResize }) {
 
   const getFieldIcon = (type) => {
     switch(type) {
-      case 'heading': return '📁';
+      case 'heading': return '📋';
       case 'text': return '📝';
       case 'number': return '🔢';
       case 'date': return '📅';
       case 'boolean': return '☑️';
       case 'textarea': return '📄';
       case 'image': return '🖼️';
+      case 'select': return '📋';
       default: return '📋';
     }
   };
 
   const getDeptColor = (dept) => {
     switch(dept) {
-      case 'vmd': return 'bg-blue-100 text-blue-700 border-blue-300';
-      case 'cad': return 'bg-green-100 text-green-700 border-green-300';
-      case 'commercial': return 'bg-purple-100 text-purple-700 border-purple-300';
-      case 'mmc': return 'bg-orange-100 text-orange-700 border-orange-300';
-      default: return 'bg-gray-100 text-gray-700 border-gray-300';
+      case 'vmd': return 'bg-gradient-to-br from-blue-100 to-blue-200 text-blue-800 border-blue-300 shadow-blue-100';
+      case 'cad': return 'bg-gradient-to-br from-green-100 to-green-200 text-green-800 border-green-300 shadow-green-100';
+      case 'commercial': return 'bg-gradient-to-br from-purple-100 to-purple-200 text-purple-800 border-purple-300 shadow-purple-100';
+      case 'mmc': return 'bg-gradient-to-br from-orange-100 to-orange-200 text-orange-800 border-orange-300 shadow-orange-100';
+      default: return 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-800 border-gray-300 shadow-gray-100';
     }
   };
 
@@ -102,112 +117,152 @@ function SortableTemplateCell({ id, field, position, onRemove, onResize }) {
       ref={setNodeRef}
       style={style}
       className={`
-        border-2 border-dashed rounded-lg p-3 transition-all
+        border-2 border-dashed rounded-xl p-4 transition-all duration-200
         ${getDeptColor(field.department)}
-        hover:shadow-md
-        ${isDragging ? 'shadow-lg z-50' : ''}
+        hover:shadow-lg hover:scale-[1.02]
+        ${isDragging ? 'shadow-2xl z-50 rotate-2' : 'shadow-md'}
+        relative overflow-hidden
       `}
     >
-      <div className="flex items-start justify-between mb-2">
-        <div
-          {...attributes}
-          {...listeners}
-          className="cursor-grab hover:cursor-grabbing"
-        >
-          <GripVertical className="h-4 w-4" />
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="w-full h-full" style={{
+          backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, currentColor 10px, currentColor 11px)`
+        }}></div>
+      </div>
+      
+      <div className="relative z-10">
+        <div className="flex items-start justify-between mb-3">
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab hover:cursor-grabbing p-1 rounded-md hover:bg-white/50 transition-colors"
+            title="Drag to reorder"
+          >
+            <GripVertical className="h-4 w-4" />
+          </div>
+          
+          <div className="flex items-center space-x-1">
+            <select
+              className="text-xs border rounded-md px-2 py-1 bg-white/90 backdrop-blur-sm font-medium"
+              value={position.colSpan || 1}
+              onChange={(e) => onResize(id, 'colSpan', parseInt(e.target.value))}
+              onClick={(e) => e.stopPropagation()}
+              title="Column span"
+            >
+              {[1, 2, 3, 4, 6].map(span => (
+                <option key={span} value={span}>{span} col{span > 1 ? 's' : ''}</option>
+              ))}
+            </select>
+            
+            <select
+              className="text-xs border rounded-md px-2 py-1 bg-white/90 backdrop-blur-sm font-medium"
+              value={position.height || 'auto'}
+              onChange={(e) => onResize(id, 'height', e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              title="Cell height"
+            >
+              {CELL_HEIGHTS.map(h => (
+                <option key={h.value} value={h.value}>{h.label}</option>
+              ))}
+            </select>
+            
+            <button
+              onClick={() => onRemove(id)}
+              className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-white/50 transition-colors"
+              title="Remove field"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </div>
         </div>
         
-        <div className="flex items-center space-x-1">
-          <select
-            className="text-xs border rounded px-1 py-0.5 bg-white"
-            value={position.colSpan || 1}
-            onChange={(e) => onResize(id, 'colSpan', parseInt(e.target.value))}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {[1, 2, 3, 4, 6].map(span => (
-              <option key={span} value={span}>{span} col</option>
-            ))}
-          </select>
-          
-          <select
-            className="text-xs border rounded px-1 py-0.5 bg-white"
-            value={position.height || 'auto'}
-            onChange={(e) => onResize(id, 'height', e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {CELL_HEIGHTS.map(h => (
-              <option key={h.value} value={h.value}>{h.label}</option>
-            ))}
-          </select>
-          
-          <button
-            onClick={() => onRemove(id)}
-            className="text-red-500 hover:text-red-700 p-1"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
+        <div className="text-sm font-semibold mb-2 flex items-center">
+          <span className="mr-2">{getFieldIcon(field.type)}</span>
+          <span className="truncate">{field.name}</span>
         </div>
-      </div>
-      
-      <div className="text-sm font-medium">
-        {getFieldIcon(field.type)} {field.name}
-      </div>
-      
-      <div className="flex items-center space-x-2 mt-2">
-        <Badge variant="outline" className="text-xs">
-          {field.department?.toUpperCase() || 'ALL'}
-        </Badge>
-        <Badge variant="outline" className="text-xs">
-          {field.type}
-        </Badge>
-        {field.isRequired && (
-          <Badge variant="destructive" className="text-xs">Required</Badge>
-        )}
+        
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Badge variant="secondary" className="text-xs font-bold">
+              {field.department?.toUpperCase() || 'ALL'}
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              {field.type}
+            </Badge>
+          </div>
+          {field.isRequired && (
+            <Badge variant="destructive" className="text-xs animate-pulse">
+              Required
+            </Badge>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-// Available fields sidebar
+// Enhanced Available fields sidebar
 function AvailableFieldsList({ allFields, onAddField, filterDepartment, setFilterDepartment }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('name'); // name, department, type
   
   const filteredFields = allFields.filter(f => {
     const matchesSearch = f.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDept = filterDepartment === 'all' || f.department === filterDepartment;
     return matchesSearch && matchesDept;
+  }).sort((a, b) => {
+    switch(sortBy) {
+      case 'department':
+        return (a.department || '').localeCompare(b.department || '');
+      case 'type':
+        return a.type.localeCompare(b.type);
+      default:
+        return a.name.localeCompare(b.name);
+    }
   });
 
   const getFieldIcon = (type) => {
     switch(type) {
-      case 'heading': return '📁';
+      case 'heading': return '📋';
       case 'text': return '📝';
       case 'number': return '🔢';
       case 'date': return '📅';
       case 'boolean': return '☑️';
       case 'textarea': return '📄';
       case 'image': return '🖼️';
+      case 'select': return '📋';
       default: return '📋';
     }
   };
 
   const getDeptColor = (dept) => {
     switch(dept) {
-      case 'vmd': return 'border-blue-300 hover:border-blue-500 hover:bg-blue-50';
-      case 'cad': return 'border-green-300 hover:border-green-500 hover:bg-green-50';
-      case 'commercial': return 'border-purple-300 hover:border-purple-500 hover:bg-purple-50';
-      case 'mmc': return 'border-orange-300 hover:border-orange-500 hover:bg-orange-50';
-      default: return 'border-gray-300 hover:border-gray-500 hover:bg-gray-50';
+      case 'vmd': return 'border-blue-300 hover:border-blue-500 hover:bg-blue-50 hover:shadow-blue-100';
+      case 'cad': return 'border-green-300 hover:border-green-500 hover:bg-green-50 hover:shadow-green-100';
+      case 'commercial': return 'border-purple-300 hover:border-purple-500 hover:bg-purple-50 hover:shadow-purple-100';
+      case 'mmc': return 'border-orange-300 hover:border-orange-500 hover:bg-orange-50 hover:shadow-orange-100';
+      default: return 'border-gray-300 hover:border-gray-500 hover:bg-gray-50 hover:shadow-gray-100';
     }
   };
 
+  const fieldsByDepartment = DEPARTMENTS.reduce((acc, dept) => {
+    acc[dept] = filteredFields.filter(f => f.department === dept).length;
+    return acc;
+  }, {});
+
   return (
-    <div className="h-full flex flex-col">
-      <div className="p-4 border-b space-y-3">
-        <h3 className="font-semibold text-gray-900">All Department Fields</h3>
+    <div className="h-full flex flex-col bg-gradient-to-b from-gray-50 to-white">
+      <div className="p-4 border-b bg-white shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-gray-900 text-lg">Available Fields</h3>
+          <Badge variant="outline" className="font-semibold">
+            {filteredFields.length} fields
+          </Badge>
+        </div>
         
         <Input
-          placeholder="Search fields..."
+          placeholder="🔍 Search fields..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="text-sm"
@@ -218,45 +273,70 @@ function AvailableFieldsList({ allFields, onAddField, filterDepartment, setFilte
           <select
             value={filterDepartment}
             onChange={(e) => setFilterDepartment(e.target.value)}
-            className="flex-1 text-sm border border-gray-300 rounded px-2 py-1"
+            className="flex-1 text-sm border border-gray-300 rounded-md px-3 py-2 bg-white"
           >
             <option value="all">All Departments</option>
             {DEPARTMENTS.map(dept => (
-              <option key={dept} value={dept}>{dept.toUpperCase()}</option>
+              <option key={dept} value={dept}>
+                {dept.toUpperCase()} ({fieldsByDepartment[dept] || 0})
+              </option>
             ))}
+          </select>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Settings className="h-4 w-4 text-gray-500" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="flex-1 text-sm border border-gray-300 rounded-md px-3 py-2 bg-white"
+          >
+            <option value="name">Sort by Name</option>
+            <option value="department">Sort by Department</option>
+            <option value="type">Sort by Type</option>
           </select>
         </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {filteredFields.map(field => (
           <button
             key={field._id}
             onClick={() => onAddField(field)}
-            className={`w-full text-left p-3 border-2 rounded-lg transition-all ${getDeptColor(field.department)}`}
+            className={`w-full text-left p-4 border-2 rounded-xl transition-all duration-200 transform hover:scale-[1.02] hover:shadow-lg ${getDeptColor(field.department)}`}
           >
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <div className="font-medium text-sm text-gray-900">
-                  {getFieldIcon(field.type)} {field.name}
+                <div className="font-semibold text-sm text-gray-900 mb-1 flex items-center">
+                  <span className="mr-2">{getFieldIcon(field.type)}</span>
+                  <span className="truncate">{field.name}</span>
+                  {field.isRequired && (
+                    <span className="ml-2 text-red-500 text-xs">*</span>
+                  )}
                 </div>
-                <div className="flex items-center space-x-2 mt-1">
-                  <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">
+                <div className="flex items-center space-x-2 mt-2">
+                  <span className="text-xs bg-white px-2 py-1 rounded-full font-medium border">
                     {field.type}
                   </span>
-                  <span className="text-xs font-medium text-gray-600">
+                  <span className="text-xs font-bold text-gray-700">
                     {field.department?.toUpperCase() || 'ALL'}
                   </span>
                 </div>
               </div>
-              <Plus className="h-4 w-4 text-gray-400" />
+              <div className="ml-3 p-2 rounded-full bg-white/50">
+                <Plus className="h-4 w-4 text-gray-600" />
+              </div>
             </div>
           </button>
         ))}
         
         {filteredFields.length === 0 && (
-          <div className="text-center py-8 text-gray-500 text-sm">
-            No fields found
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🔍</div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No fields found</h3>
+            <p className="text-gray-500 text-sm">
+              Try adjusting your search or filter criteria
+            </p>
           </div>
         )}
       </div>
@@ -274,6 +354,8 @@ export default function PrintTemplateDesigner() {
   const [saving, setSaving] = useState(false);
   const [activeTemplateId, setActiveTemplateId] = useState(null);
   const [filterDepartment, setFilterDepartment] = useState('all');
+  const [templateTheme, setTemplateTheme] = useState('default');
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -370,6 +452,7 @@ export default function PrintTemplateDesigner() {
       const templateData = {
         name: templateName,
         gridColumns,
+        theme: templateTheme,
         cells: templateCells.map(cell => ({
           fieldId: cell.fieldId,
           position: cell.position,
@@ -384,17 +467,17 @@ export default function PrintTemplateDesigner() {
       });
 
       if (res.ok) {
-        alert('Template saved successfully!');
+        alert('✅ Template saved successfully!');
         fetchTemplates();
         setTemplateName('');
       } else {
         const errorData = await res.json();
         console.error('Failed to save template:', errorData);
-        alert(`Failed to save template: ${errorData.error || 'Unknown error'}`);
+        alert(`❌ Failed to save template: ${errorData.error || 'Unknown error'}`);
       }
     } catch (err) {
       console.error('Failed to save template', err);
-      alert('Failed to save template');
+      alert('❌ Failed to save template');
     } finally {
       setSaving(false);
     }
@@ -403,6 +486,7 @@ export default function PrintTemplateDesigner() {
   const loadTemplate = async (template) => {
     setTemplateName(template.name);
     setGridColumns(template.gridColumns || 6);
+    setTemplateTheme(template.theme || 'default');
     
     // Reconstruct cells with field data
     const cells = template.cells.map((cell) => {
@@ -429,15 +513,15 @@ export default function PrintTemplateDesigner() {
       
       setActiveTemplateId(templateId);
       fetchTemplates();
-      alert('Template set as active!');
+      alert('✅ Template set as active!');
     } catch (err) {
       console.error('Failed to set active template', err);
-      alert('Failed to set active template');
+      alert('❌ Failed to set active template');
     }
   };
 
   const deleteTemplate = async (templateId) => {
-    if (!confirm('Delete this template?')) return;
+    if (!confirm('🗑️ Delete this template? This action cannot be undone.')) return;
     
     try {
       await fetch(`/api/printTemplate?id=${templateId}`, { method: 'DELETE' });
@@ -445,9 +529,49 @@ export default function PrintTemplateDesigner() {
       if (activeTemplateId === templateId) {
         setActiveTemplateId(null);
       }
+      alert('✅ Template deleted successfully!');
     } catch (err) {
       console.error('Failed to delete template', err);
+      alert('❌ Failed to delete template');
     }
+  };
+
+  const exportTemplate = () => {
+    const templateData = {
+      name: templateName,
+      gridColumns,
+      theme: templateTheme,
+      cells: templateCells,
+      exportedAt: new Date().toISOString(),
+    };
+    
+    const blob = new Blob([JSON.stringify(templateData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${templateName || 'template'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importTemplate = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const templateData = JSON.parse(e.target.result);
+        setTemplateName(templateData.name || '');
+        setGridColumns(templateData.gridColumns || 6);
+        setTemplateTheme(templateData.theme || 'default');
+        setTemplateCells(templateData.cells || []);
+        alert('✅ Template imported successfully!');
+      } catch (err) {
+        alert('❌ Invalid template file');
+      }
+    };
+    reader.readAsText(file);
   };
 
   // Group template cells by department for stats
@@ -457,22 +581,54 @@ export default function PrintTemplateDesigner() {
     return acc;
   }, {});
 
+  const quickTemplates = [
+    {
+      name: 'Basic Form',
+      cells: ['title', 'description', 'fabric', 'color', 'size'],
+      columns: 3
+    },
+    {
+      name: 'Detailed Form',
+      cells: ['title', 'description', 'fabric', 'color', 'size', 'measurements', 'construction', 'finishing'],
+      columns: 4
+    },
+    {
+      name: 'Image Heavy',
+      cells: ['title', 'images', 'fabric', 'color', 'construction'],
+      columns: 2
+    }
+  ];
+
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b px-6 py-4">
+    <div className={`${isFullscreen ? 'fixed inset-0 z-50' : 'h-screen'} flex flex-col bg-gradient-to-br from-gray-50 to-gray-100`}>
+      {/* Enhanced Header */}
+      <div className="bg-white border-b shadow-sm px-6 py-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Print Template Designer</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Create a unified print layout with fields from all departments
-            </p>
+          <div className="flex items-center space-x-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+                <Zap className="h-8 w-8 text-blue-600 mr-3" />
+                Print Template Designer
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Create unified print layouts with fields from all departments
+              </p>
+            </div>
           </div>
           
           <div className="flex items-center space-x-3">
             <Button
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              variant="outline"
+              size="sm"
+            >
+              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </Button>
+            
+            <Button
               onClick={() => setShowPreview(!showPreview)}
               variant="outline"
+              className="bg-blue-50 hover:bg-blue-100 border-blue-200"
             >
               <Eye className="h-4 w-4 mr-2" />
               {showPreview ? 'Hide' : 'Show'} Preview
@@ -480,57 +636,96 @@ export default function PrintTemplateDesigner() {
           </div>
         </div>
         
-        {/* Template Controls */}
-        <div className="mt-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+        {/* Enhanced Template Controls */}
+        <div className="mt-6 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
             <Input
-              placeholder="Template name..."
+              placeholder="✨ Template name..."
               value={templateName}
               onChange={(e) => setTemplateName(e.target.value)}
-              className="w-64"
+              className="w-64 border-2 border-gray-200 focus:border-blue-400"
             />
             
             <div className="flex items-center space-x-2">
-              <Label className="text-sm">Grid:</Label>
+              <Label className="text-sm font-medium">Grid:</Label>
               <select
                 value={gridColumns}
                 onChange={(e) => setGridColumns(parseInt(e.target.value))}
-                className="border border-gray-300 rounded px-2 py-1 text-sm"
+                className="border-2 border-gray-200 rounded-md px-3 py-2 text-sm font-medium bg-white"
               >
                 {GRID_SIZES.map(size => (
-                  <option key={size.value} value={size.value}>{size.label}</option>
+                  <option key={size.value} value={size.value}>
+                    {size.icon} {size.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Palette className="h-4 w-4 text-gray-500" />
+              <select
+                value={templateTheme}
+                onChange={(e) => setTemplateTheme(e.target.value)}
+                className="border-2 border-gray-200 rounded-md px-3 py-2 text-sm font-medium bg-white"
+              >
+                {TEMPLATE_THEMES.map(theme => (
+                  <option key={theme.value} value={theme.value}>{theme.label}</option>
                 ))}
               </select>
             </div>
             
-            <Button onClick={saveTemplate} disabled={saving}>
+            <Button onClick={saveTemplate} disabled={saving} className="bg-green-600 hover:bg-green-700">
               <Save className="h-4 w-4 mr-2" />
               {saving ? 'Saving...' : 'Save Template'}
             </Button>
             
+            <Button onClick={exportTemplate} variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept=".json"
+                onChange={importTemplate}
+                className="hidden"
+              />
+              <Button variant="outline" size="sm" asChild>
+                <span>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import
+                </span>
+              </Button>
+            </label>
+            
             <Button
               onClick={() => {
-                setTemplateCells([]);
-                setTemplateName('');
+                if (confirm('🗑️ Clear all fields? This action cannot be undone.')) {
+                  setTemplateCells([]);
+                  setTemplateName('');
+                }
               }}
               variant="outline"
+              size="sm"
+              className="text-red-600 hover:bg-red-50 border-red-200"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
+              <RotateCcw className="h-4 w-4 mr-2" />
               Clear All
             </Button>
           </div>
           
-          {/* Department Stats */}
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600">Fields:</span>
+          {/* Enhanced Department Stats */}
+          <div className="flex items-center space-x-3">
+            <span className="text-sm font-medium text-gray-700">Fields:</span>
             {DEPARTMENTS.map(dept => (
               cellsByDepartment[dept] > 0 && (
-                <Badge key={dept} variant="outline" className="text-xs">
+                <Badge key={dept} variant="secondary" className="text-xs font-bold">
                   {dept.toUpperCase()}: {cellsByDepartment[dept]}
                 </Badge>
               )
             ))}
-            <Badge variant="outline" className="text-xs font-semibold">
+            <Badge variant="default" className="text-xs font-bold bg-blue-600">
               Total: {templateCells.length}
             </Badge>
           </div>

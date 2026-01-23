@@ -236,110 +236,133 @@ export default function DepartmentPanelExcel({
     }
   };
 
-const handlePrint = async () => {
-  try {
-    // Fetch the active print template
-    const templateRes = await fetch('/api/printTemplate');
-    const templates = await templateRes.json();
-    
-    const activeTemplate = Array.isArray(templates) 
-      ? templates.find(t => t.isActive) 
-      : null;
-    
-    if (!activeTemplate) {
-      toast({
-        title: 'No active template',
-        description: 'Please create and activate a print template in the template designer.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast({
-        title: 'Print blocked',
-        description: 'Please allow popups for this site to enable printing',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Fetch all department fields for this SRD
-    const allDepartmentFields = {};
-    ['vmd', 'cad', 'commercial', 'mmc'].forEach(dept => {
-      allDepartmentFields[dept] = srd.dynamicFields?.filter(f => f.department === dept) || [];
-    });
-
-    // Build the print content using the template
-    const gridColumns = activeTemplate.gridColumns || 6;
-    let fieldsHTML = '';
-    
-    activeTemplate.cells.forEach(cell => {
-      // Find the field value from any department
-      let fieldData = null;
-      let fieldValue = '';
+  const handlePrint = async () => {
+    try {
+      // Fetch the active print template
+      const templateRes = await fetch('/api/printTemplate');
+      const templates = await templateRes.json();
       
+      const activeTemplate = Array.isArray(templates) 
+        ? templates.find(t => t.isActive) 
+        : null;
+      
+      if (!activeTemplate) {
+        toast({
+          title: 'No active template',
+          description: 'Please create and activate a print template in the template designer.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Fetch all field definitions to get field metadata
+      const allFieldDefs = [];
       for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
-        const found = allDepartmentFields[dept].find(f => 
-          (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
-          (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString())
-        );
-        if (found) {
-          fieldData = found;
-          fieldValue = found.value || '';
-          break;
+        try {
+          const res = await fetch(`/api/newField?department=${dept}`);
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            allFieldDefs.push(...data);
+          }
+        } catch (err) {
+          console.error(`Failed to fetch ${dept} fields:`, err);
         }
       }
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        toast({
+          title: 'Print blocked',
+          description: 'Please allow popups for this site to enable printing',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Build the print content using the template
+      const gridColumns = activeTemplate.gridColumns || 6;
+      let fieldsHTML = '';
       
-      if (!fieldData) return; // Skip if field not found
-      
-      const colSpan = cell.position.colSpan || 1;
-      const height = cell.position.height || 'auto';
-      
-      const minHeight = 
-        height === 'small' ? '40px' :
-        height === 'medium' ? '80px' :
-        height === 'large' ? '120px' :
-        height === 'xlarge' ? '200px' : 'auto';
-      
-      let valueDisplay = '';
-      if (fieldData.type === 'boolean') {
-        valueDisplay = `
-          <div class="checkbox-field">
-            <span class="checkbox">${fieldValue ? '✓' : ''}</span>
-            <span class="label-text">YES</span>
-            <span class="checkbox">${!fieldValue ? '✓' : ''}</span>
-            <span class="label-text">NO</span>
+      activeTemplate.cells.forEach(cell => {
+        // Find the field definition
+        const fieldDef = allFieldDefs.find(f => f._id.toString() === cell.fieldId.toString());
+        if (!fieldDef) {
+          console.warn(`Field definition not found for ID: ${cell.fieldId}`);
+          return;
+        }
+
+        // Find the field value from SRD data
+        let fieldValue = '';
+        const srdField = srd.dynamicFields?.find(f => {
+          // Try multiple matching strategies
+          return (
+            (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
+            (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString()) ||
+            (f.name === fieldDef.name && f.department === fieldDef.department)
+          );
+        });
+        
+        if (srdField) {
+          fieldValue = srdField.value || '';
+        }
+        
+        const colSpan = cell.position.colSpan || 1;
+        const height = cell.position.height || 'auto';
+        
+        const minHeight = 
+          height === 'small' ? '40px' :
+          height === 'medium' ? '80px' :
+          height === 'large' ? '120px' :
+          height === 'xlarge' ? '200px' : 'auto';
+        
+        let valueDisplay = '';
+        if (fieldDef.type === 'boolean') {
+          valueDisplay = `
+            <div class="checkbox-field">
+              <span class="checkbox">${fieldValue ? '✓' : ''}</span>
+              <span class="label-text">YES</span>
+              <span class="checkbox">${!fieldValue ? '✓' : ''}</span>
+              <span class="label-text">NO</span>
+            </div>
+          `;
+        } else if (fieldDef.type === 'image') {
+          const images = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+          const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
+          const allImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
+          valueDisplay = allImages.length > 0 
+            ? `<span class="image-count">IMG: ${allImages.map((_, i) => i + 1).join(',')}</span>`
+            : '<span class="no-value">[ NO IMAGES ]</span>';
+        } else if (fieldDef.type === 'heading') {
+          valueDisplay = '<div class="heading-separator"></div>';
+        } else {
+          valueDisplay = fieldValue || '<span class="no-value">—</span>';
+        }
+        
+        fieldsHTML += `
+          <div class="field-cell" style="grid-column: span ${colSpan}; min-height: ${minHeight};">
+            <div class="field-header">
+              <span class="field-label">${fieldDef.name}${fieldDef.isRequired ? '*' : ''}</span>
+              <span class="field-dept">${fieldDef.department?.toUpperCase()}</span>
+            </div>
+            <div class="field-value ${fieldDef.type === 'heading' ? 'heading-type' : ''}">
+              ${valueDisplay}
+            </div>
           </div>
         `;
-      } else if (fieldData.type === 'image') {
-        const images = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-        const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-        const allImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
-        valueDisplay = allImages.length > 0 
-          ? `<span class="image-count">${allImages.length} IMAGE(S)</span>`
-          : '<span class="no-value">[ NO IMAGES ]</span>';
-      } else if (fieldData.type === 'heading') {
-        valueDisplay = '<div class="heading-separator"></div>';
-      } else {
-        valueDisplay = fieldValue || '<span class="no-value">—</span>';
-      }
-      
-      fieldsHTML += `
-        <div class="field-cell" style="grid-column: span ${colSpan}; min-height: ${minHeight};">
-          <div class="field-header">
-            <span class="field-label">${fieldData.name}${fieldData.isRequired ? '*' : ''}</span>
-            <span class="field-dept">${fieldData.department?.toUpperCase()}</span>
-          </div>
-          <div class="field-value ${fieldData.type === 'heading' ? 'heading-type' : ''}">
-            ${valueDisplay}
-          </div>
-        </div>
-      `;
-    });
+      });
 
-    const printContent = `<!DOCTYPE html>
+      // If no fields were rendered, show a message
+      if (!fieldsHTML.trim()) {
+        fieldsHTML = `
+          <div class="field-cell" style="grid-column: span ${gridColumns}; text-align: center; padding: 40px;">
+            <div style="color: #666; font-style: italic;">
+              No matching fields found for this template. Please check your template configuration.
+            </div>
+          </div>
+        `;
+      }
+
+      const printContent = `<!DOCTYPE html>
 <html>
 <head>
   <title>SRD Complete Form - ${srd.refNo}</title>
@@ -454,6 +477,7 @@ const handlePrint = async () => {
       font-style: italic;
       color: #666;
       font-size: 9px;
+      font-weight: bold;
     }
     
     .no-value {
@@ -529,24 +553,24 @@ const handlePrint = async () => {
 </body>
 </html>`;
 
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    
-    setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
-    }, 500);
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+      }, 500);
 
-  } catch (error) {
-    console.error('Print error:', error);
-    toast({
-      title: 'Print failed',
-      description: 'There was an error generating the print document',
-      variant: 'destructive',
-    });
-  }
-};
+    } catch (error) {
+      console.error('Print error:', error);
+      toast({
+        title: 'Print failed',
+        description: 'There was an error generating the print document',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Group fields by headings for Excel-like layout
   const groupFieldsByHeading = () => {
