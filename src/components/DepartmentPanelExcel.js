@@ -311,10 +311,10 @@ export default function DepartmentPanelExcel({
         const height = cell.position.height || 'auto';
         
         const minHeight = 
-          height === 'small' ? '18px' :
-          height === 'medium' ? '40px' :
-          height === 'large' ? '80px' :
-          height === 'xlarge' ? '140px' : 'auto';
+          height === 'small' ? '12px' :
+          height === 'medium' ? '25px' :
+          height === 'large' ? '50px' :
+          height === 'xlarge' ? '90px' : 'auto';
         
         let valueDisplay = '';
         const isHeading = fieldDef.type === 'heading';
@@ -379,7 +379,7 @@ export default function DepartmentPanelExcel({
   <style>
     @page {
       size: A4;
-      margin: 0.3in;
+      margin: 0.1in;
     }
     
     body {
@@ -423,14 +423,15 @@ export default function DepartmentPanelExcel({
     .template-grid {
       display: grid;
       grid-template-columns: repeat(${gridColumns}, minmax(0, 1fr));
-      gap: 0 4px; /* No vertical gap */
+      gap: 0 1px; /* No vertical gap */
       margin-bottom: 10px;
     }
     
     .field-cell {
-      padding: 0.5px 0;
+      padding: 0;
       background: white;
       display: flex;
+      height: 20px;
       flex-direction: column;
       justify-content: flex-start;
       overflow: hidden;
@@ -441,7 +442,7 @@ export default function DepartmentPanelExcel({
       justify-content: center;
       align-items: center;
       padding: 1px;
-      margin: 2px 0;
+      margin: 1px 0;
       border: 0.4px solid #ddd;
     }
     
@@ -454,9 +455,9 @@ export default function DepartmentPanelExcel({
 
     .cell-content {
       display: flex;
-      align-items: flex-start; /* Align to top for wrapped labels */
+      align-items: flex-start;
       width: 100%;
-      gap: 2px;
+      gap: 4px;
     }
 
     .content-vertical {
@@ -468,16 +469,17 @@ export default function DepartmentPanelExcel({
       font-size: 6.5px;
       font-weight: 700;
       color: #333;
-      white-space: normal; /* Wrap long text */
+      white-space: normal;
       text-transform: uppercase;
-      width: 65px; /* Fixed width for alignment */
+      width: 65px; 
       flex-shrink: 0;
-      line-height: 1;
+      line-height: 10px; /* Reduced from 12px */
     }
 
     .content-vertical .cell-label {
         width: 100%;
-        margin-bottom: 1px;
+        margin-bottom: 0px;
+        line-height: 1;
     }
 
     .cell-underline {
@@ -485,17 +487,19 @@ export default function DepartmentPanelExcel({
       color: #000;
       flex-grow: 1;
       border-bottom: 0.4px solid #999;
-      min-height: 9px;
-      padding: 0 1px;
-      display: inline-block;
+      min-height: 10px; /* Reduced from 12px */
+      padding: 0 2px;
+      display: flex;
+      align-items: center;
       white-space: pre-wrap;
       width: 100%;
-      line-height: 1.1;
+      line-height: 1;
     }
 
     .checkbox-group {
         display: flex;
-        gap: 4px;
+        gap: 8px;
+        align-items: center; /* Better vertical alignment */
     }
     .checkbox-item {
         font-size: 7px;
@@ -555,6 +559,7 @@ export default function DepartmentPanelExcel({
       <div class="header-item"><strong>VMD STATUS</strong>${srd.status?.vmd || 'Pending'}</div>
       <div class="header-item"><strong>CAD STATUS</strong>${srd.status?.cad || 'Pending'}</div>
       <div class="header-item"><strong>COMMERCIAL STATUS</strong>${srd.status?.commercial || 'Pending'}</div>
+      <div class="header-item"><strong>MMC STATUS</strong>${srd.status?.mmc || 'Pending'}</div>
     </div>
   </div>
   

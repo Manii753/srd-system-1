@@ -163,7 +163,7 @@ function SortableTemplateCell({ id, field, position, onRemove, onResize, theme =
               onClick={(e) => e.stopPropagation()}
               title="Row span"
             >
-              {[1, 2, 3, 4, 5, 6].map(span => (
+              {[1, 2, 3, 4, 5, 6,7,8,9,10,11,12].map(span => (
                 <option key={span} value={span}>H: {span}</option>
               ))}
             </select>
