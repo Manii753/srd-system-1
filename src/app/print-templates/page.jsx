@@ -82,6 +82,7 @@ function SortableTemplateCell({ id, field, position, onRemove, onResize, theme =
     transition,
     opacity: isDragging ? 0.5 : 1,
     gridColumn: `span ${position.colSpan || 1}`,
+    gridRow: `span ${position.rowSpan || 1}`,
     minHeight: position.height === 'small' ? '40px' : 
                position.height === 'medium' ? '80px' :
                position.height === 'large' ? '120px' :
@@ -151,7 +152,19 @@ function SortableTemplateCell({ id, field, position, onRemove, onResize, theme =
               title="Column span"
             >
               {[1, 2, 3, 4, 6].map(span => (
-                <option key={span} value={span}>{span} col{span > 1 ? 's' : ''}</option>
+                <option key={span} value={span}>W: {span}</option>
+              ))}
+            </select>
+
+            <select
+              className="text-xs border rounded-md px-2 py-1 bg-white/90 backdrop-blur-sm font-medium"
+              value={position.rowSpan || 1}
+              onChange={(e) => onResize(id, 'rowSpan', parseInt(e.target.value))}
+              onClick={(e) => e.stopPropagation()}
+              title="Row span"
+            >
+              {[1, 2, 3, 4, 5, 6].map(span => (
+                <option key={span} value={span}>H: {span}</option>
               ))}
             </select>
             
@@ -409,6 +422,7 @@ export default function PrintTemplateDesigner() {
       field: field,
       position: {
         colSpan: 1,
+        rowSpan: 1,
         height: field.type === 'textarea' ? 'large' : 
                 field.type === 'image' ? 'xlarge' : 
                 field.type === 'heading' ? 'medium' : 'auto',
@@ -495,7 +509,10 @@ export default function PrintTemplateDesigner() {
         id: `cell-${Date.now()}-${Math.random()}`,
         fieldId: cell.fieldId,
         field: field || { name: 'Unknown Field', type: 'text', department: 'unknown' },
-        position: cell.position,
+        position: {
+          ...cell.position,
+          rowSpan: cell.position.rowSpan || 1,
+        },
       };
     });
     
@@ -926,6 +943,7 @@ export default function PrintTemplateDesigner() {
                       className="border border-gray-300 rounded p-3"
                       style={{
                         gridColumn: `span ${cell.position.colSpan || 1}`,
+                        gridRow: `span ${cell.position.rowSpan || 1}`,
                         minHeight: cell.position.height === 'small' ? '40px' : 
                                    cell.position.height === 'medium' ? '80px' :
                                    cell.position.height === 'large' ? '120px' :

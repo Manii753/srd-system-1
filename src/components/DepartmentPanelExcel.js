@@ -307,46 +307,56 @@ export default function DepartmentPanelExcel({
         }
         
         const colSpan = cell.position.colSpan || 1;
+        const rowSpan = cell.position.rowSpan || 1;
         const height = cell.position.height || 'auto';
         
         const minHeight = 
-          height === 'small' ? '40px' :
-          height === 'medium' ? '80px' :
-          height === 'large' ? '120px' :
-          height === 'xlarge' ? '200px' : 'auto';
+          height === 'small' ? '18px' :
+          height === 'medium' ? '40px' :
+          height === 'large' ? '80px' :
+          height === 'xlarge' ? '140px' : 'auto';
         
         let valueDisplay = '';
+        const isHeading = fieldDef.type === 'heading';
+        const isImage = fieldDef.type === 'image';
+
         if (fieldDef.type === 'boolean') {
           valueDisplay = `
-            <div class="checkbox-field">
-              <span class="checkbox">${fieldValue ? '✓' : ''}</span>
-              <span class="label-text">YES</span>
-              <span class="checkbox">${!fieldValue ? '✓' : ''}</span>
-              <span class="label-text">NO</span>
+            <div class="checkbox-group">
+              <span class="checkbox-item">${fieldValue ? '☑' : '☐'}Y</span>
+              <span class="checkbox-item">${!fieldValue ? '☑' : '☐'}N</span>
             </div>
           `;
-        } else if (fieldDef.type === 'image') {
+        } else if (isImage) {
           const images = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
           const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
           const allImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
-          valueDisplay = allImages.length > 0 
-            ? `<span class="image-count">IMG: ${allImages.map((_, i) => i + 1).join(',')}</span>`
-            : '<span class="no-value">[ NO IMAGES ]</span>';
-        } else if (fieldDef.type === 'heading') {
-          valueDisplay = '<div class="heading-separator"></div>';
+          
+          if (allImages.length > 0) {
+              const imgGrid = allImages.slice(0, 4).map(img => 
+                  `<div class="img-container" style="background-image: url('${img}')"></div>`
+              ).join('');
+              valueDisplay = `<div class="image-grid">${imgGrid}</div>`;
+              if (allImages.length > 4) valueDisplay += `<div class="img-more">+${allImages.length - 4}</div>`;
+          } else {
+             valueDisplay = '<span class="no-value"></span>';
+          }
+        } else if (isHeading) {
+          valueDisplay = fieldDef.name;
         } else {
-          valueDisplay = fieldValue || '<span class="no-value">—</span>';
+          valueDisplay = fieldValue || '';
         }
         
         fieldsHTML += `
-          <div class="field-cell" style="grid-column: span ${colSpan}; min-height: ${minHeight};">
-            <div class="field-header">
-              <span class="field-label">${fieldDef.name}${fieldDef.isRequired ? '*' : ''}</span>
-              <span class="field-dept">${fieldDef.department?.toUpperCase()}</span>
-            </div>
-            <div class="field-value ${fieldDef.type === 'heading' ? 'heading-type' : ''}">
-              ${valueDisplay}
-            </div>
+          <div class="field-cell ${isHeading ? 'cell-heading' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+            ${!isHeading ? `
+                <div class="cell-content ${isImage ? 'content-vertical' : ''}">
+                  <span class="cell-label">${fieldDef.name}:</span>
+                  <span class="cell-underline">${valueDisplay}</span>
+                </div>
+            ` : `
+                <div class="heading-content">${valueDisplay}</div>
+            `}
           </div>
         `;
       });
@@ -369,13 +379,13 @@ export default function DepartmentPanelExcel({
   <style>
     @page {
       size: A4;
-      margin: 0.5in;
+      margin: 0.3in;
     }
     
     body {
-      font-family: Arial, sans-serif;
-      font-size: 10px;
-      line-height: 1.3;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 7.5px;
+      line-height: 1.1;
       margin: 0;
       padding: 0;
       -webkit-print-color-adjust: exact;
@@ -383,133 +393,152 @@ export default function DepartmentPanelExcel({
     }
     
     .header {
-      text-align: center;
-      border-bottom: 2px solid #000;
-      padding-bottom: 10px;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
     }
     
     .header h1 {
-      font-size: 18px;
-      margin: 0 0 8px 0;
-      font-weight: bold;
+      font-size: 11px;
+      margin: 0 0 5px 0;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+      padding-bottom: 2px;
     }
     
     .header-info {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      font-size: 10px;
-      margin-top: 8px;
+      gap: 6px;
+      font-size: 8px;
+    }
+
+    .header-item strong {
+        display: block;
+        font-size: 6.5px;
+        color: #666;
+        margin-bottom: 1px;
     }
     
     .template-grid {
       display: grid;
       grid-template-columns: repeat(${gridColumns}, minmax(0, 1fr));
-      gap: 8px;
-      margin-bottom: 20px;
+      gap: 0 4px; /* No vertical gap */
+      margin-bottom: 10px;
     }
     
     .field-cell {
-      border: 1px solid #ccc;
-      padding: 6px;
-      border-radius: 3px;
+      padding: 0.5px 0;
       background: white;
-    }
-    
-    .field-header {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 4px;
+      flex-direction: column;
+      justify-content: flex-start;
+      overflow: hidden;
     }
     
-    .field-label {
-      font-weight: bold;
-      font-size: 9px;
+    .cell-heading {
+      background-color: #f3f4f6;
+      justify-content: center;
+      align-items: center;
+      padding: 1px;
+      margin: 2px 0;
+      border: 0.4px solid #ddd;
+    }
+    
+    .heading-content {
+      font-weight: 700;
       text-transform: uppercase;
-      color: #333;
+      font-size: 7.5px;
+      color: #111;
     }
-    
-    .field-dept {
-      font-size: 7px;
-      background: #f0f0f0;
-      padding: 2px 4px;
-      border-radius: 2px;
-      color: #666;
-    }
-    
-    .field-value {
-      border-bottom: 1px dotted #666;
-      min-height: 18px;
-      padding: 2px 4px;
-      font-size: 10px;
-    }
-    
-    .field-value.heading-type {
-      border-bottom: 2px solid #000;
-      font-weight: bold;
-      text-align: center;
-    }
-    
-    .checkbox-field {
+
+    .cell-content {
       display: flex;
-      align-items: center;
-      gap: 8px;
+      align-items: flex-start; /* Align to top for wrapped labels */
+      width: 100%;
+      gap: 2px;
     }
-    
-    .checkbox {
+
+    .content-vertical {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .cell-label {
+      font-size: 6.5px;
+      font-weight: 700;
+      color: #333;
+      white-space: normal; /* Wrap long text */
+      text-transform: uppercase;
+      width: 65px; /* Fixed width for alignment */
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .content-vertical .cell-label {
+        width: 100%;
+        margin-bottom: 1px;
+    }
+
+    .cell-underline {
+      font-size: 7.5px;
+      color: #000;
+      flex-grow: 1;
+      border-bottom: 0.4px solid #999;
+      min-height: 9px;
+      padding: 0 1px;
       display: inline-block;
-      width: 14px;
-      height: 14px;
-      border: 1px solid #000;
-      text-align: center;
-      font-size: 10px;
-      line-height: 14px;
+      white-space: pre-wrap;
+      width: 100%;
+      line-height: 1.1;
     }
-    
-    .label-text {
-      font-size: 9px;
-      font-weight: normal;
+
+    .checkbox-group {
+        display: flex;
+        gap: 4px;
     }
-    
-    .image-count {
-      font-style: italic;
-      color: #666;
-      font-size: 9px;
-      font-weight: bold;
+    .checkbox-item {
+        font-size: 7px;
+        font-weight: 600;
     }
-    
-    .no-value {
-      color: #999;
-      font-style: italic;
+
+    .image-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        width: 100%;
     }
-    
-    .heading-separator {
-      height: 2px;
-      background: #000;
+    .img-container {
+        width: 100%;
+        padding-top: 60%;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: left center;
+    }
+    .img-more {
+        font-size: 5px;
+        text-align: left;
+        color: #888;
     }
     
     .footer {
-      margin-top: 20px;
-      padding-top: 10px;
-      border-top: 2px solid #000;
+      margin-top: 10px;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      font-size: 9px;
+      gap: 15px;
+      font-size: 7px;
     }
     
     .signature-box {
-      text-align: center;
+      border-top: 0.5px solid #000;
+      padding-top: 3px;
     }
     
-    .signature-line {
-      border-bottom: 1px dotted #666;
-      height: 20px;
-      margin: 8px 0;
+    .signature-title {
+        font-weight: bold;
+        margin-bottom: 15px;
     }
-    
+
     @media print {
       body { 
         -webkit-print-color-adjust: exact !important;
@@ -520,12 +549,12 @@ export default function DepartmentPanelExcel({
 </head>
 <body>
   <div class="header">
-    <h1>SAMPLE REQUEST AND DEVELOPMENT FORM</h1>
+    <h1>Sample Request Form</h1>
     <div class="header-info">
-      <div><strong>SRD REF:</strong> ${srd.refNo}</div>
-      <div><strong>VMD:</strong> ${srd.status?.vmd || 'Pending'}</div>
-      <div><strong>CAD:</strong> ${srd.status?.cad || 'Pending'}</div>
-      <div><strong>COMMERCIAL:</strong> ${srd.status?.commercial || 'Pending'}</div>
+      <div class="header-item"><strong>SRD REF</strong>${srd.refNo}</div>
+      <div class="header-item"><strong>VMD STATUS</strong>${srd.status?.vmd || 'Pending'}</div>
+      <div class="header-item"><strong>CAD STATUS</strong>${srd.status?.cad || 'Pending'}</div>
+      <div class="header-item"><strong>COMMERCIAL STATUS</strong>${srd.status?.commercial || 'Pending'}</div>
     </div>
   </div>
   
@@ -535,19 +564,16 @@ export default function DepartmentPanelExcel({
   
   <div class="footer">
     <div class="signature-box">
-      <div><strong>PREPARED BY:</strong></div>
-      <div class="signature-line"></div>
-      <div>SIGNATURE & DATE</div>
+      <div class="signature-title">PREPARED BY</div>
+      <div>Date:</div>
     </div>
     <div class="signature-box">
-      <div><strong>REVIEWED BY:</strong></div>
-      <div class="signature-line"></div>
-      <div>SIGNATURE & DATE</div>
+      <div class="signature-title">REVIEWED BY</div>
+      <div>Date:</div>
     </div>
     <div class="signature-box">
-      <div><strong>APPROVED BY:</strong></div>
-      <div class="signature-line"></div>
-      <div>SIGNATURE & DATE</div>
+      <div class="signature-title">APPROVED BY</div>
+      <div>Date:</div>
     </div>
   </div>
 </body>

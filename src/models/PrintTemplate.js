@@ -20,6 +20,10 @@ const PrintTemplateSchema = new mongoose.Schema({
         type: Number,
         default: 1,
       },
+      rowSpan: {
+        type: Number,
+        default: 1,
+      },
       height: {
         type: String,
         enum: ['auto', 'small', 'medium', 'large', 'xlarge'],
@@ -35,4 +39,9 @@ const PrintTemplateSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-export default mongoose.models.PrintTemplate || mongoose.model('PrintTemplate', PrintTemplateSchema);
+// Force model recompilation if it exists to ensure schema updates (like rowSpan) are applied
+if (mongoose.models.PrintTemplate) {
+  delete mongoose.models.PrintTemplate;
+}
+
+export default mongoose.model('PrintTemplate', PrintTemplateSchema);
