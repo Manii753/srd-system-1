@@ -236,143 +236,227 @@ export default function DepartmentPanelExcel({
     }
   };
 
-  const handlePrint = async () => {
-    try {
-      // Fetch the active print template
-      const templateRes = await fetch('/api/printTemplate');
-      const templates = await templateRes.json();
-      
-      const activeTemplate = Array.isArray(templates) 
-        ? templates.find(t => t.isActive) 
-        : null;
-      
-      if (!activeTemplate) {
-        toast({
-          title: 'No active template',
-          description: 'Please create and activate a print template in the template designer.',
-          variant: 'destructive',
-        });
-        return;
-      }
+  // This is the updated handlePrint function for DepartmentPanelExcel.jsx
+// Replace the existing handlePrint function with this one
 
-      // Fetch all field definitions to get field metadata
-      const allFieldDefs = [];
-      for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
-        try {
-          const res = await fetch(`/api/newField?department=${dept}`);
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            allFieldDefs.push(...data);
-          }
-        } catch (err) {
-          console.error(`Failed to fetch ${dept} fields:`, err);
-        }
-      }
-
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        toast({
-          title: 'Print blocked',
-          description: 'Please allow popups for this site to enable printing',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      // Build the print content using the template
-      const gridColumns = activeTemplate.gridColumns || 6;
-      let fieldsHTML = '';
-      
-      activeTemplate.cells.forEach(cell => {
-        // Find the field definition
-        const fieldDef = allFieldDefs.find(f => f._id.toString() === cell.fieldId.toString());
-        if (!fieldDef) {
-          console.warn(`Field definition not found for ID: ${cell.fieldId}`);
-          return;
-        }
-
-        // Find the field value from SRD data
-        let fieldValue = '';
-        const srdField = srd.dynamicFields?.find(f => {
-          // Try multiple matching strategies
-          return (
-            (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
-            (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString()) ||
-            (f.name === fieldDef.name && f.department === fieldDef.department)
-          );
-        });
-        
-        if (srdField) {
-          fieldValue = srdField.value || '';
-        }
-        
-        const colSpan = cell.position.colSpan || 1;
-        const rowSpan = cell.position.rowSpan || 1;
-        const height = cell.position.height || 'auto';
-        
-        const minHeight = 
-          height === 'small' ? '12px' :
-          height === 'medium' ? '25px' :
-          height === 'large' ? '50px' :
-          height === 'xlarge' ? '90px' : 'auto';
-        
-        let valueDisplay = '';
-        const isHeading = fieldDef.type === 'heading';
-        const isImage = fieldDef.type === 'image';
-
-        if (fieldDef.type === 'boolean') {
-          valueDisplay = `
-            <div class="checkbox-group">
-              <span class="checkbox-item">${fieldValue ? '☑' : '☐'}Y</span>
-              <span class="checkbox-item">${!fieldValue ? '☑' : '☐'}N</span>
-            </div>
-          `;
-        } else if (isImage) {
-          const images = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-          const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-          const allImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
-          
-          if (allImages.length > 0) {
-              const imgGrid = allImages.slice(0, 4).map(img => 
-                  `<div class="img-container" style="background-image: url('${img}')"></div>`
-              ).join('');
-              valueDisplay = `<div class="image-grid">${imgGrid}</div>`;
-              if (allImages.length > 4) valueDisplay += `<div class="img-more">+${allImages.length - 4}</div>`;
-          } else {
-             valueDisplay = '<span class="no-value"></span>';
-          }
-        } else if (isHeading) {
-          valueDisplay = fieldDef.name;
-        } else {
-          valueDisplay = fieldValue || '';
-        }
-        
-        fieldsHTML += `
-          <div class="field-cell ${isHeading ? 'cell-heading' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
-            ${!isHeading ? `
-                <div class="cell-content ${isImage ? 'content-vertical' : ''}">
-                  <span class="cell-label">${fieldDef.name}:</span>
-                  <span class="cell-underline">${valueDisplay}</span>
-                </div>
-            ` : `
-                <div class="heading-content">${valueDisplay}</div>
-            `}
-          </div>
-        `;
+const handlePrint = async () => {
+  try {
+    // Fetch the active print template
+    const templateRes = await fetch('/api/printTemplate');
+    const templates = await templateRes.json();
+    
+    const activeTemplate = Array.isArray(templates) 
+      ? templates.find(t => t.isActive) 
+      : null;
+    
+    if (!activeTemplate) {
+      toast({
+        title: 'No active template',
+        description: 'Please create and activate a print template in the template designer.',
+        variant: 'destructive',
       });
+      return;
+    }
 
-      // If no fields were rendered, show a message
-      if (!fieldsHTML.trim()) {
-        fieldsHTML = `
-          <div class="field-cell" style="grid-column: span ${gridColumns}; text-align: center; padding: 40px;">
-            <div style="color: #666; font-style: italic;">
-              No matching fields found for this template. Please check your template configuration.
-            </div>
-          </div>
-        `;
+    // Fetch all field definitions to get field metadata
+    const allFieldDefs = [];
+    for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
+      try {
+        const res = await fetch(`/api/newField?department=${dept}`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          allFieldDefs.push(...data);
+        }
+      } catch (err) {
+        console.error(`Failed to fetch ${dept} fields:`, err);
+      }
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: 'Print blocked',
+        description: 'Please allow popups for this site to enable printing',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Build the print content using the template
+    const gridColumns = activeTemplate.gridColumns || 6;
+    let fieldsHTML = '';
+    
+    activeTemplate.cells.forEach(cell => {
+      const colSpan = cell.position?.colSpan || 1;
+      const rowSpan = cell.position?.rowSpan || 1;
+      const height = cell.position?.height || 'auto';
+      
+      const minHeight = 
+        height === 'small' ? '12px' :
+        height === 'medium' ? '25px' :
+        height === 'large' ? '50px' :
+        height === 'xlarge' ? '90px' : 'auto';
+
+      // Handle custom elements
+      if (cell.isCustom) {
+        const customType = cell.customType;
+        const customValue = cell.customValue || '';
+        const customPlaceholder = cell.customPlaceholder || '';
+
+        let customHTML = '';
+        
+        switch (customType) {
+          case 'custom-heading':
+            customHTML = `
+              <div class="field-cell cell-heading" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+                <div class="heading-content">${customValue}</div>
+              </div>
+            `;
+            break;
+          
+          case 'custom-text':
+            customHTML = `
+              <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+                <div class="static-text">${customValue}</div>
+              </div>
+            `;
+            break;
+          
+          case 'custom-empty-field':
+            customHTML = `
+              <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+                <div class="cell-content">
+                  <span class="cell-label">${customValue}:</span>
+                  <span class="cell-underline">${customPlaceholder ? `<span class="placeholder-text">${customPlaceholder}</span>` : ''}</span>
+                </div>
+              </div>
+            `;
+            break;
+          
+          case 'custom-textarea':
+            customHTML = `
+              <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+                <div class="textarea-container">
+                  <div class="textarea-label">${customValue}:</div>
+                  <div class="textarea-box">${customPlaceholder ? `<span class="placeholder-text">${customPlaceholder}</span>` : ''}</div>
+                </div>
+              </div>
+            `;
+            break;
+          
+          case 'custom-separator':
+            customHTML = `
+              <div class="field-cell separator-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan};">
+                <div class="separator-line"></div>
+              </div>
+            `;
+            break;
+          
+          case 'custom-signature':
+            customHTML = `
+              <div class="field-cell signature-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+                <div class="signature-container">
+                  <div class="signature-label">${customValue}</div>
+                  <div class="signature-line"></div>
+                  <div class="signature-helper">SIGNATURE & DATE</div>
+                </div>
+              </div>
+            `;
+            break;
+          
+          default:
+            customHTML = `
+              <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+                <div class="cell-content">
+                  <span class="cell-underline"></span>
+                </div>
+              </div>
+            `;
+        }
+        
+        fieldsHTML += customHTML;
+        return;
       }
 
-      const printContent = `<!DOCTYPE html>
+      // Handle regular database fields
+      // Find the field definition
+      const fieldDef = allFieldDefs.find(f => f._id.toString() === cell.fieldId?.toString());
+      if (!fieldDef) {
+        console.warn(`Field definition not found for ID: ${cell.fieldId}`);
+        return;
+      }
+
+      // Find the field value from SRD data
+      let fieldValue = '';
+      const srdField = srd.dynamicFields?.find(f => {
+        return (
+          (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
+          (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString()) ||
+          (f.name === fieldDef.name && f.department === fieldDef.department)
+        );
+      });
+      
+      if (srdField) {
+        fieldValue = srdField.value || '';
+      }
+      
+      let valueDisplay = '';
+      const isHeading = fieldDef.type === 'heading';
+      const isImage = fieldDef.type === 'image';
+
+      if (fieldDef.type === 'boolean') {
+        valueDisplay = `
+          <div class="checkbox-group">
+            <span class="checkbox-item">${fieldValue ? '☑' : '☐'}Y</span>
+            <span class="checkbox-item">${!fieldValue ? '☑' : '☐'}N</span>
+          </div>
+        `;
+      } else if (isImage) {
+        const images = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+        const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
+        const allImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
+        
+        if (allImages.length > 0) {
+          const imgGrid = allImages.slice(0, 4).map(img => 
+            `<div class="img-container" style="background-image: url('${img}')"></div>`
+          ).join('');
+          valueDisplay = `<div class="image-grid">${imgGrid}</div>`;
+          if (allImages.length > 4) valueDisplay += `<div class="img-more">+${allImages.length - 4}</div>`;
+        } else {
+          valueDisplay = '<span class="no-value"></span>';
+        }
+      } else if (isHeading) {
+        valueDisplay = fieldDef.name;
+      } else {
+        valueDisplay = fieldValue || '';
+      }
+      
+      fieldsHTML += `
+        <div class="field-cell ${isHeading ? 'cell-heading' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+          ${!isHeading ? `
+              <div class="cell-content ${isImage ? 'content-vertical' : ''}">
+                <span class="cell-label">${fieldDef.name}:</span>
+                <span class="cell-underline">${valueDisplay}</span>
+              </div>
+          ` : `
+              <div class="heading-content">${valueDisplay}</div>
+          `}
+        </div>
+      `;
+    });
+
+    // If no fields were rendered, show a message
+    if (!fieldsHTML.trim()) {
+      fieldsHTML = `
+        <div class="field-cell" style="grid-column: span ${gridColumns}; text-align: center; padding: 40px;">
+          <div style="color: #666; font-style: italic;">
+            No matching fields found for this template. Please check your template configuration.
+          </div>
+        </div>
+      `;
+    }
+
+    const printContent = `<!DOCTYPE html>
 <html>
 <head>
   <title>SRD Complete Form - ${srd.refNo}</title>
@@ -414,16 +498,16 @@ export default function DepartmentPanelExcel({
     }
 
     .header-item strong {
-        display: block;
-        font-size: 6.5px;
-        color: #666;
-        margin-bottom: 1px;
+      display: block;
+      font-size: 6.5px;
+      color: #666;
+      margin-bottom: 1px;
     }
     
     .template-grid {
       display: grid;
       grid-template-columns: repeat(${gridColumns}, minmax(0, 1fr));
-      gap: 0 1px; /* No vertical gap */
+      gap: 0 1px;
       margin-bottom: 10px;
     }
     
@@ -461,8 +545,8 @@ export default function DepartmentPanelExcel({
     }
 
     .content-vertical {
-        flex-direction: column;
-        align-items: flex-start;
+      flex-direction: column;
+      align-items: flex-start;
     }
 
     .cell-label {
@@ -473,13 +557,13 @@ export default function DepartmentPanelExcel({
       text-transform: uppercase;
       width: 65px; 
       flex-shrink: 0;
-      line-height: 10px; /* Reduced from 12px */
+      line-height: 10px;
     }
 
     .content-vertical .cell-label {
-        width: 100%;
-        margin-bottom: 0px;
-        line-height: 1;
+      width: 100%;
+      margin-bottom: 0px;
+      line-height: 1;
     }
 
     .cell-underline {
@@ -487,7 +571,7 @@ export default function DepartmentPanelExcel({
       color: #000;
       flex-grow: 1;
       border-bottom: 0.4px solid #999;
-      min-height: 10px; /* Reduced from 12px */
+      min-height: 10px;
       padding: 0 2px;
       display: flex;
       align-items: center;
@@ -497,32 +581,113 @@ export default function DepartmentPanelExcel({
     }
 
     .checkbox-group {
-        display: flex;
-        gap: 8px;
-        align-items: center; /* Better vertical alignment */
+      display: flex;
+      gap: 8px;
+      align-items: center;
     }
+    
     .checkbox-item {
-        font-size: 7px;
-        font-weight: 600;
+      font-size: 7px;
+      font-weight: 600;
     }
 
     .image-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      width: 100%;
     }
+    
     .img-container {
-        width: 100%;
-        padding-top: 60%;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: left center;
+      width: 100%;
+      padding-top: 60%;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: left center;
     }
+    
     .img-more {
-        font-size: 5px;
-        text-align: left;
-        color: #888;
+      font-size: 5px;
+      text-align: left;
+      color: #888;
+    }
+
+    /* Custom element styles */
+    .static-text {
+      font-size: 7px;
+      color: #333;
+      padding: 2px;
+    }
+
+    .placeholder-text {
+      font-size: 6px;
+      color: #999;
+      font-style: italic;
+    }
+
+    .textarea-container {
+      padding: 2px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .textarea-label {
+      font-size: 6.5px;
+      font-weight: 700;
+      color: #333;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .textarea-box {
+      flex: 1;
+      border: 0.4px solid #999;
+      min-height: 30px;
+      padding: 2px;
+    }
+
+    .separator-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 0;
+    }
+
+    .separator-line {
+      width: 100%;
+      border-top: 1px solid #333;
+    }
+
+    .signature-cell {
+      padding: 4px;
+    }
+
+    .signature-container {
+      text-align: center;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .signature-label {
+      font-size: 7px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #333;
+    }
+
+    .signature-line {
+      border-bottom: 0.5px dotted #666;
+      min-height: 20px;
+      margin: 4px 0;
+    }
+
+    .signature-helper {
+      font-size: 5px;
+      color: #666;
+      text-transform: uppercase;
     }
     
     .footer {
@@ -539,8 +704,8 @@ export default function DepartmentPanelExcel({
     }
     
     .signature-title {
-        font-weight: bold;
-        margin-bottom: 15px;
+      font-weight: bold;
+      margin-bottom: 15px;
     }
 
     @media print {
@@ -584,24 +749,24 @@ export default function DepartmentPanelExcel({
 </body>
 </html>`;
 
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      
-      setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-      }, 500);
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }, 500);
 
-    } catch (error) {
-      console.error('Print error:', error);
-      toast({
-        title: 'Print failed',
-        description: 'There was an error generating the print document',
-        variant: 'destructive',
-      });
-    }
-  };
+  } catch (error) {
+    console.error('Print error:', error);
+    toast({
+      title: 'Print failed',
+      description: 'There was an error generating the print document',
+      variant: 'destructive',
+    });
+  }
+};
 
   // Group fields by headings for Excel-like layout
   const groupFieldsByHeading = () => {
