@@ -521,7 +521,7 @@ function AvailableFieldsList({ allFields, onAddField, onAddCustomElement, filter
         return a.name.localeCompare(b.name);
     }
   });
-  console.log(filteredFields);
+  
 
   const getFieldIcon = (type) => {
     switch(type) {
