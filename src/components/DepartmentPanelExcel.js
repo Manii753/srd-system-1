@@ -496,7 +496,7 @@ const handlePrint = async () => {
     
     .header-info {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 6px;
       font-size: 8px;
     }
@@ -534,9 +534,7 @@ const handlePrint = async () => {
       background-color: #f3f4f6;
       justify-content: center;
       align-items: center;
-      padding: 1px;
-      margin: 1px 0;
-      border: 0.4px solid #ddd;
+      
     }
     
     .heading-content {
@@ -758,11 +756,11 @@ const handlePrint = async () => {
   <div class="header">
     <h1>Sample Request Form</h1>
     <div class="header-info">
-      <div class="header-item"><strong>SRD REF</strong>${srd.refNo}</div>
-      <div class="header-item"><strong>VMD STATUS</strong>${srd.status?.vmd || 'Pending'}</div>
-      <div class="header-item"><strong>CAD STATUS</strong>${srd.status?.cad || 'Pending'}</div>
-      <div class="header-item"><strong>COMMERCIAL STATUS</strong>${srd.status?.commercial || 'Pending'}</div>
-      <div class="header-item"><strong>MMC STATUS</strong>${srd.status?.mmc || 'Pending'}</div>
+      <div class="header-item"><strong>SRD REF:</strong>${srd.refNo}</div>
+      <div class="header-item"><strong>VMD STATUS:</strong>${srd.status?.vmd || 'Pending'}</div>
+      <div class="header-item"><strong>CAD STATUS:</strong>${srd.status?.cad || 'Pending'}</div>
+      <div class="header-item"><strong>COMMERCIAL STATUS:</strong>${srd.status?.commercial || 'Pending'}</div>
+      <div class="header-item"><strong>MMC STATUS:</strong>${srd.status?.mmc || 'Pending'}</div>
     </div>
   </div>
   
