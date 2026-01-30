@@ -504,6 +504,8 @@ function AvailableFieldsList({ allFields, onAddField, onAddCustomElement, filter
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
   const [activeTab, setActiveTab] = useState('fields');
+
+  
   
   const filteredFields = allFields.filter(f => {
     const matchesSearch = f.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -519,6 +521,7 @@ function AvailableFieldsList({ allFields, onAddField, onAddCustomElement, filter
         return a.name.localeCompare(b.name);
     }
   });
+  
 
   const getFieldIcon = (type) => {
     switch(type) {
@@ -643,6 +646,7 @@ function AvailableFieldsList({ allFields, onAddField, onAddCustomElement, filter
                       {field.isRequired && (
                         <span className="ml-2 text-red-500 text-xs">*</span>
                       )}
+                     
                     </div>
                     <div className="flex items-center space-x-2 mt-2">
                       <span className="text-xs bg-white px-2 py-1 rounded-full font-medium border">
@@ -651,6 +655,9 @@ function AvailableFieldsList({ allFields, onAddField, onAddCustomElement, filter
                       <span className="text-xs font-bold text-gray-700">
                         {field.department?.toUpperCase() || 'ALL'}
                       </span>
+                       {field.parentHeading && (
+                        <span className=" text-gray-600 text-xs">{field.parentHeading.name}</span>
+                      )}
                     </div>
                   </div>
                   <div className="ml-3 p-2 rounded-full bg-white/50">
