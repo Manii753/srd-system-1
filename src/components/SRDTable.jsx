@@ -95,15 +95,15 @@ export default function SRDTable({ srds, department }) {
   const getDepartmentStatusColor = (status) => {
     switch (status) {
       case 'approved':
-        return 'bg-gradient-to-r from-green-500 to-green-600';
+        return 'text-green-400';
       case 'flagged':
-        return 'bg-gradient-to-r from-red-500 to-red-600';
+        return 'text-red-400';
       case 'pending':
-        return 'bg-gradient-to-r from-orange-500 to-orange-600';
+        return 'text-orange-400';
       case 'in-progress':
-        return 'bg-gradient-to-r from-blue-500 to-blue-600';
+        return 'text-blue-400';
       default:
-        return 'bg-gradient-to-r from-gray-500 to-gray-600';
+        return 'text-gray-400';
     }
   };
 
@@ -438,25 +438,25 @@ export default function SRDTable({ srds, department }) {
                         </div>
                       ) : (
                         <div className="flex gap-1 flex-wrap">
-                          <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.vmd)} rounded-lg text-white text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
+                          <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.vmd)} rounded-lg text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
                             <div className="text-center">
                               <div className="uppercase font-bold text-xs">VMD</div>
                               <div className="text-white/80 text-xs capitalize">{srd.status.vmd}</div>
                             </div>
                           </div>
-                          <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.cad)} rounded-lg text-white text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
+                          <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.cad)} rounded-lg text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
                             <div className="text-center">
                               <div className="uppercase font-bold text-xs">CAD</div>
                               <div className="text-white/80 text-xs capitalize">{srd.status.cad}</div>
                             </div>
                           </div>
-                          <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.mmc)} rounded-lg text-white text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
+                          <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.mmc)} rounded-lg text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
                             <div className="text-center">
                               <div className="uppercase font-bold text-xs">MMC</div>
                               <div className="text-white/80 text-xs capitalize">{srd.status.mmc}</div>
                             </div>
                           </div>
-                          <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.commercial)} rounded-lg text-white text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
+                          <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.commercial)} rounded-lg text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
                             <div className="text-center">
                               <div className="uppercase font-bold text-xs">COM</div>
                               <div className="text-white/80 text-xs capitalize">{srd.status.commercial}</div>
@@ -468,9 +468,9 @@ export default function SRDTable({ srds, department }) {
                     <td className="justify-center align-middle px-6 py-5 whitespace-nowrap text-sm font-medium">
                       <div className="flex gap-2 justify-center">
                         <Link href={`/srd/${srd._id}`}>
-                          <Button 
+                          <Button
                             size="sm" 
-                            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md transition-all duration-200"
+                            className="bg-blue-600 hover:bg-blue-700 t~ext-white shadow-sm hover:shadow-md transition-all duration-200"
                           >
                             View Details
                           </Button>
