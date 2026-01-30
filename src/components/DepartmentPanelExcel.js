@@ -417,11 +417,10 @@ const handlePrint = async () => {
         const allImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
         
         if (allImages.length > 0) {
-          const imgGrid = allImages.slice(0, 4).map(img => 
-            `<div class="img-container" style="background-image: url('${img}')"></div>`
+          const imgGrid = allImages.map(img => 
+            `<div class="img-wrapper"><img src="${img}" class="img-print" alt="Product image" /></div>`
           ).join('');
-          valueDisplay = `<div class="image-grid">${imgGrid}</div>`;
-          if (allImages.length > 4) valueDisplay += `<div class="img-more">+${allImages.length - 4}</div>`;
+          valueDisplay = `<div class="image-stack">${imgGrid}</div>`;
         } else {
           valueDisplay = '<span class="no-value"></span>';
         }
@@ -432,11 +431,16 @@ const handlePrint = async () => {
       }
       
       fieldsHTML += `
-        <div class="field-cell ${isHeading ? 'cell-heading' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
-          ${!isHeading ? `
-              <div class="cell-content ${isImage ? 'content-vertical' : ''}">
+        <div class="field-cell ${isHeading ? 'cell-heading' : ''} ${isImage ? 'cell-image' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+          ${!isHeading && !isImage ? `
+              <div class="cell-content">
                 <span class="cell-label">${fieldDef.name}:</span>
                 <span class="cell-underline">${valueDisplay}</span>
+              </div>
+          ` : isImage ? `
+              <div class="cell-image-container">
+                <div class="image-label">${fieldDef.name}</div>
+                ${valueDisplay}
               </div>
           ` : `
               <div class="heading-content">${valueDisplay}</div>
@@ -520,6 +524,11 @@ const handlePrint = async () => {
       justify-content: flex-start;
       overflow: hidden;
     }
+
+    .cell-image {
+      padding: 1px;
+      height: auto;
+    }
     
     .cell-heading {
       background-color: #f3f4f6;
@@ -542,11 +551,7 @@ const handlePrint = async () => {
       align-items: flex-start;
       width: 100%;
       gap: 4px;
-    }
-
-    .content-vertical {
-      flex-direction: column;
-      align-items: flex-start;
+      height: 100%;
     }
 
     .cell-label {
@@ -558,12 +563,6 @@ const handlePrint = async () => {
       width: 65px; 
       flex-shrink: 0;
       line-height: 10px;
-    }
-
-    .content-vertical .cell-label {
-      width: 100%;
-      margin-bottom: 0px;
-      line-height: 1;
     }
 
     .cell-underline {
@@ -591,25 +590,59 @@ const handlePrint = async () => {
       font-weight: 600;
     }
 
-    .image-grid {
+    /* Image cell specific styles */
+    .cell-image-container {
+      width: 100%;
+      height: 100%;
       display: flex;
       flex-direction: column;
-      gap: 2px;
+    }
+
+    .image-label {
+      font-size: 6px;
+      font-weight: 700;
+      color: #333;
+      text-transform: uppercase;
+      padding: 1px 2px;
+      background: #f9f9f9;
+      border-bottom: 0.5px solid #ddd;
+      flex-shrink: 0;
+    }
+
+    /* Image stack - fills remaining space after label */
+    .image-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
       width: 100%;
+      flex: 1;
+      overflow: hidden;
     }
     
-    .img-container {
+    .img-wrapper {
       width: 100%;
-      padding-top: 60%;
-      background-size: contain;
-      background-repeat: no-repeat;
-      background-position: left center;
+      flex: 1;
+      border: 0.5px solid #ccc;
+      background: #fafafa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      min-height: 0;
+      position: relative;
     }
-    
-    .img-more {
-      font-size: 5px;
-      text-align: left;
-      color: #888;
+
+    .img-print {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      display: block;
+      object-fit: contain;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
     }
 
     /* Custom element styles */
@@ -713,6 +746,11 @@ const handlePrint = async () => {
         -webkit-print-color-adjust: exact !important;
         color-adjust: exact !important;
       }
+      
+      .img-print {
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
     }
   </style>
 </head>
@@ -732,20 +770,7 @@ const handlePrint = async () => {
     ${fieldsHTML}
   </div>
   
-  <div class="footer">
-    <div class="signature-box">
-      <div class="signature-title">PREPARED BY</div>
-      <div>Date:</div>
-    </div>
-    <div class="signature-box">
-      <div class="signature-title">REVIEWED BY</div>
-      <div>Date:</div>
-    </div>
-    <div class="signature-box">
-      <div class="signature-title">APPROVED BY</div>
-      <div>Date:</div>
-    </div>
-  </div>
+  
 </body>
 </html>`;
 
@@ -767,7 +792,6 @@ const handlePrint = async () => {
     });
   }
 };
-
   // Group fields by headings for Excel-like layout
   const groupFieldsByHeading = () => {
     if (!fieldDefs.length) return [];
