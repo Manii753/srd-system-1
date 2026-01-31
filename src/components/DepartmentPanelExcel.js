@@ -9,10 +9,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Trash2, Star, Upload, Printer } from 'lucide-react';
+import { AlertCircle, Trash2, Star, Upload, Printer, FileSpreadsheet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import UploadImage from './UploadImage';
+import UploadFile from './UploadFile';
 import { useToast } from '@/lib/use-toast';
 
 export default function DepartmentPanelExcel({
@@ -403,6 +404,7 @@ const handlePrint = async () => {
       let valueDisplay = '';
       const isHeading = fieldDef.type === 'heading';
       const isImage = fieldDef.type === 'image';
+      const isFile = fieldDef.type === 'file';
 
       if (fieldDef.type === 'boolean') {
         valueDisplay = `
@@ -411,6 +413,17 @@ const handlePrint = async () => {
             <span class="checkbox-item">${!fieldValue ? '☑' : '☐'}N</span>
           </div>
         `;
+      } else if (isFile) {
+        if (fieldValue) {
+          valueDisplay = `
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span>📊</span>
+              <span style="font-size: 7px;">Excel File Attached</span>
+            </div>
+          `;
+        } else {
+          valueDisplay = '<span class="no-value"></span>';
+        }
       } else if (isImage) {
         const images = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
         const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
@@ -460,10 +473,19 @@ const handlePrint = async () => {
       `;
     }
 
+    // Identify Excel files to include in print
+    const excelFiles = [];
+    srd.dynamicFields?.forEach(f => {
+      if (f.type === 'file' && f.value && f.department === department) {
+        excelFiles.push({ name: f.name, url: f.value });
+      }
+    });
+
     const printContent = `<!DOCTYPE html>
 <html>
 <head>
   <title>SRD Complete Form - ${srd.refNo}</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     @page {
       size: A4;
@@ -739,6 +761,46 @@ const handlePrint = async () => {
       margin-bottom: 15px;
     }
 
+    /* Excel Print Styles */
+    .excel-container {
+      margin-top: 20px;
+      page-break-before: always;
+    }
+
+    .excel-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: #f3f4f6;
+      padding: 4px;
+      border: 1px solid #333;
+      margin-bottom: 5px;
+    }
+
+    .excel-table-wrapper {
+      width: 100%;
+      overflow: visible;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 7px;
+    }
+
+    table, th, td {
+      border: 0.5px solid #666;
+    }
+
+    th, td {
+      padding: 2px 4px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f9f9f9;
+    }
+
     @media print {
       body { 
         -webkit-print-color-adjust: exact !important;
@@ -748,6 +810,10 @@ const handlePrint = async () => {
       .img-print {
         -webkit-print-color-adjust: exact !important;
         color-adjust: exact !important;
+      }
+
+      .excel-container {
+        page-break-before: always;
       }
     }
   </style>
@@ -767,19 +833,77 @@ const handlePrint = async () => {
   <div class="template-grid">
     ${fieldsHTML}
   </div>
-  
-  
+
+  <div id="excel-sections"></div>
+
+  <script>
+    async function loadExcelFiles() {
+      const files = ${JSON.stringify(excelFiles)};
+      const container = document.getElementById('excel-sections');
+      
+      for (const file of files) {
+        try {
+          const response = await fetch(file.url);
+          const arrayBuffer = await response.arrayBuffer();
+          const data = new Uint8Array(arrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          const section = document.createElement('div');
+          section.className = 'excel-container';
+          
+          const title = document.createElement('div');
+          title.className = 'excel-title';
+          title.textContent = 'ATTACHED EXCEL: ' + file.name;
+          section.appendChild(title);
+          
+          workbook.SheetNames.forEach(sheetName => {
+            const sheet = workbook.Sheets[sheetName];
+            const htmlTable = XLSX.utils.sheet_to_html(sheet);
+            
+            const sheetTitle = document.createElement('div');
+            sheetTitle.style.fontWeight = 'bold';
+            sheetTitle.style.margin = '5px 0';
+            sheetTitle.textContent = 'Sheet: ' + sheetName;
+            section.appendChild(sheetTitle);
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'excel-table-wrapper';
+            wrapper.innerHTML = htmlTable;
+            section.appendChild(wrapper);
+          });
+          
+          container.appendChild(section);
+        } catch (err) {
+          console.error('Error loading excel:', err);
+        }
+      }
+      
+      // Notify parent that we are ready or just print
+      setTimeout(() => {
+        window.focus();
+        window.print();
+        // window.close(); // Optional: close after print
+      }, 1000);
+    }
+    
+    if (${excelFiles.length} > 0) {
+      loadExcelFiles();
+    } else {
+      setTimeout(() => {
+        window.focus();
+        window.print();
+        // window.close();
+      }, 500);
+    }
+  </script>
 </body>
 </html>`;
 
     printWindow.document.write(printContent);
     printWindow.document.close();
     
-    setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
-    }, 500);
+    // The print command is now handled inside the script in the print window
+    // to ensure excel data is loaded first.
 
   } catch (error) {
     console.error('Print error:', error);
@@ -893,6 +1017,18 @@ const handlePrint = async () => {
           </div>
         );
 
+      case 'file':
+        return (
+          <div className="flex items-center py-0.5">
+            <span className="text-xs font-medium text-gray-900 uppercase mr-1 w-20 truncate" title={name}>
+              {name.length > 12 ? name.substring(0, 12) + '...' : name}{isRequired && '*'}:
+            </span>
+            <div className="flex-1 border-b border-dotted border-gray-400 min-h-[12px] px-1">
+              <span className="text-xs">{fieldValue ? 'FILE' : ''}</span>
+            </div>
+          </div>
+        );
+
       case 'image':
         const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
         const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
@@ -982,6 +1118,18 @@ const handlePrint = async () => {
           </div>
         );
 
+      case 'file':
+        return (
+          <div className="flex items-center justify-between py-1 border-b border-gray-300">
+            <span className="text-xs font-medium text-gray-900 uppercase mr-2">
+              {name}{isRequired && '*'}:
+            </span>
+            <div className="flex-1 border-b border-dotted border-gray-400 min-h-[16px] px-2">
+              <span className="text-xs">{fieldValue ? 'FILE ATTACHED' : 'N/A'}</span>
+            </div>
+          </div>
+        );
+
       case 'image':
         const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
         const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
@@ -1061,6 +1209,44 @@ const handlePrint = async () => {
               disabled={!canEdit}
               className="scale-75"
             />
+          </div>
+        );
+
+      case 'file':
+        return (
+          <div className="space-y-1">
+            {canEdit && (
+              <UploadFile 
+                onUploaded={(urls) => {
+                  const url = Array.isArray(urls) ? urls[0] : urls;
+                  if (url) {
+                    handleFieldChange(name, url);
+                    toast({
+                      title: 'File uploaded',
+                      description: 'File uploaded successfully',
+                    });
+                  }
+                }} 
+              />
+            )}
+            {fieldValue && (
+              <div className="flex items-center p-1 bg-gray-50 border rounded text-xs">
+                <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
+                <a href={fieldValue} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate flex-1 block" title="Download">
+                  Download Excel
+                </a>
+                {canEdit && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 ml-1 hover:bg-red-100"
+                    onClick={() => handleFieldChange(name, '')}
+                  >
+                    <Trash2 className="h-3 w-3 text-red-500" />
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         );
 
@@ -1213,6 +1399,20 @@ const handlePrint = async () => {
           </div>
         );
 
+      case 'file':
+        return (
+          <div className="flex items-center justify-center h-full">
+            {fieldValue ? (
+              <a href={fieldValue} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs flex items-center">
+                <FileSpreadsheet className="h-3 w-3 mr-1" />
+                File
+              </a>
+            ) : (
+              <span className="text-xs text-gray-400">No file</span>
+            )}
+          </div>
+        );
+
       case 'image':
         const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
         const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
@@ -1290,6 +1490,44 @@ const handlePrint = async () => {
               disabled={!canEdit}
               className="scale-75"
             />
+          </div>
+        );
+
+      case 'file':
+        return (
+          <div className="space-y-1 p-1">
+            {canEdit && (
+              <UploadFile 
+                onUploaded={(urls) => {
+                  const url = Array.isArray(urls) ? urls[0] : urls;
+                  if (url) {
+                    handleFieldChange(name, url);
+                    toast({
+                      title: 'File uploaded',
+                      description: 'File uploaded successfully',
+                    });
+                  }
+                }} 
+              />
+            )}
+            {fieldValue && (
+              <div className="flex items-center p-1 bg-gray-50 border rounded text-xs">
+                <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
+                <a href={fieldValue} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate flex-1 block" title="Download">
+                  Download Excel
+                </a>
+                {canEdit && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 ml-1 hover:bg-red-100"
+                    onClick={() => handleFieldChange(name, '')}
+                  >
+                    <Trash2 className="h-3 w-3 text-red-500" />
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         );
 
