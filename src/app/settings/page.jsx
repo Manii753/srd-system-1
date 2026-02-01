@@ -1,7 +1,7 @@
 'use client'
 import Layout from "@/components/layout/Layout";
 import { Card } from "@/components/ui/card";
-import { Settings, Building2, Workflow, FileText, Database } from "lucide-react";
+import { Settings, Building2, Workflow, FileText, Database, FolderOpen } from "lucide-react";
 import Link from "next/link";
 
 export default function SettingsPage() {
@@ -54,6 +54,13 @@ export default function SettingsPage() {
             icon: Database,
             href: "/settings/backup",
             color: "bg-indigo-500"
+        },
+        {
+            title: "Upload Path",
+            description: "Configure local or network drive path for file uploads",
+            icon: FolderOpen,
+            href: "/settings/upload-path",
+            color: "bg-amber-500"
         }
     ];
 

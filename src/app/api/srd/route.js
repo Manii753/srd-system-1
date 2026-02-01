@@ -19,15 +19,18 @@ export async function GET(request) {
     const currentProductionStage = searchParams.get('currentProductionStage');
 
     let query = {};
+    const andConditions = []; // Use $and to combine multiple $or conditions
 
     // Filter by department status (handle both uppercase and lowercase keys)
     if (department && department !== 'all') {
       const deptUpper = department.toUpperCase();
       const deptLower = department.toLowerCase();
-      query['$or'] = [
-        { [`status.${deptUpper}`]: { $exists: true } },
-        { [`status.${deptLower}`]: { $exists: true } }
-      ];
+      andConditions.push({
+        $or: [
+          { [`status.${deptUpper}`]: { $exists: true } },
+          { [`status.${deptLower}`]: { $exists: true } }
+        ]
+      });
     }
 
     // Filter by status (handle both uppercase and lowercase keys)
@@ -35,21 +38,25 @@ export async function GET(request) {
       if (department && department !== 'all') {
         const deptUpper = department.toUpperCase();
         const deptLower = department.toLowerCase();
-        query['$or'] = [
-          { [`status.${deptUpper}`]: status },
-          { [`status.${deptLower}`]: status }
-        ];
+        andConditions.push({
+          $or: [
+            { [`status.${deptUpper}`]: status },
+            { [`status.${deptLower}`]: status }
+          ]
+        });
       } else {
-        query['$or'] = [
-          { 'status.vmd': status },
-          { 'status.VMD': status },
-          { 'status.cad': status },
-          { 'status.CAD': status },
-          { 'status.commercial': status },
-          { 'status.COMMERCIAL': status },
-          { 'status.mmc': status },
-          { 'status.MMC': status },
-        ];
+        andConditions.push({
+          $or: [
+            { 'status.vmd': status },
+            { 'status.VMD': status },
+            { 'status.cad': status },
+            { 'status.CAD': status },
+            { 'status.commercial': status },
+            { 'status.COMMERCIAL': status },
+            { 'status.mmc': status },
+            { 'status.MMC': status },
+          ]
+        });
       }
     }
 
@@ -79,10 +86,17 @@ export async function GET(request) {
 
     // Search by refNo or title
     if (search) {
-      query['$or'] = [
-        { refNo: { $regex: search, $options: 'i' } },
-        { title: { $regex: search, $options: 'i' } },
-      ];
+      andConditions.push({
+        $or: [
+          { refNo: { $regex: search, $options: 'i' } },
+          { title: { $regex: search, $options: 'i' } },
+        ]
+      });
+    }
+
+    // Combine all $or conditions with $and
+    if (andConditions.length > 0) {
+      query['$and'] = andConditions;
     }
 
     const srds = await SRD.find(query).sort({ createdAt: -1 });
