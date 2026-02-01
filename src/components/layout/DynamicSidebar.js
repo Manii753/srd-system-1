@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   LayoutDashboard,
   FileText,
@@ -34,6 +34,94 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 
+// Cache key for menu items
+const MENU_CACHE_KEY = 'srd_sidebar_menu_cache';
+const MENU_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Static menu configurations for roles that don't need API calls
+const STATIC_MENUS = {
+  admin: [
+    { name: 'Home', href: '/dashboard/admin', icon: 'LayoutDashboard', gradient: 'from-blue-500 to-cyan-500' },
+    { name: 'Inbox', href: '/inbox', icon: 'Inbox', gradient: 'from-pink-500 to-rose-500', showBadge: true },
+    { name: 'All SRDs', href: '/srd', icon: 'FileText', gradient: 'from-purple-500 to-pink-500' },
+    { name: 'Production', href: '/production', icon: 'Package', gradient: 'from-red-500 to-orange-500' },
+    { name: 'Settings', href: '/settings', icon: 'Settings', gradient: 'from-gray-500 to-slate-600' },
+    { name: 'Departments', href: '/departments', icon: 'Edit', gradient: 'from-blue-500 to-indigo-500' },
+    { name: 'Stages', href: '/stages', icon: 'GitBranch', gradient: 'from-teal-500 to-cyan-500' },
+    { name: 'SRD Fields', href: '/srdfields', icon: 'FileSpreadsheet', gradient: 'from-green-500 to-emerald-500' },
+    { name: 'Users', href: '/users', icon: 'Users', gradient: 'from-orange-500 to-red-500' },
+  ],
+  cutting: [
+    { name: 'Cutting Dashboard', href: '/dashboard/cutting', icon: 'LayoutDashboard', gradient: 'from-blue-500 to-cyan-500' },
+    { name: 'Inbox', href: '/inbox', icon: 'Inbox', gradient: 'from-pink-500 to-rose-500', showBadge: true },
+  ],
+  sewing: [
+    { name: 'Sewing Dashboard', href: '/dashboard/sewing', icon: 'LayoutDashboard', gradient: 'from-blue-500 to-cyan-500' },
+    { name: 'Inbox', href: '/inbox', icon: 'Inbox', gradient: 'from-pink-500 to-rose-500', showBadge: true },
+  ],
+  washing: [
+    { name: 'Washing Dashboard', href: '/dashboard/washing', icon: 'LayoutDashboard', gradient: 'from-blue-500 to-cyan-500' },
+    { name: 'Inbox', href: '/inbox', icon: 'Inbox', gradient: 'from-pink-500 to-rose-500', showBadge: true },
+  ],
+  finishing: [
+    { name: 'Finishing Dashboard', href: '/dashboard/finishing', icon: 'LayoutDashboard', gradient: 'from-blue-500 to-cyan-500' },
+    { name: 'Inbox', href: '/inbox', icon: 'Inbox', gradient: 'from-pink-500 to-rose-500', showBadge: true },
+  ],
+  dispatch: [
+    { name: 'Dispatch Dashboard', href: '/dashboard/dispatch', icon: 'LayoutDashboard', gradient: 'from-blue-500 to-cyan-500' },
+    { name: 'Inbox', href: '/inbox', icon: 'Inbox', gradient: 'from-pink-500 to-rose-500', showBadge: true },
+  ],
+};
+
+// Icon mapping
+const ICON_MAP = {
+  LayoutDashboard,
+  FileText,
+  Settings,
+  Users,
+  Package,
+  GitBranch,
+  Plus,
+  CheckCircle,
+  Inbox,
+  Factory,
+  Edit,
+  FileSpreadsheet,
+};
+
+// Helper to get cached menu
+function getCachedMenu(role) {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cached = localStorage.getItem(MENU_CACHE_KEY);
+    if (!cached) return null;
+    
+    const { role: cachedRole, items, timestamp } = JSON.parse(cached);
+    
+    // Check if cache is valid
+    if (cachedRole === role && Date.now() - timestamp < MENU_CACHE_DURATION) {
+      return items;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Helper to set cached menu
+function setCachedMenu(role, items) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(MENU_CACHE_KEY, JSON.stringify({
+      role,
+      items,
+      timestamp: Date.now(),
+    }));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export default function DynamicSidebar() {
   const { data: session } = useSession();
   const pathname = usePathname();
@@ -49,90 +137,77 @@ export default function DynamicSidebar() {
     signOut({ callbackUrl: '/login' });
   };
 
-  // Fetch unread count
+  // Fetch unread count with reduced polling (30 seconds instead of 10)
   useEffect(() => {
-    if (session?.user?.email) {
-      const fetchUnreadCount = async () => {
-        try {
-          const res = await fetch('/api/messages/unread-count');
-          const data = await res.json();
-          if (data.success) {
-            setUnreadCount(data.count);
-          }
-        } catch (error) {
-          console.error('Error fetching unread count:', error);
+    if (!session?.user?.email) return;
+    
+    let isMounted = true;
+    
+    const fetchUnreadCount = async () => {
+      try {
+        const res = await fetch('/api/messages/unread-count');
+        const data = await res.json();
+        if (isMounted && data.success) {
+          setUnreadCount(data.count);
         }
-      };
+      } catch (error) {
+        console.error('Error fetching unread count:', error);
+      }
+    };
 
-      fetchUnreadCount();
+    // Initial fetch
+    fetchUnreadCount();
 
-      // Refresh every 10 seconds
-      const interval = setInterval(fetchUnreadCount, 10000);
+    // Reduced polling: every 30 seconds instead of 10
+    const interval = setInterval(fetchUnreadCount, 30000);
 
-      // Listen for manual refresh events
-      const handleRefresh = () => fetchUnreadCount();
-      window.addEventListener('refreshUnreadCount', handleRefresh);
+    // Listen for manual refresh events
+    const handleRefresh = () => fetchUnreadCount();
+    window.addEventListener('refreshUnreadCount', handleRefresh);
 
-      return () => {
-        clearInterval(interval);
-        window.removeEventListener('refreshUnreadCount', handleRefresh);
-      };
-    }
-  }, [session]);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+      window.removeEventListener('refreshUnreadCount', handleRefresh);
+    };
+  }, [session?.user?.email]);
 
+  // Memoized function to convert stored menu items to component format
+  const convertMenuItems = useCallback((items) => {
+    return items.map(item => ({
+      ...item,
+      icon: ICON_MAP[item.icon] || LayoutDashboard,
+    }));
+  }, []);
+
+  // Fetch menu items with caching
   useEffect(() => {
-    if (userRole) {
-      fetchMenuItems();
-    }
-  }, [userRole]);
+    if (!userRole) return;
 
-  const fetchMenuItems = async () => {
-    try {
-      if (userRole === 'admin') {
-        // Admin gets all config pages
-        setMenuItems([
-          { name: 'Home', href: '/dashboard/admin', icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
-          { name: 'Inbox', href: '/inbox', icon: Inbox, gradient: 'from-pink-500 to-rose-500', showBadge: true },
-          { name: 'All SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
-          { name: 'Production', href: '/production', icon: Package, gradient: 'from-red-500 to-orange-500' },
-          { name: 'Settings', href: '/settings', icon: Settings, gradient: 'from-gray-500 to-slate-600' },
-          { name: 'Departments', href: '/departments', icon: Edit, gradient: 'from-blue-500 to-indigo-500' },
-          { name: 'Stages', href: '/stages', icon: GitBranch, gradient: 'from-teal-500 to-cyan-500' },
-          { name: 'SRD Fields', href: '/srdfields', icon: FileSpreadsheet, gradient: 'from-green-500 to-emerald-500' },
-          { name: 'Users', href: '/users', icon: Users, gradient: 'from-orange-500 to-red-500' },
-        ]);
-      } else if (['cutting', 'sewing', 'washing', 'finishing', 'dispatch'].includes(userRole)) {
-        // Production stage roles
-        const stageNames = {
-          cutting: 'Cutting',
-          sewing: 'Sewing',
-          washing: 'Washing',
-          finishing: 'Finishing',
-          dispatch: 'Dispatch'
-        };
+    const loadMenuItems = async () => {
+      // Check for static menus first (no API call needed)
+      if (STATIC_MENUS[userRole]) {
+        setMenuItems(convertMenuItems(STATIC_MENUS[userRole]));
+        setLoading(false);
+        return;
+      }
 
-        setMenuItems([
-          {
-            name: `${stageNames[userRole]} Dashboard`,
-            href: `/dashboard/${userRole}`,
-            icon: LayoutDashboard,
-            gradient: 'from-blue-500 to-cyan-500'
-          },
-          {
-            name: 'Inbox',
-            href: '/inbox',
-            icon: Inbox,
-            gradient: 'from-pink-500 to-rose-500',
-            showBadge: true
-          },
-        ]);
-      } else {
-        // Fetch department info for dynamic menu
+      // Check cache for dynamic menus
+      const cached = getCachedMenu(userRole);
+      if (cached) {
+        setMenuItems(convertMenuItems(cached));
+        setLoading(false);
+        return;
+      }
+
+      // Fetch from API for department-based roles
+      try {
         const response = await fetch('/api/departments');
         const data = await response.json();
 
+        let items = [];
+
         if (data.success) {
-          // Find department by matching both uppercase and lowercase slugs
           const userDept = data.data.find(d =>
             d.slug === userRole ||
             d.slug === userRole.toUpperCase() ||
@@ -140,96 +215,67 @@ export default function DynamicSidebar() {
           );
 
           if (userDept) {
-            // Only VMD can create SRDs
-            const menuItems = [
-              {
-                name: 'Home',
-                href: `/dashboard/${userRole}`,
-                icon: LayoutDashboard,
-                gradient: 'from-blue-500 to-cyan-500'
-              },
-              {
-                name: 'Inbox',
-                href: '/inbox',
-                icon: Inbox,
-                gradient: 'from-pink-500 to-rose-500',
-                showBadge: true
-              }
+            items = [
+              { name: 'Home', href: `/dashboard/${userRole}`, icon: 'LayoutDashboard', gradient: 'from-blue-500 to-cyan-500' },
+              { name: 'Inbox', href: '/inbox', icon: 'Inbox', gradient: 'from-pink-500 to-rose-500', showBadge: true },
             ];
 
             // Add Create SRD only for VMD
             if (userRole === 'vmd' || userRole === 'VMD') {
-              menuItems.push({
+              items.push({
                 name: 'Create SRD',
                 href: `/dashboard/${userRole}/create`,
-                icon: Plus,
+                icon: 'Plus',
                 gradient: 'from-emerald-500 to-teal-500'
               });
             }
 
-            menuItems.push(
-              {
-                name: 'My SRDs',
-                href: `/srd?department=${userRole}`,
-                icon: FileText,
-                gradient: 'from-purple-500 to-pink-500'
-              },
-              {
-                name: 'In Progress',
-                href: `/srd?department=${userRole}&status=in-progress`,
-                icon: Package,
-                gradient: 'from-yellow-500 to-orange-500'
-              },
-              {
-                name: 'Completed',
-                href: `/srd?department=${userRole}&status=approved`,
-                icon: CheckCircle,
-                gradient: 'from-green-500 to-emerald-500'
-              }
+            items.push(
+              { name: 'My SRDs', href: `/srd?department=${userRole}`, icon: 'FileText', gradient: 'from-purple-500 to-pink-500' },
+              { name: 'In Progress', href: `/srd?department=${userRole}&status=in-progress`, icon: 'Package', gradient: 'from-yellow-500 to-orange-500' },
+              { name: 'Completed', href: `/srd?department=${userRole}&status=approved`, icon: 'CheckCircle', gradient: 'from-green-500 to-emerald-500' }
             );
 
-            // Add Production and Ready For Production tabs for VMD
+            // Add Production for VMD
             if (userRole === 'vmd' || userRole === 'VMD') {
-              menuItems.push(
-                {
-                  name: 'Production',
-                  href: '/dashboard/vmd/production',
-                  icon: Factory,
-                  gradient: 'from-orange-500 to-red-500'
-                }
-              );
+              items.push({
+                name: 'Production',
+                href: '/dashboard/vmd/production',
+                icon: 'Factory',
+                gradient: 'from-orange-500 to-red-500'
+              });
             }
-
-            setMenuItems(menuItems);
-          } else {
-            // Fallback menu if department not found
-            setMenuItems([
-              { name: 'Home', href: `/dashboard/${userRole}`, icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
-              { name: 'Inbox', href: '/inbox', icon: Inbox, gradient: 'from-pink-500 to-rose-500', showBadge: true },
-              { name: 'SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
-            ]);
           }
-        } else {
-          // Fallback menu if API fails
-          setMenuItems([
-            { name: 'Home', href: `/dashboard/${userRole}`, icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
-            { name: 'Inbox', href: '/inbox', icon: Inbox, gradient: 'from-pink-500 to-rose-500', showBadge: true },
-            { name: 'SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
-          ]);
         }
+
+        // Fallback menu if department not found or API fails
+        if (items.length === 0) {
+          items = [
+            { name: 'Home', href: `/dashboard/${userRole}`, icon: 'LayoutDashboard', gradient: 'from-blue-500 to-cyan-500' },
+            { name: 'Inbox', href: '/inbox', icon: 'Inbox', gradient: 'from-pink-500 to-rose-500', showBadge: true },
+            { name: 'SRDs', href: '/srd', icon: 'FileText', gradient: 'from-purple-500 to-pink-500' },
+          ];
+        }
+
+        // Cache the menu items
+        setCachedMenu(userRole, items);
+        setMenuItems(convertMenuItems(items));
+      } catch (error) {
+        console.error('Error fetching menu items:', error);
+        // Fallback menu
+        const fallbackItems = [
+          { name: 'Home', href: `/dashboard/${userRole}`, icon: 'LayoutDashboard', gradient: 'from-blue-500 to-cyan-500' },
+          { name: 'Inbox', href: '/inbox', icon: 'Inbox', gradient: 'from-pink-500 to-rose-500', showBadge: true },
+          { name: 'SRDs', href: '/srd', icon: 'FileText', gradient: 'from-purple-500 to-pink-500' },
+        ];
+        setMenuItems(convertMenuItems(fallbackItems));
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching menu items:', error);
-      // Fallback to basic menu
-      setMenuItems([
-        { name: 'Home', href: `/dashboard/${userRole}`, icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
-        { name: 'Inbox', href: '/inbox', icon: Inbox, gradient: 'from-pink-500 to-rose-500', showBadge: true },
-        { name: 'SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    loadMenuItems();
+  }, [userRole, convertMenuItems]);
 
   const roleColors = {
     admin: 'from-blue-600 via-blue-500 to-cyan-500',
@@ -241,23 +287,40 @@ export default function DynamicSidebar() {
 
   const roleGradient = roleColors[userRole] || roleColors.admin;
 
-  const fullUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
-  let activeItemHref = '';
-  if (menuItems) {
+  // Memoize active item calculation
+  const activeItemHref = useMemo(() => {
+    const fullUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
+    let activeHref = '';
+    
     for (const item of menuItems) {
       if (fullUrl.startsWith(item.href)) {
-        if (item.href.length > activeItemHref.length) {
-          activeItemHref = item.href;
+        if (item.href.length > activeHref.length) {
+          activeHref = item.href;
         }
       }
     }
-  }
+    return activeHref;
+  }, [pathname, searchParams, menuItems]);
 
+  // Show skeleton instead of blocking spinner for better UX
   if (loading) {
     return (
       <Sidebar className="border-r-0 transition-all duration-400" collapsible="icon">
-        <div className="h-full bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="h-full bg-gradient-to-br from-slate-50 via-white to-slate-50">
+          <SidebarHeader className={cn("relative", open ? "p-6 pb-8" : "p-4 pb-6")}>
+            {open && (
+              <div className="h-6 w-24 bg-gray-200 rounded animate-pulse" />
+            )}
+          </SidebarHeader>
+          <SidebarContent className="relative px-2">
+            <SidebarGroup>
+              <SidebarMenu className="space-y-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-12 bg-gray-100 rounded-xl animate-pulse" />
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          </SidebarContent>
         </div>
       </Sidebar>
     );
