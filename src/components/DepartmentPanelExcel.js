@@ -557,6 +557,7 @@ const handlePrint = async () => {
       background-color: #f3f4f6;
       justify-content: center;
       align-items: center;
+      margin-bottom:8px;
       
     }
     
@@ -567,7 +568,7 @@ const handlePrint = async () => {
       color: #111;
       text-align: left;
       width: 100%;
-      margin-bottom:8px;
+      
     }
 
     .cell-content {
