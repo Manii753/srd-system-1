@@ -308,12 +308,12 @@ const handlePrint = async () => {
         
         switch (customType) {
           case 'custom-heading':
-            customHTML = `
-              <div class="field-cell cell-heading" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
-                <div class="heading-content">${customValue}</div>
-              </div>
-            `;
-            break;
+          customHTML = `
+            <div class="field-cell cell-heading" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+              <div class="heading-content" style="text-align: left; width: 100%;">${customValue}</div>
+            </div>
+          `;
+          break;
           
           case 'custom-text':
             customHTML = `
@@ -327,8 +327,8 @@ const handlePrint = async () => {
             customHTML = `
               <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
                 <div class="cell-content">
-                  <span class="cell-label">${customValue}:</span>
-                  <span class="cell-underline">${customPlaceholder ? `<span class="placeholder-text">${customPlaceholder}</span>` : ''}</span>
+                  <span class="cell-label">${customValue}</span>
+                  <span class="">${customPlaceholder ? `<span class="placeholder-text">${customPlaceholder}</span>`: ''}</span>
                 </div>
               </div>
             `;
@@ -409,8 +409,8 @@ const handlePrint = async () => {
       if (fieldDef.type === 'boolean') {
         valueDisplay = `
           <div class="checkbox-group">
-            <span class="checkbox-item">${fieldValue ? '☑' : '☐'}Y</span>
-            <span class="checkbox-item">${!fieldValue ? '☑' : '☐'}N</span>
+            <span class="checkbox-item">${fieldValue ? 'inStock' : ''}</span>
+            <span class="checkbox-item">${!fieldValue ? 'Purchase Requested' : ''}</span>
           </div>
         `;
       } else if (isFile) {
@@ -495,6 +495,7 @@ const handlePrint = async () => {
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       font-size: 7.5px;
+      text-transform: capitalize !important;
       line-height: 1.1;
       margin: 0;
       padding: 0;
@@ -561,9 +562,12 @@ const handlePrint = async () => {
     
     .heading-content {
       font-weight: 700;
-      text-transform: uppercase;
+      text-transform: capitalize;
       font-size: 7.5px;
       color: #111;
+      text-align: left;
+      width: 100%;
+      padding-left:5px;
     }
 
     .cell-content {
@@ -579,8 +583,8 @@ const handlePrint = async () => {
       font-weight: 700;
       color: #333;
       white-space: normal;
-      text-transform: uppercase;
-      width: 65px; 
+      text-transform: capitalize;
+      width: 120px; 
       flex-shrink: 0;
       line-height: 10px;
     }
@@ -622,7 +626,7 @@ const handlePrint = async () => {
       font-size: 6px;
       font-weight: 700;
       color: #333;
-      text-transform: uppercase;
+      text-transform: capitalize;
       padding: 1px 2px;
       background: #f9f9f9;
       border-bottom: 0.5px solid #ddd;
@@ -689,7 +693,7 @@ const handlePrint = async () => {
       font-size: 6.5px;
       font-weight: 700;
       color: #333;
-      text-transform: uppercase;
+      text-transform: capitalize;
       margin-bottom: 2px;
     }
 
@@ -727,7 +731,7 @@ const handlePrint = async () => {
     .signature-label {
       font-size: 7px;
       font-weight: 700;
-      text-transform: uppercase;
+      text-transform: capitalize;
       color: #333;
     }
 
@@ -770,7 +774,7 @@ const handlePrint = async () => {
     .excel-title {
       font-size: 10px;
       font-weight: 700;
-      text-transform: uppercase;
+      text-transform: capitalize;
       background: #f3f4f6;
       padding: 4px;
       border: 1px solid #333;
