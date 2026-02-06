@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -145,7 +145,7 @@ export default function DepartmentPanelExcel({
   }, []);
 
   // Handle field change with department tracking
-  const handleFieldChange = (fieldId, name, value, department) => {
+  const handleFieldChange = useCallback((fieldId, name, value, department) => {
     setFields(prev => {
       const existingFieldIndex = prev.findIndex(f => 
         (f.originalFieldId === fieldId) || 
@@ -173,19 +173,19 @@ export default function DepartmentPanelExcel({
     });
     
     setHasUnsavedChanges(true);
-  };
+  }, [debouncedAutoSave]);
 
-  // Get field value from SRD dynamicFields by fieldId
-  const getFieldValue = (fieldId, fieldDef) => {
+  // Get field value from SRD dynamicFields by fieldId - memoized
+  const getFieldValue = useCallback((fieldId, fieldDef) => {
     const srdField = fields.find(f => 
       (f.originalFieldId && f.originalFieldId.toString() === fieldId?.toString()) ||
       (f.field?._id && f.field._id.toString() === fieldId?.toString()) ||
       (f.name === fieldDef?.name && f.department === fieldDef?.department)
     );
     return srdField?.value ?? '';
-  };
+  }, [fields]);
 
-  const handleRemoveImage = (fieldId, name, department, imageIndex, allImages) => {
+  const handleRemoveImage = useCallback((fieldId, name, department, imageIndex, allImages) => {
     const imageToRemove = allImages[imageIndex];
     const fieldValue = getFieldValue(fieldId, { name, department });
     const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
@@ -204,9 +204,9 @@ export default function DepartmentPanelExcel({
         variant: 'destructive',
       });
     }
-  };
+  }, [getFieldValue, handleFieldChange, toast]);
 
-  const handleSetCoverImage = (fieldId, name, department, imageIndex, allImages) => {
+  const handleSetCoverImage = useCallback((fieldId, name, department, imageIndex, allImages) => {
     const coverImage = allImages[imageIndex];
     const fieldValue = getFieldValue(fieldId, { name, department });
     const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
@@ -217,10 +217,10 @@ export default function DepartmentPanelExcel({
       title: 'Cover image set',
       description: 'Changes will be saved automatically',
     });
-  };
+  }, [getFieldValue, handleFieldChange, toast]);
 
   // Handle status update for a department
-  const handleStatusUpdate = async () => {
+  const handleStatusUpdate = useCallback(async () => {
     // Determine which department to update
     const deptToUpdate = (userRole === 'admin' || userRole === 'vmd') 
       ? selectedDepartment 
@@ -273,7 +273,7 @@ export default function DepartmentPanelExcel({
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [userRole, selectedDepartment, statusToUpdate, updateComment, fields, srd.createdBy?.name, onUpdate, toast]);
 
   // This is the updated handlePrint function for DepartmentPanelExcel.jsx
 // Replace the existing handlePrint function with this one
@@ -959,7 +959,7 @@ const handlePrint = async () => {
 };
 
   // Render input cell based on field type
-  const renderCellInput = (fieldDef, fieldId, canEdit) => {
+  const renderCellInput = useCallback((fieldDef, fieldId, canEdit) => {
     const fieldValue = getFieldValue(fieldId, fieldDef);
     const { name, type, placeholder, isRequired, department } = fieldDef;
 
@@ -1154,7 +1154,7 @@ const handlePrint = async () => {
           </div>
         );
     }
-  };
+  }, [getFieldValue, handleFieldChange, srd.images, toast]);
 
   // Loading state
   if (isLoading) {
