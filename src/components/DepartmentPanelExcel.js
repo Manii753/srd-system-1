@@ -30,6 +30,11 @@ export default function DepartmentPanelExcel({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [pendingUpdates, setPendingUpdates] = useState({}); // Track updates per department
   
+  // Status update state
+  const [selectedDepartment, setSelectedDepartment] = useState(userRole === 'admin' || userRole === 'vmd' ? 'vmd' : userRole);
+  const [statusToUpdate, setStatusToUpdate] = useState('pending');
+  const [updateComment, setUpdateComment] = useState('');
+  
   // Auto-save functionality
   const autoSaveTimeoutRef = useRef(null);
   const lastSavedFieldsRef = useRef(JSON.stringify(fields));
@@ -212,6 +217,62 @@ export default function DepartmentPanelExcel({
       title: 'Cover image set',
       description: 'Changes will be saved automatically',
     });
+  };
+
+  // Handle status update for a department
+  const handleStatusUpdate = async () => {
+    // Determine which department to update
+    const deptToUpdate = (userRole === 'admin' || userRole === 'vmd') 
+      ? selectedDepartment 
+      : userRole;
+    
+    if (statusToUpdate === 'flagged' && !updateComment.trim()) {
+      toast({
+        title: 'Comment required',
+        description: 'Please describe the issue when flagging',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Get the fields for this department
+      const deptFields = fields.filter(f => f.department === deptToUpdate);
+      
+      const updateData = {
+        status: statusToUpdate,
+        fields: deptFields,
+      };
+      
+      // Add comment if provided
+      if (updateComment.trim()) {
+        updateData.comment = {
+          author: srd.createdBy?.name || 'Unknown',
+          role: userRole,
+          text: updateComment.trim(),
+          department: deptToUpdate,
+        };
+      }
+
+      await onUpdate(deptToUpdate, updateData);
+      
+      toast({
+        title: 'Status updated',
+        description: `${deptToUpdate.toUpperCase()} status set to ${statusToUpdate}`,
+      });
+      
+      setUpdateComment('');
+    } catch (error) {
+      console.error('Status update failed:', error);
+      toast({
+        title: 'Update failed',
+        description: 'Failed to update status',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // This is the updated handlePrint function for DepartmentPanelExcel.jsx
@@ -1300,6 +1361,99 @@ const handlePrint = async () => {
           </div>
         </div>
       </div>
+
+      {/* Status Update Section */}
+      <div className="bg-gray-50 border-t border-gray-200 p-3">
+        <div className="grid grid-cols-6 gap-2 items-end">
+          {/* Department display/selector */}
+          <div>
+            <Label className="text-xs font-medium text-gray-700">Department</Label>
+            {userRole === 'admin' ? (
+              <select 
+                value={selectedDepartment} 
+                onChange={(e) => setSelectedDepartment(e.target.value)} 
+                className="mt-1 px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7" 
+                disabled={isSubmitting}
+              >
+                {['vmd', 'cad', 'commercial', 'mmc'].map(dept => (
+                  <option key={dept} value={dept}>{dept.toUpperCase()}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded bg-gray-100 h-7 flex items-center font-medium text-gray-700">
+                {userRole?.toUpperCase()}
+              </div>
+            )}
+          </div>
+          <div>
+            <Label className="text-xs font-medium text-gray-700">Status</Label>
+            <select 
+              value={statusToUpdate} 
+              onChange={(e) => setStatusToUpdate(e.target.value)} 
+              className="mt-1 px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7" 
+              disabled={isSubmitting}
+            >
+              <option value="pending">Pending</option>
+              <option value="in-progress">In Progress</option>
+              <option value="approved">Approved</option>
+              <option value="flagged">Flag Issue</option>
+            </select>
+          </div>
+          <div className="col-span-3">
+            <Label htmlFor="updateComment" className="text-xs font-medium text-gray-700">
+              Comment {statusToUpdate !== 'flagged' && <span className="text-gray-500">(Optional)</span>}
+            </Label>
+            <Input 
+              id="updateComment" 
+              value={updateComment} 
+              onChange={(e) => setUpdateComment(e.target.value)} 
+              placeholder={statusToUpdate === 'flagged' ? 'Describe issue...' : 'Add comment...'} 
+              required={statusToUpdate === 'flagged'} 
+              className="mt-1 text-xs h-7 border border-gray-300 focus:ring-1 focus:ring-blue-500" 
+            />
+          </div>
+          <div>
+            <Button 
+              onClick={handleStatusUpdate} 
+              disabled={isSubmitting || (statusToUpdate === 'flagged' && !updateComment.trim())} 
+              size="sm"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs h-7"
+            >
+              {isSubmitting ? 'Updating...' : 'Update Status'}
+            </Button>
+          </div>
+        </div>
+        <p className="text-xs text-gray-500 text-center mt-1">
+          Field changes auto-save. Use button for status/comments only.
+        </p>
+      </div>
+
+      {/* Comments Section */}
+      {srd.comments && srd.comments.length > 0 && (
+        <div className="border-t border-gray-200 p-3">
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Comments</h4>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {srd.comments.slice().reverse().map((comment, idx) => (
+              <div key={idx} className="bg-gray-50 rounded p-2 text-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-medium text-gray-800">
+                    {comment.author} 
+                    {comment.department && (
+                      <Badge variant="outline" className="ml-1 text-xs px-1 py-0">
+                        {comment.department.toUpperCase()}
+                      </Badge>
+                    )}
+                  </span>
+                  <span className="text-gray-400">
+                    {new Date(comment.date).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-gray-600">{comment.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
