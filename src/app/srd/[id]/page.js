@@ -291,41 +291,42 @@ export default function SRDDetailPage() {
           </div>
         </div>
 
-        {/* Department Tabs */}
+        {/* Department Views */}
         <div className={cn("w-full", viewMode === 'excel' && "space-y-2")}>
-          <Tabs defaultValue={userRole} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              {allowedDepartments.filter(dept => (canViewAll ? true : dept === userRole)).map((dept) => (
-                <TabsTrigger key={dept} value={dept}>
-                  {dept.toUpperCase()}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          {viewMode === 'excel' ? (
+            /* Excel View - Single unified view with all departments */
+            <DepartmentPanelExcel
+              srd={srd}
+              userRole={userRole}
+              onUpdate={(department, data) => handleDepartmentUpdate(department, data)}
+            />
+          ) : (
+            /* Form View - Tabs for each department */
+            <Tabs defaultValue={userRole} className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                {allowedDepartments.filter(dept => (canViewAll ? true : dept === userRole)).map((dept) => (
+                  <TabsTrigger key={dept} value={dept}>
+                    {dept.toUpperCase()}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
 
-            {srd.status && allowedDepartments.filter(dept => (canViewAll ? true : dept === userRole)).map((dept) => {
-              const canEdit = userRole === dept || userRole === 'admin' || userRole === 'vmd';
+              {srd.status && allowedDepartments.filter(dept => (canViewAll ? true : dept === userRole)).map((dept) => {
+                const canEdit = userRole === dept || userRole === 'admin' || userRole === 'vmd';
 
-              return (
-                <TabsContent key={dept} value={dept} className={cn(viewMode === 'excel' && "mt-2")}>
-                  {viewMode === 'excel' ? (
-                    <DepartmentPanelExcel
-                      srd={srd}
-                      department={dept}
-                      onUpdate={(data) => handleDepartmentUpdate(dept, data)}
-                      canEdit={canEdit}
-                    />
-                  ) : (
+                return (
+                  <TabsContent key={dept} value={dept}>
                     <DepartmentPanel
                       srd={srd}
                       department={dept}
                       onUpdate={(data) => handleDepartmentUpdate(dept, data)}
                       canEdit={canEdit}
                     />
-                  )}
-                </TabsContent>
-              );
-            })}
-          </Tabs>
+                  </TabsContent>
+                );
+              })}
+            </Tabs>
+          )}
         </div>
 
 

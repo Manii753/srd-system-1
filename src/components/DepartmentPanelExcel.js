@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Trash2, Star, Upload, Printer, FileSpreadsheet } from 'lucide-react';
+import { AlertCircle, Trash2, Star, Upload, Printer, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import UploadImage from './UploadImage';
@@ -18,48 +18,101 @@ import { useToast } from '@/lib/use-toast';
 
 export default function DepartmentPanelExcel({
   srd,
-  department,
+  userRole,
   onUpdate,
-  canEdit
 }) {
   const { toast } = useToast();
-  const [status, setStatus] = useState(srd.status?.[department] || 'pending');
-  const [fields, setFields] = useState(srd.dynamicFields?.filter(f => f.department === department) || []);
-  const [fieldDefs, setFieldDefs] = useState([]);
-  const [updateComment, setUpdateComment] = useState('');
+  const [activeTemplate, setActiveTemplate] = useState(null);
+  const [allFieldDefs, setAllFieldDefs] = useState([]);
+  const [fields, setFields] = useState(srd.dynamicFields || []);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [pendingUpdates, setPendingUpdates] = useState({}); // Track updates per department
   
   // Auto-save functionality
   const autoSaveTimeoutRef = useRef(null);
   const lastSavedFieldsRef = useRef(JSON.stringify(fields));
 
-  // Auto-save function with debouncing
-  const debouncedAutoSave = useCallback(async (fieldsToSave) => {
+  // Check if user can edit a specific field based on its department
+  const canEditField = useCallback((fieldDepartment) => {
+    return userRole === 'admin' || userRole === 'vmd' || userRole === fieldDepartment;
+  }, [userRole]);
+
+  // Fetch active template and all field definitions
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      try {
+        // Fetch active template
+        const templateRes = await fetch('/api/printTemplate/active');
+        if (!templateRes.ok) {
+          throw new Error('No active template found');
+        }
+        const template = await templateRes.json();
+        setActiveTemplate(template);
+
+        // Fetch all field definitions from all departments
+        const fieldDefsMap = {};
+        for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
+          try {
+            const res = await fetch(`/api/newField?department=${dept}`);
+            const data = await res.json();
+            if (Array.isArray(data)) {
+              data.forEach(f => {
+                // Use string ID as key for consistent lookup
+                fieldDefsMap[f._id.toString()] = f;
+              });
+            }
+          } catch (err) {
+            console.error(`Failed to fetch ${dept} fields:`, err);
+          }
+        }
+        setAllFieldDefs(fieldDefsMap);
+        
+        // Initialize fields from SRD
+        setFields(srd.dynamicFields || []);
+        lastSavedFieldsRef.current = JSON.stringify(srd.dynamicFields || []);
+      } catch (err) {
+        console.error('Failed to fetch data:', err);
+        toast({
+          title: 'Error',
+          description: 'Failed to load template. Please ensure an active template exists.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  }, [srd, toast]);
+
+  // Auto-save function with debouncing - saves per department
+  const debouncedAutoSave = useCallback(async (fieldsToSave, department) => {
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
     }
     
     autoSaveTimeoutRef.current = setTimeout(async () => {
-      const currentFieldsString = JSON.stringify(fieldsToSave);
+      const deptFields = fieldsToSave.filter(f => f.department === department);
       
-      if (currentFieldsString !== lastSavedFieldsRef.current && !isSubmitting) {
+      if (deptFields.length > 0 && !isSubmitting) {
         try {
           setIsSubmitting(true);
           
           const updateData = {
-            status: status,
-            fields: fieldsToSave,
+            status: srd.status?.[department] || 'pending',
+            fields: deptFields,
           };
 
-          await onUpdate(updateData);
+          await onUpdate(department, updateData);
           
-          lastSavedFieldsRef.current = currentFieldsString;
+          lastSavedFieldsRef.current = JSON.stringify(fieldsToSave);
           setHasUnsavedChanges(false);
           
           toast({
             title: 'Auto-saved',
-            description: 'Changes saved automatically',
+            description: `${department.toUpperCase()} changes saved`,
             duration: 2000,
           });
           
@@ -76,7 +129,7 @@ export default function DepartmentPanelExcel({
         }
       }
     }, 1500);
-  }, [status, onUpdate, isSubmitting, department, toast]);
+  }, [srd.status, onUpdate, isSubmitting, toast]);
 
   useEffect(() => {
     return () => {
@@ -86,91 +139,55 @@ export default function DepartmentPanelExcel({
     };
   }, []);
 
-  useEffect(() => {
-    const currentFieldsString = JSON.stringify(fields);
-    if (currentFieldsString !== lastSavedFieldsRef.current) {
-      setHasUnsavedChanges(true);
-      debouncedAutoSave(fields);
-    }
-  }, [fields, debouncedAutoSave]);
-
-  useEffect(() => {
-    setStatus(srd.status?.[department] || 'pending');
-    const srdDynamicFields = srd.dynamicFields?.filter(f => f.department === department) || [];
-    
-    if (srdDynamicFields.length > 0) {
-      const fieldDefsFromSRD = srdDynamicFields.map(f => {
-        const fieldId = f.originalFieldId || 
-                       (f.field && typeof f.field === 'object' ? f.field._id : f.field) || 
-                       f._id;
-                       
-        return {
-          _id: fieldId,
-          name: f.name,
-          type: f.type,
-          placeholder: f.placeholder || '',
-          isRequired: f.isRequired || false,
-          order: f.order || 0,
-          parentHeading: f.parentHeading,
-          active: true
-        };
-      });
-      
-      setFieldDefs(fieldDefsFromSRD);
-      setFields(srdDynamicFields);
-      lastSavedFieldsRef.current = JSON.stringify(srdDynamicFields);
-    } else {
-      async function fetchFields() {
-        try {
-          const res = await fetch(`/api/newField?department=${department}`);
-          const data = await res.json();
-          const activeFields = Array.isArray(data) ? data.filter(f => f.active) : [];
-          setFieldDefs(activeFields);
-
-          const newFields = activeFields.map(fieldDef => ({
-            name: fieldDef.name,
-            value: fieldDef.type === 'boolean' ? false : '',
-            department: department,
-            type: fieldDef.type,
-            isRequired: fieldDef.isRequired,
-            placeholder: fieldDef.placeholder,
-            order: fieldDef.order,
-            parentHeading: fieldDef.parentHeading?.name || fieldDef.parentHeading
-          }));
-          
-          setFields(newFields);
-          lastSavedFieldsRef.current = JSON.stringify(newFields);
-        } catch (err) {
-          console.error('Failed to fetch fields', err);
-        }
-      }
-      fetchFields();
-    }
-  }, [department, srd]);
-
-  const handleFieldChange = (name, value) => {
+  // Handle field change with department tracking
+  const handleFieldChange = (fieldId, name, value, department) => {
     setFields(prev => {
-      const existingFieldIndex = prev.findIndex(f => f.name === name);
+      const existingFieldIndex = prev.findIndex(f => 
+        (f.originalFieldId === fieldId) || 
+        (f.field?._id === fieldId) ||
+        (f.name === name && f.department === department)
+      );
+      
+      let newFields;
       if (existingFieldIndex > -1) {
-        const newFields = [...prev];
+        newFields = [...prev];
         newFields[existingFieldIndex] = { ...newFields[existingFieldIndex], value };
-        return newFields;
       } else {
-        return [...prev, { name, value, department }];
+        newFields = [...prev, { 
+          name, 
+          value, 
+          department,
+          originalFieldId: fieldId,
+        }];
       }
+      
+      // Trigger auto-save for this department
+      debouncedAutoSave(newFields, department);
+      
+      return newFields;
     });
     
     setHasUnsavedChanges(true);
   };
 
-  const handleRemoveImage = (fieldName, imageIndex, allImages) => {
+  // Get field value from SRD dynamicFields by fieldId
+  const getFieldValue = (fieldId, fieldDef) => {
+    const srdField = fields.find(f => 
+      (f.originalFieldId && f.originalFieldId.toString() === fieldId?.toString()) ||
+      (f.field?._id && f.field._id.toString() === fieldId?.toString()) ||
+      (f.name === fieldDef?.name && f.department === fieldDef?.department)
+    );
+    return srdField?.value ?? '';
+  };
+
+  const handleRemoveImage = (fieldId, name, department, imageIndex, allImages) => {
     const imageToRemove = allImages[imageIndex];
-    const fieldValue = fields.find(f => f.name === fieldName)?.value ?? '';
+    const fieldValue = getFieldValue(fieldId, { name, department });
     const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
 
     if (deptImages.includes(imageToRemove)) {
       const updatedImages = deptImages.filter(img => img !== imageToRemove);
-      handleFieldChange(fieldName, updatedImages);
+      handleFieldChange(fieldId, name, updatedImages, department);
       toast({
         title: 'Image removed',
         description: 'Changes will be saved automatically',
@@ -184,57 +201,17 @@ export default function DepartmentPanelExcel({
     }
   };
 
-  const handleSetCoverImage = (fieldName, imageIndex, allImages) => {
+  const handleSetCoverImage = (fieldId, name, department, imageIndex, allImages) => {
     const coverImage = allImages[imageIndex];
-    const fieldValue = fields.find(f => f.name === fieldName)?.value ?? '';
+    const fieldValue = getFieldValue(fieldId, { name, department });
     const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
     const otherImages = deptImages.filter(img => img !== coverImage);
     const reorderedImages = [coverImage, ...otherImages];
-    handleFieldChange(fieldName, reorderedImages);
+    handleFieldChange(fieldId, name, reorderedImages, department);
     toast({
       title: 'Cover image set',
       description: 'Changes will be saved automatically',
     });
-  };
-
-  const handleStatusChange = (newStatus) => {
-    setStatus(newStatus);
-  };
-
-  const handleSaveChanges = async () => {
-    if (status === 'flagged' && !updateComment.trim()) {
-      toast({
-        title: 'Comment required',
-        description: 'Please describe what is the issue',
-        variant: 'destructive',
-      });
-      return;
-    }
-    const commentToSave = updateComment.trim() || null;
-    await handleUpdate(status, commentToSave);
-    setUpdateComment('');
-  };
-
-  const handleUpdate = async (newStatus, comment = null) => {
-    setIsSubmitting(true);
-    const updateData = {
-      status: newStatus,
-      fields: fields,
-    };
-    if (comment) {
-      updateData.comment = {
-        author: srd.createdBy?.name || 'Unknown',
-        role: srd.createdBy?.role || 'user',
-        text: comment,
-      };
-    }
-    try {
-      await onUpdate(updateData);
-    } catch (error) {
-      console.error('Update failed:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   // This is the updated handlePrint function for DepartmentPanelExcel.jsx
@@ -246,11 +223,11 @@ const handlePrint = async () => {
     const templateRes = await fetch('/api/printTemplate');
     const templates = await templateRes.json();
     
-    const activeTemplate = Array.isArray(templates) 
+    const activeTemplateForPrint = Array.isArray(templates) 
       ? templates.find(t => t.isActive) 
       : null;
     
-    if (!activeTemplate) {
+    if (!activeTemplateForPrint) {
       toast({
         title: 'No active template',
         description: 'Please create and activate a print template in the template designer.',
@@ -260,13 +237,13 @@ const handlePrint = async () => {
     }
 
     // Fetch all field definitions to get field metadata
-    const allFieldDefs = [];
+    const allFieldDefsForPrint = [];
     for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
       try {
         const res = await fetch(`/api/newField?department=${dept}`);
         const data = await res.json();
         if (Array.isArray(data)) {
-          allFieldDefs.push(...data);
+          allFieldDefsForPrint.push(...data);
         }
       } catch (err) {
         console.error(`Failed to fetch ${dept} fields:`, err);
@@ -284,10 +261,10 @@ const handlePrint = async () => {
     }
 
     // Build the print content using the template
-    const gridColumns = activeTemplate.gridColumns || 6;
+    const gridColumns = activeTemplateForPrint.gridColumns || 6;
     let fieldsHTML = '';
     
-    activeTemplate.cells.forEach(cell => {
+    activeTemplateForPrint.cells.forEach(cell => {
       const colSpan = cell.position?.colSpan || 1;
       const rowSpan = cell.position?.rowSpan || 1;
       const height = cell.position?.height || 'auto';
@@ -381,7 +358,7 @@ const handlePrint = async () => {
 
       // Handle regular database fields
       // Find the field definition
-      const fieldDef = allFieldDefs.find(f => f._id.toString() === cell.fieldId?.toString());
+      const fieldDef = allFieldDefsForPrint.find(f => f._id.toString() === cell.fieldId?.toString());
       if (!fieldDef) {
         console.warn(`Field definition not found for ID: ${cell.fieldId}`);
         return;
@@ -476,7 +453,7 @@ const handlePrint = async () => {
     // Identify Excel files to include in print
     const excelFiles = [];
     srd.dynamicFields?.forEach(f => {
-      if (f.type === 'file' && f.value && f.department === department) {
+      if (f.type === 'file' && f.value) {
         excelFiles.push({ name: f.name, url: f.value });
       }
     });
@@ -919,265 +896,20 @@ const handlePrint = async () => {
     });
   }
 };
-  // Group fields by headings for Excel-like layout
-  const groupFieldsByHeading = () => {
-    if (!fieldDefs.length) return [];
 
-    const headings = fieldDefs.filter(f => f.type === 'heading');
-    const regularFields = fieldDefs.filter(f => f.type !== 'heading');
-    const groups = [];
-    
-    const assignedFieldIds = new Set();
-
-    // Group fields under headings
-    headings.forEach(heading => {
-      const childFields = regularFields.filter(f => {
-        if (!f.parentHeading) return false;
-        
-        let parentIdentifier = f.parentHeading;
-        if (typeof f.parentHeading === 'object' && f.parentHeading !== null) {
-          parentIdentifier = f.parentHeading._id || f.parentHeading.name;
-        }
-        
-        if (heading._id && parentIdentifier && parentIdentifier.toString() === heading._id.toString()) {
-          return true;
-        }
-        
-        if (heading.name && parentIdentifier === heading.name) {
-          return true;
-        }
-        
-        return false;
-      });
-
-      if (childFields.length > 0) {
-        childFields.forEach(f => assignedFieldIds.add(f._id));
-        groups.push({
-          heading: heading.name,
-          fields: childFields
-        });
-      }
-    });
-
-    // Add orphan fields
-    const orphanFields = regularFields.filter(f => !assignedFieldIds.has(f._id));
-    if (orphanFields.length > 0) {
-      groups.unshift({
-        heading: 'General Information',
-        fields: orphanFields
-      });
-    }
-
-    return groups;
-  };
-
-  const renderUltraCompactPrintCell = (field) => {
-    const { _id, name, type, placeholder, isRequired } = field;
-    const fieldValue = fields.find(f => f.name === name)?.value ?? '';
-
-    // Ultra compact print layout for single page
-    switch (type) {
-      case 'text':
-      case 'number':
-      case 'date':
-        return (
-          <div className="flex items-center py-0.5">
-            <span className="text-xs font-medium text-gray-900 uppercase mr-1 w-20 truncate" title={name}>
-              {name.length > 12 ? name.substring(0, 12) + '...' : name}{isRequired && '*'}:
-            </span>
-            <div className="flex-1 border-b border-dotted border-gray-400 min-h-[12px] px-1">
-              <span className="text-xs">{fieldValue}</span>
-            </div>
-          </div>
-        );
-
-      case 'textarea':
-        return (
-          <div className="py-0.5">
-            <div className="text-xs font-medium text-gray-900 uppercase mb-0.5 truncate" title={name}>
-              {name.length > 12 ? name.substring(0, 12) + '...' : name}{isRequired && '*'}:
-            </div>
-            <div className="border border-gray-400 min-h-[20px] p-1 bg-white">
-              <span className="text-xs">{fieldValue}</span>
-            </div>
-          </div>
-        );
-
-      case 'boolean':
-        return (
-          <div className="flex items-center py-0.5">
-            <span className="text-xs font-medium text-gray-900 uppercase mr-1 truncate" title={name}>
-              {name.length > 8 ? name.substring(0, 8) + '...' : name}{isRequired && '*'}:
-            </span>
-            <div className="flex items-center">
-              <span className="inline-block w-3 h-3 border border-gray-400 mr-1 text-center text-xs leading-2">
-                {fieldValue ? '✓' : ''}
-              </span>
-              <span className="text-xs mr-2">Y</span>
-              <span className="inline-block w-3 h-3 border border-gray-400 mr-1 text-center text-xs leading-2">
-                {!fieldValue ? '✓' : ''}
-              </span>
-              <span className="text-xs">N</span>
-            </div>
-          </div>
-        );
-
-      case 'file':
-        return (
-          <div className="flex items-center py-0.5">
-            <span className="text-xs font-medium text-gray-900 uppercase mr-1 w-20 truncate" title={name}>
-              {name.length > 12 ? name.substring(0, 12) + '...' : name}{isRequired && '*'}:
-            </span>
-            <div className="flex-1 border-b border-dotted border-gray-400 min-h-[12px] px-1">
-              <span className="text-xs">{fieldValue ? 'FILE' : ''}</span>
-            </div>
-          </div>
-        );
-
-      case 'image':
-        const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-        const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-        const allImages = Array.from(new Set([...globalImages, ...deptImages]));
-
-        return (
-          <div className="py-0.5">
-            <div className="text-xs font-medium text-gray-900 uppercase mb-0.5 truncate" title={name}>
-              {name.length > 12 ? name.substring(0, 12) + '...' : name}{isRequired && '*'}:
-            </div>
-            <div className="border border-gray-400 min-h-[16px] p-1 bg-white text-center">
-              {allImages.length > 0 ? (
-                <span className="text-xs text-gray-600">
-                  {allImages.length} IMG
-                </span>
-              ) : (
-                <span className="text-xs text-gray-400">
-                  [ IMG ]
-                </span>
-              )}
-            </div>
-          </div>
-        );
-
-      default:
-        return (
-          <div className="flex items-center py-0.5">
-            <span className="text-xs font-medium text-gray-900 uppercase mr-1 w-20 truncate" title={name}>
-              {name.length > 12 ? name.substring(0, 12) + '...' : name}{isRequired && '*'}:
-            </span>
-            <div className="flex-1 border-b border-dotted border-gray-400 min-h-[12px] px-1">
-              <span className="text-xs text-gray-400">N/A</span>
-            </div>
-          </div>
-        );
-    }
-  };
-
-  const renderPrintFriendlyCell = (field) => {
-    const { _id, name, type, placeholder, isRequired } = field;
-    const fieldValue = fields.find(f => f.name === name)?.value ?? '';
-
-    // For print, show traditional form layout with label and line
-    switch (type) {
-      case 'text':
-      case 'number':
-      case 'date':
-        return (
-          <div className="flex items-center justify-between py-1 border-b border-gray-300">
-            <span className="text-xs font-medium text-gray-900 uppercase mr-2">
-              {name}{isRequired && '*'}:
-            </span>
-            <div className="flex-1 border-b border-dotted border-gray-400 min-h-[16px] px-2">
-              <span className="text-xs">{fieldValue}</span>
-            </div>
-          </div>
-        );
-
-      case 'textarea':
-        return (
-          <div className="py-1 border-b border-gray-300">
-            <div className="text-xs font-medium text-gray-900 uppercase mb-1">
-              {name}{isRequired && '*'}:
-            </div>
-            <div className="border border-gray-400 min-h-[40px] p-2 bg-white">
-              <span className="text-xs">{fieldValue}</span>
-            </div>
-          </div>
-        );
-
-      case 'boolean':
-        return (
-          <div className="flex items-center py-1 border-b border-gray-300">
-            <span className="text-xs font-medium text-gray-900 uppercase mr-2">
-              {name}{isRequired && '*'}:
-            </span>
-            <div className="flex items-center">
-              <span className="inline-block w-4 h-4 border-2 border-gray-400 mr-2 text-center text-xs leading-3">
-                {fieldValue ? '✓' : ''}
-              </span>
-              <span className="text-xs">YES</span>
-              <span className="inline-block w-4 h-4 border-2 border-gray-400 mr-2 ml-4 text-center text-xs leading-3">
-                {!fieldValue ? '✓' : ''}
-              </span>
-              <span className="text-xs">NO</span>
-            </div>
-          </div>
-        );
-
-      case 'file':
-        return (
-          <div className="flex items-center justify-between py-1 border-b border-gray-300">
-            <span className="text-xs font-medium text-gray-900 uppercase mr-2">
-              {name}{isRequired && '*'}:
-            </span>
-            <div className="flex-1 border-b border-dotted border-gray-400 min-h-[16px] px-2">
-              <span className="text-xs">{fieldValue ? 'FILE ATTACHED' : 'N/A'}</span>
-            </div>
-          </div>
-        );
-
-      case 'image':
-        const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-        const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-        const allImages = Array.from(new Set([...globalImages, ...deptImages]));
-
-        return (
-          <div className="py-1 border-b border-gray-300">
-            <div className="text-xs font-medium text-gray-900 uppercase mb-1">
-              {name}{isRequired && '*'}:
-            </div>
-            <div className="border border-gray-400 min-h-[60px] p-2 bg-white flex items-center justify-center">
-              {allImages.length > 0 ? (
-                <span className="text-xs text-gray-600">
-                  {allImages.length} IMAGE(S) ATTACHED
-                </span>
-              ) : (
-                <span className="text-xs text-gray-400">
-                  [ ATTACH IMAGES HERE ]
-                </span>
-              )}
-            </div>
-          </div>
-        );
-
-      default:
-        return (
-          <div className="flex items-center justify-between py-1 border-b border-gray-300">
-            <span className="text-xs font-medium text-gray-900 uppercase mr-2">
-              {name}{isRequired && '*'}:
-            </span>
-            <div className="flex-1 border-b border-dotted border-gray-400 min-h-[16px] px-2">
-              <span className="text-xs text-gray-400">N/A</span>
-            </div>
-          </div>
-        );
-    }
-  };
-
-  const renderCompactCellInput = (field) => {
-    const { _id, name, type, placeholder, isRequired } = field;
-    const fieldValue = fields.find(f => f.name === name)?.value ?? '';
+  // Render input cell based on field type
+  const renderCellInput = (fieldDef, fieldId, canEdit) => {
+    const fieldValue = getFieldValue(fieldId, fieldDef);
+    const { name, type, placeholder, isRequired, department } = fieldDef;
 
     switch (type) {
+      case 'heading':
+        return (
+          <div className="bg-blue-50 px-2 py-1 font-semibold text-blue-800 text-sm">
+            {name}
+          </div>
+        );
+
       case 'text':
       case 'number':
       case 'date':
@@ -1186,10 +918,13 @@ const handlePrint = async () => {
             type={type}
             placeholder={placeholder || ''}
             value={fieldValue}
-            onChange={(e) => handleFieldChange(name, e.target.value)}
+            onChange={(e) => handleFieldChange(fieldId, name, e.target.value, department)}
             required={isRequired}
             disabled={!canEdit}
-            className="h-6 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 w-full"
+            className={cn(
+              "h-8 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 w-full",
+              !canEdit && "bg-gray-100 cursor-not-allowed"
+            )}
           />
         );
 
@@ -1198,302 +933,23 @@ const handlePrint = async () => {
           <Textarea
             placeholder={placeholder || ''}
             value={fieldValue}
-            onChange={(e) => handleFieldChange(name, e.target.value)}
+            onChange={(e) => handleFieldChange(fieldId, name, e.target.value, department)}
             required={isRequired}
             disabled={!canEdit}
-            className="h-12 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 resize-none w-full"
+            className={cn(
+              "min-h-[60px] px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 resize-none w-full",
+              !canEdit && "bg-gray-100 cursor-not-allowed"
+            )}
           />
         );
 
       case 'boolean':
         return (
-          <div className="flex items-center justify-center py-1">
+          <div className="flex items-center justify-center py-2">
             <Switch
               checked={!!fieldValue}
-              onCheckedChange={(checked) => handleFieldChange(name, checked)}
+              onCheckedChange={(checked) => handleFieldChange(fieldId, name, checked, department)}
               disabled={!canEdit}
-              className="scale-75"
-            />
-          </div>
-        );
-
-      case 'file':
-        return (
-          <div className="space-y-1">
-            {canEdit && (
-              <UploadFile 
-                onUploaded={(urls) => {
-                  const url = Array.isArray(urls) ? urls[0] : urls;
-                  if (url) {
-                    handleFieldChange(name, url);
-                    toast({
-                      title: 'File uploaded',
-                      description: 'File uploaded successfully',
-                    });
-                  }
-                }} 
-              />
-            )}
-            {fieldValue && (
-              <div className="flex items-center p-1 bg-gray-50 border rounded text-xs">
-                <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
-                <a href={fieldValue} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate flex-1 block" title="Download">
-                  Download Excel
-                </a>
-                {canEdit && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 ml-1 hover:bg-red-100"
-                    onClick={() => handleFieldChange(name, '')}
-                  >
-                    <Trash2 className="h-3 w-3 text-red-500" />
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-        );
-
-      case 'image':
-        const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-        const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-        const allImages = Array.from(new Set([...globalImages, ...deptImages]));
-
-        return (
-          <div className="space-y-1">
-            {canEdit && (
-              <div className="mb-1">
-                <UploadImage 
-                  onUploaded={(urls) => {
-                    const imageArray = Array.isArray(urls) ? urls : (urls ? [urls] : []);
-                    if (imageArray.length > 0) {
-                      const currentImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-                      const updatedImages = [...currentImages, ...imageArray];
-                      handleFieldChange(name, updatedImages);
-                      toast({
-                        title: 'Images uploaded',
-                        description: `${imageArray.length} image(s) uploaded automatically.`,
-                      });
-                    }
-                  }} 
-                />
-              </div>
-            )}
-            
-            {allImages.length > 0 ? (
-              <div className="grid grid-cols-2 gap-1">
-                {allImages.slice(0, 2).map((src, idx) => {
-                  const isDeptImage = deptImages.includes(src);
-                  const isCover = idx === 0;
-                  
-                  return (
-                    <div key={idx} className="relative group aspect-square">
-                      <Image
-                        src={src}
-                        alt={`${name}-${idx}`}
-                        fill
-                        className={cn(
-                          "object-cover rounded border transition-all",
-                          isCover ? "border-yellow-400 border-2" : "border-gray-200"
-                        )}
-                      />
-                      {isCover && (
-                        <div className="absolute top-0 left-0 bg-yellow-400 text-yellow-900 px-0.5 py-0.5 rounded-br text-xs">
-                          <Star className="h-1.5 w-1.5 fill-current" />
-                        </div>
-                      )}
-                      
-                      {canEdit && (
-                        <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <div className="flex gap-0.5">
-                            {!isCover && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSetCoverImage(name, idx, allImages);
-                                }}
-                                className="bg-yellow-500 hover:bg-yellow-600 text-white p-0.5 rounded"
-                                title="Set as cover"
-                              >
-                                <Star className="h-1.5 w-1.5" />
-                              </button>
-                            )}
-                            {isDeptImage && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRemoveImage(name, idx, allImages);
-                                }}
-                                className="bg-red-500 hover:bg-red-600 text-white p-0.5 rounded"
-                                title="Remove"
-                              >
-                                <Trash2 className="h-1.5 w-1.5" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                {allImages.length > 2 && (
-                  <div className="aspect-square border border-gray-200 rounded flex items-center justify-center text-xs text-gray-500">
-                    +{allImages.length - 2}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-xs text-gray-400 text-center py-2 border border-dashed border-gray-300 rounded">
-                No images
-              </div>
-            )}
-          </div>
-        );
-
-      default:
-        return (
-          <div className="text-xs text-gray-400 text-center py-1">
-            Unsupported type
-          </div>
-        );
-    }
-  };
-
-  const renderCompactTableCell = (field) => {
-    const { _id, name, type, placeholder, isRequired } = field;
-    const fieldValue = fields.find(f => f.name === name)?.value ?? '';
-
-    switch (type) {
-      case 'text':
-      case 'number':
-      case 'date':
-        return (
-          <Input
-            type={type}
-            placeholder={placeholder || ''}
-            value={fieldValue}
-            onChange={(e) => handleFieldChange(name, e.target.value)}
-            required={isRequired}
-            disabled={!canEdit}
-            className="border-0 rounded-none focus:ring-1 focus:ring-blue-500 bg-transparent h-full px-1 py-0 text-xs w-full"
-          />
-        );
-
-      case 'textarea':
-        return (
-          <Input
-            placeholder={placeholder || ''}
-            value={fieldValue}
-            onChange={(e) => handleFieldChange(name, e.target.value)}
-            required={isRequired}
-            disabled={!canEdit}
-            className="border-0 rounded-none focus:ring-1 focus:ring-blue-500 bg-transparent h-full px-1 py-0 text-xs w-full"
-          />
-        );
-
-      case 'boolean':
-        return (
-          <div className="flex items-center justify-center h-full">
-            <Switch
-              checked={!!fieldValue}
-              onCheckedChange={(checked) => handleFieldChange(name, checked)}
-              disabled={!canEdit}
-              className="scale-50"
-            />
-          </div>
-        );
-
-      case 'file':
-        return (
-          <div className="flex items-center justify-center h-full">
-            {fieldValue ? (
-              <a href={fieldValue} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs flex items-center">
-                <FileSpreadsheet className="h-3 w-3 mr-1" />
-                File
-              </a>
-            ) : (
-              <span className="text-xs text-gray-400">No file</span>
-            )}
-          </div>
-        );
-
-      case 'image':
-        const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-        const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-        const allImages = Array.from(new Set([...globalImages, ...deptImages]));
-
-        return (
-          <div className="flex items-center justify-center h-full">
-            {allImages.length > 0 ? (
-              <div className="flex items-center space-x-1">
-                <div className="w-6 h-6 relative">
-                  <Image
-                    src={allImages[0]}
-                    alt={`${name}-preview`}
-                    fill
-                    className="object-cover rounded border"
-                  />
-                </div>
-                {allImages.length > 1 && (
-                  <span className="text-xs text-gray-500">+{allImages.length - 1}</span>
-                )}
-              </div>
-            ) : (
-              <span className="text-xs text-gray-400">No img</span>
-            )}
-          </div>
-        );
-
-      default:
-        return (
-          <div className="flex items-center justify-center h-full">
-            <span className="text-xs text-gray-400">-</span>
-          </div>
-        );
-    }
-  };
-
-  const renderCompactExcelCell = (field) => {
-    const { _id, name, type, placeholder, isRequired } = field;
-    const fieldValue = fields.find(f => f.name === name)?.value ?? '';
-
-    switch (type) {
-      case 'text':
-      case 'number':
-      case 'date':
-        return (
-          <Input
-            type={type}
-            placeholder={placeholder || ''}
-            value={fieldValue}
-            onChange={(e) => handleFieldChange(name, e.target.value)}
-            required={isRequired}
-            disabled={!canEdit}
-            className="border-0 rounded-none focus:ring-1 focus:ring-blue-500 bg-transparent h-8 px-2 py-1 text-sm w-full"
-          />
-        );
-
-      case 'textarea':
-        return (
-          <Textarea
-            placeholder={placeholder || ''}
-            value={fieldValue}
-            onChange={(e) => handleFieldChange(name, e.target.value)}
-            required={isRequired}
-            disabled={!canEdit}
-            className="border-0 rounded-none focus:ring-1 focus:ring-blue-500 bg-transparent min-h-[40px] resize-none px-2 py-1 text-sm w-full"
-          />
-        );
-
-      case 'boolean':
-        return (
-          <div className="flex items-center justify-center h-full">
-            <Switch
-              checked={!!fieldValue}
-              onCheckedChange={(checked) => handleFieldChange(name, checked)}
-              disabled={!canEdit}
-              className="scale-75"
             />
           </div>
         );
@@ -1506,7 +962,7 @@ const handlePrint = async () => {
                 onUploaded={(urls) => {
                   const url = Array.isArray(urls) ? urls[0] : urls;
                   if (url) {
-                    handleFieldChange(name, url);
+                    handleFieldChange(fieldId, name, url, department);
                     toast({
                       title: 'File uploaded',
                       description: 'File uploaded successfully',
@@ -1526,7 +982,7 @@ const handlePrint = async () => {
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0 ml-1 hover:bg-red-100"
-                    onClick={() => handleFieldChange(name, '')}
+                    onClick={() => handleFieldChange(fieldId, name, '', department)}
                   >
                     <Trash2 className="h-3 w-3 text-red-500" />
                   </Button>
@@ -1542,29 +998,27 @@ const handlePrint = async () => {
         const allImages = Array.from(new Set([...globalImages, ...deptImages]));
 
         return (
-          <div className="space-y-1">
+          <div className="space-y-1 p-1">
             {canEdit && (
-              <div className="mb-1">
-                <UploadImage 
-                  onUploaded={(urls) => {
-                    const imageArray = Array.isArray(urls) ? urls : (urls ? [urls] : []);
-                    if (imageArray.length > 0) {
-                      const currentImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-                      const updatedImages = [...currentImages, ...imageArray];
-                      handleFieldChange(name, updatedImages);
-                      toast({
-                        title: 'Images uploaded',
-                        description: `${imageArray.length} image(s) uploaded automatically.`,
-                      });
-                    }
-                  }} 
-                />
-              </div>
+              <UploadImage 
+                onUploaded={(urls) => {
+                  const imageArray = Array.isArray(urls) ? urls : (urls ? [urls] : []);
+                  if (imageArray.length > 0) {
+                    const currentImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+                    const updatedImages = [...currentImages, ...imageArray];
+                    handleFieldChange(fieldId, name, updatedImages, department);
+                    toast({
+                      title: 'Images uploaded',
+                      description: `${imageArray.length} image(s) uploaded.`,
+                    });
+                  }
+                }} 
+              />
             )}
             
             {allImages.length > 0 ? (
-              <div className="grid grid-cols-4 gap-1">
-                {allImages.slice(0, 4).map((src, idx) => {
+              <div className="grid grid-cols-3 gap-1">
+                {allImages.slice(0, 6).map((src, idx) => {
                   const isDeptImage = deptImages.includes(src);
                   const isCover = idx === 0;
                   
@@ -1592,7 +1046,7 @@ const handlePrint = async () => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleSetCoverImage(name, idx, allImages);
+                                  handleSetCoverImage(fieldId, name, department, idx, allImages);
                                 }}
                                 className="bg-yellow-500 hover:bg-yellow-600 text-white p-1 rounded"
                                 title="Set as cover"
@@ -1604,7 +1058,7 @@ const handlePrint = async () => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleRemoveImage(name, idx, allImages);
+                                  handleRemoveImage(fieldId, name, department, idx, allImages);
                                 }}
                                 className="bg-red-500 hover:bg-red-600 text-white p-1 rounded"
                                 title="Remove"
@@ -1618,156 +1072,14 @@ const handlePrint = async () => {
                     </div>
                   );
                 })}
-                {allImages.length > 4 && (
-                  <div className="aspect-square border border-gray-200 rounded flex items-center justify-center text-xs text-gray-500">
-                    +{allImages.length - 4}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-xs text-gray-400 text-center py-1">
-                No images
-              </div>
-            )}
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  const renderExcelCell = (field) => {
-    const { _id, name, type, placeholder, isRequired } = field;
-    const fieldValue = fields.find(f => f.name === name)?.value ?? '';
-
-    switch (type) {
-      case 'text':
-      case 'number':
-      case 'date':
-        return (
-          <Input
-            type={type}
-            placeholder={placeholder || ''}
-            value={fieldValue}
-            onChange={(e) => handleFieldChange(name, e.target.value)}
-            required={isRequired}
-            disabled={!canEdit}
-            className="border-0 rounded-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-transparent h-full px-3 py-2 w-full"
-          />
-        );
-
-      case 'textarea':
-        return (
-          <Textarea
-            placeholder={placeholder || ''}
-            value={fieldValue}
-            onChange={(e) => handleFieldChange(name, e.target.value)}
-            required={isRequired}
-            disabled={!canEdit}
-            className="border-0 rounded-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-transparent min-h-[60px] resize-none px-3 py-2 w-full"
-          />
-        );
-
-      case 'boolean':
-        return (
-          <div className="flex items-center justify-center h-full">
-            <Switch
-              checked={!!fieldValue}
-              onCheckedChange={(checked) => handleFieldChange(name, checked)}
-              disabled={!canEdit}
-            />
-          </div>
-        );
-
-      case 'image':
-        const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-        const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-        const allImages = Array.from(new Set([...globalImages, ...deptImages]));
-
-        return (
-          <div className="p-2">
-            {canEdit && (
-              <div className="mb-2">
-                <UploadImage 
-                  onUploaded={(urls) => {
-                    const imageArray = Array.isArray(urls) ? urls : (urls ? [urls] : []);
-                    if (imageArray.length > 0) {
-                      const currentImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-                      const updatedImages = [...currentImages, ...imageArray];
-                      handleFieldChange(name, updatedImages);
-                      toast({
-                        title: 'Images uploaded',
-                        description: `${imageArray.length} image(s) uploaded. Changes will be saved automatically.`,
-                      });
-                    }
-                  }} 
-                />
-              </div>
-            )}
-            
-            {allImages.length > 0 ? (
-              <div className="grid grid-cols-3 gap-1">
-                {allImages.slice(0, 6).map((src, idx) => {
-                  const isDeptImage = deptImages.includes(src);
-                  const isCover = idx === 0;
-                  
-                  return (
-                    <div key={idx} className="relative group aspect-square">
-                      <Image
-                        src={src}
-                        alt={`${name}-${idx}`}
-                        fill
-                        className={cn(
-                          "object-cover rounded border transition-all",
-                          isCover ? "border-yellow-400 border-2" : "border-gray-200"
-                        )}
-                      />
-                      {isCover && (
-                        <div className="absolute top-0 left-0 bg-yellow-400 text-yellow-900 px-1 py-0.5 rounded-br text-xs font-semibold flex items-center gap-1">
-                          <Star className="h-2 w-2 fill-current" />
-                        </div>
-                      )}
-                      
-                      {canEdit && (
-                        <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                          {!isCover && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSetCoverImage(name, idx, allImages);
-                              }}
-                              className="bg-yellow-500 hover:bg-yellow-600 text-white p-0.5 rounded shadow-lg"
-                              title="Set as cover"
-                            >
-                              <Star className="h-2 w-2" />
-                            </button>
-                          )}
-                          {isDeptImage && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveImage(name, idx, allImages);
-                              }}
-                              className="bg-red-500 hover:bg-red-600 text-white p-0.5 rounded shadow-lg"
-                              title="Remove image"
-                            >
-                              <Trash2 className="h-2 w-2" />
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
                 {allImages.length > 6 && (
                   <div className="aspect-square border border-gray-200 rounded flex items-center justify-center text-xs text-gray-500">
-                    +{allImages.length - 6} more
+                    +{allImages.length - 6}
                   </div>
                 )}
               </div>
             ) : (
-              <div className="text-xs text-gray-500 text-center py-2">
+              <div className="text-xs text-gray-400 text-center py-2 border border-dashed border-gray-300 rounded">
                 No images
               </div>
             )}
@@ -1775,86 +1087,46 @@ const handlePrint = async () => {
         );
 
       default:
-        return null;
+        return (
+          <div className="text-xs text-gray-400 text-center py-1">
+            Unsupported type
+          </div>
+        );
     }
   };
 
-  const fieldGroups = groupFieldsByHeading();
-
-  if (!fieldDefs.length) {
+  // Loading state
+  if (isLoading) {
     return (
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <div className="text-center">
-          <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-          <h3 className="text-sm font-medium text-gray-700">{department.toUpperCase()} Department - Excel View</h3>
-          <p className="text-xs text-gray-500 mt-1">No fields defined for this department.</p>
+      <div className="bg-white border border-gray-200 rounded-lg p-8">
+        <div className="flex flex-col items-center justify-center">
+          <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-2" />
+          <p className="text-sm text-gray-500">Loading template...</p>
         </div>
       </div>
     );
   }
 
+  // No active template
+  if (!activeTemplate) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="text-center">
+          <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+          <h3 className="text-sm font-medium text-gray-700">No Active Template</h3>
+          <p className="text-xs text-gray-500 mt-1">Please create and activate a print template in the template designer.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const gridColumns = activeTemplate.gridColumns || 6;
+
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden print:border-0 print:rounded-none print:shadow-none">
-      <style jsx>{`
-        @media print {
-          @page {
-            size: A4;
-            margin: 0.3in;
-          }
-          
-          body {
-            -webkit-print-color-adjust: exact;
-            color-adjust: exact;
-            font-size: 10px;
-            line-height: 1.2;
-          }
-          
-          .print\\:grid-cols-3 {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
-          
-          .print\\:text-xs {
-            font-size: 0.65rem;
-            line-height: 1rem;
-          }
-          
-          .print\\:p-1 {
-            padding: 0.15rem;
-          }
-          
-          .print\\:gap-1 {
-            gap: 0.15rem;
-          }
-          
-          .print\\:mb-4 {
-            margin-bottom: 0.5rem;
-          }
-          
-          .print\\:mb-3 {
-            margin-bottom: 0.4rem;
-          }
-          
-          .print\\:mb-2 {
-            margin-bottom: 0.3rem;
-          }
-          
-          .print\\:border {
-            border-width: 1px;
-          }
-          
-          .print\\:border-gray-300 {
-            border-color: #d1d5db;
-          }
-          
-          * {
-            -webkit-print-color-adjust: exact !important;
-            color-adjust: exact !important;
-          }
-        }
-      `}</style>
-      {/* Compact Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-3 py-2 flex items-center justify-between print:hidden">
-        <h3 className="font-semibold text-sm">{department.toUpperCase()} - Excel View</h3>
+    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-3 py-2 flex items-center justify-between">
+        <h3 className="font-semibold text-sm">SRD - Excel View (All Departments)</h3>
         <div className="flex items-center space-x-2">
           <Button
             onClick={handlePrint}
@@ -1865,17 +1137,6 @@ const handlePrint = async () => {
             <Printer className="h-3 w-3 mr-1" />
             Print
           </Button>
-          <Badge
-            className={cn(
-              "text-xs px-2 py-0.5",
-              status === 'approved' && 'bg-green-100 text-green-800',
-              status === 'in-progress' && 'bg-blue-100 text-blue-800',
-              status === 'flagged' && 'bg-red-100 text-red-800',
-              status === 'pending' && 'bg-gray-100 text-gray-800'
-            )}
-          >
-            {status}
-          </Badge>
           {hasUnsavedChanges && (
             <div className="flex items-center text-xs text-yellow-200">
               <div className="animate-pulse w-1.5 h-1.5 bg-yellow-300 rounded-full mr-1"></div>
@@ -1885,157 +1146,160 @@ const handlePrint = async () => {
         </div>
       </div>
 
-      {/* Excel Grid - Compact cells with all info */}
-      <div className="p-2">
-        {/* Print Header - Only visible when printing */}
-        <div className="hidden print:block print:mb-4">
-          <div className="text-center border-b border-gray-800 pb-2 mb-4">
-            <h1 className="text-lg font-bold text-gray-900 uppercase">Sample Request and Development Form</h1>
-            <div className="grid grid-cols-3 gap-4 mt-2 text-xs">
-              <div className="text-left">
-                <strong>SRD REF:</strong> {srd.refNo}
-              </div>
-              <div className="text-center">
-                <strong>DEPT:</strong> {department.toUpperCase()}
-              </div>
-              <div className="text-right">
-                <strong>DATE:</strong> {new Date().toLocaleDateString()}
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Permission indicator */}
+      <div className="bg-gray-50 border-b px-3 py-1.5 text-xs text-gray-600">
+        <span className="font-medium">Your role:</span> {userRole?.toUpperCase()} • 
+        {userRole === 'admin' || userRole === 'vmd' 
+          ? ' You can edit all fields'
+          : ` You can edit ${userRole?.toUpperCase()} fields only`
+        }
+      </div>
 
-        {/* Print Layout - Ultra Compact Form Style */}
-        <div className="hidden print:block">
-          {fieldGroups.map((group, groupIndex) => (
-            <div key={groupIndex} className="mb-3">
-              {/* Compact Section Header */}
-              <div className="bg-gray-100 border border-gray-600 px-2 py-1 mb-2">
-                <h2 className="font-bold text-xs text-gray-900 uppercase text-center">{group.heading}</h2>
-              </div>
-              
-              {/* Ultra Compact Form Fields - 3 columns */}
-              <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-xs">
-                {group.fields.map((field, fieldIndex) => (
-                  <div key={field._id} className="col-span-1">
-                    {renderUltraCompactPrintCell(field)}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-          
-          {/* Ultra Compact Print Footer */}
-          <div className="mt-4 pt-2 border-t border-gray-600">
-            <div className="grid grid-cols-3 gap-4 text-xs">
-              <div className="text-center">
-                <div className="font-bold mb-1">PREPARED BY:</div>
-                <div className="border-b border-dotted border-gray-400 min-h-[12px] mb-1"></div>
-                <div className="text-xs">SIGNATURE & DATE</div>
-              </div>
-              <div className="text-center">
-                <div className="font-bold mb-1">REVIEWED BY:</div>
-                <div className="border-b border-dotted border-gray-400 min-h-[12px] mb-1"></div>
-                <div className="text-xs">SIGNATURE & DATE</div>
-              </div>
-              <div className="text-center">
-                <div className="font-bold mb-1">APPROVED BY:</div>
-                <div className="border-b border-dotted border-gray-400 min-h-[12px] mb-1"></div>
-                <div className="text-xs">SIGNATURE & DATE</div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Grid based on template */}
+      <div className="p-3">
+        <div 
+          className="grid gap-2"
+          style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}
+        >
+          {activeTemplate.cells.map((cell, cellIndex) => {
+            const colSpan = cell.position?.colSpan || 1;
+            const rowSpan = cell.position?.rowSpan || 1;
 
-        {/* Screen Layout - Grid Style */}
-        <div className="print:hidden">
-          {fieldGroups.map((group, groupIndex) => (
-            <div key={groupIndex} className="mb-3">
-              {/* Section Header */}
-              <div className="bg-blue-50 border border-blue-200 px-2 py-1 mb-2 rounded">
-                <h4 className="font-medium text-xs text-blue-800 uppercase">{group.heading}</h4>
-              </div>
-              
-              {/* Compact Grid of Cells */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                {group.fields.map((field, fieldIndex) => (
-                  <div key={field._id} className="border border-gray-300 rounded bg-white hover:shadow-sm transition-shadow">
-                    {/* Cell Header with Field Name, Type, and Required */}
-                    <div className="bg-gray-50 border-b border-gray-200 px-2 py-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-700 truncate flex-1" title={field.name}>
-                          {field.name}
-                        </span>
-                        <div className="flex items-center space-x-1 ml-1">
-                          {field.isRequired && (
-                            <span className="text-red-500 text-xs font-bold">*</span>
-                          )}
-                          <span className="text-xs text-gray-400 uppercase font-mono">
-                            {field.type.charAt(0)}
-                          </span>
-                        </div>
-                      </div>
+            // Handle custom elements
+            if (cell.isCustom) {
+              return (
+                <div 
+                  key={cellIndex}
+                  className="bg-gray-50 border border-gray-200 rounded p-2"
+                  style={{ 
+                    gridColumn: `span ${colSpan}`,
+                    gridRow: `span ${rowSpan}`,
+                  }}
+                >
+                  {cell.customType === 'custom-heading' && (
+                    <div className="font-semibold text-gray-800 text-sm">
+                      {cell.customValue}
                     </div>
-                    
-                    {/* Cell Input Area */}
-                    <div className="p-1">
-                      {renderCompactCellInput(field)}
+                  )}
+                  {cell.customType === 'custom-text' && (
+                    <div className="text-gray-600 text-sm">
+                      {cell.customValue}
+                    </div>
+                  )}
+                  {cell.customType === 'custom-separator' && (
+                    <div className="border-t border-gray-300 my-2"></div>
+                  )}
+                  {cell.customType === 'custom-empty-field' && (
+                    <div className="text-gray-400 text-xs">
+                      {cell.customValue}: <span className="italic">{cell.customPlaceholder}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            // Handle regular database fields
+            // Get fieldId - could be ObjectId, string, or populated object
+            let fieldIdStr = null;
+            let fieldDef = null;
+            
+            if (cell.fieldId) {
+              // If fieldId is already populated (an object with _id), use it directly
+              if (typeof cell.fieldId === 'object' && cell.fieldId._id) {
+                fieldDef = cell.fieldId;
+                fieldIdStr = cell.fieldId._id.toString();
+              } else {
+                // Otherwise look up in our map
+                fieldIdStr = cell.fieldId.toString();
+                fieldDef = allFieldDefs[fieldIdStr];
+              }
+            }
+            if (!fieldDef) {
+              return (
+                <div 
+                  key={cellIndex}
+                  className="bg-red-50 border border-red-200 rounded p-2 text-xs text-red-500"
+                  style={{ 
+                    gridColumn: `span ${colSpan}`,
+                    gridRow: `span ${rowSpan}`,
+                  }}
+                >
+                  Field not found
+                </div>
+              );
+            }
+
+            const canEdit = canEditField(fieldDef.department);
+            const isHeading = fieldDef.type === 'heading';
+
+            return (
+              <div 
+                key={cellIndex}
+                className={cn(
+                  "border rounded",
+                  isHeading ? "bg-blue-50 border-blue-200" : "bg-white border-gray-300",
+                  !canEdit && !isHeading && "bg-gray-50"
+                )}
+                style={{ 
+                  gridColumn: `span ${colSpan}`,
+                  gridRow: `span ${rowSpan}`,
+                }}
+              >
+                {/* Field header */}
+                {!isHeading && (
+                  <div className="bg-gray-50 border-b border-gray-200 px-2 py-1 flex items-center justify-between">
+                    <span className="text-xs font-medium text-gray-700 truncate" title={fieldDef.name}>
+                      {fieldDef.name}
+                    </span>
+                    <div className="flex items-center space-x-1 ml-1">
+                      {fieldDef.isRequired && (
+                        <span className="text-red-500 text-xs font-bold">*</span>
+                      )}
+                      <Badge 
+                        variant="outline" 
+                        className={cn(
+                          "text-xs px-1 py-0",
+                          canEdit ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-100 text-gray-500"
+                        )}
+                      >
+                        {fieldDef.department?.toUpperCase()}
+                      </Badge>
                     </div>
                   </div>
-                ))}
+                )}
+                
+                {/* Field input */}
+                <div className={cn(!isHeading && "p-1")}>
+                  {renderCellInput(fieldDef, fieldIdStr, canEdit)}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* Compact Status Section */}
-      {canEdit && (
-        <div className="bg-gray-50 border-t border-gray-200 p-2">
-          <div className="grid grid-cols-6 gap-2 items-end">
-            <div>
-              <Label className="text-xs font-medium text-gray-700">Status</Label>
-              <select 
-                value={status} 
-                onChange={(e) => handleStatusChange(e.target.value)} 
-                className="mt-1 px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-6" 
-                disabled={isSubmitting}
+      {/* Department status legend */}
+      <div className="bg-gray-50 border-t px-3 py-2">
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center space-x-4">
+            <span className="text-gray-500">Status:</span>
+            {['vmd', 'cad', 'commercial', 'mmc'].map(dept => (
+              <Badge 
+                key={dept}
+                className={cn(
+                  "text-xs",
+                  srd.status?.[dept] === 'approved' && 'bg-green-100 text-green-800',
+                  srd.status?.[dept] === 'in-progress' && 'bg-blue-100 text-blue-800',
+                  srd.status?.[dept] === 'flagged' && 'bg-red-100 text-red-800',
+                  (!srd.status?.[dept] || srd.status?.[dept] === 'pending') && 'bg-gray-100 text-gray-800'
+                )}
               >
-                <option value="pending">Pending</option>
-                <option value="in-progress">In Progress</option>
-                <option value="approved">Approved</option>
-                <option value="flagged">Flag Issue</option>
-              </select>
-            </div>
-            <div className="col-span-4">
-              <Label htmlFor="updateComment" className="text-xs font-medium text-gray-700">
-                Comment {status !== 'flagged' && <span className="text-gray-500">(Optional)</span>}
-              </Label>
-              <Input 
-                id="updateComment" 
-                value={updateComment} 
-                onChange={(e) => setUpdateComment(e.target.value)} 
-                placeholder={status === 'flagged' ? 'Describe issue...' : 'Add comment...'} 
-                required={status === 'flagged'} 
-                className="mt-1 text-xs h-6 border border-gray-300 focus:ring-1 focus:ring-blue-500" 
-              />
-            </div>
-            <div>
-              <Button 
-                onClick={handleSaveChanges} 
-                disabled={isSubmitting} 
-                size="sm"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs h-6"
-              >
-                {isSubmitting ? 'Updating...' : 'Update'}
-              </Button>
-            </div>
+                {dept.toUpperCase()}: {srd.status?.[dept] || 'pending'}
+              </Badge>
+            ))}
           </div>
-          <p className="text-xs text-gray-500 text-center mt-1">
-            Field changes auto-save. Use button for status/comments only.
-          </p>
         </div>
-      )}
+      </div>
     </div>
   );
 }
