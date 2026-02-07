@@ -242,6 +242,7 @@ export default function Page() {
   const [saving, setSaving] = useState(false);
   const [expandedSections, setExpandedSections] = useState(new Set());
   const [connectedFieldSearch, setConnectedFieldSearch] = useState('');
+  const [showFieldDropdown, setShowFieldDropdown] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -321,6 +322,11 @@ export default function Page() {
   }
 
   function openEdit(field) {
+    // Handle connectedFieldId - it could be a populated object or just an ID
+    const connectedId = field.connectedFieldId
+      ? (typeof field.connectedFieldId === 'object' ? field.connectedFieldId._id : field.connectedFieldId)
+      : null;
+
     setValues({
       name: field.name || '',
       type: field.type || 'text',
@@ -330,7 +336,7 @@ export default function Page() {
       parentHeading: field.parentHeading || null,
       isShownInQuickDetails: !!field.isShownInQuickDetails,
       isConnectedTo: !!field.isConnectedTo,
-      connectedFieldId: field.connectedFieldId || null,
+      connectedFieldId: connectedId,
       connectionType: field.connectionType || null
     });
     setEditingId(field._id);
@@ -817,41 +823,78 @@ export default function Page() {
                     {values.isConnectedTo && (
                       <div className="space-y-3 pl-6 border-l-2 border-blue-200">
                         {/* Select Connected Field */}
-                        <div>
+                        <div className="relative">
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Connected Field
                           </label>
                           <input
                             type="text"
-                            className="w-full p-2 border border-gray-300 rounded mb-2"
-                            placeholder="Search fields..."
+                            className="w-full p-2 border border-gray-300 rounded"
+                            placeholder="Click to search fields..."
                             value={connectedFieldSearch}
                             onChange={(e) => setConnectedFieldSearch(e.target.value)}
+                            onFocus={() => setShowFieldDropdown(true)}
                           />
-                          <select
-                            className="w-full p-2 border border-gray-300 rounded"
-                            value={values.connectedFieldId || ''}
-                            onChange={(e) => setValues({ ...values, connectedFieldId: e.target.value || null })}
-                            size="5"
-                          >
-                            <option value="">Select a field to connect</option>
-                            {allFields
-                              .filter(f => f.type !== 'heading' && f._id !== editingId)
-                              .filter(f => {
+                          {values.connectedFieldId && (
+                            <div className="mt-1 text-sm text-blue-600 flex items-center justify-between">
+                              <span>✓ Selected: {allFields.find(f => f._id?.toString() === values.connectedFieldId?.toString())?.name || 'Unknown'}</span>
+                              <button
+                                type="button"
+                                className="text-red-500 text-xs hover:underline"
+                                onClick={() => setValues({ ...values, connectedFieldId: null })}
+                              >
+                                Clear
+                              </button>
+                            </div>
+                          )}
+                          {showFieldDropdown && (
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                              <div className="sticky top-0 bg-gray-100 px-3 py-2 border-b flex justify-between items-center">
+                                <span className="text-xs font-medium text-gray-500">Available Fields</span>
+                                <button
+                                  type="button"
+                                  className="text-gray-500 hover:text-gray-700 text-lg leading-none"
+                                  onClick={() => setShowFieldDropdown(false)}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                              {allFields
+                                .filter(f => f.type !== 'heading' && f._id !== editingId)
+                                .filter(f => {
+                                  if (!connectedFieldSearch) return true;
+                                  const searchLower = connectedFieldSearch.toLowerCase();
+                                  const headingName = f.parentHeading?.name || '';
+                                  return f.name.toLowerCase().includes(searchLower) ||
+                                    f.department?.toLowerCase().includes(searchLower) ||
+                                    headingName.toLowerCase().includes(searchLower);
+                                })
+                                .map((f) => (
+                                  <div
+                                    key={f._id}
+                                    className={`px-3 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-100 last:border-b-0 ${values.connectedFieldId?.toString() === f._id?.toString() ? 'bg-blue-100' : ''}`}
+                                    onClick={() => {
+                                      setValues({ ...values, connectedFieldId: f._id });
+                                      setShowFieldDropdown(false);
+                                      setConnectedFieldSearch('');
+                                    }}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-medium text-gray-900">{f.name}</span>
+                                      <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">{f.department?.toUpperCase()}</span>
+                                    </div>
+                                    {f.parentHeading?.name && (
+                                      <div className="text-xs text-gray-500 mt-0.5">📁 {f.parentHeading.name}</div>
+                                    )}
+                                  </div>
+                                ))}
+                              {allFields.filter(f => f.type !== 'heading' && f._id !== editingId).filter(f => {
                                 if (!connectedFieldSearch) return true;
                                 const searchLower = connectedFieldSearch.toLowerCase();
-                                return f.name.toLowerCase().includes(searchLower) ||
-                                  f.department?.toLowerCase().includes(searchLower);
-                              })
-                              .map((f) => (
-                                <option key={f._id} value={f._id}>
-                                  {f.name} ({f.department?.toUpperCase()})
-                                </option>
-                              ))}
-                          </select>
-                          {values.connectedFieldId && (
-                            <div className="mt-2 text-sm text-blue-600">
-                              Selected: {allFields.find(f => f._id === values.connectedFieldId)?.name || 'Unknown'}
+                                return f.name.toLowerCase().includes(searchLower) || f.department?.toLowerCase().includes(searchLower);
+                              }).length === 0 && (
+                                  <div className="px-3 py-4 text-center text-gray-500 text-sm">No fields found</div>
+                                )}
                             </div>
                           )}
                         </div>
@@ -896,7 +939,8 @@ export default function Page() {
             </div>
           </div>
         </>
-      )}
-    </Layout>
+      )
+      }
+    </Layout >
   );
 }

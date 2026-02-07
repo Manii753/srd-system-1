@@ -43,8 +43,8 @@ export default function SRDDetailPage() {
   })
 
   const toogleView = (mode) => {
-        Cookies.set('mode', mode)
-        setViewMode(mode)
+    Cookies.set('mode', mode)
+    setViewMode(mode)
   }
 
 
@@ -62,7 +62,6 @@ export default function SRDDetailPage() {
       try {
         const response = await fetch(`/api/srd/${params.id}`);
         const data = await response.json();
-        console.log('[Frontend] Fetched SRD:', data.data?.refNo, 'Status:', data.data?.status);
         if (data.success) {
           setSrd(data.data);
         } else {
@@ -72,7 +71,7 @@ export default function SRDDetailPage() {
         console.error('Error fetching SRD:', error);
         router.push('/dashboard/vmd');
       } finally {
-
+        console.log('[Frontend] SRD fetched successfully:', srd);
         setLoading(false);
       }
     };
