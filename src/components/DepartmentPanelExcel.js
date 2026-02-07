@@ -36,7 +36,7 @@ export default function DepartmentPanelExcel({
   const [updateComment, setUpdateComment] = useState('');
 
   // Auto-save functionality
-  const autoSaveTimeoutRef = useRef(null);
+  const autoSaveTimeoutsRef = useRef({});
   const lastSavedFieldsRef = useRef(JSON.stringify(fields));
 
   // Check if user can edit a specific field based on its department
@@ -94,16 +94,16 @@ export default function DepartmentPanelExcel({
 
   // Auto-save function with debouncing - saves per department
   const debouncedAutoSave = useCallback(async (fieldsToSave, department) => {
-    if (autoSaveTimeoutRef.current) {
-      clearTimeout(autoSaveTimeoutRef.current);
+    if (autoSaveTimeoutsRef.current[department]) {
+      clearTimeout(autoSaveTimeoutsRef.current[department]);
     }
 
-    autoSaveTimeoutRef.current = setTimeout(async () => {
+    autoSaveTimeoutsRef.current[department] = setTimeout(async () => {
       const deptFields = fieldsToSave.filter(f => f.department === department);
 
-      if (deptFields.length > 0 && !isSubmitting) {
+      if (deptFields.length > 0) { // Removed !isSubmitting check to allow parallel saves
         try {
-          setIsSubmitting(true);
+          // setIsSubmitting(true); // Don't block global submitting state for background saves
 
           const updateData = {
             status: srd.status?.[department] || 'pending',
@@ -130,17 +130,17 @@ export default function DepartmentPanelExcel({
             duration: 3000,
           });
         } finally {
-          setIsSubmitting(false);
+          // setIsSubmitting(false); 
+          delete autoSaveTimeoutsRef.current[department];
         }
       }
     }, 1500);
-  }, [srd.status, onUpdate, isSubmitting, toast]);
+  }, [srd.status, onUpdate, toast]); // Removed isSubmitting dependency
 
   useEffect(() => {
     return () => {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
+      // Clear all timeouts on unmount
+      Object.values(autoSaveTimeoutsRef.current).forEach(timeout => clearTimeout(timeout));
     };
   }, []);
 
@@ -166,18 +166,65 @@ export default function DepartmentPanelExcel({
         }];
       }
 
-      // Handle auto-true connection: when this field becomes true, update connected field
-      if (fieldDef && fieldDef.isConnectedTo && fieldDef.connectionType === 'auto-true' && value === true) {
-        const connectedFieldId = fieldDef.connectedFieldId;
+      // Handle Connected Fields
+      // We must check if the modified field has connection properties
+      // First, try to find the full field definition from the instance data (preferred)
+      // or use the passed fieldDef or look it up in allFieldDefs
+      let currentFieldDef = newFields[existingFieldIndex > -1 ? existingFieldIndex : newFields.length - 1];
+
+      // If instance doesn't have connection info (e.g. legacy), try to merge with static def
+      if (!currentFieldDef.isConnectedTo && fieldDef) {
+        currentFieldDef = { ...fieldDef, ...currentFieldDef };
+      }
+
+      // 1. Auto-True Logic
+      if (currentFieldDef.isConnectedTo && currentFieldDef.connectionType === 'auto-true' && value === true) {
+        let connectedFieldId = currentFieldDef.connectedFieldId;
+        // Handle populated object or string ID
+        if (connectedFieldId && typeof connectedFieldId === 'object' && connectedFieldId._id) {
+          connectedFieldId = connectedFieldId._id;
+        }
+
         if (connectedFieldId) {
           // Find the connected field in current fields
-          const connectedIndex = newFields.findIndex(f => {
+          let connectedIndex = newFields.findIndex(f => {
             const fId = f.originalFieldId || (f.field && typeof f.field === 'object' ? f.field._id : f.field);
             return fId?.toString() === connectedFieldId?.toString();
           });
 
+          console.log('Connected index found:', connectedIndex);
+
+          // If not found in current fields, try to add it from definitions
+          if (connectedIndex === -1 && allFieldDefs[connectedFieldId]) {
+            const connectedDef = allFieldDefs[connectedFieldId];
+            console.log('Connected field not in state, adding from defs:', connectedDef.name);
+
+            newFields.push({
+              originalFieldId: connectedFieldId,
+              name: connectedDef.name,
+              type: connectedDef.type,
+              department: connectedDef.department,
+              value: '', // Initial value
+              fieldVersion: new Date(),
+              isConnectedTo: connectedDef.isConnectedTo,
+              connectedFieldId: connectedDef.connectedFieldId,
+              connectionType: connectedDef.connectionType
+            });
+            connectedIndex = newFields.length - 1;
+          }
+
           if (connectedIndex > -1) {
-            newFields[connectedIndex] = { ...newFields[connectedIndex], value: true };
+            const connectedField = newFields[connectedIndex];
+
+            // Only update if not already true
+            if (connectedField.value !== true) {
+              newFields[connectedIndex] = { ...connectedField, value: true };
+
+              // Trigger auto-save for the connected field's department if different
+              if (connectedField.department !== department) {
+                debouncedAutoSave(newFields, connectedField.department);
+              }
+            }
           }
         }
       }
@@ -189,7 +236,7 @@ export default function DepartmentPanelExcel({
     });
 
     setHasUnsavedChanges(true);
-  }, [debouncedAutoSave]);
+  }, [debouncedAutoSave, allFieldDefs]);
 
   // Get field value from SRD dynamicFields by fieldId - memoized
   const getFieldValue = useCallback((fieldId, fieldDef) => {
@@ -1014,7 +1061,7 @@ export default function DepartmentPanelExcel({
             type={type}
             placeholder={placeholder || ''}
             value={fieldValue}
-            onChange={(e) => handleFieldChange(fieldId, name, e.target.value, department)}
+            onChange={(e) => handleFieldChange(fieldId, name, e.target.value, department, fieldDef)}
             required={isRequired}
             disabled={!canEdit}
             className={cn(
@@ -1029,7 +1076,7 @@ export default function DepartmentPanelExcel({
           <Textarea
             placeholder={placeholder || ''}
             value={fieldValue}
-            onChange={(e) => handleFieldChange(fieldId, name, e.target.value, department)}
+            onChange={(e) => handleFieldChange(fieldId, name, e.target.value, department, fieldDef)}
             required={isRequired}
             disabled={!canEdit}
             className={cn(
@@ -1044,7 +1091,7 @@ export default function DepartmentPanelExcel({
           <div className="flex items-center justify-center py-2">
             <Switch
               checked={!!fieldValue}
-              onCheckedChange={(checked) => handleFieldChange(fieldId, name, checked, department)}
+              onCheckedChange={(checked) => handleFieldChange(fieldId, name, checked, department, fieldDef)}
               disabled={!canEdit}
             />
           </div>
@@ -1058,7 +1105,7 @@ export default function DepartmentPanelExcel({
                 onUploaded={(urls) => {
                   const url = Array.isArray(urls) ? urls[0] : urls;
                   if (url) {
-                    handleFieldChange(fieldId, name, url, department);
+                    handleFieldChange(fieldId, name, url, department, fieldDef);
                     toast({
                       title: 'File uploaded',
                       description: 'File uploaded successfully',
@@ -1078,7 +1125,7 @@ export default function DepartmentPanelExcel({
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0 ml-1 hover:bg-red-100"
-                    onClick={() => handleFieldChange(fieldId, name, '', department)}
+                    onClick={() => handleFieldChange(fieldId, name, '', department, fieldDef)}
                   >
                     <Trash2 className="h-3 w-3 text-red-500" />
                   </Button>
@@ -1102,7 +1149,7 @@ export default function DepartmentPanelExcel({
                   if (imageArray.length > 0) {
                     const currentImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
                     const updatedImages = [...currentImages, ...imageArray];
-                    handleFieldChange(fieldId, name, updatedImages, department);
+                    handleFieldChange(fieldId, name, updatedImages, department, fieldDef);
                     toast({
                       title: 'Images uploaded',
                       description: `${imageArray.length} image(s) uploaded.`,

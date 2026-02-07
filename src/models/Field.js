@@ -42,12 +42,7 @@ const FieldSchema = new mongoose.Schema({
         ref: 'Field',
         default: null
     },
-    isConnectedTo: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Field',
-        default: null,
 
-    },
     isShownInQuickDetails: {
         type: Boolean,
         default: false
