@@ -42,9 +42,34 @@ const FieldSchema = new mongoose.Schema({
         ref: 'Field',
         default: null
     },
+    isConnectedTo: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Field',
+        default: null,
+
+    },
     isShownInQuickDetails: {
         type: Boolean,
         default: false
+    },
+    // Flag to enable field connection
+    isConnectedTo: {
+        type: Boolean,
+        default: false
+    },
+    // The field this one is connected to (only used when isConnectedTo is true)
+    connectedFieldId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Field',
+        default: null
+    },
+    // Connection type:
+    // 'auto-true': When THIS field becomes true, the connected field also becomes true
+    // 'toggle-active': This field is only active/visible when the connected field is false
+    connectionType: {
+        type: String,
+        enum: ['auto-true', 'toggle-active', null],
+        default: null
     }
 }, {
     timestamps: true

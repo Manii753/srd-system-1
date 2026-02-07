@@ -32,7 +32,7 @@ export default function DepartmentPanel({
   const [imageModalIndex, setImageModalIndex] = useState(0);
   const [modalImages, setModalImages] = useState([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  
+
   // Auto-save functionality
   const autoSaveTimeoutRef = useRef(null);
   const lastSavedFieldsRef = useRef(JSON.stringify(fields));
@@ -42,35 +42,35 @@ export default function DepartmentPanel({
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
     }
-    
+
     autoSaveTimeoutRef.current = setTimeout(async () => {
       const currentFieldsString = JSON.stringify(fieldsToSave);
-      
+
       // Only save if fields have actually changed
       if (currentFieldsString !== lastSavedFieldsRef.current && !isSubmitting) {
         try {
           setIsSubmitting(true);
-          
+
           const updateData = {
             status: status,
             fields: fieldsToSave,
           };
 
           console.log('[Auto-save] Saving fields:', department, updateData);
-          
+
           await onUpdate(updateData);
-          
+
           // Update the last saved reference
           lastSavedFieldsRef.current = currentFieldsString;
           setHasUnsavedChanges(false);
-          
+
           // Show subtle success indication
           toast({
             title: 'Auto-saved',
             description: 'Changes saved automatically',
             duration: 2000,
           });
-          
+
         } catch (error) {
           console.error('[Auto-save] Failed:', error);
           toast({
@@ -109,15 +109,15 @@ export default function DepartmentPanel({
 
     // Get fields for this department
     const srdDynamicFields = srd.dynamicFields?.filter(f => f.department === department) || [];
-    
+
     if (srdDynamicFields.length > 0) {
       // Use the immutable snapshots from the SRD to build field definitions
       const fieldDefsFromSRD = srdDynamicFields.map(f => {
         // Robust ID extraction
-        const fieldId = f.originalFieldId || 
-                       (f.field && typeof f.field === 'object' ? f.field._id : f.field) || 
-                       f._id;
-                       
+        const fieldId = f.originalFieldId ||
+          (f.field && typeof f.field === 'object' ? f.field._id : f.field) ||
+          f._id;
+
         return {
           _id: fieldId,
           name: f.name,
@@ -126,13 +126,17 @@ export default function DepartmentPanel({
           isRequired: f.isRequired || false,
           order: f.order || 0,
           parentHeading: f.parentHeading,
-          active: true
+          active: true,
+          // Connection properties
+          isConnectedTo: f.isConnectedTo || false,
+          connectedFieldId: f.connectedFieldId || null,
+          connectionType: f.connectionType || null
         };
       });
-      
+
       setFieldDefs(fieldDefsFromSRD);
       setFields(srdDynamicFields);
-      
+
       // Update the reference for auto-save comparison
       lastSavedFieldsRef.current = JSON.stringify(srdDynamicFields);
     } else {
@@ -155,9 +159,9 @@ export default function DepartmentPanel({
             order: fieldDef.order,
             parentHeading: fieldDef.parentHeading?.name || fieldDef.parentHeading
           }));
-          
+
           setFields(newFields);
-          
+
           // Update the reference for auto-save comparison
           lastSavedFieldsRef.current = JSON.stringify(newFields);
         } catch (err) {
@@ -168,22 +172,44 @@ export default function DepartmentPanel({
     }
   }, [department, srd]);
 
-  const handleFieldChange = (name, value) => {
+  const handleFieldChange = (name, value, fieldDef = null) => {
     if (!editingFields.has(name)) {
       setEditingFields(prev => new Set(prev).add(name));
     }
-    
+
     setFields(prev => {
-      const existingFieldIndex = prev.findIndex(f => f.name === name);
+      let newFields = [...prev];
+      const existingFieldIndex = newFields.findIndex(f => f.name === name);
+
       if (existingFieldIndex > -1) {
-        const newFields = [...prev];
         newFields[existingFieldIndex] = { ...newFields[existingFieldIndex], value };
-        return newFields;
       } else {
-        return [...prev, { name, value, department }];
+        newFields = [...newFields, { name, value, department }];
       }
+
+      // Handle auto-true connection: when this field becomes true, update connected field
+      if (fieldDef && fieldDef.isConnectedTo && fieldDef.connectionType === 'auto-true' && value === true) {
+        const connectedFieldId = fieldDef.connectedFieldId;
+        if (connectedFieldId) {
+          // Find the connected field in all SRD dynamic fields
+          const connectedSrdField = srd.dynamicFields?.find(f => {
+            const fId = f.originalFieldId || (f.field && typeof f.field === 'object' ? f.field._id : f.field) || f._id;
+            return fId?.toString() === connectedFieldId?.toString();
+          });
+
+          if (connectedSrdField) {
+            // Check if connected field is in this department
+            const connectedInThisDept = newFields.findIndex(f => f.name === connectedSrdField.name);
+            if (connectedInThisDept > -1) {
+              newFields[connectedInThisDept] = { ...newFields[connectedInThisDept], value: true };
+            }
+          }
+        }
+      }
+
+      return newFields;
     });
-    
+
     // Mark as having unsaved changes
     setHasUnsavedChanges(true);
   };
@@ -283,6 +309,25 @@ export default function DepartmentPanel({
     }
   };
 
+  // Check if a field should be hidden based on toggle-active connection
+  const isFieldHidden = (field) => {
+    if (!field.isConnectedTo || field.connectionType !== 'toggle-active') {
+      return false;
+    }
+
+    const connectedFieldId = field.connectedFieldId;
+    if (!connectedFieldId) return false;
+
+    // Find the connected field value in all SRD dynamic fields
+    const connectedSrdField = srd.dynamicFields?.find(f => {
+      const fId = f.originalFieldId || (f.field && typeof f.field === 'object' ? f.field._id : f.field) || f._id;
+      return fId?.toString() === connectedFieldId?.toString();
+    });
+
+    // If connected field is true, hide this field
+    return connectedSrdField?.value === true;
+  };
+
   const renderDynamicFields = () => {
     if (!fieldDefs.length)
       return (
@@ -296,7 +341,7 @@ export default function DepartmentPanel({
     const headings = fieldDefs.filter(f => f.type === 'heading');
     const regularFields = fieldDefs.filter(f => f.type !== 'heading');
     const result = [];
-    
+
     // Track which fields are assigned to a heading
     const assignedFieldIds = new Set();
 
@@ -304,29 +349,29 @@ export default function DepartmentPanel({
     headings.forEach(heading => {
       const childFields = regularFields.filter(f => {
         if (!f.parentHeading) return false;
-        
+
         // Handle populated parentHeading object vs ObjectId vs Name
         let parentIdentifier = f.parentHeading;
         if (typeof f.parentHeading === 'object' && f.parentHeading !== null) {
           parentIdentifier = f.parentHeading._id || f.parentHeading.name;
         }
-        
+
         // Match by ID
         if (heading._id && parentIdentifier && parentIdentifier.toString() === heading._id.toString()) {
-            return true;
+          return true;
         }
-        
+
         // Match by Name
         if (heading.name && parentIdentifier === heading.name) {
-            return true;
+          return true;
         }
-        
+
         return false;
       });
 
       if (childFields.length > 0) {
         childFields.forEach(f => assignedFieldIds.add(f._id));
-        
+
         result.push(
           <div key={`section-${heading._id}`} className="mb-8">
             {/* Section Heading */}
@@ -335,7 +380,7 @@ export default function DepartmentPanel({
                 📁 {heading.name}
               </h3>
             </div>
-            
+
             {/* Section Fields */}
             <div className="pl-4 border-l-4 border-blue-200">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -364,6 +409,11 @@ export default function DepartmentPanel({
   };
 
   const renderField = (field) => {
+    // Check if field should be hidden due to toggle-active connection
+    if (isFieldHidden(field)) {
+      return null;
+    }
+
     const { _id, name, type, placeholder, isRequired } = field;
     const fieldValue = fields.find(f => f.name === name)?.value ?? '';
 
@@ -445,109 +495,109 @@ export default function DepartmentPanel({
         );
 
 
-            case 'boolean':
-              const hasBoolValue = hasFieldValue(name);
-              const isBoolEditing = editingFields.has(name);
-              return (
-                <div key={_id} className="flex flex-col">
-                  <Label htmlFor={name} className="mb-2">{name}</Label>
-                  <div className="flex items-center justify-between">
-                    {hasBoolValue && !isBoolEditing ? (
-                      <div className="flex items-center gap-2">
-                        <div className="px-3 py-2 bg-gray-50 border rounded-md">
-                          <span className={`text-sm font-medium ${fieldValue ? 'text-green-700' : 'text-gray-600'}`}>{fieldValue ? 'Yes' : 'No'}</span>
-                        </div>
-                        {canEdit && (
-                          <Button variant="ghost" size="icon" onClick={() => toggleEditMode(name)} className="h-8 w-8">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <Switch id={name} checked={!!fieldValue} onCheckedChange={(checked) => handleFieldChange(name, checked)} disabled={!canEdit} />
-                        {isBoolEditing && canEdit && (
-                          <Button variant="ghost" size="icon" onClick={() => toggleEditMode(name)} className="h-8 w-8">
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    )}
+      case 'boolean':
+        const hasBoolValue = hasFieldValue(name);
+        const isBoolEditing = editingFields.has(name);
+        return (
+          <div key={_id} className="flex flex-col">
+            <Label htmlFor={name} className="mb-2">{name}</Label>
+            <div className="flex items-center justify-between">
+              {hasBoolValue && !isBoolEditing ? (
+                <div className="flex items-center gap-2">
+                  <div className="px-3 py-2 bg-gray-50 border rounded-md">
+                    <span className={`text-sm font-medium ${fieldValue ? 'text-green-700' : 'text-gray-600'}`}>{fieldValue ? 'Yes' : 'No'}</span>
                   </div>
-                </div>
-              );
-
-            case 'image':
-              const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-              const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-              const allImages = Array.from(new Set([...globalImages, ...deptImages]));
-              return (
-                <div key={_id} className="md:col-span-3">
-                  <Label>{name}</Label>
                   {canEdit && (
-                    <div className="mt-2">
-                      <UploadImage
-                        onUploaded={(urls) => {
-                          const imageArray = Array.isArray(urls) ? urls : (urls ? [urls] : []);
-                          if (imageArray.length > 0) {
-                            const currentImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-                            const updatedImages = [...currentImages, ...imageArray];
-                            handleFieldChange(name, updatedImages);
-                            toast({
-                              title: 'Images uploaded',
-                              description: `${imageArray.length} image(s) uploaded. Changes will be saved automatically.`,
-                            });
-                          }
-                        }}
-                      />
-                    </div>
-                  )}
-                  {allImages.length > 0 ? (
-                    <div className="grid grid-cols-4 md:grid-cols-6 gap-2 mt-2">
-                      {allImages.map((src, idx) => {
-                        const isDeptImage = deptImages.includes(src);
-                        const isCover = globalImages[0] === src || deptImages[0] === src;
-                        return (
-                          <div key={idx} className="relative group aspect-square">
-                            <div className="cursor-pointer w-full h-full" onClick={() => { setImageModalIndex(idx); setModalImages(allImages); setIsImageModalOpen(true); }}>
-                              <Image src={src} alt={`${name}-${idx}`} fill className={cn("object-cover rounded border transition-all", isCover ? "border-yellow-400 border-2" : "border-gray-200 hover:border-blue-400")} />
-                              {isCover && (
-                                <div className="absolute top-1 left-1 bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded text-xs font-semibold flex items-center gap-1">
-                                  <Star className="h-3 w-3 fill-current" />Cover
-                                </div>
-                              )}
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition rounded">
-                                <span className="bg-black/60 px-2 py-1 rounded">View</span>
-                              </div>
-                            </div>
-                            {canEdit && (
-                              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                                {!isCover && (
-                                  <button onClick={(e) => { e.stopPropagation(); handleSetCoverImage(name, idx, allImages); }} className="bg-yellow-500 hover:bg-yellow-600 text-white p-1 rounded shadow-lg" title="Set as cover">
-                                    <Star className="h-3 w-3" />
-                                  </button>
-                                )}
-                                {isDeptImage && (
-                                  <button onClick={(e) => { e.stopPropagation(); handleRemoveImage(name, idx, allImages); }} className="bg-red-500 hover:bg-red-600 text-white p-1 rounded shadow-lg" title="Remove image">
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500 italic mt-1">No images uploaded yet.</p>
+                    <Button variant="ghost" size="icon" onClick={() => toggleEditMode(name)} className="h-8 w-8">
+                      <Edit className="h-4 w-4" />
+                    </Button>
                   )}
                 </div>
-              );
-            
-            default:
-              return null;
-          }
-        };
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Switch id={name} checked={!!fieldValue} onCheckedChange={(checked) => handleFieldChange(name, checked, field)} disabled={!canEdit} />
+                  {isBoolEditing && canEdit && (
+                    <Button variant="ghost" size="icon" onClick={() => toggleEditMode(name)} className="h-8 w-8">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 'image':
+        const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+        const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
+        const allImages = Array.from(new Set([...globalImages, ...deptImages]));
+        return (
+          <div key={_id} className="md:col-span-3">
+            <Label>{name}</Label>
+            {canEdit && (
+              <div className="mt-2">
+                <UploadImage
+                  onUploaded={(urls) => {
+                    const imageArray = Array.isArray(urls) ? urls : (urls ? [urls] : []);
+                    if (imageArray.length > 0) {
+                      const currentImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+                      const updatedImages = [...currentImages, ...imageArray];
+                      handleFieldChange(name, updatedImages);
+                      toast({
+                        title: 'Images uploaded',
+                        description: `${imageArray.length} image(s) uploaded. Changes will be saved automatically.`,
+                      });
+                    }
+                  }}
+                />
+              </div>
+            )}
+            {allImages.length > 0 ? (
+              <div className="grid grid-cols-4 md:grid-cols-6 gap-2 mt-2">
+                {allImages.map((src, idx) => {
+                  const isDeptImage = deptImages.includes(src);
+                  const isCover = globalImages[0] === src || deptImages[0] === src;
+                  return (
+                    <div key={idx} className="relative group aspect-square">
+                      <div className="cursor-pointer w-full h-full" onClick={() => { setImageModalIndex(idx); setModalImages(allImages); setIsImageModalOpen(true); }}>
+                        <Image src={src} alt={`${name}-${idx}`} fill className={cn("object-cover rounded border transition-all", isCover ? "border-yellow-400 border-2" : "border-gray-200 hover:border-blue-400")} />
+                        {isCover && (
+                          <div className="absolute top-1 left-1 bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded text-xs font-semibold flex items-center gap-1">
+                            <Star className="h-3 w-3 fill-current" />Cover
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition rounded">
+                          <span className="bg-black/60 px-2 py-1 rounded">View</span>
+                        </div>
+                      </div>
+                      {canEdit && (
+                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                          {!isCover && (
+                            <button onClick={(e) => { e.stopPropagation(); handleSetCoverImage(name, idx, allImages); }} className="bg-yellow-500 hover:bg-yellow-600 text-white p-1 rounded shadow-lg" title="Set as cover">
+                              <Star className="h-3 w-3" />
+                            </button>
+                          )}
+                          {isDeptImage && (
+                            <button onClick={(e) => { e.stopPropagation(); handleRemoveImage(name, idx, allImages); }} className="bg-red-500 hover:bg-red-600 text-white p-1 rounded shadow-lg" title="Remove image">
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 italic mt-1">No images uploaded yet.</p>
+            )}
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <Card>

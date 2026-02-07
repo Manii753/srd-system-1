@@ -29,12 +29,12 @@ export default function DepartmentPanelExcel({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [pendingUpdates, setPendingUpdates] = useState({}); // Track updates per department
-  
+
   // Status update state
   const [selectedDepartment, setSelectedDepartment] = useState(userRole === 'admin' || userRole === 'vmd' ? 'vmd' : userRole);
   const [statusToUpdate, setStatusToUpdate] = useState('pending');
   const [updateComment, setUpdateComment] = useState('');
-  
+
   // Auto-save functionality
   const autoSaveTimeoutRef = useRef(null);
   const lastSavedFieldsRef = useRef(JSON.stringify(fields));
@@ -74,7 +74,7 @@ export default function DepartmentPanelExcel({
           }
         }
         setAllFieldDefs(fieldDefsMap);
-        
+
         // Initialize fields from SRD
         setFields(srd.dynamicFields || []);
         lastSavedFieldsRef.current = JSON.stringify(srd.dynamicFields || []);
@@ -97,30 +97,30 @@ export default function DepartmentPanelExcel({
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
     }
-    
+
     autoSaveTimeoutRef.current = setTimeout(async () => {
       const deptFields = fieldsToSave.filter(f => f.department === department);
-      
+
       if (deptFields.length > 0 && !isSubmitting) {
         try {
           setIsSubmitting(true);
-          
+
           const updateData = {
             status: srd.status?.[department] || 'pending',
             fields: deptFields,
           };
 
           await onUpdate(department, updateData);
-          
+
           lastSavedFieldsRef.current = JSON.stringify(fieldsToSave);
           setHasUnsavedChanges(false);
-          
+
           toast({
             title: 'Auto-saved',
             description: `${department.toUpperCase()} changes saved`,
             duration: 2000,
           });
-          
+
         } catch (error) {
           console.error('[Auto-save] Failed:', error);
           toast({
@@ -145,44 +145,79 @@ export default function DepartmentPanelExcel({
   }, []);
 
   // Handle field change with department tracking
-  const handleFieldChange = useCallback((fieldId, name, value, department) => {
+  const handleFieldChange = useCallback((fieldId, name, value, department, fieldDef = null) => {
     setFields(prev => {
-      const existingFieldIndex = prev.findIndex(f => 
-        (f.originalFieldId === fieldId) || 
+      const existingFieldIndex = prev.findIndex(f =>
+        (f.originalFieldId === fieldId) ||
         (f.field?._id === fieldId) ||
         (f.name === name && f.department === department)
       );
-      
+
       let newFields;
       if (existingFieldIndex > -1) {
         newFields = [...prev];
         newFields[existingFieldIndex] = { ...newFields[existingFieldIndex], value };
       } else {
-        newFields = [...prev, { 
-          name, 
-          value, 
+        newFields = [...prev, {
+          name,
+          value,
           department,
           originalFieldId: fieldId,
         }];
       }
-      
+
+      // Handle auto-true connection: when this field becomes true, update connected field
+      if (fieldDef && fieldDef.isConnectedTo && fieldDef.connectionType === 'auto-true' && value === true) {
+        const connectedFieldId = fieldDef.connectedFieldId;
+        if (connectedFieldId) {
+          // Find the connected field in current fields
+          const connectedIndex = newFields.findIndex(f => {
+            const fId = f.originalFieldId || (f.field && typeof f.field === 'object' ? f.field._id : f.field);
+            return fId?.toString() === connectedFieldId?.toString();
+          });
+
+          if (connectedIndex > -1) {
+            newFields[connectedIndex] = { ...newFields[connectedIndex], value: true };
+          }
+        }
+      }
+
       // Trigger auto-save for this department
       debouncedAutoSave(newFields, department);
-      
+
       return newFields;
     });
-    
+
     setHasUnsavedChanges(true);
   }, [debouncedAutoSave]);
 
   // Get field value from SRD dynamicFields by fieldId - memoized
   const getFieldValue = useCallback((fieldId, fieldDef) => {
-    const srdField = fields.find(f => 
+    const srdField = fields.find(f =>
       (f.originalFieldId && f.originalFieldId.toString() === fieldId?.toString()) ||
       (f.field?._id && f.field._id.toString() === fieldId?.toString()) ||
       (f.name === fieldDef?.name && f.department === fieldDef?.department)
     );
     return srdField?.value ?? '';
+  }, [fields]);
+
+  // Check if a field should be hidden based on toggle-active connection
+  const isFieldHidden = useCallback((fieldDef) => {
+    if (!fieldDef.isConnectedTo || fieldDef.connectionType !== 'toggle-active') {
+      return false;
+    }
+
+    const connectedFieldId = fieldDef.connectedFieldId;
+    if (!connectedFieldId) return false;
+
+    // Find the connected field value in current fields
+    const connectedField = fields.find(f => {
+      const fId = f.originalFieldId || (f.field && typeof f.field === 'object' ? f.field._id : f.field);
+      return fId?.toString() === connectedFieldId?.toString();
+    });
+
+    // If connected field is true, hide this field
+    return connectedField?.value === true;
   }, [fields]);
 
   const handleRemoveImage = useCallback((fieldId, name, department, imageIndex, allImages) => {
@@ -222,10 +257,10 @@ export default function DepartmentPanelExcel({
   // Handle status update for a department
   const handleStatusUpdate = useCallback(async () => {
     // Determine which department to update
-    const deptToUpdate = (userRole === 'admin' || userRole === 'vmd') 
-      ? selectedDepartment 
+    const deptToUpdate = (userRole === 'admin' || userRole === 'vmd')
+      ? selectedDepartment
       : userRole;
-    
+
     if (statusToUpdate === 'flagged' && !updateComment.trim()) {
       toast({
         title: 'Comment required',
@@ -239,12 +274,12 @@ export default function DepartmentPanelExcel({
     try {
       // Get the fields for this department
       const deptFields = fields.filter(f => f.department === deptToUpdate);
-      
+
       const updateData = {
         status: statusToUpdate,
         fields: deptFields,
       };
-      
+
       // Add comment if provided
       if (updateComment.trim()) {
         updateData.comment = {
@@ -256,12 +291,12 @@ export default function DepartmentPanelExcel({
       }
 
       await onUpdate(deptToUpdate, updateData);
-      
+
       toast({
         title: 'Status updated',
         description: `${deptToUpdate.toUpperCase()} status set to ${statusToUpdate}`,
       });
-      
+
       setUpdateComment('');
     } catch (error) {
       console.error('Status update failed:', error);
@@ -276,104 +311,104 @@ export default function DepartmentPanelExcel({
   }, [userRole, selectedDepartment, statusToUpdate, updateComment, fields, srd.createdBy?.name, onUpdate, toast]);
 
   // This is the updated handlePrint function for DepartmentPanelExcel.jsx
-// Replace the existing handlePrint function with this one
+  // Replace the existing handlePrint function with this one
 
-const handlePrint = async () => {
-  try {
-    // Fetch the active print template
-    const templateRes = await fetch('/api/printTemplate');
-    const templates = await templateRes.json();
-    
-    const activeTemplateForPrint = Array.isArray(templates) 
-      ? templates.find(t => t.isActive) 
-      : null;
-    
-    if (!activeTemplateForPrint) {
-      toast({
-        title: 'No active template',
-        description: 'Please create and activate a print template in the template designer.',
-        variant: 'destructive',
-      });
-      return;
-    }
+  const handlePrint = async () => {
+    try {
+      // Fetch the active print template
+      const templateRes = await fetch('/api/printTemplate');
+      const templates = await templateRes.json();
 
-    // Fetch all field definitions to get field metadata
-    const allFieldDefsForPrint = [];
-    for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
-      try {
-        const res = await fetch(`/api/newField?department=${dept}`);
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          allFieldDefsForPrint.push(...data);
-        }
-      } catch (err) {
-        console.error(`Failed to fetch ${dept} fields:`, err);
+      const activeTemplateForPrint = Array.isArray(templates)
+        ? templates.find(t => t.isActive)
+        : null;
+
+      if (!activeTemplateForPrint) {
+        toast({
+          title: 'No active template',
+          description: 'Please create and activate a print template in the template designer.',
+          variant: 'destructive',
+        });
+        return;
       }
-    }
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast({
-        title: 'Print blocked',
-        description: 'Please allow popups for this site to enable printing',
-        variant: 'destructive',
-      });
-      return;
-    }
+      // Fetch all field definitions to get field metadata
+      const allFieldDefsForPrint = [];
+      for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
+        try {
+          const res = await fetch(`/api/newField?department=${dept}`);
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            allFieldDefsForPrint.push(...data);
+          }
+        } catch (err) {
+          console.error(`Failed to fetch ${dept} fields:`, err);
+        }
+      }
 
-    // Build the print content using the template
-    const gridColumns = activeTemplateForPrint.gridColumns || 6;
-    let fieldsHTML = '';
-    
-    activeTemplateForPrint.cells.forEach(cell => {
-      const colSpan = cell.position?.colSpan || 1;
-      const rowSpan = cell.position?.rowSpan || 1;
-      const height = cell.position?.height || 'auto';
-      
-      const minHeight = 
-        height === 'small' ? '12px' :
-        height === 'medium' ? '25px' :
-        height === 'large' ? '50px' :
-        height === 'xlarge' ? '90px' : 'auto';
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        toast({
+          title: 'Print blocked',
+          description: 'Please allow popups for this site to enable printing',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-      // Handle custom elements
-      if (cell.isCustom) {
-        const customType = cell.customType;
-        const customValue = cell.customValue || '';
-        const customPlaceholder = cell.customPlaceholder || '';
+      // Build the print content using the template
+      const gridColumns = activeTemplateForPrint.gridColumns || 6;
+      let fieldsHTML = '';
 
-        let customHTML = '';
-        
-        switch (customType) {
-          case 'custom-heading':
-          customHTML = `
+      activeTemplateForPrint.cells.forEach(cell => {
+        const colSpan = cell.position?.colSpan || 1;
+        const rowSpan = cell.position?.rowSpan || 1;
+        const height = cell.position?.height || 'auto';
+
+        const minHeight =
+          height === 'small' ? '12px' :
+            height === 'medium' ? '25px' :
+              height === 'large' ? '50px' :
+                height === 'xlarge' ? '90px' : 'auto';
+
+        // Handle custom elements
+        if (cell.isCustom) {
+          const customType = cell.customType;
+          const customValue = cell.customValue || '';
+          const customPlaceholder = cell.customPlaceholder || '';
+
+          let customHTML = '';
+
+          switch (customType) {
+            case 'custom-heading':
+              customHTML = `
             <div class="field-cell cell-heading" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
               <div class="heading-content" style="text-align: left; width: 100%;">${customValue}</div>
             </div>
           `;
-          break;
-          
-          case 'custom-text':
-            customHTML = `
+              break;
+
+            case 'custom-text':
+              customHTML = `
               <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
                 <div class="static-text">${customValue}</div>
               </div>
             `;
-            break;
-          
-          case 'custom-empty-field':
-            customHTML = `
+              break;
+
+            case 'custom-empty-field':
+              customHTML = `
               <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
                 <div class="cell-content">
                   <span class="cell-label">${customValue}</span>
-                  <span class="">${customPlaceholder ? `<span class="placeholder-text">${customPlaceholder}</span>`: ''}</span>
+                  <span class="">${customPlaceholder ? `<span class="placeholder-text">${customPlaceholder}</span>` : ''}</span>
                 </div>
               </div>
             `;
-            break;
-          
-          case 'custom-textarea':
-            customHTML = `
+              break;
+
+            case 'custom-textarea':
+              customHTML = `
               <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
                 <div class="textarea-container">
                   <div class="textarea-label">${customValue}:</div>
@@ -381,18 +416,18 @@ const handlePrint = async () => {
                 </div>
               </div>
             `;
-            break;
-          
-          case 'custom-separator':
-            customHTML = `
+              break;
+
+            case 'custom-separator':
+              customHTML = `
               <div class="field-cell separator-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan};">
                 <div class="separator-line"></div>
               </div>
             `;
-            break;
-          
-          case 'custom-signature':
-            customHTML = `
+              break;
+
+            case 'custom-signature':
+              customHTML = `
               <div class="field-cell signature-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
                 <div class="signature-container">
                   <div class="signature-label">${customValue}</div>
@@ -401,87 +436,87 @@ const handlePrint = async () => {
                 </div>
               </div>
             `;
-            break;
-          
-          default:
-            customHTML = `
+              break;
+
+            default:
+              customHTML = `
               <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
                 <div class="cell-content">
                   <span class="cell-underline"></span>
                 </div>
               </div>
             `;
+          }
+
+          fieldsHTML += customHTML;
+          return;
         }
-        
-        fieldsHTML += customHTML;
-        return;
-      }
 
-      // Handle regular database fields
-      // Find the field definition
-      const fieldDef = allFieldDefsForPrint.find(f => f._id.toString() === cell.fieldId?.toString());
-      if (!fieldDef) {
-        console.warn(`Field definition not found for ID: ${cell.fieldId}`);
-        return;
-      }
+        // Handle regular database fields
+        // Find the field definition
+        const fieldDef = allFieldDefsForPrint.find(f => f._id.toString() === cell.fieldId?.toString());
+        if (!fieldDef) {
+          console.warn(`Field definition not found for ID: ${cell.fieldId}`);
+          return;
+        }
 
-      // Find the field value from SRD data
-      let fieldValue = '';
-      const srdField = srd.dynamicFields?.find(f => {
-        return (
-          (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
-          (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString()) ||
-          (f.name === fieldDef.name && f.department === fieldDef.department)
-        );
-      });
-      
-      if (srdField) {
-        fieldValue = srdField.value || '';
-      }
-      
-      let valueDisplay = '';
-      const isHeading = fieldDef.type === 'heading';
-      const isImage = fieldDef.type === 'image';
-      const isFile = fieldDef.type === 'file';
+        // Find the field value from SRD data
+        let fieldValue = '';
+        const srdField = srd.dynamicFields?.find(f => {
+          return (
+            (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
+            (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString()) ||
+            (f.name === fieldDef.name && f.department === fieldDef.department)
+          );
+        });
 
-      if (fieldDef.type === 'boolean') {
-        valueDisplay = `
+        if (srdField) {
+          fieldValue = srdField.value || '';
+        }
+
+        let valueDisplay = '';
+        const isHeading = fieldDef.type === 'heading';
+        const isImage = fieldDef.type === 'image';
+        const isFile = fieldDef.type === 'file';
+
+        if (fieldDef.type === 'boolean') {
+          valueDisplay = `
           <div class="checkbox-group">
             <span class="checkbox-item">${fieldValue ? 'inStock' : ''}</span>
             <span class="checkbox-item">${!fieldValue ? 'Purchase Requested' : ''}</span>
           </div>
         `;
-      } else if (isFile) {
-        if (fieldValue) {
-          valueDisplay = `
+        } else if (isFile) {
+          if (fieldValue) {
+            valueDisplay = `
             <div style="display: flex; align-items: center; gap: 4px;">
               <span>📊</span>
               <span style="font-size: 7px;">Excel File Attached</span>
             </div>
           `;
+          } else {
+            valueDisplay = '<span class="no-value"></span>';
+          }
+        } else if (isImage) {
+          const images = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+          const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
+          const allImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
+
+          if (allImages.length > 0) {
+            const imgGrid = allImages.map(img =>
+              `<div class="img-wrapper"><img src="${img}" class="img-print" alt="Product image" /></div>`
+            ).join('');
+            valueDisplay = `<div class="image-stack">${imgGrid}</div>`;
+          } else {
+            valueDisplay = '<span class="no-value"></span>';
+          }
+        } else if (isHeading) {
+          valueDisplay = fieldDef.name;
         } else {
-          valueDisplay = '<span class="no-value"></span>';
+          valueDisplay = fieldValue || '';
         }
-      } else if (isImage) {
-        const images = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-        const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-        const allImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
-        
-        if (allImages.length > 0) {
-          const imgGrid = allImages.map(img => 
-            `<div class="img-wrapper"><img src="${img}" class="img-print" alt="Product image" /></div>`
-          ).join('');
-          valueDisplay = `<div class="image-stack">${imgGrid}</div>`;
-        } else {
-          valueDisplay = '<span class="no-value"></span>';
-        }
-      } else if (isHeading) {
-        valueDisplay = fieldDef.name;
-      } else {
-        valueDisplay = fieldValue || '';
-      }
-      
-      fieldsHTML += `
+
+        fieldsHTML += `
         <div class="field-cell ${isHeading ? 'cell-heading' : ''} ${isImage ? 'cell-image' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
           ${!isHeading && !isImage ? `
               <div class="cell-content">
@@ -498,28 +533,28 @@ const handlePrint = async () => {
           `}
         </div>
       `;
-    });
+      });
 
-    // If no fields were rendered, show a message
-    if (!fieldsHTML.trim()) {
-      fieldsHTML = `
+      // If no fields were rendered, show a message
+      if (!fieldsHTML.trim()) {
+        fieldsHTML = `
         <div class="field-cell" style="grid-column: span ${gridColumns}; text-align: center; padding: 40px;">
           <div style="color: #666; font-style: italic;">
             No matching fields found for this template. Please check your template configuration.
           </div>
         </div>
       `;
-    }
-
-    // Identify Excel files to include in print
-    const excelFiles = [];
-    srd.dynamicFields?.forEach(f => {
-      if (f.type === 'file' && f.value) {
-        excelFiles.push({ name: f.name, url: f.value });
       }
-    });
 
-    const printContent = `<!DOCTYPE html>
+      // Identify Excel files to include in print
+      const excelFiles = [];
+      srd.dynamicFields?.forEach(f => {
+        if (f.type === 'file' && f.value) {
+          excelFiles.push({ name: f.name, url: f.value });
+        }
+      });
+
+      const printContent = `<!DOCTYPE html>
 <html>
 <head>
   <title>SRD Complete Form - ${srd.refNo}</title>
@@ -942,21 +977,21 @@ const handlePrint = async () => {
 </body>
 </html>`;
 
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    
-    // The print command is now handled inside the script in the print window
-    // to ensure excel data is loaded first.
+      printWindow.document.write(printContent);
+      printWindow.document.close();
 
-  } catch (error) {
-    console.error('Print error:', error);
-    toast({
-      title: 'Print failed',
-      description: 'There was an error generating the print document',
-      variant: 'destructive',
-    });
-  }
-};
+      // The print command is now handled inside the script in the print window
+      // to ensure excel data is loaded first.
+
+    } catch (error) {
+      console.error('Print error:', error);
+      toast({
+        title: 'Print failed',
+        description: 'There was an error generating the print document',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Render input cell based on field type
   const renderCellInput = useCallback((fieldDef, fieldId, canEdit) => {
@@ -1019,7 +1054,7 @@ const handlePrint = async () => {
         return (
           <div className="space-y-1 p-1">
             {canEdit && (
-              <UploadFile 
+              <UploadFile
                 onUploaded={(urls) => {
                   const url = Array.isArray(urls) ? urls[0] : urls;
                   if (url) {
@@ -1029,7 +1064,7 @@ const handlePrint = async () => {
                       description: 'File uploaded successfully',
                     });
                   }
-                }} 
+                }}
               />
             )}
             {fieldValue && (
@@ -1061,7 +1096,7 @@ const handlePrint = async () => {
         return (
           <div className="space-y-1 p-1">
             {canEdit && (
-              <UploadImage 
+              <UploadImage
                 onUploaded={(urls) => {
                   const imageArray = Array.isArray(urls) ? urls : (urls ? [urls] : []);
                   if (imageArray.length > 0) {
@@ -1073,16 +1108,16 @@ const handlePrint = async () => {
                       description: `${imageArray.length} image(s) uploaded.`,
                     });
                   }
-                }} 
+                }}
               />
             )}
-            
+
             {allImages.length > 0 ? (
               <div className="grid grid-cols-3 gap-1">
                 {allImages.slice(0, 6).map((src, idx) => {
                   const isDeptImage = deptImages.includes(src);
                   const isCover = idx === 0;
-                  
+
                   return (
                     <div key={idx} className="relative group aspect-square">
                       <Image
@@ -1099,7 +1134,7 @@ const handlePrint = async () => {
                           <Star className="h-2 w-2 fill-current" />
                         </div>
                       )}
-                      
+
                       {canEdit && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <div className="flex gap-1">
@@ -1209,8 +1244,8 @@ const handlePrint = async () => {
 
       {/* Permission indicator */}
       <div className="bg-gray-50 border-b px-3 py-1.5 text-xs text-gray-600">
-        <span className="font-medium">Your role:</span> {userRole?.toUpperCase()} • 
-        {userRole === 'admin' || userRole === 'vmd' 
+        <span className="font-medium">Your role:</span> {userRole?.toUpperCase()} •
+        {userRole === 'admin' || userRole === 'vmd'
           ? ' You can edit all fields'
           : ` You can edit ${userRole?.toUpperCase()} fields only`
         }
@@ -1218,7 +1253,7 @@ const handlePrint = async () => {
 
       {/* Grid based on template */}
       <div className="p-3">
-        <div 
+        <div
           className="grid gap-2"
           style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}
         >
@@ -1229,10 +1264,10 @@ const handlePrint = async () => {
             // Handle custom elements
             if (cell.isCustom) {
               return (
-                <div 
+                <div
                   key={cellIndex}
                   className="bg-gray-50 border border-gray-200 rounded p-2"
-                  style={{ 
+                  style={{
                     gridColumn: `span ${colSpan}`,
                     gridRow: `span ${rowSpan}`,
                   }}
@@ -1263,7 +1298,7 @@ const handlePrint = async () => {
             // Get fieldId - could be ObjectId, string, or populated object
             let fieldIdStr = null;
             let fieldDef = null;
-            
+
             if (cell.fieldId) {
               // If fieldId is already populated (an object with _id), use it directly
               if (typeof cell.fieldId === 'object' && cell.fieldId._id) {
@@ -1277,10 +1312,10 @@ const handlePrint = async () => {
             }
             if (!fieldDef) {
               return (
-                <div 
+                <div
                   key={cellIndex}
                   className="bg-red-50 border border-red-200 rounded p-2 text-xs text-red-500"
-                  style={{ 
+                  style={{
                     gridColumn: `span ${colSpan}`,
                     gridRow: `span ${rowSpan}`,
                   }}
@@ -1294,14 +1329,14 @@ const handlePrint = async () => {
             const isHeading = fieldDef.type === 'heading';
 
             return (
-              <div 
+              <div
                 key={cellIndex}
                 className={cn(
                   "border rounded",
                   isHeading ? "bg-blue-50 border-blue-200" : "bg-white border-gray-300",
                   !canEdit && !isHeading && "bg-gray-50"
                 )}
-                style={{ 
+                style={{
                   gridColumn: `span ${colSpan}`,
                   gridRow: `span ${rowSpan}`,
                 }}
@@ -1316,8 +1351,8 @@ const handlePrint = async () => {
                       {fieldDef.isRequired && (
                         <span className="text-red-500 text-xs font-bold">*</span>
                       )}
-                      <Badge 
-                        variant="outline" 
+                      <Badge
+                        variant="outline"
                         className={cn(
                           "text-xs px-1 py-0",
                           canEdit ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-100 text-gray-500"
@@ -1328,7 +1363,7 @@ const handlePrint = async () => {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Field input */}
                 <div className={cn(!isHeading && "p-1")}>
                   {renderCellInput(fieldDef, fieldIdStr, canEdit)}
@@ -1345,7 +1380,7 @@ const handlePrint = async () => {
           <div className="flex items-center space-x-4">
             <span className="text-gray-500">Status:</span>
             {['vmd', 'cad', 'commercial', 'mmc'].map(dept => (
-              <Badge 
+              <Badge
                 key={dept}
                 className={cn(
                   "text-xs",
@@ -1369,10 +1404,10 @@ const handlePrint = async () => {
           <div>
             <Label className="text-xs font-medium text-gray-700">Department</Label>
             {userRole === 'admin' ? (
-              <select 
-                value={selectedDepartment} 
-                onChange={(e) => setSelectedDepartment(e.target.value)} 
-                className="mt-1 px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7" 
+              <select
+                value={selectedDepartment}
+                onChange={(e) => setSelectedDepartment(e.target.value)}
+                className="mt-1 px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
                 disabled={isSubmitting}
               >
                 {['vmd', 'cad', 'commercial', 'mmc'].map(dept => (
@@ -1387,10 +1422,10 @@ const handlePrint = async () => {
           </div>
           <div>
             <Label className="text-xs font-medium text-gray-700">Status</Label>
-            <select 
-              value={statusToUpdate} 
-              onChange={(e) => setStatusToUpdate(e.target.value)} 
-              className="mt-1 px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7" 
+            <select
+              value={statusToUpdate}
+              onChange={(e) => setStatusToUpdate(e.target.value)}
+              className="mt-1 px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
               disabled={isSubmitting}
             >
               <option value="pending">Pending</option>
@@ -1403,19 +1438,19 @@ const handlePrint = async () => {
             <Label htmlFor="updateComment" className="text-xs font-medium text-gray-700">
               Comment {statusToUpdate !== 'flagged' && <span className="text-gray-500">(Optional)</span>}
             </Label>
-            <Input 
-              id="updateComment" 
-              value={updateComment} 
-              onChange={(e) => setUpdateComment(e.target.value)} 
-              placeholder={statusToUpdate === 'flagged' ? 'Describe issue...' : 'Add comment...'} 
-              required={statusToUpdate === 'flagged'} 
-              className="mt-1 text-xs h-7 border border-gray-300 focus:ring-1 focus:ring-blue-500" 
+            <Input
+              id="updateComment"
+              value={updateComment}
+              onChange={(e) => setUpdateComment(e.target.value)}
+              placeholder={statusToUpdate === 'flagged' ? 'Describe issue...' : 'Add comment...'}
+              required={statusToUpdate === 'flagged'}
+              className="mt-1 text-xs h-7 border border-gray-300 focus:ring-1 focus:ring-blue-500"
             />
           </div>
           <div>
-            <Button 
-              onClick={handleStatusUpdate} 
-              disabled={isSubmitting || (statusToUpdate === 'flagged' && !updateComment.trim())} 
+            <Button
+              onClick={handleStatusUpdate}
+              disabled={isSubmitting || (statusToUpdate === 'flagged' && !updateComment.trim())}
               size="sm"
               className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs h-7"
             >
@@ -1437,7 +1472,7 @@ const handlePrint = async () => {
               <div key={idx} className="bg-gray-50 rounded p-2 text-xs">
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-medium text-gray-800">
-                    {comment.author} 
+                    {comment.author}
                     {comment.department && (
                       <Badge variant="outline" className="ml-1 text-xs px-1 py-0">
                         {comment.department.toUpperCase()}

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   LayoutDashboard,
   FileText,
@@ -44,6 +44,8 @@ export default function DynamicSidebar() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const userRole = session?.user?.role;
+  const unreadIntervalRef = useRef(null);
+  const lastFetchTimeRef = useRef(0);
 
   const handleLogout = () => {
     signOut({ callbackUrl: '/login' });
@@ -53,6 +55,13 @@ export default function DynamicSidebar() {
   useEffect(() => {
     if (session?.user?.email) {
       const fetchUnreadCount = async () => {
+        // Debounce: don't fetch if we fetched within the last 5 seconds
+        const now = Date.now();
+        if (now - lastFetchTimeRef.current < 5000) {
+          return;
+        }
+        lastFetchTimeRef.current = now;
+
         try {
           const res = await fetch('/api/messages/unread-count');
           const data = await res.json();
@@ -66,19 +75,27 @@ export default function DynamicSidebar() {
 
       fetchUnreadCount();
 
-      // Refresh every 10 seconds
-      const interval = setInterval(fetchUnreadCount, 10000);
+      // Clear any existing interval before setting a new one
+      if (unreadIntervalRef.current) {
+        clearInterval(unreadIntervalRef.current);
+      }
+
+      // Refresh every 30 seconds (increased from 10)
+      unreadIntervalRef.current = setInterval(fetchUnreadCount, 30000);
 
       // Listen for manual refresh events
       const handleRefresh = () => fetchUnreadCount();
       window.addEventListener('refreshUnreadCount', handleRefresh);
 
       return () => {
-        clearInterval(interval);
+        if (unreadIntervalRef.current) {
+          clearInterval(unreadIntervalRef.current);
+          unreadIntervalRef.current = null;
+        }
         window.removeEventListener('refreshUnreadCount', handleRefresh);
       };
     }
-  }, [session]);
+  }, [session?.user?.email]);
 
   useEffect(() => {
     if (userRole) {
@@ -408,7 +425,7 @@ export default function DynamicSidebar() {
                     open ? "h-12 px-4" : "h-12 px-2 mb-2 justify-center"
                   )}
                 >
-                  <button 
+                  <button
                     onClick={handleLogout}
                     className={cn(
                       "flex items-center w-full h-full",

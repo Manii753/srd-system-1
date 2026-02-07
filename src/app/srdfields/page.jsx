@@ -40,7 +40,7 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
     transition,
     isDragging,
   } = useSortable({ id: field._id });
-  
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -222,21 +222,26 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
 
 export default function Page() {
   const [modalOpen, setModalOpen] = useState(false);
-  const [values, setValues] = useState({ 
-    name: "", 
-    type: "", 
-    placeholder: "", 
-    department: 'vmd', 
+  const [values, setValues] = useState({
+    name: "",
+    type: "",
+    placeholder: "",
+    department: 'vmd',
     isRequired: false,
     parentHeading: null,
-    isShownInQuickDetails: false
+    isShownInQuickDetails: false,
+    isConnectedTo: false,
+    connectedFieldId: null,
+    connectionType: null
   });
   const router = useRouter();
   const [fields, setFields] = useState([]);
+  const [allFields, setAllFields] = useState([]); // All fields from all departments for connection dropdown
   const [editingId, setEditingId] = useState(null);
   const [selectedDepartment, setSelectedDepartment] = useState('vmd');
   const [saving, setSaving] = useState(false);
   const [expandedSections, setExpandedSections] = useState(new Set());
+  const [connectedFieldSearch, setConnectedFieldSearch] = useState('');
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -265,6 +270,27 @@ export default function Page() {
     }
   }
 
+  // Fetch all fields from all departments for connected field dropdown
+  async function fetchAllFields() {
+    try {
+      const allFieldsData = [];
+      for (const dept of DEPARTMENTS) {
+        const res = await fetch(`/api/newField?department=${dept}`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          allFieldsData.push(...data);
+        }
+      }
+      setAllFields(allFieldsData);
+    } catch (err) {
+      console.error('Failed to fetch all fields', err);
+    }
+  }
+
+  useEffect(() => {
+    fetchAllFields();
+  }, []);
+
   function toggleSection(headingId) {
     setExpandedSections(prev => {
       const newSet = new Set(prev);
@@ -278,28 +304,34 @@ export default function Page() {
   }
 
   function openNew(parentHeading = null) {
-    setValues({ 
-      name: "", 
-      type: "", 
-      placeholder: "", 
-      department: selectedDepartment, 
+    setValues({
+      name: "",
+      type: "",
+      placeholder: "",
+      department: selectedDepartment,
       isRequired: false,
       parentHeading: parentHeading,
-      isShownInQuickDetails: false
+      isShownInQuickDetails: false,
+      isConnectedTo: false,
+      connectedFieldId: null,
+      connectionType: null
     });
     setEditingId(null);
     setModalOpen(true);
   }
 
   function openEdit(field) {
-    setValues({ 
-      name: field.name || '', 
-      type: field.type || 'text', 
-      placeholder: field.placeholder || '', 
-      department: field.department || selectedDepartment, 
+    setValues({
+      name: field.name || '',
+      type: field.type || 'text',
+      placeholder: field.placeholder || '',
+      department: field.department || selectedDepartment,
       isRequired: !!field.isRequired,
       parentHeading: field.parentHeading || null,
-      isShownInQuickDetails: !!field.isShownInQuickDetails
+      isShownInQuickDetails: !!field.isShownInQuickDetails,
+      isConnectedTo: !!field.isConnectedTo,
+      connectedFieldId: field.connectedFieldId || null,
+      connectionType: field.connectionType || null
     });
     setEditingId(field._id);
     setModalOpen(true);
@@ -307,7 +339,7 @@ export default function Page() {
 
   async function handleDelete(field) {
     if (!confirm(`Delete field "${field.name}"? This will disable the field for new SRDs but existing SRD values remain.`)) return;
-    
+
     try {
       const res = await fetch(`/api/newField?id=${field._id}`, { method: 'DELETE' });
       await res.json(); // Process response but don't store in unused variable
@@ -371,26 +403,26 @@ export default function Page() {
 
     if (active.id !== over?.id) {
       setSaving(true);
-      
+
       const oldIndex = fields.findIndex(field => field._id === active.id);
       const newIndex = fields.findIndex(field => field._id === over.id);
-      
+
       const draggedField = fields[oldIndex];
       let newFields = [...fields];
-      
+
       // If dragging a heading (section), we need to move it and all its children together
       if (draggedField.type === 'heading') {
         // Find all child fields of this heading
-        const childFields = fields.filter(f => 
+        const childFields = fields.filter(f =>
           f.parentHeading && f.parentHeading.toString() === draggedField._id.toString()
         );
-        
+
         // Create array of fields to move (heading + children)
         const fieldsToMove = [draggedField, ...childFields];
-        
+
         // Remove the heading and all its children from their current positions
         newFields = newFields.filter(f => !fieldsToMove.some(moveField => moveField._id === f._id));
-        
+
         // Calculate the correct insertion index
         let insertIndex;
         if (newIndex > oldIndex) {
@@ -400,14 +432,14 @@ export default function Page() {
           // Moving up - insert at the target position
           insertIndex = Math.max(0, newIndex);
         }
-        
+
         // Insert the heading and children at the new position
         newFields.splice(insertIndex, 0, ...fieldsToMove);
       } else {
         // Regular field dragging - use simple array move
         newFields = arrayMove(fields, oldIndex, newIndex);
       }
-      
+
       setFields(newFields);
 
       // Update order in database
@@ -421,9 +453,9 @@ export default function Page() {
         const response = await fetch('/api/newField/reorder', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            fieldOrders, 
-            department: selectedDepartment 
+          body: JSON.stringify({
+            fieldOrders,
+            department: selectedDepartment
           })
         });
 
@@ -459,7 +491,7 @@ export default function Page() {
         const headingId = heading._id;
         return parentId.toString() === headingId.toString();
       });
-      
+
       // Add heading with children property
       result.push({
         ...heading,
@@ -494,16 +526,16 @@ export default function Page() {
               </option>
             ))}
           </select>
-          
+
           <Button
             variant="outline"
             onClick={() => router.push('/print-templates')}
             className="flex items-center"
           >
-            
+
             Print Templates
           </Button>
-          
+
           <Button
             variant="outline"
             className="flex items-center bg-black text-white border-gray-600 hover:bg-black/50 hover:border-gray-500"
@@ -512,7 +544,7 @@ export default function Page() {
             <PlusCircleIcon className="h-4 w-4 mr-2" />
             Add New Field
           </Button>
-          
+
         </div>
       </div>
 
@@ -581,7 +613,7 @@ export default function Page() {
                             </div>
                           )}
                         </SortableFieldItem>
-                        
+
                         {/* Add Field to Section Button */}
                         {isExpanded && (
                           <div className="ml-8">
@@ -761,6 +793,86 @@ export default function Page() {
                       onChange={(e) => setValues({ ...values, isShownInQuickDetails: e.target.checked })}
                     />
                     <span className="text-sm text-gray-700">Show in Quick Details</span>
+                  </div>
+                )}
+
+                {/* Connected Field Settings */}
+                {values.type !== 'heading' && (
+                  <div className="border-t pt-4 mt-4">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <input
+                        type="checkbox"
+                        className="form-checkbox h-4 w-4"
+                        checked={values.isConnectedTo}
+                        onChange={(e) => setValues({
+                          ...values,
+                          isConnectedTo: e.target.checked,
+                          connectedFieldId: e.target.checked ? values.connectedFieldId : null,
+                          connectionType: e.target.checked ? values.connectionType : null
+                        })}
+                      />
+                      <span className="text-sm font-medium text-gray-700">🔗 Connect to another field</span>
+                    </div>
+
+                    {values.isConnectedTo && (
+                      <div className="space-y-3 pl-6 border-l-2 border-blue-200">
+                        {/* Select Connected Field */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Connected Field
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full p-2 border border-gray-300 rounded mb-2"
+                            placeholder="Search fields..."
+                            value={connectedFieldSearch}
+                            onChange={(e) => setConnectedFieldSearch(e.target.value)}
+                          />
+                          <select
+                            className="w-full p-2 border border-gray-300 rounded"
+                            value={values.connectedFieldId || ''}
+                            onChange={(e) => setValues({ ...values, connectedFieldId: e.target.value || null })}
+                            size="5"
+                          >
+                            <option value="">Select a field to connect</option>
+                            {allFields
+                              .filter(f => f.type !== 'heading' && f._id !== editingId)
+                              .filter(f => {
+                                if (!connectedFieldSearch) return true;
+                                const searchLower = connectedFieldSearch.toLowerCase();
+                                return f.name.toLowerCase().includes(searchLower) ||
+                                  f.department?.toLowerCase().includes(searchLower);
+                              })
+                              .map((f) => (
+                                <option key={f._id} value={f._id}>
+                                  {f.name} ({f.department?.toUpperCase()})
+                                </option>
+                              ))}
+                          </select>
+                          {values.connectedFieldId && (
+                            <div className="mt-2 text-sm text-blue-600">
+                              Selected: {allFields.find(f => f._id === values.connectedFieldId)?.name || 'Unknown'}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Connection Type */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Connection Type
+                          </label>
+                          <select
+                            className="w-full p-2 border border-gray-300 rounded"
+                            value={values.connectionType || ''}
+                            onChange={(e) => setValues({ ...values, connectionType: e.target.value || null })}
+                          >
+                            <option value="">Select connection type</option>
+                            <option value="auto-true">Auto-True (When this field is true, connected field becomes true)</option>
+                            <option value="toggle-active">Toggle-Active (This field is active only when connected field is false)</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
