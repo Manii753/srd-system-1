@@ -92,7 +92,7 @@ export default function SRDDetailPage() {
     fetchTimeline();
   }, [session, status, router, params.id]);
 
-  const handleDepartmentUpdate = async (department, updateData) => {
+  const handleDepartmentUpdate = async (department, updateData, shouldRefreshSrd = true) => {
     try {
       console.log('[Frontend] Sending update:', department, updateData);
 
@@ -108,7 +108,9 @@ export default function SRDDetailPage() {
       console.log('[Frontend] Response:', data);
 
       if (data.success) {
-        setSrd(data.data);
+        if (shouldRefreshSrd) {
+          setSrd(data.data);
+        }
         toast({
           title: 'Success',
           description: `${department.toUpperCase()} updated successfully`,
@@ -297,7 +299,7 @@ export default function SRDDetailPage() {
             <DepartmentPanelExcel
               srd={srd}
               userRole={userRole}
-              onUpdate={(department, data) => handleDepartmentUpdate(department, data)}
+              onUpdate={(department, data, shouldRefresh) => handleDepartmentUpdate(department, data, shouldRefresh)}
             />
           ) : (
             /* Form View - Tabs for each department */

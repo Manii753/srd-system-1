@@ -27,6 +27,7 @@ export default function DepartmentPanelExcel({
   const [fields, setFields] = useState(srd.dynamicFields || []);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [pendingUpdates, setPendingUpdates] = useState({}); // Track updates per department
 
@@ -102,6 +103,8 @@ export default function DepartmentPanelExcel({
       const deptFields = fieldsToSave.filter(f => f.department === department);
 
       if (deptFields.length > 0) { // Removed !isSubmitting check to allow parallel saves
+        // Set auto-saving state
+        setIsAutoSaving(true);
         try {
           // setIsSubmitting(true); // Don't block global submitting state for background saves
 
@@ -110,7 +113,7 @@ export default function DepartmentPanelExcel({
             fields: deptFields,
           };
 
-          await onUpdate(department, updateData);
+          await onUpdate(department, updateData, false);
 
           lastSavedFieldsRef.current = JSON.stringify(fieldsToSave);
           setHasUnsavedChanges(false);
@@ -130,6 +133,7 @@ export default function DepartmentPanelExcel({
             duration: 3000,
           });
         } finally {
+          setIsAutoSaving(false);
           // setIsSubmitting(false); 
           delete autoSaveTimeoutsRef.current[department];
         }
@@ -1301,9 +1305,18 @@ export default function DepartmentPanelExcel({
             size="sm"
             variant="outline"
             className="h-6 px-2 py-0 text-xs bg-white text-blue-700 border-white hover:bg-blue-50"
+            disabled={isSubmitting || isAutoSaving}
           >
-            <Printer className="h-3 w-3 mr-1" />
-            Print
+            {isAutoSaving ? (
+              <>
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              </>
+            ) : (
+              <>
+                <Printer className="h-3 w-3 mr-1" />
+                Print
+              </>
+            )}
           </Button>
           {hasUnsavedChanges && (
             <div className="flex items-center text-xs text-yellow-200">

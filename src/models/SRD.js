@@ -24,26 +24,26 @@ const srdSchema = new mongoose.Schema({
   description: String,
   isComplete: { type: Boolean, default: false },
 
-  revision : {type:Number, default:0},
-  
-  createdBy: { 
-    id: String, 
-    name: String, 
-    role: String 
+  revision: { type: Number, default: 0 },
+
+  createdBy: {
+    id: String,
+    name: String,
+    role: String
   },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-  
+
   progress: { type: Number, default: 0, min: 0, max: 100 },
   readyForProduction: { type: Boolean, default: false },
   inProduction: { type: Boolean, default: false },
-  
+
   // Production tracking
   productionStartDate: { type: Date },
   productionEndDate: { type: Date },
-  currentProductionStage: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'ProductionStage' 
+  currentProductionStage: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ProductionStage'
   },
   productionProgress: { type: Number, default: 0, min: 0, max: 100 },
   productionHistory: [{
@@ -54,13 +54,13 @@ const srdSchema = new mongoose.Schema({
     endDate: Date,
     completedBy: String,
     notes: String,
-    status: { 
-      type: String, 
+    status: {
+      type: String,
       enum: ['in-progress', 'completed', 'on-hold', 'issue'],
       default: 'in-progress'
     }
   }],
-  
+
   status: {
     type: Object,
     of: String,
@@ -84,9 +84,23 @@ const srdSchema = new mongoose.Schema({
     fieldVersion: { type: Date, default: Date.now }, // Track when field was captured
     originalFieldId: { type: String } // Store original field ID for reference
   }],
-  
+
   comments: [commentSchema],
   audit: [auditSchema]
+});
+
+const REQUIRED_DEPTS = ['vmd', 'cad', 'commercial', 'mmc'];
+
+srdSchema.pre('save', function (next) {
+  if (this.isModified('status')) {
+    const statuses = this.status || {};
+    const allApproved = REQUIRED_DEPTS.every(dept => statuses[dept] === 'approved');
+
+    if (allApproved) {
+      this.readyForProduction = true;
+    }
+  }
+  next();
 });
 
 export default mongoose.models.SRD || mongoose.model('SRD', srdSchema);
