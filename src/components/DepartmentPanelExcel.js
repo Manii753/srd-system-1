@@ -363,12 +363,14 @@ export default function DepartmentPanelExcel({
   const handlePrint = async () => {
     try {
       // Fetch the active print template
-      const templateRes = await fetch('/api/printTemplate');
-      const templates = await templateRes.json();
+      // Fetch the active print template
+      const templateRes = await fetch('/api/printTemplate/active');
 
-      const activeTemplateForPrint = Array.isArray(templates)
-        ? templates.find(t => t.isActive)
-        : null;
+      if (!templateRes.ok) {
+        throw new Error('Failed to fetch active template');
+      }
+
+      const activeTemplateForPrint = await templateRes.json();
 
       if (!activeTemplateForPrint) {
         toast({
@@ -500,10 +502,33 @@ export default function DepartmentPanelExcel({
         }
 
         // Handle regular database fields
-        // Find the field definition
-        const fieldDef = allFieldDefsForPrint.find(f => f._id.toString() === cell.fieldId?.toString());
+        // Get field definition - prioritize populated object from template
+        let fieldDef = null;
+
+        if (cell.fieldId && typeof cell.fieldId === 'object' && cell.fieldId._id) {
+          // It's already populated! Use it.
+          fieldDef = cell.fieldId;
+        } else if (cell.fieldId) {
+          // It's just an ID, look it up (fallback)
+          fieldDef = allFieldDefsForPrint.find(f => f._id.toString() === cell.fieldId.toString());
+        }
+
         if (!fieldDef) {
           console.warn(`Field definition not found for ID: ${cell.fieldId}`);
+          return;
+        }
+
+        // Check if field is active OR hidden dynamically
+        // If so, render a placeholder to preserve layout
+        if (fieldDef.active === false || isFieldHidden(fieldDef)) {
+          fieldsHTML += `
+            <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+              <div class="cell-content">
+                <span class="cell-label" style="opacity: 0.5;">${fieldDef.name}</span>
+                <span class="cell-underline" style="border-bottom: 0.4px dashed #ccc;"></span>
+              </div>
+            </div>
+          `;
           return;
         }
 
@@ -529,8 +554,8 @@ export default function DepartmentPanelExcel({
         if (fieldDef.type === 'boolean') {
           valueDisplay = `
           <div class="checkbox-group">
-            <span class="checkbox-item">${fieldValue ? 'inStock' : ''}</span>
-            <span class="checkbox-item">${!fieldValue ? 'Purchase Requested' : ''}</span>
+            <span class="checkbox-item">${fieldValue ? 'Yes' : ''}</span>
+            <span class="checkbox-item">${!fieldValue ? 'NO' : ''}</span>
           </div>
         `;
         } else if (isFile) {
@@ -1372,8 +1397,24 @@ export default function DepartmentPanelExcel({
               );
             }
 
-            const canEdit = canEditField(fieldDef.department);
+            const isFieldActive = fieldDef.active !== false; // Active by default if property missing
+            const canEdit = canEditField(fieldDef.department) && isFieldActive;
             const isHeading = fieldDef.type === 'heading';
+            const isHidden = isFieldHidden(fieldDef);
+
+            if (isHidden) {
+              return (
+                <div
+                  key={cellIndex}
+                  className="bg-gray-50 border border-gray-100 rounded"
+                  style={{
+                    gridColumn: `span ${colSpan}`,
+                    gridRow: `span ${rowSpan}`,
+                    opacity: 0.5,
+                  }}
+                ></div>
+              );
+            }
 
             return (
               <div
