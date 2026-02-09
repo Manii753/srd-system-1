@@ -1564,29 +1564,40 @@ export default function DepartmentPanelExcel({
         </p>
       </div>
 
-      {/* Comments Section */}
-      {srd.comments && srd.comments.length > 0 && (
+      {srd.audit && srd.audit.length > 0 && (
         <div className="border-t border-gray-200 p-3">
-          <h4 className="text-sm font-semibold text-gray-700 mb-2">Comments</h4>
-          <div className="space-y-2 max-h-40 overflow-y-auto">
-            {srd.comments.slice().reverse().map((comment, idx) => (
-              <div key={idx} className="bg-gray-50 rounded p-2 text-xs">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-medium text-gray-800">
-                    {comment.author}
-                    {comment.department && (
-                      <Badge variant="outline" className="ml-1 text-xs px-1 py-0">
-                        {comment.department.toUpperCase()}
-                      </Badge>
-                    )}
-                  </span>
-                  <span className="text-gray-400">
-                    {new Date(comment.date).toLocaleString()}
-                  </span>
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Activity</h4>
+          <div className="space-y-2 max-h-100 overflow-y-auto">
+            {srd.audit.slice().reverse().map((entry, idx) => {
+              // Find comment with matching timestamp (within 1 second tolerance)
+              const relatedComment = srd.comments?.find(comment =>
+                Math.abs(new Date(comment.date) - new Date(entry.timestamp)) < 1000
+              );
+
+              return (
+                <div key={idx} className="bg-blue-50 rounded p-2 text-xs">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium text-gray-800">
+                      {entry.author}
+                      {entry.department && (
+                        <Badge variant="outline" className="ml-1 text-xs px-1 py-0">
+                          {entry.department.toUpperCase()}
+                        </Badge>
+                      )}
+                    </span>
+                    <span className="text-gray-400">
+                      {new Date(entry.timestamp).toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-blue-700 font-medium mb-1">{entry.action}</p>
+                  {relatedComment && (
+                    <div className="mt-2 pl-2 border-l-2 border-blue-300">
+                      <p className="text-gray-600 italic">"{relatedComment.text}"</p>
+                    </div>
+                  )}
                 </div>
-                <p className="text-gray-600">{comment.text}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
