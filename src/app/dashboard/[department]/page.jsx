@@ -9,18 +9,19 @@ import SRDTable from '@/components/SRDTable';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Plus, FileText, Clock, CheckCircle, AlertCircle, 
-  TrendingUp, Users, Package, Settings 
+import {
+  Plus, FileText, Clock, CheckCircle, AlertCircle,
+  TrendingUp, Users, Package, Settings
 } from 'lucide-react';
 import Link from 'next/link';
+import ProductionStageDashboard from '@/components/ProductionStageDashboard';
 
 export default function DynamicDepartmentDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
   const departmentSlug = params.department;
-  
+
   const [department, setDepartment] = useState(null);
   const [srds, setSRDs] = useState([]);
   const [stages, setStages] = useState([]);
@@ -28,9 +29,13 @@ export default function DynamicDepartmentDashboard() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('cards');
 
+  // List of production stages that should use ProductionStageDashboard
+  const productionStages = ['cutting', 'sewing', 'washing', 'finishing', 'dispatch'];
+  const isProductionStage = productionStages.includes(departmentSlug);
+
   useEffect(() => {
     if (status === 'loading') return;
-    
+
     if (!session) {
       router.push('/login');
       return;
@@ -71,7 +76,7 @@ export default function DynamicDepartmentDashboard() {
       const fieldsResponse = await fetch('/api/newField');
       const fieldsData = await fieldsResponse.json();
       if (Array.isArray(fieldsData)) {
-        setFields(fieldsData.filter(f => 
+        setFields(fieldsData.filter(f =>
           f.active && (f.department === departmentSlug || f.department === 'global')
         ));
       }
@@ -97,11 +102,11 @@ export default function DynamicDepartmentDashboard() {
 
     const total = srds.length;
     const statusKey = departmentSlug;
-    
+
     // Count by stage
     const stageCounts = {};
     stages.forEach(stage => {
-      stageCounts[stage.slug] = srds.filter(srd => 
+      stageCounts[stage.slug] = srds.filter(srd =>
         srd.status && srd.status[statusKey] === stage.slug
       ).length;
     });
@@ -142,6 +147,11 @@ export default function DynamicDepartmentDashboard() {
         </div>
       </Layout>
     );
+  }
+
+  // If this is a production stage, use the specific dashboard component
+  if (isProductionStage) {
+    return <ProductionStageDashboard stageName={departmentSlug} />;
   }
 
   const departmentName = department?.name || (departmentSlug === 'admin' ? 'Admin' : departmentSlug.toUpperCase());
@@ -198,7 +208,7 @@ export default function DynamicDepartmentDashboard() {
           {stages.slice(0, 3).map((stage) => {
             const Icon = getStageIcon(stage.slug);
             const count = stats[stage.slug] || 0;
-            
+
             return (
               <Card key={stage._id}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -208,8 +218,8 @@ export default function DynamicDepartmentDashboard() {
                 <CardContent>
                   <div className="text-2xl font-bold">{count}</div>
                   <div className="flex items-center mt-1">
-                    <div 
-                      className="w-2 h-2 rounded-full mr-2" 
+                    <div
+                      className="w-2 h-2 rounded-full mr-2"
                       style={{ backgroundColor: stage.color }}
                     />
                     <p className="text-xs text-muted-foreground">{stage.description || stage.name}</p>
@@ -305,8 +315,8 @@ export default function DynamicDepartmentDashboard() {
                   {stages.slice(0, 4).map((stage) => (
                     <div key={stage._id} className="flex items-center justify-between">
                       <div className="flex items-center">
-                        <div 
-                          className="w-3 h-3 rounded-full mr-2" 
+                        <div
+                          className="w-3 h-3 rounded-full mr-2"
                           style={{ backgroundColor: stage.color }}
                         />
                         <span className="text-sm">{stage.name}</span>
@@ -359,8 +369,8 @@ export default function DynamicDepartmentDashboard() {
             <FileText className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No SRDs found</h3>
             <p className="mt-1 text-sm text-gray-500">
-              {canCreate 
-                ? 'Get started by creating a new SRD.' 
+              {canCreate
+                ? 'Get started by creating a new SRD.'
                 : 'New SRDs will appear here when assigned.'}
             </p>
             {canCreate && (

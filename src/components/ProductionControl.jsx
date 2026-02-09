@@ -23,6 +23,7 @@ export default function ProductionControl({ srdId, initialData, onUpdate }) {
 
   useEffect(() => {
     if (initialData) {
+      console.log("---------------------initialData--------------------", initialData);
       setProductionData(initialData);
     }
   }, [initialData]);
@@ -200,12 +201,14 @@ export default function ProductionControl({ srdId, initialData, onUpdate }) {
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <p className="text-sm text-gray-600">Current Stage</p>
-                  <p className="text-lg font-semibold">{currentProductionStage.name}</p>
-                  {currentProductionStage.description && (
-                    <p className="text-sm text-gray-600 mt-1">{currentProductionStage.description}</p>
-                  )}
+                  <p className="text-lg font-semibold">
+                    {productionHistory?.find(h =>
+                      String(h.stage) === String(currentProductionStage)
+                    )?.stageDisplayName}
+                  </p>
+
                 </div>
-                <div 
+                <div
                   className="w-12 h-12 rounded-full flex items-center justify-center"
                   style={{ backgroundColor: currentProductionStage.color }}
                 >
@@ -296,9 +299,9 @@ export default function ProductionControl({ srdId, initialData, onUpdate }) {
                       <p className="font-medium">{entry.stageDisplayName || entry.stageName || 'Unknown Stage'}</p>
                       <Badge className={
                         entry.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        entry.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
-                        entry.status === 'on-hold' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
+                          entry.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                            entry.status === 'on-hold' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
                       }>
                         {entry.status}
                       </Badge>

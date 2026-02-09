@@ -8,8 +8,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Factory, CheckCircle, Clock, Play, 
+import {
+  Factory, CheckCircle, Clock, Play,
   Package, ArrowRight, AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
@@ -17,7 +17,7 @@ import Link from 'next/link';
 export default function VMDProductionDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  
+
   const [readyForProduction, setReadyForProduction] = useState([]);
   const [inProduction, setInProduction] = useState([]);
   const [productionStages, setProductionStages] = useState([]);
@@ -25,7 +25,7 @@ export default function VMDProductionDashboard() {
 
   useEffect(() => {
     if (status === 'loading') return;
-    
+
     if (!session) {
       router.push('/login');
       return;
@@ -96,10 +96,10 @@ export default function VMDProductionDashboard() {
     const avgProgress = total > 0
       ? Math.round(inProduction.reduce((sum, srd) => sum + (srd.productionProgress || 0), 0) / total)
       : 0;
-    
+
     const byStage = {};
     productionStages.forEach(stage => {
-      byStage[stage._id] = inProduction.filter(srd => 
+      byStage[stage._id] = inProduction.filter(srd =>
         String(srd.currentProductionStage) === String(stage._id)
       ).length;
     });
@@ -204,7 +204,7 @@ export default function VMDProductionDashboard() {
                           View Details
                         </Button>
                       </Link>
-                      <Button 
+                      <Button
                         size="sm"
                         className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
                         onClick={() => handleStartProduction(srd._id)}
@@ -259,7 +259,8 @@ export default function VMDProductionDashboard() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {inProduction.map((srd) => {
-                const currentStage = productionStages.find(s => String(s._id) === String(srd.currentProductionStage));
+                const currentStage = srd.productionHistory?.find(h => String(h.stageId) === String(srd.currentProductionStage)) ||
+                  productionStages.find(s => String(s._id) === String(srd.currentProductionStage));
                 return (
                   <Card key={srd._id} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
@@ -273,8 +274,8 @@ export default function VMDProductionDashboard() {
                         <div>
                           <p className="text-sm text-gray-500 mb-1">Current Stage</p>
                           <div className="flex items-center">
-                            <div 
-                              className="w-3 h-3 rounded-full mr-2" 
+                            <div
+                              className="w-3 h-3 rounded-full mr-2"
                               style={{ backgroundColor: currentStage.color }}
                             />
                             <span className="font-medium capitalize">{currentStage.displayName || currentStage.name}</span>
@@ -323,9 +324,9 @@ export default function VMDProductionDashboard() {
             <CardContent className="p-6">
               <div className="relative">
                 {/* Timeline line */}
-                <div className="absolute top-8 left-0 right-0 h-1 bg-gradient-to-r from-orange-200 via-red-200 to-pink-200 rounded-full" 
+                <div className="absolute top-8 left-0 right-0 h-1 bg-gradient-to-r from-orange-200 via-red-200 to-pink-200 rounded-full"
                   style={{ width: 'calc(100% - 40px)', left: '20px' }} />
-                
+
                 {/* Stages */}
                 <div className="grid grid-cols-5 gap-2 relative">
                   {productionStages.map((stage, index) => {
@@ -333,13 +334,13 @@ export default function VMDProductionDashboard() {
                     return (
                       <div key={stage._id} className="flex flex-col items-center">
                         {/* Stage circle */}
-                        <div 
+                        <div
                           className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg relative z-10 transition-transform hover:scale-110"
                           style={{ backgroundColor: stage.color }}
                         >
                           {count}
                         </div>
-                        
+
                         {/* Stage name */}
                         <div className="mt-3 text-center">
                           <p className="font-semibold text-sm capitalize">{stage.displayName || stage.name}</p>
@@ -347,10 +348,10 @@ export default function VMDProductionDashboard() {
                             {count} {count === 1 ? 'SRD' : 'SRDs'}
                           </p>
                         </div>
-                        
+
                         {/* Arrow */}
                         {index < productionStages.length - 1 && (
-                          <div className="absolute top-8 text-gray-400" 
+                          <div className="absolute top-8 text-gray-400"
                             style={{ left: `${(index + 1) * 20}%` }}>
                             <ArrowRight className="h-5 w-5" />
                           </div>

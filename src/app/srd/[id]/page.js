@@ -259,7 +259,7 @@ export default function SRDDetailPage() {
 
 
         {/* Production Control - Only for Production Manager */}
-        {(userRole === 'production-manager' || userRole === 'admin') && (
+        {(userRole === 'vmd' || userRole === 'admin') && (
           <ProductionControl
             srdId={srd._id}
             initialData={srd}
