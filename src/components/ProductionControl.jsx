@@ -23,7 +23,7 @@ export default function ProductionControl({ srdId, initialData, onUpdate }) {
 
   useEffect(() => {
     if (initialData) {
-      console.log("---------------------initialData--------------------", initialData);
+
       setProductionData(initialData);
     }
   }, [initialData]);

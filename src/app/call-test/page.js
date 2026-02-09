@@ -48,10 +48,10 @@ export default function CallTestPage() {
           cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
           forceTLS: true
         });
-        
+
         // Test Pusher connection
         pusherRef.current.connection.bind('connected', () => {
-          console.log('✅ Pusher connected');
+
           setDiagnostics(prev => ({ ...prev, pusher: true }));
         });
 
@@ -65,7 +65,7 @@ export default function CallTestPage() {
         setDiagnostics(prev => ({ ...prev, pusher: false }));
       }
     };
-    
+
     setupPusher();
     runDiagnostics();
 
@@ -78,7 +78,7 @@ export default function CallTestPage() {
 
   const runDiagnostics = async () => {
     setIsRunningDiagnostics(true);
-    
+
     try {
       // Check HTTPS
       const isHttps = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
@@ -132,15 +132,15 @@ export default function CallTestPage() {
     <Layout>
       <div className="p-8 max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">WebRTC Call Test & Diagnostics</h1>
-        
+
         {/* Diagnostics Section */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <AlertCircle className="h-5 w-5" />
               <span>System Diagnostics</span>
-              <Button 
-                onClick={runDiagnostics} 
+              <Button
+                onClick={runDiagnostics}
                 disabled={isRunningDiagnostics}
                 size="sm"
                 variant="outline"
@@ -174,7 +174,7 @@ export default function CallTestPage() {
               icon={Wifi}
               description="Real-time signaling service"
             />
-            
+
             {!allDiagnosticsPassed && (
               <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <h4 className="font-semibold text-yellow-800 mb-2">Issues Detected:</h4>
@@ -208,7 +208,7 @@ export default function CallTestPage() {
           <CardContent>
             <div className="mb-4">
               <label className="block text-sm font-medium mb-2">Select User to Call:</label>
-              <select 
+              <select
                 className="w-full p-2 border rounded-lg"
                 onChange={(e) => setSelectedUser(e.target.value)}
                 value={selectedUser || ''}
@@ -232,7 +232,7 @@ export default function CallTestPage() {
             {selectedUser && allDiagnosticsPassed && (
               <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                 <p className="mb-4">Testing call with: <strong>{selectedUser}</strong></p>
-                <SimpleCall 
+                <SimpleCall
                   myEmail={session.user.email}
                   otherEmail={selectedUser}
                   pusher={pusherRef.current}
@@ -257,7 +257,7 @@ export default function CallTestPage() {
               <li>You should hear each other speaking!</li>
               <li>Check browser console (F12) for detailed logs</li>
             </ol>
-            
+
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="font-semibold text-blue-800 mb-1">Troubleshooting Tips:</h4>
               <ul className="text-sm text-blue-700 space-y-1">

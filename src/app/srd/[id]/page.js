@@ -71,7 +71,7 @@ export default function SRDDetailPage() {
         console.error('Error fetching SRD:', error);
         router.push('/dashboard/vmd');
       } finally {
-        console.log('[Frontend] SRD fetched successfully:', srd);
+
         setLoading(false);
       }
     };
@@ -94,7 +94,7 @@ export default function SRDDetailPage() {
 
   const handleDepartmentUpdate = async (department, updateData, shouldRefreshSrd = true) => {
     try {
-      console.log('[Frontend] Sending update:', department, updateData);
+
 
       const response = await fetch(`/api/srd/${params.id}/department/${department}`, {
         method: 'PATCH',
@@ -105,7 +105,7 @@ export default function SRDDetailPage() {
       });
 
       const data = await response.json();
-      console.log('[Frontend] Response:', data);
+
 
       if (data.success) {
         if (shouldRefreshSrd) {

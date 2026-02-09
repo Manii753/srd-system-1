@@ -14,18 +14,12 @@ export async function POST(request) {
 
     // Validate required fields
     if (!to || !signal || !signal.type) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Missing required fields: to, signal, signal.type' 
+      return NextResponse.json({
+        success: false,
+        error: 'Missing required fields: to, signal, signal.type'
       }, { status: 400 });
     }
 
-    console.log('📡 WebRTC Signaling:', {
-      from: session.user.email,
-      to: to,
-      signalType: signal.type,
-      timestamp: new Date().toISOString()
-    });
 
     // Enhanced signal data with metadata
     const signalData = {
@@ -38,26 +32,26 @@ export async function POST(request) {
     // Send signal via Pusher with error handling
     try {
       await pusher.trigger(`call-${to}`, 'signal', signalData);
-      console.log('✅ Signal sent successfully via Pusher');
+
     } catch (pusherError) {
       console.error('❌ Pusher error:', pusherError);
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to send signal via Pusher' 
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to send signal via Pusher'
       }, { status: 500 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: 'Signal sent successfully',
       signalType: signal.type
     });
-    
+
   } catch (error) {
     console.error('❌ WebRTC signaling error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message || 'Internal server error' 
+    return NextResponse.json({
+      success: false,
+      error: error.message || 'Internal server error'
     }, { status: 500 });
   }
 }

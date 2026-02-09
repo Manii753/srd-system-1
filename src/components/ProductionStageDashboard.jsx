@@ -8,8 +8,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Scissors, CheckCircle, Clock, Package, 
+import {
+  Scissors, CheckCircle, Clock, Package,
   Droplet, Sparkles, Truck, RefreshCw, ArrowRight
 } from 'lucide-react';
 import Link from 'next/link';
@@ -25,14 +25,14 @@ const stageIcons = {
 export default function ProductionStageDashboard({ stageName }) {
   const { data: session, status } = useSession();
   const router = useRouter();
-  
+
   const [srds, setSRDs] = useState([]);
   const [stage, setStage] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (status === 'loading') return;
-    
+
     if (!session) {
       router.push('/login');
       return;
@@ -61,23 +61,23 @@ export default function ProductionStageDashboard({ stageName }) {
       // Fetch the stage
       const stagesRes = await fetch('/api/production-stages');
       const stagesData = await stagesRes.json();
-      
+
       if (stagesData.success && stagesData.data && stagesData.data.length > 0) {
         // Try to find stage by name (case-insensitive)
-        const currentStage = stagesData.data.find(s => 
+        const currentStage = stagesData.data.find(s =>
           s.name?.toLowerCase() === stageName.toLowerCase() ||
           s.displayName?.toLowerCase() === stageName.toLowerCase()
         );
-        
+
         setStage(currentStage);
 
         if (currentStage) {
           // Fetch SRDs in this stage
           const srdsRes = await fetch(`/api/srd?inProduction=true&currentProductionStage=${currentStage._id}`);
           const srdsData = await srdsRes.json();
-          
+
           if (srdsData.success) {
-            console.log(`Found ${srdsData.data.length} SRDs in ${stageName} stage`);
+
             setSRDs(srdsData.data || []);
           } else {
             console.error('Failed to fetch SRDs:', srdsData.error);
@@ -104,7 +104,7 @@ export default function ProductionStageDashboard({ stageName }) {
     const stagesRes = await fetch('/api/production-stages');
     const stagesData = await stagesRes.json();
     let nextStageName = 'the next stage';
-    
+
     if (stagesData.success && stage) {
       const currentStageIndex = stagesData.data.findIndex(s => s._id === stage._id);
       if (currentStageIndex >= 0 && currentStageIndex < stagesData.data.length - 1) {
@@ -119,13 +119,13 @@ export default function ProductionStageDashboard({ stageName }) {
     try {
       // Use the actual stage name from the stage object if available
       const actualStageName = stage?.name || stageName;
-      
+
       const response = await fetch(`/api/srd/${srdId}/production/complete-stage`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           stageName: actualStageName,
           stageId: stage?._id, // Also send stage ID for extra validation
           completedBy: session.user.name || session.user.email || 'Unknown',
@@ -164,13 +164,13 @@ export default function ProductionStageDashboard({ stageName }) {
       <div className="space-y-6">
         {/* Header with gradient background */}
         <div className="relative overflow-hidden rounded-2xl p-8 shadow-lg"
-          style={{ 
-            background: `linear-gradient(135deg, ${stage?.color || '#3b82f6'} 0%, ${stage?.color || '#3b82f6'}dd 100%)` 
+          style={{
+            background: `linear-gradient(135deg, ${stage?.color || '#3b82f6'} 0%, ${stage?.color || '#3b82f6'}dd 100%)`
           }}
         >
           <div className="absolute inset-0 bg-black/5"></div>
           <div className="relative flex items-center space-x-4">
-            <div 
+            <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center text-white bg-white/20 backdrop-blur-sm shadow-xl"
             >
               <StageIcon className="h-8 w-8" />
@@ -186,7 +186,7 @@ export default function ProductionStageDashboard({ stageName }) {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border-l-4 hover:shadow-lg transition-shadow" 
+          <Card className="border-l-4 hover:shadow-lg transition-shadow"
             style={{ borderLeftColor: stage?.color || '#3b82f6' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">In {stage?.displayName || stageName}</CardTitle>
@@ -212,11 +212,11 @@ export default function ProductionStageDashboard({ stageName }) {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-blue-600">
-                {srds.length > 0 
+                {srds.length > 0
                   ? Math.round(srds.reduce((sum, srd) => sum + (srd.productionProgress || 0), 0) / srds.length)
                   : 0}%
               </div>
-              <Progress value={srds.length > 0 
+              <Progress value={srds.length > 0
                 ? Math.round(srds.reduce((sum, srd) => sum + (srd.productionProgress || 0), 0) / srds.length)
                 : 0} className="mt-2" />
             </CardContent>
@@ -259,7 +259,7 @@ export default function ProductionStageDashboard({ stageName }) {
               </Button>
             </div>
           </div>
-          
+
           {!stage ? (
             <Card className="border-2 border-dashed border-yellow-300 bg-yellow-50">
               <CardContent className="py-16 text-center">
@@ -346,8 +346,8 @@ export default function ProductionStageDashboard({ stageName }) {
                             View Details
                           </Button>
                         </Link>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg transition-all"
                           onClick={() => handleCompleteStage(srd._id)}
                         >

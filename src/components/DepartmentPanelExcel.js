@@ -196,12 +196,12 @@ export default function DepartmentPanelExcel({
             return fId?.toString() === connectedFieldId?.toString();
           });
 
-          console.log('Connected index found:', connectedIndex);
+
 
           // If not found in current fields, try to add it from definitions
           if (connectedIndex === -1 && allFieldDefs[connectedFieldId]) {
             const connectedDef = allFieldDefs[connectedFieldId];
-            console.log('Connected field not in state, adding from defs:', connectedDef.name);
+
 
             newFields.push({
               originalFieldId: connectedFieldId,

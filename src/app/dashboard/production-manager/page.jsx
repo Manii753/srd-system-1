@@ -8,16 +8,16 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Package, CheckCircle, Clock, AlertCircle, 
-  TrendingUp, Play, ArrowRight 
+import {
+  Package, CheckCircle, Clock, AlertCircle,
+  TrendingUp, Play, ArrowRight
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProductionManagerDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  
+
   const [readyForProduction, setReadyForProduction] = useState([]);
   const [inProduction, setInProduction] = useState([]);
   const [productionStages, setProductionStages] = useState([]);
@@ -25,7 +25,7 @@ export default function ProductionManagerDashboard() {
 
   useEffect(() => {
     if (status === 'loading') return;
-    
+
     if (!session) {
       router.push('/login');
       return;
@@ -52,7 +52,7 @@ export default function ProductionManagerDashboard() {
 
       const readyData = await readyRes.json();
 
-      console.log("fdsfsdfsdfsdfsdfsdfsdfsdf",readyData);
+
       const productionData = await productionRes.json();
       const stagesData = await stagesRes.json();
 
@@ -70,7 +70,7 @@ export default function ProductionManagerDashboard() {
     try {
       // Get the first production stage (cutting)
       const firstStage = productionStages.find(s => s.order === 1) || productionStages[0];
-      
+
       if (!firstStage) {
         alert('No production stages configured. Please set up production stages first.');
         return;
@@ -81,8 +81,8 @@ export default function ProductionManagerDashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          inProduction: true, 
+        body: JSON.stringify({
+          inProduction: true,
           readyForProduction: true,
           productionStartDate: new Date(),
           currentProductionStage: firstStage._id,
@@ -109,10 +109,10 @@ export default function ProductionManagerDashboard() {
     const avgProgress = total > 0
       ? Math.round(inProduction.reduce((sum, srd) => sum + (srd.productionProgress || 0), 0) / total)
       : 0;
-    
+
     const byStage = {};
     productionStages.forEach(stage => {
-      byStage[stage._id] = inProduction.filter(srd => 
+      byStage[stage._id] = inProduction.filter(srd =>
         srd.currentProductionStage === stage._id
       ).length;
     });
@@ -213,7 +213,7 @@ export default function ProductionManagerDashboard() {
                       <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
                       All departments approved
                     </div>
-                    <Button 
+                    <Button
                       className="w-full bg-green-600 hover:bg-green-700"
                       onClick={() => handleStartProduction(srd._id)}
                     >
@@ -266,8 +266,8 @@ export default function ProductionManagerDashboard() {
                         <div>
                           <p className="text-sm text-gray-500 mb-1">Current Stage</p>
                           <div className="flex items-center">
-                            <div 
-                              className="w-3 h-3 rounded-full mr-2" 
+                            <div
+                              className="w-3 h-3 rounded-full mr-2"
                               style={{ backgroundColor: currentStage.color }}
                             />
                             <span className="font-medium">{currentStage.name}</span>
@@ -309,9 +309,9 @@ export default function ProductionManagerDashboard() {
             <CardContent className="p-6">
               <div className="relative">
                 {/* Timeline line */}
-                <div className="absolute top-8 left-0 right-0 h-1 bg-gradient-to-r from-blue-200 via-purple-200 to-green-200 rounded-full" 
+                <div className="absolute top-8 left-0 right-0 h-1 bg-gradient-to-r from-blue-200 via-purple-200 to-green-200 rounded-full"
                   style={{ width: 'calc(100% - 40px)', left: '20px' }} />
-                
+
                 {/* Stages */}
                 <div className="grid grid-cols-5 gap-2 relative">
                   {productionStages.map((stage, index) => {
@@ -319,13 +319,13 @@ export default function ProductionManagerDashboard() {
                     return (
                       <div key={stage._id} className="flex flex-col items-center">
                         {/* Stage circle */}
-                        <div 
+                        <div
                           className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg relative z-10 transition-transform hover:scale-110"
                           style={{ backgroundColor: stage.color }}
                         >
                           {count}
                         </div>
-                        
+
                         {/* Stage name */}
                         <div className="mt-3 text-center">
                           <p className="font-semibold text-sm capitalize">{stage.displayName}</p>
@@ -333,10 +333,10 @@ export default function ProductionManagerDashboard() {
                             {count} {count === 1 ? 'SRD' : 'SRDs'}
                           </p>
                         </div>
-                        
+
                         {/* Arrow */}
                         {index < productionStages.length - 1 && (
-                          <div className="absolute top-8 text-gray-400" 
+                          <div className="absolute top-8 text-gray-400"
                             style={{ left: `${(index + 1) * 20}%` }}>
                             <ArrowRight className="h-5 w-5" />
                           </div>

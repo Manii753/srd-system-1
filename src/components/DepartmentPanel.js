@@ -56,7 +56,7 @@ export default function DepartmentPanel({
             fields: fieldsToSave,
           };
 
-          console.log('[Auto-save] Saving fields:', department, updateData);
+
 
           await onUpdate(updateData);
 

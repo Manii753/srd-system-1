@@ -287,7 +287,7 @@ export default function SRDTable({ srds, department }) {
   };
 
 
-  console.log("srd", srds)
+
 
   return (
     <div className="flex flex-col w-full bg-white rounded-xl shadow-lg border border-gray-100">
@@ -334,9 +334,9 @@ export default function SRDTable({ srds, department }) {
                 >
                   <span>Date</span>
                   {sortField === 'createdAt' && (
-                    sortDirection === 'asc' ? 
-                    <ChevronUp className="h-4 w-4 text-blue-500" /> : 
-                    <ChevronDown className="h-4 w-4 text-blue-500" />
+                    sortDirection === 'asc' ?
+                      <ChevronUp className="h-4 w-4 text-blue-500" /> :
+                      <ChevronDown className="h-4 w-4 text-blue-500" />
                   )}
                   {sortField !== 'createdAt' && (
                     <ChevronDown className="h-4 w-4 opacity-0 group-hover:opacity-50 transition-opacity" />
@@ -359,14 +359,14 @@ export default function SRDTable({ srds, department }) {
                 <Fragment key={srd._id}>
                   <tr className="hover:bg-blue-50 transition-colors duration-200 group">
                     <td className="px-3 py-5">
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        onClick={() => toggleRowExpansion(srd._id)} 
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => toggleRowExpansion(srd._id)}
                         className="w-8 h-8 rounded-full hover:bg-blue-100 transition-colors duration-200"
                       >
-                        {isExpanded ? 
-                          <ChevronUp className="h-4 w-4 text-gray-600" /> : 
+                        {isExpanded ?
+                          <ChevronUp className="h-4 w-4 text-gray-600" /> :
                           <ChevronDown className="h-4 w-4 text-gray-600" />
                         }
                       </Button>
@@ -376,7 +376,7 @@ export default function SRDTable({ srds, department }) {
                         {new Date(srd.createdAt).toLocaleDateString()}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {new Date(srd.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        {new Date(srd.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
@@ -469,25 +469,25 @@ export default function SRDTable({ srds, department }) {
                       <div className="flex gap-2 justify-center">
                         <Link href={`/srd/${srd._id}`}>
                           <Button
-                            size="sm" 
+                            size="sm"
                             className="bg-blue-600 hover:bg-blue-700 t~ext-white shadow-sm hover:shadow-md transition-all duration-200"
                           >
                             View Details
                           </Button>
                         </Link>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => handleDuplicate(srd._id)} 
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDuplicate(srd._id)}
                           title="Duplicate SRD"
                           className="border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-colors duration-200"
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => handleRedo(srd._id)} 
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRedo(srd._id)}
                           title="Redo SRD"
                           className="border-gray-300 hover:border-green-500 hover:text-green-600 transition-colors duration-200"
                         >

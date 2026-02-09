@@ -1,6 +1,6 @@
 'use client';
 
-import { useState,useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import { AlertCircle, Mail, Lock } from 'lucide-react';
 
 
 export default function LoginPage() {
-  const {data : session}= useSession();
+  const { data: session } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -24,19 +24,19 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (session) {
-      if (session?.user?.role){
-        console.log("session in login",session);
+      if (session?.user?.role) {
+
         const role = session.user.role;
         if (role === 'admin') {
           router.push('/dashboard/admin');
-        } 
+        }
         else {
           router.push(`/dashboard/${role}`);
         }
-      } 
+      }
     }
   }, [session, router]);
-  
+
 
 
 
@@ -55,7 +55,7 @@ export default function LoginPage() {
       if (result?.error) {
         setError('Invalid email or password');
       } else {
-        console.log('Login successful',result);
+
       }
     } catch (error) {
       setError('An error occurred during login');
@@ -144,7 +144,7 @@ export default function LoginPage() {
           <CardFooter className="flex flex-col items-center">
             <div className="w-full space-y-4">
               <p className="text-sm font-medium text-center text-gray-700">Demo Accounts:</p>
-              
+
               {/* Management */}
               <div>
                 <p className="text-xs font-semibold text-gray-600 mb-2">Management:</p>
