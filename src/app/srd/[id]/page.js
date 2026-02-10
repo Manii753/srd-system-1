@@ -8,6 +8,14 @@ import DepartmentPanel from '@/components/DepartmentPanel';
 import DepartmentPanelExcel from '@/components/DepartmentPanelExcel';
 import ProductionControl from '@/components/ProductionControl';
 import SRDTracker from '@/components/SRDTracker';
+import SRDReports from '@/components/SRDReports';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,7 +30,8 @@ import {
   MessageCircle,
   Clock,
   Table,
-  Grid3X3
+  Grid3X3,
+  BarChart3
 } from 'lucide-react';
 import { set } from 'mongoose';
 
@@ -267,6 +276,26 @@ export default function SRDDetailPage() {
           />
         )}
 
+        {/* Efficiency Reports Button - Visible to all who can access the SRD */}
+        <div className="flex justify-center">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full max-w-md flex items-center justify-center gap-2 border-blue-200 hover:bg-blue-50 text-blue-700 bg-white shadow-sm">
+                <BarChart3 className="h-4 w-4" />
+                View Detailed Efficiency Reports
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>SRD Efficiency Report - {srd.refNo}</DialogTitle>
+              </DialogHeader>
+              <div className="mt-4">
+                <SRDReports srd={srd} />
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
         {/* View Mode Toggle */}
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Department Details</h2>
@@ -303,13 +332,17 @@ export default function SRDDetailPage() {
             />
           ) : (
             /* Form View - Tabs for each department */
-            <Tabs defaultValue={userRole} className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+            <Tabs defaultValue={userRole === 'admin' || userRole === 'vmd' ? 'vmd' : userRole} className="w-full">
+              <TabsList className="grid w-full grid-cols-5">
                 {allowedDepartments.filter(dept => (canViewAll ? true : dept === userRole)).map((dept) => (
                   <TabsTrigger key={dept} value={dept}>
                     {dept.toUpperCase()}
                   </TabsTrigger>
                 ))}
+                <TabsTrigger value="reports" className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  REPORTS
+                </TabsTrigger>
               </TabsList>
 
               {srd.status && allowedDepartments.filter(dept => (canViewAll ? true : dept === userRole)).map((dept) => {
@@ -326,6 +359,10 @@ export default function SRDDetailPage() {
                   </TabsContent>
                 );
               })}
+
+              <TabsContent value="reports">
+                <SRDReports srd={srd} />
+              </TabsContent>
             </Tabs>
           )}
         </div>
