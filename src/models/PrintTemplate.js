@@ -22,6 +22,7 @@ const PrintTemplateCellSchema = new mongoose.Schema({
       'custom-text', 
       'custom-empty-field',
       'custom-textarea',
+      'custom-table',
       'custom-separator',
       'custom-signature',
       null

@@ -588,6 +588,7 @@ export default function DepartmentPanelExcel({
         const isHeading = fieldDef.type === 'heading';
         const isImage = fieldDef.type === 'image';
         const isFile = fieldDef.type === 'file';
+        const isTable = fieldDef.type === 'table';
 
         if (fieldDef.type === 'boolean') {
           valueDisplay = `
@@ -595,6 +596,22 @@ export default function DepartmentPanelExcel({
             <span class="checkbox-item">${fieldValue ? 'Yes' : 'NO'}</span>
           </div>
         `;
+        } else if (isTable) {
+          const tableData = fieldValue && typeof fieldValue === 'object' ? fieldValue : { headers: [], rows: [] };
+          if (tableData.headers && tableData.headers.length > 0) {
+            const headerRow = tableData.headers.map(h => `<th class="table-header">${h}</th>`).join('');
+            const bodyRows = (tableData.rows || []).map(row => 
+              `<tr>${row.map(cell => `<td class="table-cell">${cell || ''}</td>`).join('')}</tr>`
+            ).join('');
+            valueDisplay = `
+              <table class="print-table">
+                <thead><tr>${headerRow}</tr></thead>
+                <tbody>${bodyRows}</tbody>
+              </table>
+            `;
+          } else {
+            valueDisplay = '<span class="no-value">No table data</span>';
+          }
         } else if (isFile) {
           if (fieldValue) {
             valueDisplay = `
@@ -626,8 +643,8 @@ export default function DepartmentPanelExcel({
         }
 
         fieldsHTML += `
-        <div class="field-cell ${isHeading ? 'cell-heading' : ''} ${isImage ? 'cell-image' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
-          ${!isHeading && !isImage ? `
+        <div class="field-cell ${isHeading ? 'cell-heading' : ''} ${isImage ? 'cell-image' : ''} ${isTable ? 'cell-table' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+          ${!isHeading && !isImage && !isTable ? `
               <div class="cell-content">
                 <span class="cell-label">${fieldDef.name}:</span>
                 <span class="cell-underline">${valueDisplay}</span>
@@ -635,6 +652,11 @@ export default function DepartmentPanelExcel({
           ` : isImage ? `
               <div class="cell-image-container">
                 <div class="image-label">${fieldDef.name}</div>
+                ${valueDisplay}
+              </div>
+          ` : isTable ? `
+              <div class="cell-table-container">
+                <div class="table-label">${fieldDef.name}</div>
                 ${valueDisplay}
               </div>
           ` : `
@@ -929,6 +951,54 @@ export default function DepartmentPanelExcel({
       color: #666;
       text-transform: uppercase;
     }
+
+    /* Table cell styles */
+    .cell-table {
+      padding: 1px;
+      height: auto;
+    }
+
+    .cell-table-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .table-label {
+      font-size: 6px;
+      font-weight: 700;
+      color: #333;
+      text-transform: capitalize;
+      padding: 1px 2px;
+      background: #f9f9f9;
+      border-bottom: 0.5px solid #ddd;
+      flex-shrink: 0;
+    }
+
+    .print-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 6px;
+      margin: 0;
+    }
+
+    .print-table .table-header {
+      background-color: #e5e7eb;
+      border: 0.5px solid #999;
+      padding: 2px 3px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 6px;
+    }
+
+    .print-table .table-cell {
+      border: 0.5px solid #ccc;
+      padding: 2px 3px;
+      text-align: left;
+      font-size: 6px;
+      min-height: 12px;
+    }
     
     .footer {
       margin-top: 10px;
@@ -1168,6 +1238,123 @@ export default function DepartmentPanelExcel({
               />
               <span className="text-sm text-gray-700">No</span>
             </label>
+          </div>
+        );
+
+      case 'table':
+        const tableData = fieldValue && typeof fieldValue === 'object' && fieldValue.headers 
+          ? fieldValue 
+          : { headers: ['Column 1', 'Column 2', 'Column 3'], rows: [['', '', '']] };
+        
+        return (
+          <div className="space-y-1 p-1 overflow-auto max-h-96">
+            <div className="border border-gray-300 rounded overflow-hidden">
+              <table className="w-full text-xs border-collapse">
+                <thead className="bg-gray-100">
+                  <tr>
+                    {tableData.headers?.map((header, colIdx) => (
+                      <th key={colIdx} className="border border-gray-300 p-1 min-w-[80px]">
+                        {canEdit ? (
+                          <input
+                            type="text"
+                            value={header}
+                            onChange={(e) => {
+                              const newHeaders = [...tableData.headers];
+                              newHeaders[colIdx] = e.target.value;
+                              handleFieldChange(fieldId, name, { ...tableData, headers: newHeaders }, department, fieldDef);
+                            }}
+                            className="w-full bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1 font-semibold text-center"
+                            placeholder={`Column ${colIdx + 1}`}
+                            disabled={!canEdit}
+                          />
+                        ) : (
+                          <span className="font-semibold">{header}</span>
+                        )}
+                      </th>
+                    ))}
+                    {canEdit && (
+                      <th className="border border-gray-300 p-1 w-8 bg-gray-50">
+                        <button
+                          onClick={() => {
+                            const newHeaders = [...tableData.headers, `Column ${tableData.headers.length + 1}`];
+                            const newRows = tableData.rows.map(row => [...row, '']);
+                            handleFieldChange(fieldId, name, { headers: newHeaders, rows: newRows }, department, fieldDef);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 font-bold text-sm"
+                          title="Add column"
+                        >
+                          +
+                        </button>
+                      </th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableData.rows?.map((row, rowIdx) => (
+                    <tr key={rowIdx}>
+                      {row.map((cell, colIdx) => (
+                        <td key={colIdx} className="border border-gray-300 p-0">
+                          {canEdit ? (
+                            <input
+                              type="text"
+                              value={cell}
+                              onChange={(e) => {
+                                const newRows = [...tableData.rows];
+                                newRows[rowIdx][colIdx] = e.target.value;
+                                handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  // Add new row when Enter is pressed
+                                  const newRows = [...tableData.rows];
+                                  newRows.splice(rowIdx + 1, 0, new Array(tableData.headers.length).fill(''));
+                                  handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
+                                  // Focus next row after a short delay
+                                  setTimeout(() => {
+                                    const nextInput = e.target.closest('tr')?.nextElementSibling?.querySelector('input');
+                                    if (nextInput) nextInput.focus();
+                                  }, 50);
+                                }
+                              }}
+                              className="w-full h-full px-1 py-1 border-none focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent"
+                              disabled={!canEdit}
+                            />
+                          ) : (
+                            <span className="px-1 py-1 block">{cell}</span>
+                          )}
+                        </td>
+                      ))}
+                      {canEdit && (
+                        <td className="border border-gray-300 p-0 w-8 bg-gray-50 text-center">
+                          <button
+                            onClick={() => {
+                              const newRows = tableData.rows.filter((_, idx) => idx !== rowIdx);
+                              handleFieldChange(fieldId, name, { ...tableData, rows: newRows.length > 0 ? newRows : [[]] }, department, fieldDef);
+                            }}
+                            className="text-red-600 hover:text-red-800 text-xs w-full h-full"
+                            title="Delete row"
+                          >
+                            ×
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {canEdit && (
+              <button
+                onClick={() => {
+                  const newRows = [...tableData.rows, new Array(tableData.headers.length).fill('')];
+                  handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
+                }}
+                className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 px-2 py-1 border border-blue-300 rounded hover:bg-blue-50"
+              >
+                + Add Row
+              </button>
+            )}
           </div>
         );
 

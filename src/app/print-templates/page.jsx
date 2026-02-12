@@ -32,7 +32,8 @@ import {
   X,
   Edit3,
   Move,
-  ArrowLeftRight
+  ArrowLeftRight,
+  Table
 } from 'lucide-react';
 import {
   DndContext,
@@ -84,6 +85,33 @@ const TEMPLATE_THEMES = [
   { value: 'minimal', label: 'Minimal', colors: 'bg-white border-gray-200' },
 ];
 
+const CUSTOM_FIELD_TYPES = [
+  { 
+    value: 'custom-header', 
+    label: 'Custom Header', 
+    icon: '📋',
+    description: 'Add a custom header/title section'
+  },
+  { 
+    value: 'custom-separator', 
+    label: 'Separator Line', 
+    icon: '➖',
+    description: 'Add a horizontal separator line'
+  },
+  { 
+    value: 'custom-signature', 
+    label: 'Signature Box', 
+    icon: '✍️',
+    description: 'Add a signature field'
+  },
+  { 
+    value: 'custom-table', 
+    label: 'Excel Table', 
+    icon: '📊',
+    description: 'Add an Excel-like table with dynamic columns'
+  },
+];
+
 // Custom element types that can be added to the template
 const CUSTOM_ELEMENT_TYPES = [
   {
@@ -117,6 +145,15 @@ const CUSTOM_ELEMENT_TYPES = [
     description: 'Add a larger empty area for notes',
     defaultValue: 'Notes',
     color: 'from-rose-100 to-rose-200 border-rose-300'
+  },
+  {
+    type: 'custom-table',
+    label: 'Excel Table',
+    icon: Table,
+    description: 'Add an Excel-like table with dynamic rows',
+    defaultValue: 'Table',
+    color: 'from-emerald-100 to-emerald-200 border-emerald-300',
+    defaultColumns: ['Column 1', 'Column 2', 'Column 3']
   },
   {
     type: 'custom-separator',
@@ -162,8 +199,9 @@ function EditCustomElementModal({ element, onSave, onClose }) {
                 customType === 'custom-text' ? 'Text Content' :
                   customType === 'custom-empty-field' ? 'Field Label' :
                     customType === 'custom-textarea' ? 'Area Label' :
-                      customType === 'custom-signature' ? 'Signature Label' :
-                        'Label'}
+                      customType === 'custom-table' ? 'Table Label' :
+                        customType === 'custom-signature' ? 'Signature Label' :
+                          'Label'}
             </Label>
             <Input
               value={editValue}
@@ -896,6 +934,15 @@ export default function PrintTemplateDesigner() {
   const [filterDepartment, setFilterDepartment] = useState('all');
   const [templateTheme, setTemplateTheme] = useState('default');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showCustomFieldModal, setShowCustomFieldModal] = useState(false);
+  const [customFieldType, setCustomFieldType] = useState('custom-header');
+  const [customFieldValue, setCustomFieldValue] = useState('');
+  const [customFieldConfig, setCustomFieldConfig] = useState({
+    colSpan: 6,
+    rowSpan: 1,
+    height: 'auto',
+    columns: ['Column 1', 'Column 2', 'Column 3'], // For table type
+  });
   const [editingElement, setEditingElement] = useState(null);
 
   // Drag state
@@ -1510,6 +1557,38 @@ export default function PrintTemplateDesigner() {
         return (
           <div className="flex items-center justify-center py-2">
             <div className="flex-1 border-t-2 border-gray-400"></div>
+          </div>
+        );
+
+      case 'custom-table':
+        return (
+          <div className="p-2 h-full">
+            <div className="text-xs font-medium text-gray-700 mb-1">
+              {customValue || 'Table'}
+            </div>
+            <div className="border border-gray-400 overflow-hidden">
+              <table className="w-full text-xs">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="border border-gray-300 p-1 text-left">Column 1</th>
+                    <th className="border border-gray-300 p-1 text-left">Column 2</th>
+                    <th className="border border-gray-300 p-1 text-left">Column 3</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="border border-gray-300 p-1"></td>
+                    <td className="border border-gray-300 p-1"></td>
+                    <td className="border border-gray-300 p-1"></td>
+                  </tr>
+                  <tr>
+                    <td className="border border-gray-300 p-1"></td>
+                    <td className="border border-gray-300 p-1"></td>
+                    <td className="border border-gray-300 p-1"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         );
 
