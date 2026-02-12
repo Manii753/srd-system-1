@@ -671,7 +671,7 @@ export default function DepartmentPanelExcel({
   <style>
     @page {
       size: A4;
-      margin: 0.1in;
+      margin: 0;
     }
     
     body {
@@ -686,7 +686,7 @@ export default function DepartmentPanelExcel({
     }
     
     .header {
-      margin-bottom: 10px;
+      margin-top: 10px;
     }
     
     .header h1 {
@@ -1523,15 +1523,6 @@ export default function DepartmentPanelExcel({
                         {fieldDef.isRequired && (
                           <span className="text-red-500 text-xs font-bold">*</span>
                         )}
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-xs px-1 py-0",
-                            canEdit ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-100 text-gray-500"
-                          )}
-                        >
-                          {fieldDef.department?.toUpperCase()}
-                        </Badge>
                       </div>
                     </div>
                   )}

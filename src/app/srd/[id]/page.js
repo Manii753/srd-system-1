@@ -187,7 +187,7 @@ export default function SRDDetailPage() {
     <Layout>
       <div className={cn("space-y-6", viewMode === 'excel' && "space-y-3")}>
         {/* Header */}
-        <div className="flex items-start justify-between">
+        {/* <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center space-x-3">
               <h1 className="text-3xl font-bold text-gray-900">{srd.title}</h1>
@@ -200,7 +200,7 @@ export default function SRDDetailPage() {
             <div className="text-2xl font-bold">{srd.progress}%</div>
             <Progress value={srd.progress} className="w-32 mt-1" />
           </div>
-        </div>
+        </div> */}
 
         {/* SRD Info */}
         {/* <Card>
@@ -264,8 +264,7 @@ export default function SRDDetailPage() {
           </Card>
         )}
 
-        {/* SRD Diagnostic Tool - For Admin and Production Manager */}
-
+       
 
         {/* Production Control - Only for Production Manager */}
         {(userRole === 'vmd' || userRole === 'admin') && (

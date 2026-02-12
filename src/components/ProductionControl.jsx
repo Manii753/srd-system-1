@@ -124,21 +124,7 @@ export default function ProductionControl({ srdId, initialData, onUpdate }) {
 
   // Not ready for production
   if (!readyForProduction) {
-    return (
-      <Card className="border-yellow-200 bg-yellow-50">
-        <CardContent className="pt-6">
-          <div className="flex items-center space-x-3">
-            <Clock className="h-5 w-5 text-yellow-600" />
-            <div>
-              <p className="font-medium text-yellow-900">Awaiting Department Approvals</p>
-              <p className="text-sm text-yellow-700">
-                All departments must approve before production can start
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return;
   }
 
   // Ready but not started
