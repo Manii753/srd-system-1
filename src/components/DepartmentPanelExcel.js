@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Trash2, Star, Upload, Printer, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { AlertCircle, Trash2, Star, Upload, Printer, FileSpreadsheet, Loader2, Plus, X, Columns, Rows } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import UploadImage from './UploadImage';
@@ -435,7 +435,7 @@ export default function DepartmentPanelExcel({
       let fieldsHTML = '';
 
       activeTemplateForPrint.cells.forEach(cell => {
-        const colSpan = cell.position?.colSpan || 1;
+        const colSpan = (cell.position?.colSpan || 1) * 2;
         const rowSpan = cell.position?.rowSpan || 1;
         const height = cell.position?.height || 'auto';
 
@@ -677,7 +677,7 @@ export default function DepartmentPanelExcel({
       // If no fields were rendered, show a message
       if (!fieldsHTML.trim()) {
         fieldsHTML = `
-        <div class="field-cell" style="grid-column: span ${gridColumns}; text-align: center; padding: 40px;">
+        <div class="field-cell" style="grid-column: span ${gridColumns * 2}; text-align: center; padding: 40px;">
           <div style="color: #666; font-style: italic;">
             No matching fields found for this template. Please check your template configuration.
           </div>
@@ -745,7 +745,7 @@ export default function DepartmentPanelExcel({
     
     .template-grid {
       display: grid;
-      grid-template-columns: repeat(${gridColumns}, minmax(0, 1fr));
+      grid-template-columns: repeat(${gridColumns * 2}, minmax(0, 1fr));
       gap: 0 1px;
       margin-bottom: 10px;
     }
@@ -976,7 +976,7 @@ export default function DepartmentPanelExcel({
 
     .table-label {
       font-size: 13px;
-      padding: 5px;
+      margin: 5px;
       font-weight: 700;
       color: #333;
       text-transform: capitalize;
@@ -989,7 +989,7 @@ export default function DepartmentPanelExcel({
     .print-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 6px;
+      font-size: 9px;
       margin: 0;
     }
 
@@ -1257,14 +1257,14 @@ export default function DepartmentPanelExcel({
           : { headers: ['Column 1', 'Column 2', 'Column 3'], rows: [['', '', '']] };
         
         return (
-          <div className="space-y-1 p-1 overflow-auto max-h-96">
-            <div className="border border-gray-300 rounded overflow-hidden">
+          <div className="space-y-2 p-1 overflow-auto max-h-96">
+            <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
               <table className="w-full text-xs border-collapse">
-                <thead className="bg-gray-100">
-                  <tr>
+                <thead>
+                  <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
                     {tableData.headers?.map((header, colIdx) => (
-                      <th key={colIdx} className="border border-gray-300 p-1 min-w-[80px]">
-                        <div className="flex items-center gap-0.5">
+                      <th key={colIdx} className="border border-gray-200 p-0 min-w-[80px] relative group/col">
+                        <div className="flex items-center">
                           {canEdit ? (
                             <input
                               type="text"
@@ -1274,12 +1274,12 @@ export default function DepartmentPanelExcel({
                                 newHeaders[colIdx] = e.target.value;
                                 handleFieldChange(fieldId, name, { ...tableData, headers: newHeaders }, department, fieldDef);
                               }}
-                              className="w-full bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1 font-semibold text-center flex-1"
+                              className="w-full bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-2 py-1.5 font-semibold text-center text-gray-700 flex-1"
                               placeholder={`Column ${colIdx + 1}`}
                               disabled={!canEdit}
                             />
                           ) : (
-                            <span className="font-semibold flex-1 text-center">{header}</span>
+                            <span className="font-semibold flex-1 text-center text-gray-700 px-2 py-1.5">{header}</span>
                           )}
                           {canEdit && tableData.headers.length > 1 && (
                             <button
@@ -1288,27 +1288,27 @@ export default function DepartmentPanelExcel({
                                 const newRows = tableData.rows.map(row => row.filter((_, idx) => idx !== colIdx));
                                 handleFieldChange(fieldId, name, { headers: newHeaders, rows: newRows }, department, fieldDef);
                               }}
-                              className="text-red-400 hover:text-red-600 text-xs flex-shrink-0 leading-none"
+                              className="opacity-0 group-hover/col:opacity-100 transition-opacity duration-150 p-0.5 mr-1 rounded hover:bg-red-100 text-red-400 hover:text-red-600 flex-shrink-0"
                               title="Delete column"
                             >
-                              ×
+                              <X className="h-4 w-4" />
                             </button>
                           )}
                         </div>
                       </th>
                     ))}
                     {canEdit && (
-                      <th className="border border-gray-300 p-1 w-8 bg-gray-50">
+                      <th className="border border-gray-200 p-0 w-9 bg-gray-50">
                         <button
                           onClick={() => {
                             const newHeaders = [...tableData.headers, `Column ${tableData.headers.length + 1}`];
                             const newRows = tableData.rows.map(row => [...row, '']);
                             handleFieldChange(fieldId, name, { headers: newHeaders, rows: newRows }, department, fieldDef);
                           }}
-                          className="text-blue-600 hover:text-blue-800 font-bold text-sm"
+                          className="w-full h-full flex items-center justify-center py-1.5 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors duration-150"
                           title="Add column"
                         >
-                          +
+                          <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
                         </button>
                       </th>
                     )}
@@ -1316,9 +1316,9 @@ export default function DepartmentPanelExcel({
                 </thead>
                 <tbody>
                   {tableData.rows?.map((row, rowIdx) => (
-                    <tr key={rowIdx}>
+                    <tr key={rowIdx} className="group/row hover:bg-blue-50/30 transition-colors duration-100">
                       {row.map((cell, colIdx) => (
-                        <td key={colIdx} className="border border-gray-300 p-0">
+                        <td key={colIdx} className="border border-gray-200 p-0">
                           {canEdit ? (
                             <input
                               type="text"
@@ -1331,36 +1331,34 @@ export default function DepartmentPanelExcel({
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                   e.preventDefault();
-                                  // Add new row when Enter is pressed
                                   const newRows = [...tableData.rows];
                                   newRows.splice(rowIdx + 1, 0, new Array(tableData.headers.length).fill(''));
                                   handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
-                                  // Focus next row after a short delay
                                   setTimeout(() => {
                                     const nextInput = e.target.closest('tr')?.nextElementSibling?.querySelector('input');
                                     if (nextInput) nextInput.focus();
                                   }, 50);
                                 }
                               }}
-                              className="w-full h-full px-1 py-1 border-none focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent"
+                              className="w-full h-full px-2 py-1.5 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 bg-transparent transition-colors duration-100"
                               disabled={!canEdit}
                             />
                           ) : (
-                            <span className="px-1 py-1 block">{cell}</span>
+                            <span className="px-2 py-1.5 block">{cell}</span>
                           )}
                         </td>
                       ))}
                       {canEdit && (
-                        <td className="border border-gray-300 p-0 w-8 bg-gray-50 text-center">
+                        <td className="border border-gray-200 p-0 w-9 bg-gray-50/50 text-center">
                           <button
                             onClick={() => {
                               const newRows = tableData.rows.filter((_, idx) => idx !== rowIdx);
-                              handleFieldChange(fieldId, name, { ...tableData, rows: newRows.length > 0 ? newRows : [[]] }, department, fieldDef);
+                              handleFieldChange(fieldId, name, { ...tableData, rows: newRows.length > 0 ? newRows : [new Array(tableData.headers.length).fill('')] }, department, fieldDef);
                             }}
-                            className="text-red-600 hover:text-red-800 text-xs w-full h-full"
+                            className="w-full h-full flex items-center justify-center py-1.5 opacity-0 group-hover/row:opacity-100 transition-opacity duration-150 text-red-400 hover:text-red-600 hover:bg-red-50"
                             title="Delete row"
                           >
-                            ×
+                            <Trash2 className="h-3 w-3" />
                           </button>
                         </td>
                       )}
@@ -1370,15 +1368,17 @@ export default function DepartmentPanelExcel({
               </table>
             </div>
             {canEdit && (
-              <button
-                onClick={() => {
-                  const newRows = [...tableData.rows, new Array(tableData.headers.length).fill('')];
-                  handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
-                }}
-                className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 px-2 py-1 border border-blue-300 rounded hover:bg-blue-50"
-              >
-                + Add Row
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const newRows = [...tableData.rows, new Array(tableData.headers.length).fill('')];
+                    handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1.5 px-3 py-1.5 border border-blue-200 rounded-md hover:bg-blue-50 hover:border-blue-300 transition-all duration-150 shadow-sm"
+                >
+                  <Plus className="h-3 w-3" /> Add Row
+                </button>
+              </div>
             )}
           </div>
         );
@@ -1598,10 +1598,10 @@ export default function DepartmentPanelExcel({
       <div className="p-0">
         <div
           className="grid gap-0"
-          style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}
+          style={{ gridTemplateColumns: `repeat(${gridColumns * 2}, minmax(0, 1fr))` }}
         >
           {activeTemplate.cells.map((cell, cellIndex) => {
-            const colSpan = cell.position?.colSpan || 1;
+            const colSpan = (cell.position?.colSpan || 1) * 2;
             const rowSpan = cell.position?.rowSpan || 1;
 
             // Handle custom elements

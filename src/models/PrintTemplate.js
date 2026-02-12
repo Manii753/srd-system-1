@@ -43,7 +43,7 @@ const PrintTemplateCellSchema = new mongoose.Schema({
     colSpan: {
       type: Number,
       default: 1,
-      min: 1,
+      min: 0.5,
       max: 12,
     },
     rowSpan: {

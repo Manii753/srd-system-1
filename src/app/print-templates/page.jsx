@@ -86,27 +86,27 @@ const TEMPLATE_THEMES = [
 ];
 
 const CUSTOM_FIELD_TYPES = [
-  { 
-    value: 'custom-header', 
-    label: 'Custom Header', 
+  {
+    value: 'custom-header',
+    label: 'Custom Header',
     icon: '📋',
     description: 'Add a custom header/title section'
   },
-  { 
-    value: 'custom-separator', 
-    label: 'Separator Line', 
+  {
+    value: 'custom-separator',
+    label: 'Separator Line',
     icon: '➖',
     description: 'Add a horizontal separator line'
   },
-  { 
-    value: 'custom-signature', 
-    label: 'Signature Box', 
+  {
+    value: 'custom-signature',
+    label: 'Signature Box',
     icon: '✍️',
     description: 'Add a signature field'
   },
-  { 
-    value: 'custom-table', 
-    label: 'Excel Table', 
+  {
+    value: 'custom-table',
+    label: 'Excel Table',
     icon: '📊',
     description: 'Add an Excel-like table with dynamic columns'
   },
@@ -508,7 +508,7 @@ function SortableTemplateCell({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    gridColumn: `span ${position.colSpan || 1}`,
+    gridColumn: `span ${(position.colSpan || 1) * 2}`,
     gridRow: `span ${position.rowSpan || 1}`,
     minHeight: position.height === 'small' ? '40px' :
       position.height === 'medium' ? '80px' :
@@ -634,11 +634,11 @@ function SortableTemplateCell({
             <select
               className="text-xs border rounded-md px-2 py-1 bg-white/90 backdrop-blur-sm font-medium"
               value={position.colSpan || 1}
-              onChange={(e) => onResize(id, 'colSpan', parseInt(e.target.value))}
+              onChange={(e) => onResize(id, 'colSpan', parseFloat(e.target.value))}
               onClick={(e) => e.stopPropagation()}
               title="Column span"
             >
-              {[1, 2, 3, 4, 6].map(span => (
+              {[0.5, 1, 2, 3, 4, 6].map(span => (
                 <option key={span} value={span}>W: {span}</option>
               ))}
             </select>
@@ -1840,7 +1840,7 @@ export default function PrintTemplateDesigner() {
                     <div
                       className="grid gap-3"
                       style={{
-                        gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
+                        gridTemplateColumns: `repeat(${gridColumns * 2}, minmax(0, 1fr))`,
                       }}
                     >
                       {templateCells.map((cell) => (
@@ -1987,7 +1987,7 @@ export default function PrintTemplateDesigner() {
                 <div
                   className="grid gap-4"
                   style={{
-                    gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
+                    gridTemplateColumns: `repeat(${gridColumns * 2}, minmax(0, 1fr))`,
                   }}
                 >
                   {templateCells.map((cell) => (
@@ -1995,7 +1995,7 @@ export default function PrintTemplateDesigner() {
                       key={cell.id}
                       className="border border-gray-300 rounded"
                       style={{
-                        gridColumn: `span ${cell.position.colSpan || 1}`,
+                        gridColumn: `span ${(cell.position.colSpan || 1) * 2}`,
                         gridRow: `span ${cell.position.rowSpan || 1}`,
                         minHeight: cell.position.height === 'small' ? '40px' :
                           cell.position.height === 'medium' ? '80px' :
