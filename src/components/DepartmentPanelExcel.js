@@ -29,6 +29,7 @@ export default function DepartmentPanelExcel({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [pendingUpdates, setPendingUpdates] = useState({}); // Track updates per department
 
   // Status update state
@@ -39,6 +40,7 @@ export default function DepartmentPanelExcel({
   // Auto-save functionality
   const autoSaveTimeoutsRef = useRef({});
   const lastSavedFieldsRef = useRef(JSON.stringify(fields));
+  const isSavingInProgressRef = useRef(false);
 
   // Check if user can edit a specific field based on its department
   const canEditField = useCallback((fieldDepartment) => {
@@ -100,14 +102,18 @@ export default function DepartmentPanelExcel({
     }
 
     autoSaveTimeoutsRef.current[department] = setTimeout(async () => {
+      // If a save is already in progress, delay this save a bit to avoid VersionError
+      if (isSavingInProgressRef.current) {
+        debouncedAutoSave(fieldsToSave, department);
+        return;
+      }
+
       const deptFields = fieldsToSave.filter(f => f.department === department);
 
-      if (deptFields.length > 0) { // Removed !isSubmitting check to allow parallel saves
-        // Set auto-saving state
+      if (deptFields.length > 0) {
         setIsAutoSaving(true);
+        isSavingInProgressRef.current = true;
         try {
-          // setIsSubmitting(true); // Don't block global submitting state for background saves
-
           const updateData = {
             status: srd.status?.[department] || 'pending',
             fields: deptFields,
@@ -134,12 +140,12 @@ export default function DepartmentPanelExcel({
           });
         } finally {
           setIsAutoSaving(false);
-          // setIsSubmitting(false); 
+          isSavingInProgressRef.current = false;
           delete autoSaveTimeoutsRef.current[department];
         }
       }
     }, 1500);
-  }, [srd.status, onUpdate, toast]); // Removed isSubmitting dependency
+  }, [srd.status, onUpdate, toast]);
 
   useEffect(() => {
     return () => {
@@ -366,17 +372,31 @@ export default function DepartmentPanelExcel({
 
   const handlePrint = async () => {
     try {
-      // Fetch the active print template
+      // If there are unsaved changes or auto-save is in progress, wait
+      if (hasUnsavedChanges || isAutoSaving) {
+        setIsPrinting(true);
+        // Wait for up to 5 seconds for auto-save to complete
+        let waitAttempts = 0;
+        while ((hasUnsavedChanges || isAutoSaving) && waitAttempts < 10) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          waitAttempts++;
+        }
+      }
+
+      setIsPrinting(true);
+
       // Fetch the active print template
       const templateRes = await fetch('/api/printTemplate/active');
 
       if (!templateRes.ok) {
+        setIsPrinting(false);
         throw new Error('Failed to fetch active template');
       }
 
       const activeTemplateForPrint = await templateRes.json();
 
       if (!activeTemplateForPrint) {
+        setIsPrinting(false);
         toast({
           title: 'No active template',
           description: 'Please create and activate a print template in the template designer.',
@@ -401,6 +421,7 @@ export default function DepartmentPanelExcel({
 
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
+        setIsPrinting(false);
         toast({
           title: 'Print blocked',
           description: 'Please allow popups for this site to enable printing',
@@ -426,6 +447,7 @@ export default function DepartmentPanelExcel({
 
         // Handle custom elements
         if (cell.isCustom) {
+          // ... (keep custom logic)
           const customType = cell.customType;
           const customValue = cell.customValue || '';
           const customPlaceholder = cell.customPlaceholder || '';
@@ -536,18 +558,30 @@ export default function DepartmentPanelExcel({
           return;
         }
 
-        // Find the field value from SRD data
+        // Find the field value from SRD data - Use local 'fields' state as source of truth
         let fieldValue = '';
-        const srdField = srd.dynamicFields?.find(f => {
+        const localField = fields.find(f => {
           return (
-            (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
             (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString()) ||
+            (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
             (f.name === fieldDef.name && f.department === fieldDef.department)
           );
         });
 
-        if (srdField) {
-          fieldValue = srdField.value || '';
+        if (localField) {
+          fieldValue = localField.value || '';
+        } else {
+          // Fallback to srd prop if not in local state
+          const srdField = srd.dynamicFields?.find(f => {
+            return (
+              (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
+              (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString()) ||
+              (f.name === fieldDef.name && f.department === fieldDef.department)
+            );
+          });
+          if (srdField) {
+            fieldValue = srdField.value || '';
+          }
         }
 
         let valueDisplay = '';
@@ -1056,14 +1090,16 @@ export default function DepartmentPanelExcel({
       printWindow.document.write(printContent);
       printWindow.document.close();
 
-      // The print command is now handled inside the script in the print window
-      // to ensure excel data is loaded first.
+      setTimeout(() => {
+        setIsPrinting(false);
+      }, 3000);
 
     } catch (error) {
-      console.error('Print error:', error);
+      console.error('Print failed:', error);
+      setIsPrinting(false);
       toast({
         title: 'Print failed',
-        description: 'There was an error generating the print document',
+        description: error.message || 'Failed to generate print view',
         variant: 'destructive',
       });
     }
@@ -1305,11 +1341,12 @@ export default function DepartmentPanelExcel({
             size="sm"
             variant="outline"
             className="h-6 px-2 py-0 text-xs bg-white text-blue-700 border-white hover:bg-blue-50"
-            disabled={isSubmitting || isAutoSaving}
+            disabled={isPrinting}
           >
-            {isAutoSaving ? (
+            {isPrinting ? (
               <>
                 <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                Wait...
               </>
             ) : (
               <>
@@ -1353,8 +1390,8 @@ export default function DepartmentPanelExcel({
                   key={cellIndex}
                   className="bg-gray-50 border border-gray-200 rounded p-2"
                   style={{
-                    gridColumn: `span ${colSpan}`,
-                    gridRow: `span ${rowSpan}`,
+                    gridColumn: `span ${colSpan} `,
+                    gridRow: `span ${rowSpan} `,
                   }}
                 >
                   {cell.customType === 'custom-heading' && (
@@ -1401,8 +1438,8 @@ export default function DepartmentPanelExcel({
                   key={cellIndex}
                   className="bg-red-50 border border-red-200 rounded p-2 text-xs text-red-500"
                   style={{
-                    gridColumn: `span ${colSpan}`,
-                    gridRow: `span ${rowSpan}`,
+                    gridColumn: `span ${colSpan} `,
+                    gridRow: `span ${rowSpan} `,
                   }}
                 >
                   Field not found
@@ -1421,8 +1458,8 @@ export default function DepartmentPanelExcel({
                   key={cellIndex}
                   className="bg-gray-50 border border-gray-100 rounded"
                   style={{
-                    gridColumn: `span ${colSpan}`,
-                    gridRow: `span ${rowSpan}`,
+                    gridColumn: `span ${colSpan} `,
+                    gridRow: `span ${rowSpan} `,
                     opacity: 0.5,
                   }}
                 ></div>
@@ -1438,8 +1475,8 @@ export default function DepartmentPanelExcel({
                   !canEdit && !isHeading && "bg-gray-50"
                 )}
                 style={{
-                  gridColumn: `span ${colSpan}`,
-                  gridRow: `span ${rowSpan}`,
+                  gridColumn: `span ${colSpan} `,
+                  gridRow: `span ${rowSpan} `,
                 }}
               >
                 {/* Field header */}
