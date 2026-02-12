@@ -592,8 +592,7 @@ export default function DepartmentPanelExcel({
         if (fieldDef.type === 'boolean') {
           valueDisplay = `
           <div class="checkbox-group">
-            <span class="checkbox-item">${fieldValue ? 'Yes' : ''}</span>
-            <span class="checkbox-item">${!fieldValue ? 'NO' : ''}</span>
+            <span class="checkbox-item">${fieldValue ? 'Yes' : 'NO'}</span>
           </div>
         `;
         } else if (isFile) {
@@ -677,7 +676,7 @@ export default function DepartmentPanelExcel({
     
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      font-size: 7.5px;
+      font-size: 10px;
       text-transform: capitalize !important;
       line-height: 1.1;
       margin: 0;
@@ -763,7 +762,7 @@ export default function DepartmentPanelExcel({
     }
 
     .cell-label {
-      font-size: 6.5px;
+      font-size: 9px;
       font-weight: 700;
       color: #333;
       white-space: normal;
@@ -774,7 +773,7 @@ export default function DepartmentPanelExcel({
     }
 
     .cell-underline {
-      font-size: 7.5px;
+      font-size: 9px;
       color: #000;
       flex-grow: 1;
       border-bottom: 0.4px solid #999;
@@ -1009,13 +1008,6 @@ export default function DepartmentPanelExcel({
 <body>
   <div class="header">
     <h1>Sample Request Form</h1>
-    <div class="header-info">
-      <div class="header-item"><strong>SRD REF:</strong>${srd.refNo}</div>
-      <div class="header-item"><strong>VMD STATUS:</strong>${srd.status?.vmd || 'Pending'}</div>
-      <div class="header-item"><strong>CAD STATUS:</strong>${srd.status?.cad || 'Pending'}</div>
-      <div class="header-item"><strong>COMMERCIAL STATUS:</strong>${srd.status?.commercial || 'Pending'}</div>
-      <div class="header-item"><strong>MMC STATUS:</strong>${srd.status?.mmc || 'Pending'}</div>
-    </div>
   </div>
   
   <div class="template-grid">
