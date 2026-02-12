@@ -792,6 +792,7 @@ export default function DepartmentPanelExcel({
       white-space: pre-wrap;
       width: 100%;
       line-height: 1;
+      margin-right: 10px;
     }
 
     .checkbox-group {
@@ -827,8 +828,8 @@ export default function DepartmentPanelExcel({
     /* Image stack - fills remaining space after label */
     .image-stack {
       display: flex;
-      flex-direction: column;
-      gap: 1px;
+      flex-direction: row;
+      gap: 0px;
       width: 100%;
       flex: 1;
       overflow: hidden;
