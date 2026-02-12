@@ -1428,7 +1428,7 @@ export default function DepartmentPanelExcel({
                     )}
                     {cell.customType === 'custom-empty-field' && (
                       <div className="text-gray-400 text-xs">
-                        {cell.customValue}: <span className="italic">{cell.customPlaceholder}</span>
+                        {cell.customValue}<span className="italic">{cell.customPlaceholder}</span>
                       </div>
                     )}
                   </div>
