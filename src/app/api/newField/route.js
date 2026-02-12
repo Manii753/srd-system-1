@@ -32,6 +32,7 @@ export async function GET(request) {
 export async function POST(request) {
     try {
         const body = await request.json();
+        console.log('POST /api/newField body:', body);
         await dbConnect();
 
         // If no order specified, set it to the highest order + 1 for the department
@@ -57,6 +58,7 @@ export async function PATCH(request) {
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
         const body = await request.json();
+        console.log('PATCH /api/newField body:', body);
         await dbConnect();
         const fieldId = id || body.id;
         if (!fieldId) return NextResponse.json({ error: 'Missing field id' }, { status: 400 });

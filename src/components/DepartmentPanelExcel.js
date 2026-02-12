@@ -591,6 +591,7 @@ export default function DepartmentPanelExcel({
         const isTable = fieldDef.type === 'table';
 
         if (fieldDef.type === 'boolean') {
+<<<<<<< HEAD
           valueDisplay = `
           <div class="checkbox-group">
             <span class="checkbox-item">${fieldValue ? 'Yes' : 'NO'}</span>
@@ -611,6 +612,20 @@ export default function DepartmentPanelExcel({
             `;
           } else {
             valueDisplay = '<span class="no-value">No table data</span>';
+=======
+          if(fieldDef.booleanDisplayType === 'instock-purchase'){
+            valueDisplay = `
+            <div class="checkbox-group">
+              <span class="checkbox-item">${fieldValue ? 'In Stock' : 'Purchase'}</span>
+            </div>
+          `;
+          }else{
+            valueDisplay = `
+            <div class="checkbox-group">
+              <span class="checkbox-item">${fieldValue ? 'Yes' : 'NO'}</span>
+            </div>
+          `;
+>>>>>>> fede98d1f7832d00a21c0d586aeb463acb41879d
           }
         } else if (isFile) {
           if (fieldValue) {
@@ -806,6 +821,7 @@ export default function DepartmentPanelExcel({
       white-space: pre-wrap;
       width: 100%;
       line-height: 1;
+      margin-right: 10px;
     }
 
     .checkbox-group {
@@ -841,8 +857,8 @@ export default function DepartmentPanelExcel({
     /* Image stack - fills remaining space after label */
     .image-stack {
       display: flex;
-      flex-direction: column;
-      gap: 1px;
+      flex-direction: row;
+      gap: 0px;
       width: 100%;
       flex: 1;
       overflow: hidden;
@@ -1606,7 +1622,7 @@ export default function DepartmentPanelExcel({
                     )}
                     {cell.customType === 'custom-empty-field' && (
                       <div className="text-gray-400 text-xs">
-                        {cell.customValue}: <span className="italic">{cell.customPlaceholder}</span>
+                        {cell.customValue}<span className="italic">{cell.customPlaceholder}</span>
                       </div>
                     )}
                   </div>

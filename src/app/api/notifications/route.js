@@ -8,7 +8,7 @@ export async function GET(request) {
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
-    console.log("sessin in notifications",session);
+    
 
     if (!session) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
