@@ -430,14 +430,6 @@ export default function DepartmentPanelExcel({
         return;
       }
 
-      // Department color map for print
-      const deptPrintColors = {
-        vmd: '#f3e8ff',       // light purple
-        cad: '#fef3c7',       // light amber
-        commercial: '#d1fae5', // light emerald
-        mmc: '#e0f2fe',       // light sky
-      };
-
       // Build the print content using the template
       const gridColumns = activeTemplateForPrint.gridColumns || 6;
       let fieldsHTML = '';
@@ -455,6 +447,7 @@ export default function DepartmentPanelExcel({
 
         // Handle custom elements
         if (cell.isCustom) {
+          // ... (keep custom logic)
           const customType = cell.customType;
           const customValue = cell.customValue || '';
           const customPlaceholder = cell.customPlaceholder || '';
@@ -535,11 +528,14 @@ export default function DepartmentPanelExcel({
         }
 
         // Handle regular database fields
+        // Get field definition - prioritize populated object from template
         let fieldDef = null;
 
         if (cell.fieldId && typeof cell.fieldId === 'object' && cell.fieldId._id) {
+          // It's already populated! Use it.
           fieldDef = cell.fieldId;
         } else if (cell.fieldId) {
+          // It's just an ID, look it up (fallback)
           fieldDef = allFieldDefsForPrint.find(f => f._id.toString() === cell.fieldId.toString());
         }
 
@@ -548,13 +544,11 @@ export default function DepartmentPanelExcel({
           return;
         }
 
-        // Get department background color for this field
-        const deptColor = deptPrintColors[fieldDef.department] || '#ffffff';
-
         // Check if field is active OR hidden dynamically
+        // If so, render a placeholder to preserve layout
         if (fieldDef.active === false || isFieldHidden(fieldDef)) {
           fieldsHTML += `
-            <div class="field-cell" style="background: ${deptColor}; grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+            <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
               <div class="cell-content">
                 <span class="cell-label" style="opacity: 0.5;">${fieldDef.name}</span>
                 <span class="cell-underline" style="border-bottom: 0.4px dashed #ccc;"></span>
@@ -564,7 +558,7 @@ export default function DepartmentPanelExcel({
           return;
         }
 
-        // Find the field value from SRD data
+        // Find the field value from SRD data - Use local 'fields' state as source of truth
         let fieldValue = '';
         const localField = fields.find(f => {
           return (
@@ -577,6 +571,7 @@ export default function DepartmentPanelExcel({
         if (localField) {
           fieldValue = localField.value || '';
         } else {
+          // Fallback to srd prop if not in local state
           const srdField = srd.dynamicFields?.find(f => {
             return (
               (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
@@ -630,12 +625,8 @@ export default function DepartmentPanelExcel({
           valueDisplay = fieldValue || '';
         }
 
-        // Apply department color to each field cell background
-        const headingBg = '#f3f4f6';
-        const cellBg = isHeading ? headingBg : deptColor;
-
         fieldsHTML += `
-        <div class="field-cell ${isHeading ? 'cell-heading' : ''} ${isImage ? 'cell-image' : ''}" style="background: ${cellBg}; grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+        <div class="field-cell ${isHeading ? 'cell-heading' : ''} ${isImage ? 'cell-image' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
           ${!isHeading && !isImage ? `
               <div class="cell-content">
                 <span class="cell-label">${fieldDef.name}:</span>
@@ -693,11 +684,6 @@ export default function DepartmentPanelExcel({
       -webkit-print-color-adjust: exact;
       color-adjust: exact;
     }
-
-    /* Force all text to black */
-    * {
-      color: #000 !important;
-    }
     
     .header {
       margin-bottom: 10px;
@@ -708,7 +694,7 @@ export default function DepartmentPanelExcel({
       margin: 0 0 5px 0;
       font-weight: 700;
       text-transform: uppercase;
-      color: #1a1a1a !important;
+      color: #1a1a1a;
       border-bottom: 1px solid #1a1a1a;
       padding-bottom: 2px;
     }
@@ -723,7 +709,7 @@ export default function DepartmentPanelExcel({
     .header-item strong {
       display: block;
       font-size: 6.5px;
-      color: #000 !important;
+      color: #666;
       margin-bottom: 1px;
     }
     
@@ -736,7 +722,7 @@ export default function DepartmentPanelExcel({
     
     .field-cell {
       padding: 0;
-      background: transparent;
+      background: white;
       display: flex;
       height: 20px;
       flex-direction: column;
@@ -750,18 +736,21 @@ export default function DepartmentPanelExcel({
     }
     
     .cell-heading {
+      background-color: #f3f4f6;
       justify-content: center;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom:8px;
+      
     }
     
     .heading-content {
       font-weight: 700;
       text-transform: capitalize;
       font-size: 7.5px;
-      color: #000 !important;
+      color: #111;
       text-align: left;
       width: 100%;
+      
     }
 
     .cell-content {
@@ -770,24 +759,22 @@ export default function DepartmentPanelExcel({
       width: 100%;
       gap: 4px;
       height: 100%;
-      background: transparent;
     }
 
     .cell-label {
       font-size: 9px;
       font-weight: 700;
-      color: #000 !important;
+      color: #333;
       white-space: normal;
       text-transform: capitalize;
       width: 120px; 
       flex-shrink: 0;
       line-height: 10px;
-      background: transparent;
     }
 
     .cell-underline {
       font-size: 9px;
-      color: #000 !important;
+      color: #000;
       flex-grow: 1;
       border-bottom: 0.4px solid #999;
       min-height: 10px;
@@ -797,7 +784,6 @@ export default function DepartmentPanelExcel({
       white-space: pre-wrap;
       width: 100%;
       line-height: 1;
-      background: transparent;
     }
 
     .checkbox-group {
@@ -809,7 +795,6 @@ export default function DepartmentPanelExcel({
     .checkbox-item {
       font-size: 7px;
       font-weight: 600;
-      color: #000 !important;
     }
 
     /* Image cell specific styles */
@@ -818,16 +803,15 @@ export default function DepartmentPanelExcel({
       height: 100%;
       display: flex;
       flex-direction: column;
-      background: transparent;
     }
 
     .image-label {
       font-size: 6px;
       font-weight: 700;
-      color: #000 !important;
+      color: #333;
       text-transform: capitalize;
       padding: 1px 2px;
-      background: transparent;
+      background: #f9f9f9;
       border-bottom: 0.5px solid #ddd;
       flex-shrink: 0;
     }
@@ -846,7 +830,7 @@ export default function DepartmentPanelExcel({
       width: 100%;
       flex: 1;
       border: 0.5px solid #ccc;
-      background: transparent;
+      background: #fafafa;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -871,13 +855,13 @@ export default function DepartmentPanelExcel({
     /* Custom element styles */
     .static-text {
       font-size: 7px;
-      color: #000 !important;
+      color: #333;
       padding: 2px;
     }
 
     .placeholder-text {
       font-size: 6px;
-      color: #666 !important;
+      color: #999;
       font-style: italic;
     }
 
@@ -891,7 +875,7 @@ export default function DepartmentPanelExcel({
     .textarea-label {
       font-size: 6.5px;
       font-weight: 700;
-      color: #000 !important;
+      color: #333;
       text-transform: capitalize;
       margin-bottom: 2px;
     }
@@ -901,7 +885,6 @@ export default function DepartmentPanelExcel({
       border: 0.4px solid #999;
       min-height: 30px;
       padding: 2px;
-      background: transparent;
     }
 
     .separator-cell {
@@ -932,7 +915,7 @@ export default function DepartmentPanelExcel({
       font-size: 7px;
       font-weight: 700;
       text-transform: capitalize;
-      color: #000 !important;
+      color: #333;
     }
 
     .signature-line {
@@ -943,7 +926,7 @@ export default function DepartmentPanelExcel({
 
     .signature-helper {
       font-size: 5px;
-      color: #000 !important;
+      color: #666;
       text-transform: uppercase;
     }
     
@@ -1011,11 +994,6 @@ export default function DepartmentPanelExcel({
         color-adjust: exact !important;
       }
       
-      .field-cell {
-        -webkit-print-color-adjust: exact !important;
-        color-adjust: exact !important;
-      }
-
       .img-print {
         -webkit-print-color-adjust: exact !important;
         color-adjust: exact !important;
@@ -1118,6 +1096,7 @@ export default function DepartmentPanelExcel({
       });
     }
   };
+
   // Render input cell based on field type
   const renderCellInput = useCallback((fieldDef, fieldId, canEdit) => {
     const fieldValue = getFieldValue(fieldId, fieldDef);
@@ -1143,7 +1122,7 @@ export default function DepartmentPanelExcel({
             required={isRequired}
             disabled={!canEdit}
             className={cn(
-              "h-8 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 w-full",
+              "h-8 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 w-full bg-transparent",
               !canEdit && "bg-gray-100 cursor-not-allowed"
             )}
           />
@@ -1158,7 +1137,7 @@ export default function DepartmentPanelExcel({
             required={isRequired}
             disabled={!canEdit}
             className={cn(
-              "min-h-[60px] px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 resize-none w-full",
+              "min-h-[60px] px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 resize-none w-full bg-transparent",
               !canEdit && "bg-gray-100 cursor-not-allowed"
             )}
           />
@@ -1166,12 +1145,29 @@ export default function DepartmentPanelExcel({
 
       case 'boolean':
         return (
-          <div className="flex items-center justify-center py-2">
-            <Switch
-              checked={!!fieldValue}
-              onCheckedChange={(checked) => handleFieldChange(fieldId, name, checked, department, fieldDef)}
-              disabled={!canEdit}
-            />
+          <div className="flex items-center space-x-4 py-1">
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="radio"
+                name={`field-${fieldId}`}
+                checked={fieldValue === true}
+                onChange={() => handleFieldChange(fieldId, name, true, department, fieldDef)}
+                disabled={!canEdit}
+                className="form-radio h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+              />
+              <span className="text-sm text-gray-700">Yes</span>
+            </label>
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="radio"
+                name={`field-${fieldId}`}
+                checked={fieldValue === false}
+                onChange={() => handleFieldChange(fieldId, name, false, department, fieldDef)}
+                disabled={!canEdit}
+                className="form-radio h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+              />
+              <span className="text-sm text-gray-700">No</span>
+            </label>
           </div>
         );
 
@@ -1387,9 +1383,9 @@ export default function DepartmentPanelExcel({
       </div>
 
       {/* Grid based on template */}
-      <div className="p-3">
+      <div className="p-0">
         <div
-          className="grid gap-2"
+          className="grid gap-0"
           style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}
         >
           {activeTemplate.cells.map((cell, cellIndex) => {
@@ -1401,30 +1397,32 @@ export default function DepartmentPanelExcel({
               return (
                 <div
                   key={cellIndex}
-                  className="bg-gray-50 border border-gray-200 rounded p-2"
+                  className="p-1 bg-gray-100"
                   style={{
                     gridColumn: `span ${colSpan} `,
                     gridRow: `span ${rowSpan} `,
                   }}
                 >
-                  {cell.customType === 'custom-heading' && (
-                    <div className="font-semibold text-gray-800 text-sm">
-                      {cell.customValue}
-                    </div>
-                  )}
-                  {cell.customType === 'custom-text' && (
-                    <div className="text-gray-600 text-sm">
-                      {cell.customValue}
-                    </div>
-                  )}
-                  {cell.customType === 'custom-separator' && (
-                    <div className="border-t border-gray-300 my-2"></div>
-                  )}
-                  {cell.customType === 'custom-empty-field' && (
-                    <div className="text-gray-400 text-xs">
-                      {cell.customValue}: <span className="italic">{cell.customPlaceholder}</span>
-                    </div>
-                  )}
+                  <div className="bg-gray-50 border border-gray-200 rounded p-2 h-full">
+                    {cell.customType === 'custom-heading' && (
+                      <div className="font-semibold text-gray-800 text-sm">
+                        {cell.customValue}
+                      </div>
+                    )}
+                    {cell.customType === 'custom-text' && (
+                      <div className="text-gray-600 text-sm">
+                        {cell.customValue}
+                      </div>
+                    )}
+                    {cell.customType === 'custom-separator' && (
+                      <div className="border-t border-gray-300 my-2"></div>
+                    )}
+                    {cell.customType === 'custom-empty-field' && (
+                      <div className="text-gray-400 text-xs">
+                        {cell.customValue}: <span className="italic">{cell.customPlaceholder}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             }
@@ -1449,13 +1447,17 @@ export default function DepartmentPanelExcel({
               return (
                 <div
                   key={cellIndex}
-                  className="bg-red-50 border border-red-200 rounded p-2 text-xs text-red-500"
+                  className="p-1 bg-red-50"
                   style={{
                     gridColumn: `span ${colSpan} `,
                     gridRow: `span ${rowSpan} `,
                   }}
                 >
-                  Field not found
+                  <div
+                    className="bg-red-50 border border-red-200 rounded p-2 text-xs text-red-500 h-full"
+                  >
+                    Field not found
+                  </div>
                 </div>
               );
             }
@@ -1464,18 +1466,31 @@ export default function DepartmentPanelExcel({
             const canEdit = canEditField(fieldDef.department) && isFieldActive;
             const isHeading = fieldDef.type === 'heading';
             const isHidden = isFieldHidden(fieldDef);
+            const deptBgColor = {
+              vmd: 'bg-purple-100',
+              cad: 'bg-amber-100',
+              commercial: 'bg-emerald-100',
+              mmc: 'bg-sky-100',
+            };
+            const deptBg = deptBgColor[fieldDef.department] || 'bg-gray-100';
 
             if (isHidden) {
               return (
-                <div
-                  key={cellIndex}
-                  className="bg-gray-50 border border-gray-100 rounded"
-                  style={{
+                <div 
+                   key={cellIndex}
+                   className="p-1 bg-gray-50"
+                   style={{
                     gridColumn: `span ${colSpan} `,
                     gridRow: `span ${rowSpan} `,
-                    opacity: 0.5,
-                  }}
-                ></div>
+                   }}
+                >
+                  <div
+                    className="bg-gray-50 border border-gray-100 rounded h-full"
+                    style={{
+                      opacity: 0.5,
+                    }}
+                  ></div>
+                </div>
               );
             }
 
@@ -1483,41 +1498,48 @@ export default function DepartmentPanelExcel({
               <div
                 key={cellIndex}
                 className={cn(
-                  "border rounded",
-                  isHeading ? "bg-blue-50 border-blue-200" : "bg-white border-gray-300",
-                  !canEdit && !isHeading && "bg-gray-50"
+                  deptBg,
+                  "p-1"
                 )}
                 style={{
                   gridColumn: `span ${colSpan} `,
                   gridRow: `span ${rowSpan} `,
                 }}
               >
-                {/* Field header */}
-                {!isHeading && (
-                  <div className="bg-gray-50 border-b border-gray-200 px-2 py-1 flex items-center justify-between">
-                    <span className="text-xs font-medium text-gray-700 truncate" title={fieldDef.name}>
-                      {fieldDef.name}
-                    </span>
-                    <div className="flex items-center space-x-1 ml-1">
-                      {fieldDef.isRequired && (
-                        <span className="text-red-500 text-xs font-bold">*</span>
-                      )}
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-xs px-1 py-0",
-                          canEdit ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-100 text-gray-500"
+                <div
+                  className={cn(
+                    "border rounded h-full flex flex-col",
+                    isHeading ? "bg-blue-50 border-blue-200" : "bg-transparent border-gray-300",
+                    !canEdit && !isHeading && "opacity-75"
+                  )}
+                >
+                  {/* Field header */}
+                  {!isHeading && (
+                    <div className="bg-transparent border-b border-gray-200 px-2 py-1 flex items-center justify-between shrink-0">
+                      <span className="text-xs font-medium text-gray-700 truncate" title={fieldDef.name}>
+                        {fieldDef.name}
+                      </span>
+                      <div className="flex items-center space-x-1 ml-1">
+                        {fieldDef.isRequired && (
+                          <span className="text-red-500 text-xs font-bold">*</span>
                         )}
-                      >
-                        {fieldDef.department?.toUpperCase()}
-                      </Badge>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-xs px-1 py-0",
+                            canEdit ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-100 text-gray-500"
+                          )}
+                        >
+                          {fieldDef.department?.toUpperCase()}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Field input */}
-                <div className={cn(!isHeading && "p-1")}>
-                  {renderCellInput(fieldDef, fieldIdStr, canEdit)}
+                  {/* Field input */}
+                  <div className={cn(!isHeading && "p-1", "flex-1")}>
+                    {renderCellInput(fieldDef, fieldIdStr, canEdit)}
+                  </div>
                 </div>
               </div>
             );
