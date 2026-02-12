@@ -430,6 +430,14 @@ export default function DepartmentPanelExcel({
         return;
       }
 
+      // Department color map for print
+      const deptPrintColors = {
+        vmd: '#f3e8ff',       // light purple
+        cad: '#fef3c7',       // light amber
+        commercial: '#d1fae5', // light emerald
+        mmc: '#e0f2fe',       // light sky
+      };
+
       // Build the print content using the template
       const gridColumns = activeTemplateForPrint.gridColumns || 6;
       let fieldsHTML = '';
@@ -447,7 +455,6 @@ export default function DepartmentPanelExcel({
 
         // Handle custom elements
         if (cell.isCustom) {
-          // ... (keep custom logic)
           const customType = cell.customType;
           const customValue = cell.customValue || '';
           const customPlaceholder = cell.customPlaceholder || '';
@@ -528,14 +535,11 @@ export default function DepartmentPanelExcel({
         }
 
         // Handle regular database fields
-        // Get field definition - prioritize populated object from template
         let fieldDef = null;
 
         if (cell.fieldId && typeof cell.fieldId === 'object' && cell.fieldId._id) {
-          // It's already populated! Use it.
           fieldDef = cell.fieldId;
         } else if (cell.fieldId) {
-          // It's just an ID, look it up (fallback)
           fieldDef = allFieldDefsForPrint.find(f => f._id.toString() === cell.fieldId.toString());
         }
 
@@ -544,11 +548,13 @@ export default function DepartmentPanelExcel({
           return;
         }
 
+        // Get department background color for this field
+        const deptColor = deptPrintColors[fieldDef.department] || '#ffffff';
+
         // Check if field is active OR hidden dynamically
-        // If so, render a placeholder to preserve layout
         if (fieldDef.active === false || isFieldHidden(fieldDef)) {
           fieldsHTML += `
-            <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+            <div class="field-cell" style="background: ${deptColor}; grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
               <div class="cell-content">
                 <span class="cell-label" style="opacity: 0.5;">${fieldDef.name}</span>
                 <span class="cell-underline" style="border-bottom: 0.4px dashed #ccc;"></span>
@@ -558,7 +564,7 @@ export default function DepartmentPanelExcel({
           return;
         }
 
-        // Find the field value from SRD data - Use local 'fields' state as source of truth
+        // Find the field value from SRD data
         let fieldValue = '';
         const localField = fields.find(f => {
           return (
@@ -571,7 +577,6 @@ export default function DepartmentPanelExcel({
         if (localField) {
           fieldValue = localField.value || '';
         } else {
-          // Fallback to srd prop if not in local state
           const srdField = srd.dynamicFields?.find(f => {
             return (
               (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
@@ -625,8 +630,12 @@ export default function DepartmentPanelExcel({
           valueDisplay = fieldValue || '';
         }
 
+        // Apply department color to each field cell background
+        const headingBg = '#f3f4f6';
+        const cellBg = isHeading ? headingBg : deptColor;
+
         fieldsHTML += `
-        <div class="field-cell ${isHeading ? 'cell-heading' : ''} ${isImage ? 'cell-image' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+        <div class="field-cell ${isHeading ? 'cell-heading' : ''} ${isImage ? 'cell-image' : ''}" style="background: ${cellBg}; grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
           ${!isHeading && !isImage ? `
               <div class="cell-content">
                 <span class="cell-label">${fieldDef.name}:</span>
@@ -684,6 +693,11 @@ export default function DepartmentPanelExcel({
       -webkit-print-color-adjust: exact;
       color-adjust: exact;
     }
+
+    /* Force all text to black */
+    * {
+      color: #000 !important;
+    }
     
     .header {
       margin-bottom: 10px;
@@ -694,7 +708,7 @@ export default function DepartmentPanelExcel({
       margin: 0 0 5px 0;
       font-weight: 700;
       text-transform: uppercase;
-      color: #1a1a1a;
+      color: #1a1a1a !important;
       border-bottom: 1px solid #1a1a1a;
       padding-bottom: 2px;
     }
@@ -709,7 +723,7 @@ export default function DepartmentPanelExcel({
     .header-item strong {
       display: block;
       font-size: 6.5px;
-      color: #666;
+      color: #000 !important;
       margin-bottom: 1px;
     }
     
@@ -722,7 +736,7 @@ export default function DepartmentPanelExcel({
     
     .field-cell {
       padding: 0;
-      background: white;
+      background: transparent;
       display: flex;
       height: 20px;
       flex-direction: column;
@@ -736,21 +750,18 @@ export default function DepartmentPanelExcel({
     }
     
     .cell-heading {
-      background-color: #f3f4f6;
       justify-content: center;
       align-items: center;
-      margin-bottom:8px;
-      
+      margin-bottom: 8px;
     }
     
     .heading-content {
       font-weight: 700;
       text-transform: capitalize;
       font-size: 7.5px;
-      color: #111;
+      color: #000 !important;
       text-align: left;
       width: 100%;
-      
     }
 
     .cell-content {
@@ -759,22 +770,24 @@ export default function DepartmentPanelExcel({
       width: 100%;
       gap: 4px;
       height: 100%;
+      background: transparent;
     }
 
     .cell-label {
       font-size: 9px;
       font-weight: 700;
-      color: #333;
+      color: #000 !important;
       white-space: normal;
       text-transform: capitalize;
       width: 120px; 
       flex-shrink: 0;
       line-height: 10px;
+      background: transparent;
     }
 
     .cell-underline {
       font-size: 9px;
-      color: #000;
+      color: #000 !important;
       flex-grow: 1;
       border-bottom: 0.4px solid #999;
       min-height: 10px;
@@ -784,6 +797,7 @@ export default function DepartmentPanelExcel({
       white-space: pre-wrap;
       width: 100%;
       line-height: 1;
+      background: transparent;
     }
 
     .checkbox-group {
@@ -795,6 +809,7 @@ export default function DepartmentPanelExcel({
     .checkbox-item {
       font-size: 7px;
       font-weight: 600;
+      color: #000 !important;
     }
 
     /* Image cell specific styles */
@@ -803,15 +818,16 @@ export default function DepartmentPanelExcel({
       height: 100%;
       display: flex;
       flex-direction: column;
+      background: transparent;
     }
 
     .image-label {
       font-size: 6px;
       font-weight: 700;
-      color: #333;
+      color: #000 !important;
       text-transform: capitalize;
       padding: 1px 2px;
-      background: #f9f9f9;
+      background: transparent;
       border-bottom: 0.5px solid #ddd;
       flex-shrink: 0;
     }
@@ -830,7 +846,7 @@ export default function DepartmentPanelExcel({
       width: 100%;
       flex: 1;
       border: 0.5px solid #ccc;
-      background: #fafafa;
+      background: transparent;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -855,13 +871,13 @@ export default function DepartmentPanelExcel({
     /* Custom element styles */
     .static-text {
       font-size: 7px;
-      color: #333;
+      color: #000 !important;
       padding: 2px;
     }
 
     .placeholder-text {
       font-size: 6px;
-      color: #999;
+      color: #666 !important;
       font-style: italic;
     }
 
@@ -875,7 +891,7 @@ export default function DepartmentPanelExcel({
     .textarea-label {
       font-size: 6.5px;
       font-weight: 700;
-      color: #333;
+      color: #000 !important;
       text-transform: capitalize;
       margin-bottom: 2px;
     }
@@ -885,6 +901,7 @@ export default function DepartmentPanelExcel({
       border: 0.4px solid #999;
       min-height: 30px;
       padding: 2px;
+      background: transparent;
     }
 
     .separator-cell {
@@ -915,7 +932,7 @@ export default function DepartmentPanelExcel({
       font-size: 7px;
       font-weight: 700;
       text-transform: capitalize;
-      color: #333;
+      color: #000 !important;
     }
 
     .signature-line {
@@ -926,7 +943,7 @@ export default function DepartmentPanelExcel({
 
     .signature-helper {
       font-size: 5px;
-      color: #666;
+      color: #000 !important;
       text-transform: uppercase;
     }
     
@@ -994,6 +1011,11 @@ export default function DepartmentPanelExcel({
         color-adjust: exact !important;
       }
       
+      .field-cell {
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+
       .img-print {
         -webkit-print-color-adjust: exact !important;
         color-adjust: exact !important;
@@ -1096,7 +1118,6 @@ export default function DepartmentPanelExcel({
       });
     }
   };
-
   // Render input cell based on field type
   const renderCellInput = useCallback((fieldDef, fieldId, canEdit) => {
     const fieldValue = getFieldValue(fieldId, fieldDef);
