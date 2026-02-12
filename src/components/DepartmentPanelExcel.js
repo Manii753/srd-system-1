@@ -590,11 +590,19 @@ export default function DepartmentPanelExcel({
         const isFile = fieldDef.type === 'file';
 
         if (fieldDef.type === 'boolean') {
-          valueDisplay = `
-          <div class="checkbox-group">
-            <span class="checkbox-item">${fieldValue ? 'Yes' : 'NO'}</span>
-          </div>
-        `;
+          if(fieldDef.booleanDisplayType === 'instock-purchase'){
+            valueDisplay = `
+            <div class="checkbox-group">
+              <span class="checkbox-item">${fieldValue ? 'In Stock' : 'Purchase'}</span>
+            </div>
+          `;
+          }else{
+            valueDisplay = `
+            <div class="checkbox-group">
+              <span class="checkbox-item">${fieldValue ? 'Yes' : 'NO'}</span>
+            </div>
+          `;
+          }
         } else if (isFile) {
           if (fieldValue) {
             valueDisplay = `

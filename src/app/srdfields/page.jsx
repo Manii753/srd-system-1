@@ -232,7 +232,10 @@ export default function Page() {
     isShownInQuickDetails: false,
     isConnectedTo: false,
     connectedFieldId: null,
-    connectionType: null
+    isConnectedTo: false,
+    connectedFieldId: null,
+    connectionType: null,
+    booleanDisplayType: null
   });
   const router = useRouter();
   const [fields, setFields] = useState([]);
@@ -315,7 +318,8 @@ export default function Page() {
       isShownInQuickDetails: false,
       isConnectedTo: false,
       connectedFieldId: null,
-      connectionType: null
+      connectionType: null,
+      booleanDisplayType: null
     });
     setEditingId(null);
     setModalOpen(true);
@@ -337,7 +341,8 @@ export default function Page() {
       isShownInQuickDetails: !!field.isShownInQuickDetails,
       isConnectedTo: !!field.isConnectedTo,
       connectedFieldId: connectedId,
-      connectionType: field.connectionType || null
+      connectionType: field.connectionType || null,
+      booleanDisplayType: field.booleanDisplayType || null
     });
     setEditingId(field._id);
     setModalOpen(true);
@@ -721,6 +726,24 @@ export default function Page() {
                     <option value="image">🖼️ Image Upload</option>
                   </select>
                 </div>
+
+                {/* Boolean Display Type */}
+                {values.type === 'boolean' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Boolean Display Type
+                    </label>
+                    <select
+                      className="w-full p-2 border border-gray-300 rounded"
+                      value={values.booleanDisplayType || ''}
+                      onChange={(e) => setValues({ ...values, booleanDisplayType: e.target.value || null })}
+                    >
+                      <option value="">Default (Yes/No)</option>
+                      <option value="yes-no">Yes / No</option>
+                      <option value="instock-purchase">In Stock / Purchase</option>
+                    </select>
+                  </div>
+                )}
 
                 {/* Parent Heading (only for non-heading fields) */}
                 {values.type !== 'heading' && headingOptions.length > 0 && (
