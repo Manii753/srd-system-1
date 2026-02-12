@@ -651,11 +651,11 @@ export default function DepartmentPanelExcel({
         }
 
         fieldsHTML += `
-        <div class="field-cell ${isHeading ? 'cell-heading' : ''} ${isImage ? 'cell-image' : ''} ${isTable ? 'cell-table' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+        <div class="field-cell ${isHeading ? 'cell-heading' : ''} ${isImage ? 'cell-image' : ''} ${isTable ? 'cell-table' : ''} ${colSpan === 1 ? 'is-small-cell' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
           ${!isHeading && !isImage && !isTable ? `
-              <div class="cell-content">
-                <span class="cell-label">${fieldDef.name}:</span>
-                <span class="cell-underline">${valueDisplay}</span>
+              <div style="margin-top: 5px;" class="cell-content">
+                <span style="font-size: 8px;" class="cell-label">${fieldDef.name}</span>
+                <span style="font-size: 8px;"class="cell-underline">${valueDisplay}</span>
               </div>
           ` : isImage ? `
               <div class="cell-image-container">
@@ -800,6 +800,13 @@ export default function DepartmentPanelExcel({
       width: 120px; 
       flex-shrink: 0;
       line-height: 10px;
+    }
+
+    .is-small-cell .cell-label {
+      width: auto !important;
+      max-width: 50%;
+      min-width: 20px;
+      margin-right: 4px;
     }
 
     .cell-underline {
@@ -976,11 +983,11 @@ export default function DepartmentPanelExcel({
 
     .table-label {
       font-size: 13px;
-      margin: 5px;
+      
       font-weight: 700;
       color: #333;
       text-transform: capitalize;
-      padding: 1px 2px;
+      padding: 1px 4px;
       background: #f9f9f9;
       border-bottom: 0.5px solid #ddd;
       flex-shrink: 0;
@@ -1007,7 +1014,7 @@ export default function DepartmentPanelExcel({
       padding: 2px 3px;
       text-align: left;
       font-size: 9px;
-      min-height: 12px;
+      min-height: 14px;
     }
     
     .footer {
@@ -1052,7 +1059,7 @@ export default function DepartmentPanelExcel({
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 7px;
+      table-layout: fixed; /* Ensures equal column widths */
     }
 
     table, th, td {
@@ -1060,12 +1067,22 @@ export default function DepartmentPanelExcel({
     }
 
     th, td {
-      padding: 2px 4px;
+      padding: 4px 8px;
       text-align: left;
+      word-wrap: break-word;
+      height: 12px; /* Enforce minimum height for rows */
+      vertical-align: middle;
     }
 
     th {
+      font-size: 11px;
+      font-weight: bold;
       background-color: #f9f9f9;
+      height: 12px; /* Ensure header has same height */
+    }
+
+    td {
+      font-size: 9px;
     }
 
     @media print {
@@ -1682,7 +1699,7 @@ export default function DepartmentPanelExcel({
               vmd: 'bg-purple-100',
               cad: 'bg-amber-100',
               commercial: 'bg-emerald-100',
-              mmc: 'bg-sky-100',
+              mmc: 'bg-sky-200',
             };
             const deptBg = deptBgColor[fieldDef.department] || 'bg-gray-100';
 

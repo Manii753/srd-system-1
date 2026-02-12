@@ -714,6 +714,11 @@ function SortableTemplateCell({
             <Badge variant="outline" className="text-xs bg-white/80">
               {displayType}
             </Badge>
+            {field?.parentHeading && (
+              <Badge variant="destructive" className="text-xs animate-pulse">
+                {field?.parentHeading?.name}
+              </Badge>
+            )}
           </div>
           {!isCustom && field?.isRequired && (
             <Badge variant="destructive" className="text-xs animate-pulse">
