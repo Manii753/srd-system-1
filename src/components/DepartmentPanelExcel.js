@@ -591,12 +591,19 @@ export default function DepartmentPanelExcel({
         const isTable = fieldDef.type === 'table';
 
         if (fieldDef.type === 'boolean') {
-<<<<<<< HEAD
-          valueDisplay = `
-          <div class="checkbox-group">
-            <span class="checkbox-item">${fieldValue ? 'Yes' : 'NO'}</span>
-          </div>
-        `;
+          if(fieldDef.booleanDisplayType === 'instock-purchase'){
+            valueDisplay = `
+            <div class="checkbox-group">
+              <span class="checkbox-item">${fieldValue ? 'In Stock' : 'Purchase'}</span>
+            </div>
+          `;
+          }else{
+            valueDisplay = `
+            <div class="checkbox-group">
+              <span class="checkbox-item">${fieldValue ? 'Yes' : 'NO'}</span>
+            </div>
+          `;
+          }
         } else if (isTable) {
           const tableData = fieldValue && typeof fieldValue === 'object' ? fieldValue : { headers: [], rows: [] };
           if (tableData.headers && tableData.headers.length > 0) {
@@ -612,20 +619,6 @@ export default function DepartmentPanelExcel({
             `;
           } else {
             valueDisplay = '<span class="no-value">No table data</span>';
-=======
-          if(fieldDef.booleanDisplayType === 'instock-purchase'){
-            valueDisplay = `
-            <div class="checkbox-group">
-              <span class="checkbox-item">${fieldValue ? 'In Stock' : 'Purchase'}</span>
-            </div>
-          `;
-          }else{
-            valueDisplay = `
-            <div class="checkbox-group">
-              <span class="checkbox-item">${fieldValue ? 'Yes' : 'NO'}</span>
-            </div>
-          `;
->>>>>>> fede98d1f7832d00a21c0d586aeb463acb41879d
           }
         } else if (isFile) {
           if (fieldValue) {
@@ -982,7 +975,8 @@ export default function DepartmentPanelExcel({
     }
 
     .table-label {
-      font-size: 6px;
+      font-size: 13px;
+      padding: 5px;
       font-weight: 700;
       color: #333;
       text-transform: capitalize;
@@ -1005,14 +999,14 @@ export default function DepartmentPanelExcel({
       padding: 2px 3px;
       text-align: left;
       font-weight: 700;
-      font-size: 6px;
+      font-size: 11px;
     }
 
     .print-table .table-cell {
       border: 0.5px solid #ccc;
       padding: 2px 3px;
       text-align: left;
-      font-size: 6px;
+      font-size: 9px;
       min-height: 12px;
     }
     
@@ -1270,22 +1264,37 @@ export default function DepartmentPanelExcel({
                   <tr>
                     {tableData.headers?.map((header, colIdx) => (
                       <th key={colIdx} className="border border-gray-300 p-1 min-w-[80px]">
-                        {canEdit ? (
-                          <input
-                            type="text"
-                            value={header}
-                            onChange={(e) => {
-                              const newHeaders = [...tableData.headers];
-                              newHeaders[colIdx] = e.target.value;
-                              handleFieldChange(fieldId, name, { ...tableData, headers: newHeaders }, department, fieldDef);
-                            }}
-                            className="w-full bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1 font-semibold text-center"
-                            placeholder={`Column ${colIdx + 1}`}
-                            disabled={!canEdit}
-                          />
-                        ) : (
-                          <span className="font-semibold">{header}</span>
-                        )}
+                        <div className="flex items-center gap-0.5">
+                          {canEdit ? (
+                            <input
+                              type="text"
+                              value={header}
+                              onChange={(e) => {
+                                const newHeaders = [...tableData.headers];
+                                newHeaders[colIdx] = e.target.value;
+                                handleFieldChange(fieldId, name, { ...tableData, headers: newHeaders }, department, fieldDef);
+                              }}
+                              className="w-full bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1 font-semibold text-center flex-1"
+                              placeholder={`Column ${colIdx + 1}`}
+                              disabled={!canEdit}
+                            />
+                          ) : (
+                            <span className="font-semibold flex-1 text-center">{header}</span>
+                          )}
+                          {canEdit && tableData.headers.length > 1 && (
+                            <button
+                              onClick={() => {
+                                const newHeaders = tableData.headers.filter((_, idx) => idx !== colIdx);
+                                const newRows = tableData.rows.map(row => row.filter((_, idx) => idx !== colIdx));
+                                handleFieldChange(fieldId, name, { headers: newHeaders, rows: newRows }, department, fieldDef);
+                              }}
+                              className="text-red-400 hover:text-red-600 text-xs flex-shrink-0 leading-none"
+                              title="Delete column"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
                       </th>
                     ))}
                     {canEdit && (
