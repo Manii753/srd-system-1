@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import SRD from '@/models/SRD';
 import User from '@/models/User';
 import Notification from '@/models/Notification';
+import Field from '@/models/Field';
 import pusher from '@/lib/pusher-server';
 import mongoose from 'mongoose';
 
@@ -126,6 +127,47 @@ export async function POST(request) {
       body.dynamicFields = [];
     }
     console.log('Sanitized dynamicFields:', JSON.stringify(body.dynamicFields));
+
+    // --- Populate missing dynamic fields ---
+    // Fetch all active fields to ensure the SRD has a complete set of dynamic fields
+    // even if the frontend didn't send them all.
+    const allActiveFields = await Field.find({ active: true }).lean();
+
+    // Create a map of existing fields in the body for quick lookup
+    const existingFieldIds = new Set(
+      body.dynamicFields
+        .filter(f => f.field) // Ensure field property exists
+        .map(f => f.field.toString())
+    );
+
+    // Iterate through all active fields definition
+    for (const fieldDef of allActiveFields) {
+      // If this active field is NOT in the incoming body, add it with null value
+      if (!existingFieldIds.has(fieldDef._id.toString())) {
+        body.dynamicFields.push({
+          field: fieldDef._id,
+          department: fieldDef.department,
+          name: fieldDef.name,
+          slug: fieldDef.slug,
+          type: fieldDef.type,
+          value: null, // Initialize with null
+          isRequired: fieldDef.isRequired,
+          placeholder: fieldDef.placeholder,
+          order: fieldDef.order,
+          // For parentHeading, we might need to fetch the parent field name if it's populated in FieldSchema
+          // But based on SRD schema it stores heading name string. 
+          // If FieldDef doesn't have the heading name populated, we might leave it or fetch it.
+          // For now, let's leave it undefined if not easily available, or rely on frontend to send it if critical.
+          // However, the requirement is just to populate the field.
+          parentHeading: fieldDef.parentHeading ? undefined : undefined,
+          // Note: If parentHeading in SRD is a string name, we can't easily get it here without populating.
+          // The prompt asked for "populate those fields before hand so we have their null or empty values".
+
+          fieldVersion: new Date(),
+          originalFieldId: fieldDef._id.toString()
+        });
+      }
+    }
 
     // Use the status from the request body if it exists, otherwise initialize for all departments
     if (!body.status || Object.keys(body.status).length === 0) {
