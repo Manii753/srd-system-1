@@ -9,6 +9,7 @@ import SRDTable from '@/components/SRDTable';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText } from 'lucide-react';
+import SRDPrintDialog from '@/components/SRDPrintDialog';
 
 function SRDListPageContent() {
   const { data: session, status } = useSession();
@@ -24,7 +25,7 @@ function SRDListPageContent() {
 
   useEffect(() => {
     if (status === 'loading') return;
-    
+
     if (!session) {
       router.push('/login');
       return;
@@ -43,7 +44,7 @@ function SRDListPageContent() {
         if (readyForProductionFilter) {
           query.append('readyForProduction', 'true');
         }
-        
+
         const response = await fetch(`/api/srd?${query.toString()}`);
         const data = await response.json();
         if (data.success) {
@@ -83,6 +84,7 @@ function SRDListPageContent() {
             </p>
           </div>
           <div className="flex items-center space-x-2">
+            <SRDPrintDialog />
             <Button
               variant={viewMode === 'cards' ? 'default' : 'outline'}
               size="sm"

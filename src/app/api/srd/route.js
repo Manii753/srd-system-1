@@ -18,6 +18,10 @@ export async function GET(request) {
     const readyForProduction = searchParams.get('readyForProduction');
     const inProduction = searchParams.get('inProduction');
     const currentProductionStage = searchParams.get('currentProductionStage');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const completionStatus = searchParams.get('completionStatus'); // 'completed', 'in-production', 'pre-production'
+    const shouldPopulate = searchParams.get('populate') === 'true';
 
     let query = {};
 
@@ -86,7 +90,46 @@ export async function GET(request) {
       ];
     }
 
-    const srds = await SRD.find(query).sort({ createdAt: -1 });
+
+
+    // Filter by date range
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) {
+        // Ensure start date covers the full day (00:00:00)
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        query.createdAt.$gte = start;
+      }
+      if (endDate) {
+        // Ensure end date covers the full day (23:59:59)
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
+    }
+
+    // Filter by completion status
+    if (completionStatus) {
+      if (completionStatus === 'completed') {
+        query.isComplete = true;
+      } else if (completionStatus === 'in-production') {
+        query.inProduction = true;
+        query.isComplete = { $ne: true };
+      } else if (completionStatus === 'pre-production') {
+        query.inProduction = false;
+        query.isComplete = { $ne: true };
+      }
+    }
+
+    let queryExec = SRD.find(query).sort({ createdAt: -1 });
+
+    if (shouldPopulate) {
+      // populate dynamicFields.field for detailed info if needed, and currentProductionStage
+      queryExec = queryExec.populate('dynamicFields.field').populate('currentProductionStage');
+    }
+
+    const srds = await queryExec;
     const count = await SRD.countDocuments(query);
 
     return NextResponse.json({
