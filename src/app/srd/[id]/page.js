@@ -34,7 +34,7 @@ export default function SRDDetailPage() {
   const [srd, setSrd] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeline, setTimeline] = useState([]);
-  const [viewMode, setViewMode] = useState(); // 'form' or 'excel'
+  const [viewMode, setViewMode] = useState('excel'); // 'form' or 'excel'
   const [mode, setMode] = useState()
   const allowedDepartments = ['vmd', 'cad', 'mmc', 'commercial'];
   useEffect(() => {
