@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
-import Image from 'next/image';
+
 
 function SRDPrintPageContent() {
     const { data: session, status } = useSession();
@@ -65,9 +65,34 @@ function SRDPrintPageContent() {
 
         if (!field || field.value === null || field.value === undefined) return '';
 
+        // If this is an image field, render the actual image instead of the path
+        const isImageField = fieldDef.type === 'image' || field.type === 'image';
+        if (isImageField && field.value) {
+            // Handle arrays, comma-separated strings, or single URL
+            let firstImage = '';
+            if (Array.isArray(field.value)) {
+                firstImage = field.value[0] || '';
+            } else if (typeof field.value === 'string') {
+                firstImage = field.value.split(',')[0].trim();
+            }
+
+            if (firstImage) {
+                return (
+                    <div className="relative w-12 h-12 mx-auto flex-shrink-0">
+                        <img
+                            src={firstImage}
+                            alt={fieldDef.name}
+                            className="object-cover w-full h-full rounded"
+                            style={{ maxHeight: '48px', maxWidth: '48px' }}
+                        />
+                    </div>
+                );
+            }
+            return '';
+        }
+
         if (Array.isArray(field.value)) return field.value.join(', ');
 
-        // Check if it's a color field (often handled as string but maybe useful to show differently? For print text is fine)
         return String(field.value);
     };
 
@@ -120,11 +145,7 @@ function SRDPrintPageContent() {
         return 'Pre-Production'; // Default
     };
 
-    const getFirstImage = (srd) => {
-        if (srd.images && srd.images.length > 0) return srd.images[0];
-        // Check dynamic fields for images
-        return null; // For now simplify to main images
-    };
+
 
     if (loading) return <div className="p-8 text-center">Loading report data...</div>;
 
@@ -158,12 +179,11 @@ function SRDPrintPageContent() {
                 </div>
             </div>
 
-            <table className="w-full border-collapse border border-gray-300 text-xs">
+            <table className="w-full border-collapse border border-gray-300 text-xs" style={{ whiteSpace: 'nowrap' }}>
                 <thead>
                     <tr className="bg-gray-100">
-                        <th className="border border-gray-300 p-2 text-left w-20">Date</th>
-                        <th className="border border-gray-300 p-2 text-left w-24">Inquiry #</th>
-                        <th className="border border-gray-300 p-2 text-center w-16">Picture</th>
+                        <th className="border border-gray-300 p-2 text-left">Date</th>
+                        <th className="border border-gray-300 p-2 text-left">Inquiry #</th>
 
                         {/* Dynamic Quick Details Columns */}
                         {quickDetailsFields.map(field => (
@@ -179,7 +199,6 @@ function SRDPrintPageContent() {
                 <tbody>
                     {srds.length > 0 ? (
                         srds.map((srd) => {
-                            const mainImage = getFirstImage(srd);
                             return (
                                 <tr key={srd._id} className="break-inside-avoid">
                                     <td className="border border-gray-300 p-2">
@@ -187,20 +206,6 @@ function SRDPrintPageContent() {
                                     </td>
                                     <td className="border border-gray-300 p-2 font-medium">
                                         {srd.refNo}
-                                    </td>
-                                    <td className="border border-gray-300 p-2 text-center">
-                                        {mainImage ? (
-                                            <div className="relative w-12 h-12 mx-auto">
-                                                <img
-                                                    src={mainImage}
-                                                    alt="SRD"
-                                                    className="object-cover w-full h-full"
-                                                    style={{ maxHeight: '48px', maxWidth: '48px' }}
-                                                />
-                                            </div>
-                                        ) : (
-                                            <span className="text-gray-400">-</span>
-                                        )}
                                     </td>
 
                                     {/* Dynamic Quick Details Values */}
@@ -221,7 +226,7 @@ function SRDPrintPageContent() {
                         })
                     ) : (
                         <tr>
-                            <td colSpan={5 + quickDetailsFields.length} className="border border-gray-300 p-8 text-center text-gray-500">
+                            <td colSpan={4 + quickDetailsFields.length} className="border border-gray-300 p-8 text-center text-gray-500">
                                 No SRDs found matching the criteria.
                             </td>
                         </tr>
