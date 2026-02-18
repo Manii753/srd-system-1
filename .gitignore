@@ -42,3 +42,5 @@ next-env.d.ts
 
 # Voice chat uploads
 /public/assets/voice-chats
+
+/public/uploads
