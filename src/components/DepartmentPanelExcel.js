@@ -625,7 +625,7 @@ export default function DepartmentPanelExcel({
             valueDisplay = `
             <div style="display: flex; align-items: center; gap: 4px;">
               <span>📊</span>
-              <span style="font-size: 7px;">Excel File Attached</span>
+              <span style="font-size: 8px;">Excel File Attached</span>
             </div>
           `;
           } else {
@@ -654,8 +654,8 @@ export default function DepartmentPanelExcel({
         <div class="field-cell ${isHeading ? 'cell-heading' : ''} ${isImage ? 'cell-image' : ''} ${isTable ? 'cell-table' : ''} ${colSpan === 1 ? 'is-small-cell' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
           ${!isHeading && !isImage && !isTable ? `
               <div style="margin-top: 5px;" class="cell-content">
-                <span style="font-size: 8px;" class="cell-label">${fieldDef.name}</span>
-                <span style="font-size: 8px;"class="cell-underline">${valueDisplay}</span>
+                <span style="font-size: 11px;" class="cell-label">${fieldDef.name}</span>
+                <span style="font-size: 8px;" class="cell-underline">${valueDisplay}</span>
               </div>
           ` : isImage ? `
               <div class="cell-image-container">
@@ -776,7 +776,7 @@ export default function DepartmentPanelExcel({
     .heading-content {
       font-weight: 700;
       text-transform: capitalize;
-      font-size: 7.5px;
+      font-size: 11px;
       color: #111;
       text-align: left;
       width: 100%;
@@ -792,7 +792,7 @@ export default function DepartmentPanelExcel({
     }
 
     .cell-label {
-      font-size: 9px;
+      font-size: 11px;
       font-weight: 700;
       color: #333;
       white-space: normal;
@@ -810,7 +810,7 @@ export default function DepartmentPanelExcel({
     }
 
     .cell-underline {
-      font-size: 9px;
+      font-size: 8px;
       color: #000;
       flex-grow: 1;
       border-bottom: 0.4px solid #999;
@@ -831,7 +831,7 @@ export default function DepartmentPanelExcel({
     }
     
     .checkbox-item {
-      font-size: 7px;
+      font-size: 8px;
       font-weight: 600;
     }
 
@@ -844,7 +844,7 @@ export default function DepartmentPanelExcel({
     }
 
     .image-label {
-      font-size: 6px;
+      font-size: 11px;
       font-weight: 700;
       color: #333;
       text-transform: capitalize;
@@ -892,7 +892,7 @@ export default function DepartmentPanelExcel({
 
     /* Custom element styles */
     .static-text {
-      font-size: 7px;
+      font-size: 8px;
       color: #333;
       padding: 2px;
     }
@@ -911,7 +911,7 @@ export default function DepartmentPanelExcel({
     }
 
     .textarea-label {
-      font-size: 6.5px;
+      font-size: 11px;
       font-weight: 700;
       color: #333;
       text-transform: capitalize;
@@ -950,7 +950,7 @@ export default function DepartmentPanelExcel({
     }
 
     .signature-label {
-      font-size: 7px;
+      font-size: 11px;
       font-weight: 700;
       text-transform: capitalize;
       color: #333;
@@ -982,7 +982,7 @@ export default function DepartmentPanelExcel({
     }
 
     .table-label {
-      font-size: 13px;
+      font-size: 11px;
       
       font-weight: 700;
       color: #333;
@@ -996,7 +996,7 @@ export default function DepartmentPanelExcel({
     .print-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 9px;
+      font-size: 8px;
       margin: 0;
     }
 
@@ -1013,7 +1013,7 @@ export default function DepartmentPanelExcel({
       border: 0.5px solid #ccc;
       padding: 2px 3px;
       text-align: left;
-      font-size: 9px;
+      font-size: 8px;
       min-height: 14px;
     }
     
@@ -1042,7 +1042,7 @@ export default function DepartmentPanelExcel({
     }
 
     .excel-title {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 700;
       text-transform: capitalize;
       background: #f3f4f6;
@@ -1082,7 +1082,7 @@ export default function DepartmentPanelExcel({
     }
 
     td {
-      font-size: 9px;
+      font-size: 8px;
     }
 
     @media print {
