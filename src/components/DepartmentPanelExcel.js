@@ -608,9 +608,11 @@ export default function DepartmentPanelExcel({
           const tableData = fieldValue && typeof fieldValue === 'object' ? fieldValue : { headers: [], rows: [] };
           if (tableData.headers && tableData.headers.length > 0) {
             const headerRow = tableData.headers.map(h => `<th class="table-header">${h}</th>`).join('');
-            const bodyRows = (tableData.rows || []).map(row =>
-              `<tr>${row.map(cell => `<td class="table-cell">${cell || ''}</td>`).join('')}</tr>`
-            ).join('');
+            const bodyRows = (tableData.rows || []).map(row => {
+              const firstCell = row[0] || '';
+              const restCells = row.slice(1).map(cell => `<td class="table-field-cell"><span class="table-field-underline">${cell || ''}</span></td>`).join('');
+              return `<tr><td class="table-field-label">${firstCell}</td>${restCells}</tr>`;
+            }).join('');
             valueDisplay = `
               <table class="print-table">
                 <thead><tr>${headerRow}</tr></thead>
@@ -655,7 +657,7 @@ export default function DepartmentPanelExcel({
           ${!isHeading && !isImage && !isTable ? `
               <div class="cell-content">
                 <span style="font-size: 11px;" class="cell-label">${fieldDef.name}</span>
-                <span style="font-size: 8px;" class="cell-underline">${valueDisplay}</span>
+                <span style="font-size: 11px;" class="cell-underline">${valueDisplay}</span>
               </div>
           ` : isImage ? `
               <div class="cell-image-container">
@@ -810,7 +812,7 @@ export default function DepartmentPanelExcel({
     }
 
     .cell-underline {
-      font-size: 8px;
+      font-size: 11px;
       color: #000;
       flex-grow: 1;
       border-bottom: 0.4px solid #999;
@@ -820,7 +822,7 @@ export default function DepartmentPanelExcel({
       align-items: center;
       white-space: pre-wrap;
       width: 100%;
-      line-height: 1;
+      line-height: 1.2;
       margin-right: 10px;
     }
 
@@ -831,7 +833,7 @@ export default function DepartmentPanelExcel({
     }
     
     .checkbox-item {
-      font-size: 8px;
+      font-size: 11px;
       font-weight: 600;
     }
 
@@ -857,7 +859,7 @@ export default function DepartmentPanelExcel({
     /* Image stack - fills remaining space after label */
     .image-stack {
       display: flex;
-      flex-direction: row;
+      flex-direction: column;
       gap: 0px;
       width: 100%;
       flex: 1;
@@ -867,8 +869,7 @@ export default function DepartmentPanelExcel({
     .img-wrapper {
       width: 100%;
       flex: 1;
-      border: 0.5px solid #ccc;
-      background: #fafafa;
+      
       display: flex;
       align-items: center;
       justify-content: center;
@@ -892,7 +893,7 @@ export default function DepartmentPanelExcel({
 
     /* Custom element styles */
     .static-text {
-      font-size: 8px;
+      font-size: 11px;
       color: #333;
       padding: 2px;
     }
@@ -996,25 +997,49 @@ export default function DepartmentPanelExcel({
     .print-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 8px;
+      font-size: 11px;
       margin: 0;
+      border: none;
     }
 
     .print-table .table-header {
-      background-color: #e5e7eb;
-      border: 0.5px solid #999;
+      background-color: transparent;
+      border: none;
       padding: 2px 3px;
       text-align: left;
       font-weight: 700;
       font-size: 11px;
+      color: #333;
+      text-transform: capitalize;
     }
 
-    .print-table .table-cell {
-      border: 0.5px solid #ccc;
+    .print-table .table-field-label {
       padding: 2px 3px;
       text-align: left;
-      font-size: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #333;
+      text-transform: capitalize;
+      white-space: nowrap;
+      border: none;
+    }
+
+    .print-table .table-field-cell {
+      padding: 2px 3px;
+      text-align: left;
+      border: none;
+    }
+
+    .print-table .table-field-underline {
+      font-size: 11px;
+      color: #000;
+      display: inline-block;
+      width: 100%;
+      border-bottom: 0.4px solid #999;
       min-height: 14px;
+      padding: 0 2px;
+      line-height: 14px;
+      white-space: pre-wrap;
     }
     
     .footer {
@@ -1271,7 +1296,7 @@ export default function DepartmentPanelExcel({
       case 'table':
         const tableData = fieldValue && typeof fieldValue === 'object' && fieldValue.headers
           ? fieldValue
-          : { headers: ['Column 1', 'Column 2', 'Column 3'], rows: [['', '', '']] };
+          : { headers: ['Item Name', 'Finish', 'Size'], rows: [[' ', ' ', ' ']] };
 
         return (
           <div className="space-y-2 p-1 overflow-auto max-h-96">
