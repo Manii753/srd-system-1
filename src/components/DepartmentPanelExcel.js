@@ -591,13 +591,13 @@ export default function DepartmentPanelExcel({
         const isTable = fieldDef.type === 'table';
 
         if (fieldDef.type === 'boolean') {
-          if(fieldDef.booleanDisplayType === 'instock-purchase'){
+          if (fieldDef.booleanDisplayType === 'instock-purchase') {
             valueDisplay = `
             <div class="checkbox-group">
               <span class="checkbox-item">${fieldValue ? 'In Stock' : 'Purchase'}</span>
             </div>
           `;
-          }else{
+          } else {
             valueDisplay = `
             <div class="checkbox-group">
               <span class="checkbox-item">${fieldValue ? 'Yes' : 'NO'}</span>
@@ -608,7 +608,7 @@ export default function DepartmentPanelExcel({
           const tableData = fieldValue && typeof fieldValue === 'object' ? fieldValue : { headers: [], rows: [] };
           if (tableData.headers && tableData.headers.length > 0) {
             const headerRow = tableData.headers.map(h => `<th class="table-header">${h}</th>`).join('');
-            const bodyRows = (tableData.rows || []).map(row => 
+            const bodyRows = (tableData.rows || []).map(row =>
               `<tr>${row.map(cell => `<td class="table-cell">${cell || ''}</td>`).join('')}</tr>`
             ).join('');
             valueDisplay = `
@@ -653,7 +653,7 @@ export default function DepartmentPanelExcel({
         fieldsHTML += `
         <div class="field-cell ${isHeading ? 'cell-heading' : ''} ${isImage ? 'cell-image' : ''} ${isTable ? 'cell-table' : ''} ${colSpan === 1 ? 'is-small-cell' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
           ${!isHeading && !isImage && !isTable ? `
-              <div style="margin-top: 5px;" class="cell-content">
+              <div class="cell-content">
                 <span style="font-size: 11px;" class="cell-label">${fieldDef.name}</span>
                 <span style="font-size: 8px;" class="cell-underline">${valueDisplay}</span>
               </div>
@@ -701,7 +701,7 @@ export default function DepartmentPanelExcel({
   <style>
     @page {
       size: A4;
-      margin: 0;
+      margin: 0.1in;
     }
     
     body {
@@ -720,7 +720,7 @@ export default function DepartmentPanelExcel({
     }
     
     .header h1 {
-      font-size: 11px;
+      font-size: 13px;
       margin: 0 0 5px 0;
       font-weight: 700;
       text-transform: uppercase;
@@ -746,18 +746,17 @@ export default function DepartmentPanelExcel({
     .template-grid {
       display: grid;
       grid-template-columns: repeat(${gridColumns * 2}, minmax(0, 1fr));
-      gap: 0 1px;
+      gap: 4px 1px;
       margin-bottom: 10px;
     }
     
     .field-cell {
-      padding: 0;
+      padding: 2px 0 0 0;
       background: white;
       display: flex;
-      height: 20px;
+      min-height: 20px;
       flex-direction: column;
       justify-content: flex-start;
-      overflow: hidden;
     }
 
     .cell-image {
@@ -805,6 +804,7 @@ export default function DepartmentPanelExcel({
     .is-small-cell .cell-label {
       width: auto !important;
       max-width: 50%;
+      
       min-width: 20px;
       margin-right: 4px;
     }
@@ -814,7 +814,7 @@ export default function DepartmentPanelExcel({
       color: #000;
       flex-grow: 1;
       border-bottom: 0.4px solid #999;
-      min-height: 10px;
+      min-height: 15px;
       padding: 0 2px;
       display: flex;
       align-items: center;
@@ -1269,10 +1269,10 @@ export default function DepartmentPanelExcel({
         );
 
       case 'table':
-        const tableData = fieldValue && typeof fieldValue === 'object' && fieldValue.headers 
-          ? fieldValue 
+        const tableData = fieldValue && typeof fieldValue === 'object' && fieldValue.headers
+          ? fieldValue
           : { headers: ['Column 1', 'Column 2', 'Column 3'], rows: [['', '', '']] };
-        
+
         return (
           <div className="space-y-2 p-1 overflow-auto max-h-96">
             <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
@@ -1705,13 +1705,13 @@ export default function DepartmentPanelExcel({
 
             if (isHidden) {
               return (
-                <div 
-                   key={cellIndex}
-                   className="p-1 bg-gray-50"
-                   style={{
+                <div
+                  key={cellIndex}
+                  className="p-1 bg-gray-50"
+                  style={{
                     gridColumn: `span ${colSpan} `,
                     gridRow: `span ${rowSpan} `,
-                   }}
+                  }}
                 >
                   <div
                     className="bg-gray-50 border border-gray-100 rounded h-full"
