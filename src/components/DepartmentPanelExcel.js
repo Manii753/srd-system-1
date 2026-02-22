@@ -607,11 +607,19 @@ export default function DepartmentPanelExcel({
         } else if (isTable) {
           const tableData = fieldValue && typeof fieldValue === 'object' ? fieldValue : { headers: [], rows: [] };
           if (tableData.headers && tableData.headers.length > 0) {
-            const headerRow = tableData.headers.map(h => `<th class="table-header">${h}</th>`).join('');
-            const bodyRows = (tableData.rows || []).map(row => {
+            const predefinedHeaders = `<th class="table-header" style="background:transparent;color:#4338ca;">Purchase/Stock</th><th class="table-header" style="background:transparent;color:#4338ca;">OPD</th><th class="table-header" style="background:transparent;color:#4338ca;">ETD</th>`;
+            const headerRow = tableData.headers.map(h => `<th class="table-header">${h}</th>`).join('') + predefinedHeaders;
+            const predefinedData = Array.isArray(tableData.predefinedData) ? tableData.predefinedData : [];
+            const bodyRows = (tableData.rows || []).map((row, rowIdx) => {
               const firstCell = row[0] || '';
               const restCells = row.slice(1).map(cell => `<td class="table-field-cell"><span class="table-field-underline">${cell || ''}</span></td>`).join('');
-              return `<tr><td class="table-field-label">${firstCell}</td>${restCells}</tr>`;
+              const rp = predefinedData[rowIdx] || { purchaseType: 'purchase', opd: '', etd: '' };
+              const isInStock = rp.purchaseType === 'instock';
+              const typeLabel = isInStock ? 'In Stock' : 'Purchase';
+              const opdVal = isInStock ? '-' : (rp.opd || '');
+              const etdVal = isInStock ? '-' : (rp.etd || '');
+              const predefinedCells = `<td class="table-field-cell" style="text-align:start;"><span class="table-field-underline" style="font-weight:600;color:${isInStock ? '#059669' : '#2563eb'}">${typeLabel}</span></td><td class="table-field-cell"><span class="table-field-underline">${opdVal}</span></td><td class="table-field-cell"><span class="table-field-underline">${etdVal}</span></td>`;
+              return `<tr><td class="table-field-label">${firstCell}</td>${restCells}${predefinedCells}</tr>`;
             }).join('');
             valueDisplay = `
               <table class="print-table">
@@ -998,13 +1006,14 @@ export default function DepartmentPanelExcel({
       width: 100%;
       border-collapse: collapse;
       font-size: 11px;
-      margin: 0;
+      margin-top: 8px;
       border: none;
     }
 
     .print-table .table-header {
       background-color: transparent;
       border: none;
+      margin-bottom: 10px;
       padding: 2px 3px;
       text-align: left;
       font-weight: 700;
@@ -1018,6 +1027,7 @@ export default function DepartmentPanelExcel({
       text-align: left;
       font-size: 11px;
       font-weight: 700;
+      margin-bottom: 5px;
       color: #333;
       text-transform: capitalize;
       white-space: nowrap;
@@ -1298,9 +1308,30 @@ export default function DepartmentPanelExcel({
           ? fieldValue
           : { headers: ['Item Name', 'Finish', 'Size'], rows: [[' ', ' ', ' ']] };
 
+        // Ensure predefinedData array exists and matches row count
+        const predefinedData = Array.isArray(tableData.predefinedData)
+          ? tableData.predefinedData
+          : [];
+        // Fill missing entries so every row has predefined data
+        while (predefinedData.length < (tableData.rows?.length || 0)) {
+          predefinedData.push({ purchaseType: 'purchase', opd: '', etd: '' });
+        }
+
+        const updatePredefined = (rowIdx, key, val) => {
+          const newPredefined = predefinedData.map((p, i) =>
+            i === rowIdx ? { ...p, [key]: val } : { ...p }
+          );
+          // If switching to instock, clear dates
+          if (key === 'purchaseType' && val === 'instock') {
+            newPredefined[rowIdx].opd = '';
+            newPredefined[rowIdx].etd = '';
+          }
+          handleFieldChange(fieldId, name, { ...tableData, predefinedData: newPredefined }, department, fieldDef);
+        };
+
         return (
-          <div className="space-y-2 p-1 overflow-auto max-h-96">
-            <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+          <div className="space-y-1 p-0 overflow-auto max-h-96">
+            <div className="border border-gray-200 overflow-hidden">
               <table className="w-full text-xs border-collapse">
                 <thead>
                   <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
@@ -1354,10 +1385,24 @@ export default function DepartmentPanelExcel({
                         </button>
                       </th>
                     )}
+                    {/* Predefined locked headers */}
+                    <th className="border border-gray-200 p-0 min-w-[110px] bg-indigo-50">
+                      <span className="font-semibold text-center text-indigo-700 px-2 py-1.5 block text-[11px]">Purchase/Stock</span>
+                    </th>
+                    <th className="border border-gray-200 p-0 min-w-[120px] bg-indigo-50">
+                      <span className="font-semibold text-center text-indigo-700 px-2 py-1.5 block text-[11px]">OPD</span>
+                    </th>
+                    <th className="border border-gray-200 p-0 min-w-[120px] bg-indigo-50">
+                      <span className="font-semibold text-center text-indigo-700 px-2 py-1.5 block text-[11px]">ETD</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {tableData.rows?.map((row, rowIdx) => (
+                  {tableData.rows?.map((row, rowIdx) => {
+                    const rowPredefined = predefinedData[rowIdx] || { purchaseType: 'purchase', opd: '', etd: '' };
+                    const isInStock = rowPredefined.purchaseType === 'instock';
+
+                    return (
                     <tr key={rowIdx} className="group/row hover:bg-blue-50/30 transition-colors duration-100">
                       {row.map((cell, colIdx) => (
                         <td key={colIdx} className="border border-gray-200 p-0">
@@ -1375,7 +1420,9 @@ export default function DepartmentPanelExcel({
                                   e.preventDefault();
                                   const newRows = [...tableData.rows];
                                   newRows.splice(rowIdx + 1, 0, new Array(tableData.headers.length).fill(''));
-                                  handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
+                                  const newPredefined = [...predefinedData];
+                                  newPredefined.splice(rowIdx + 1, 0, { purchaseType: 'purchase', opd: '', etd: '' });
+                                  handleFieldChange(fieldId, name, { ...tableData, rows: newRows, predefinedData: newPredefined }, department, fieldDef);
                                   setTimeout(() => {
                                     const nextInput = e.target.closest('tr')?.nextElementSibling?.querySelector('input');
                                     if (nextInput) nextInput.focus();
@@ -1395,7 +1442,12 @@ export default function DepartmentPanelExcel({
                           <button
                             onClick={() => {
                               const newRows = tableData.rows.filter((_, idx) => idx !== rowIdx);
-                              handleFieldChange(fieldId, name, { ...tableData, rows: newRows.length > 0 ? newRows : [new Array(tableData.headers.length).fill('')] }, department, fieldDef);
+                              const newPredefined = predefinedData.filter((_, idx) => idx !== rowIdx);
+                              handleFieldChange(fieldId, name, {
+                                ...tableData,
+                                rows: newRows.length > 0 ? newRows : [new Array(tableData.headers.length).fill('')],
+                                predefinedData: newPredefined.length > 0 ? newPredefined : [{ purchaseType: 'purchase', opd: '', etd: '' }]
+                              }, department, fieldDef);
                             }}
                             className="w-full h-full flex items-center justify-center py-1.5 opacity-0 group-hover/row:opacity-100 transition-opacity duration-150 text-red-400 hover:text-red-600 hover:bg-red-50"
                             title="Delete row"
@@ -1404,8 +1456,66 @@ export default function DepartmentPanelExcel({
                           </button>
                         </td>
                       )}
+                      {/* Predefined Purchase/Stock toggle */}
+                      <td className="border border-gray-200 p-0 bg-indigo-50/30">
+                        <div className="flex items-center justify-center gap-1 px-1 py-1">
+                          <button
+                            onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
+                            disabled={!canEdit}
+                            className={cn(
+                              "px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-150 border",
+                              !isInStock
+                                ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                : "bg-white text-gray-500 border-gray-300 hover:border-blue-400 hover:text-blue-600",
+                              !canEdit && "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            Purchase
+                          </button>
+                          <button
+                            onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'instock')}
+                            disabled={!canEdit}
+                            className={cn(
+                              "px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-150 border",
+                              isInStock
+                                ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                                : "bg-white text-gray-500 border-gray-300 hover:border-emerald-400 hover:text-emerald-600",
+                              !canEdit && "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            InStock
+                          </button>
+                        </div>
+                      </td>
+                      {/* Predefined OPD date */}
+                      <td className={cn("border border-gray-200 p-0", isInStock ? "bg-gray-100" : "bg-indigo-50/30")}>
+                        <input
+                          type="date"
+                          value={rowPredefined.opd || ''}
+                          onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
+                          disabled={!canEdit || isInStock}
+                          className={cn(
+                            "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 bg-transparent text-xs transition-colors duration-100",
+                            isInStock && "opacity-40 cursor-not-allowed"
+                          )}
+                        />
+                      </td>
+                      {/* Predefined ETD date */}
+                      <td className={cn("border border-gray-200 p-0", isInStock ? "bg-gray-100" : "bg-indigo-50/30")}>
+                        <input
+                          type="date"
+                          value={rowPredefined.etd || ''}
+                          onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
+                          disabled={!canEdit || isInStock}
+                          className={cn(
+                            "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 bg-transparent text-xs transition-colors duration-100",
+                            isInStock && "opacity-40 cursor-not-allowed"
+                          )}
+                        />
+                      </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1414,7 +1524,8 @@ export default function DepartmentPanelExcel({
                 <button
                   onClick={() => {
                     const newRows = [...tableData.rows, new Array(tableData.headers.length).fill('')];
-                    handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
+                    const newPredefined = [...predefinedData, { purchaseType: 'purchase', opd: '', etd: '' }];
+                    handleFieldChange(fieldId, name, { ...tableData, rows: newRows, predefinedData: newPredefined }, department, fieldDef);
                   }}
                   className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1.5 px-3 py-1.5 border border-blue-200 rounded-md hover:bg-blue-50 hover:border-blue-300 transition-all duration-150 shadow-sm"
                 >
@@ -1717,7 +1828,8 @@ export default function DepartmentPanelExcel({
             }
 
             const isFieldActive = fieldDef.active !== false; // Active by default if property missing
-            const canEdit = canEditField(fieldDef.department) && isFieldActive;
+            // Allow all roles to edit table-type fields
+            const canEdit = fieldDef.type === 'table' ? isFieldActive : (canEditField(fieldDef.department) && isFieldActive);
             const isHeading = fieldDef.type === 'heading';
             const isHidden = isFieldHidden(fieldDef);
             const deptBgColor = {
