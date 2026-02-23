@@ -1214,8 +1214,10 @@ export default function PrintTemplateDesigner() {
   // Rest of add fields
 
   const addFieldToTemplate = (field) => {
+    const defaultContainerId = templateContainers.length > 0 ? templateContainers[0].id : `container-default`;
     const newCell = {
       id: `cell-${Date.now()}-${Math.random()}`,
+      containerId: defaultContainerId,
       fieldId: field._id,
       field: field,
       isCustom: false,
@@ -1231,8 +1233,10 @@ export default function PrintTemplateDesigner() {
   };
 
   const addCustomElementToTemplate = (elementType) => {
+    const defaultContainerId = templateContainers.length > 0 ? templateContainers[0].id : `container-default`;
     const newCell = {
       id: `custom-${Date.now()}-${Math.random()}`,
+      containerId: defaultContainerId,
       isCustom: true,
       customType: elementType.type,
       customValue: elementType.defaultValue,
@@ -1369,7 +1373,25 @@ export default function PrintTemplateDesigner() {
       if (overCell) {
         targetContainerId = overCell.containerId;
         const containerCells = templateCells.filter(c => c.containerId === targetContainerId);
-        newIndexInContainer = containerCells.findIndex(c => c.id === overCell.id);
+        const overIndex = containerCells.findIndex(c => c.id === overCell.id);
+
+        if (activeData?.type === 'sidebar-field' || activeData?.type === 'sidebar-custom') {
+          // Verify bounding boxes for sidebar dropping 
+          const activeRect = active.rect?.current?.translated;
+          const overRect = over.rect;
+          if (activeRect && overRect) {
+            const isBelow = activeRect.top > overRect.top + (overRect.height / 2);
+            newIndexInContainer = isBelow ? overIndex + 1 : overIndex;
+          } else {
+            newIndexInContainer = overIndex;
+          }
+        } else {
+          // Resolves properly ordered Sortable node bounds manually provided by dnd-kit rect hooks
+          newIndexInContainer = over.data.current?.sortable?.index;
+          if (newIndexInContainer === undefined) {
+            newIndexInContainer = overIndex;
+          }
+        }
       }
     }
 
@@ -1507,12 +1529,24 @@ export default function PrintTemplateDesigner() {
       if (sourceCellIndex !== -1 && targetCellIndex !== -1) {
         setTemplateCells(items => {
           const newItems = [...items];
-          // Swap the cells but keep their positions
+          // Swap the cells but keep their positions and container assignments unchanged for their respective grid slots
           const sourcePosition = newItems[sourceCellIndex].position;
           const targetPosition = newItems[targetCellIndex].position;
+          const sourceContainerId = newItems[sourceCellIndex].containerId;
+          const targetContainerId = newItems[targetCellIndex].containerId;
 
-          const temp = { ...newItems[sourceCellIndex], position: targetPosition };
-          newItems[sourceCellIndex] = { ...newItems[targetCellIndex], position: sourcePosition };
+          const temp = {
+            ...newItems[sourceCellIndex],
+            position: targetPosition,
+            containerId: targetContainerId
+          };
+
+          newItems[sourceCellIndex] = {
+            ...newItems[targetCellIndex],
+            position: sourcePosition,
+            containerId: sourceContainerId
+          };
+
           newItems[targetCellIndex] = temp;
 
           return newItems;
@@ -1523,14 +1557,15 @@ export default function PrintTemplateDesigner() {
       const sourceCellIndex = templateCells.findIndex(c => c.id === swapSourceId);
       if (sourceCellIndex !== -1) {
         const field = target.field;
-        const existingPosition = templateCells[sourceCellIndex].position;
+        const existingCell = templateCells[sourceCellIndex];
 
         const newCell = {
           id: `cell-${Date.now()}-${Math.random()}`,
+          containerId: existingCell.containerId,
           fieldId: field._id,
           field: field,
           isCustom: false,
-          position: existingPosition, // Keep the same position/size
+          position: existingCell.position, // Keep the same position/size
         };
 
         setTemplateCells(items => {
@@ -1544,10 +1579,11 @@ export default function PrintTemplateDesigner() {
       const sourceCellIndex = templateCells.findIndex(c => c.id === swapSourceId);
       if (sourceCellIndex !== -1) {
         const elementType = target.elementType;
-        const existingPosition = templateCells[sourceCellIndex].position;
+        const existingCell = templateCells[sourceCellIndex];
 
         const newCell = {
           id: `custom-${Date.now()}-${Math.random()}`,
+          containerId: existingCell.containerId,
           isCustom: true,
           customType: elementType.type,
           customValue: elementType.defaultValue,
@@ -1557,7 +1593,7 @@ export default function PrintTemplateDesigner() {
             type: elementType.type,
             department: null,
           },
-          position: existingPosition, // Keep the same position/size
+          position: existingCell.position, // Keep the same position/size
         };
 
         setTemplateCells(items => {
@@ -1635,17 +1671,22 @@ export default function PrintTemplateDesigner() {
 
     setSaving(true);
     try {
+      const finalContainers = templateContainers.length > 0
+        ? templateContainers
+        : [{ id: `container-default`, position: { colSpan: gridColumns, rowSpan: 10 } }];
+
       const templateData = {
         name: templateName,
         gridColumns,
         theme: templateTheme,
+        containers: finalContainers,
         cells: templateCells.map(cell => ({
           fieldId: cell.isCustom ? null : cell.fieldId,
           isCustom: cell.isCustom || false,
           customType: cell.customType || null,
           customValue: cell.customValue || null,
           customPlaceholder: cell.customPlaceholder || null,
-          containerId: cell.containerId,
+          containerId: cell.containerId || finalContainers[0].id,
           position: cell.position,
         })),
         isActive: false,

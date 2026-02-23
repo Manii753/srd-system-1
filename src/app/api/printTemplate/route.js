@@ -32,6 +32,7 @@ export async function POST(request) {
         return {
           fieldId: null,
           isCustom: true,
+          containerId: cell.containerId,
           customType: cell.customType || 'custom-text',
           customValue: cell.customValue || '',
           customPlaceholder: cell.customPlaceholder || '',
@@ -47,6 +48,7 @@ export async function POST(request) {
       return {
         fieldId: cell.fieldId,
         isCustom: false,
+        containerId: cell.containerId,
         customType: null,
         customValue: null,
         customPlaceholder: null,
@@ -86,6 +88,7 @@ export async function PATCH(request) {
           return {
             fieldId: null,
             isCustom: true,
+            containerId: cell.containerId,
             customType: cell.customType || 'custom-text',
             customValue: cell.customValue || '',
             customPlaceholder: cell.customPlaceholder || '',
@@ -100,6 +103,7 @@ export async function PATCH(request) {
         return {
           fieldId: cell.fieldId,
           isCustom: false,
+          containerId: cell.containerId,
           customType: null,
           customValue: null,
           customPlaceholder: null,
