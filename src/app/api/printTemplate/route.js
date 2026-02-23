@@ -11,7 +11,7 @@ export async function GET(request) {
       const template = await PrintTemplate.findById(id).populate('cells.fieldId');
       return Response.json(template);
     }
-    
+
     // Get all templates (no department filter)
     const templates = await PrintTemplate.find().sort({ createdAt: -1 });
     return Response.json(templates);
@@ -42,7 +42,7 @@ export async function POST(request) {
           },
         };
       }
-      
+
       // Handle regular database field elements
       return {
         fieldId: cell.fieldId,
@@ -60,6 +60,7 @@ export async function POST(request) {
 
     const templateData = {
       ...body,
+      containers: body.containers || [],
       cells: sanitizedCells,
     };
 
@@ -95,7 +96,7 @@ export async function PATCH(request) {
             },
           };
         }
-        
+
         return {
           fieldId: cell.fieldId,
           isCustom: false,

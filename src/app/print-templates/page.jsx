@@ -570,7 +570,7 @@ function SortableTemplateCell({
       className={`
         border-2 border-dashed rounded-xl p-4 transition-all duration-200
         ${getCellColor()}
-        ${isDragging ? 'opacity-30 scale-95 border-blue-500 border-solid' : 'opacity-100'}
+        ${isDragging ? 'opacity-30 scale-95 border-blue-500 border-solid z-50' : 'opacity-100'}
         ${isOverThis ? 'ring-4 ring-blue-400 ring-offset-2 scale-[1.02]' : ''}
         ${isSwapSource ? 'ring-4 ring-yellow-400 ring-offset-2 border-yellow-500 border-solid' : ''}
         ${swapMode && isSwapTarget ? 'ring-2 ring-green-400 cursor-pointer hover:ring-4 hover:scale-[1.02]' : ''}
@@ -732,6 +732,187 @@ function SortableTemplateCell({
             Placeholder: {customPlaceholder}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Container Component - handles layout for cells dropped into it
+function SortableContainer({
+  id,
+  position,
+  cells,
+  gridColumns,
+  onRemove,
+  onResize,
+  onRemoveCell,
+  onResizeCell,
+  onEditCell,
+  onSwapStart,
+  onSwapSelect,
+  onAddCellToContainer,
+  activeId,
+  overId,
+  swapMode,
+  swapSourceId,
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id,
+    data: {
+      type: 'container',
+      containerId: id,
+    },
+    transition: {
+      duration: 200,
+      easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+    },
+  });
+
+  const { isOver, setNodeRef: setDroppableRef } = useDroppable({
+    id: `droppable-${id}`,
+    data: {
+      type: 'container-drop-zone',
+      containerId: id,
+    },
+  });
+
+  // Combine drag handler ref with droppable layout ref
+  const setCombinedRef = (node) => {
+    setNodeRef(node);
+    setDroppableRef(node);
+  };
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    gridColumn: `span ${(position.colSpan || 6) * 2}`,
+  };
+
+  return (
+    <div
+      ref={setCombinedRef}
+      style={style}
+      className={`
+        border-2 rounded-xl p-4 min-h-[150px] relative transition-all duration-200
+        ${isDragging ? 'opacity-50 scale-95 border-blue-500 z-40' : 'bg-gray-50 border-gray-300'}
+        ${isOver ? 'ring-4 ring-blue-300 bg-blue-50/50' : ''}
+        flex flex-col
+      `}
+    >
+      {/* Container Header Controls */}
+      <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
+        <div className="flex items-center">
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab hover:cursor-grabbing p-1.5 rounded bg-white border shadow-sm mr-3"
+            title="Drag Container"
+          >
+            <GripVertical className="h-4 w-4 text-gray-500" />
+          </div>
+          <Badge variant="outline" className="bg-white">
+            Container Layout
+          </Badge>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Button
+            onClick={() => onAddCellToContainer?.(id)}
+            variant="outline"
+            size="sm"
+            className="h-6 px-2 text-xs bg-white text-blue-600 border-blue-200 hover:bg-blue-50"
+            title="Add Empty Field"
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Field
+          </Button>
+          <div className="flex items-center space-x-1 bg-white border rounded px-2 py-1 shadow-sm">
+            <span className="text-xs font-semibold text-gray-500">W:</span>
+            <Input
+              type="number"
+              min={1}
+              max={12}
+              value={position.colSpan || gridColumns}
+              onChange={(e) => onResize(id, 'colSpan', parseFloat(e.target.value))}
+              className="h-6 w-12 text-xs border-0 p-1 text-center font-semibold focus-visible:ring-0"
+              title="Container Width"
+            />
+          </div>
+
+          <div className="flex items-center space-x-1 bg-white border rounded px-2 py-1 shadow-sm">
+            <span className="text-xs font-semibold text-gray-500">H:</span>
+            <Input
+              type="number"
+              min={1}
+              max={100}
+              value={position.rowSpan || 10}
+              onChange={(e) => onResize(id, 'rowSpan', parseInt(e.target.value))}
+              className="h-6 w-16 text-xs border-0 p-1 text-center font-semibold focus-visible:ring-0"
+              title="Manual Container Height (Rows)"
+            />
+          </div>
+
+          <button
+            onClick={() => onRemove(id)}
+            className="p-1.5 rounded bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 transition"
+            title="Delete Container"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Internal Sortable Context for Child Fields */}
+      <div className="flex-1 relative">
+        <SortableContext
+          items={cells.map(c => c.id)}
+          strategy={rectSortingStrategy}
+        >
+          <div
+            className="grid gap-3 w-full h-full"
+            style={{
+              gridTemplateColumns: `repeat(${(position.colSpan || gridColumns) * 2}, minmax(0, 1fr))`,
+              gridAutoRows: 'minmax(40px, auto)',
+            }}
+          >
+            {cells.length === 0 ? (
+              <div className="col-span-full flex flex-col items-center justify-center p-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg bg-white/50">
+                <Square className="h-8 w-8 mb-2 opacity-50" />
+                <span className="text-sm font-medium">Drop fields here</span>
+              </div>
+            ) : (
+              cells.map((cell) => (
+                <SortableTemplateCell
+                  key={cell.id}
+                  id={cell.id}
+                  field={cell.field}
+                  position={cell.position}
+                  onRemove={onRemoveCell}
+                  onResize={onResizeCell}
+                  onEdit={onEditCell}
+                  onSwapStart={onSwapStart}
+                  onSwapSelect={onSwapSelect}
+                  isCustom={cell.isCustom}
+                  customType={cell.customType}
+                  customValue={cell.customValue}
+                  customPlaceholder={cell.customPlaceholder}
+                  isDraggingThis={activeId === cell.id}
+                  isOverThis={overId === cell.id && activeId !== cell.id}
+                  swapMode={swapMode}
+                  isSwapSource={swapSourceId === cell.id}
+                  isSwapTarget={swapMode && swapSourceId !== cell.id}
+                />
+              ))
+            )}
+          </div>
+        </SortableContext>
       </div>
     </div>
   );
@@ -929,7 +1110,8 @@ function AvailableFieldsList({ allFields, onAddField, onAddCustomElement, filter
 
 export default function PrintTemplateDesigner() {
   const [allFields, setAllFields] = useState([]);
-  const [templateCells, setTemplateCells] = useState([]);
+  const [templateContainers, setTemplateContainers] = useState([]); // Array of {id, position}
+  const [templateCells, setTemplateCells] = useState([]); // Array of cells containing containerId
   const [gridColumns, setGridColumns] = useState(6);
   const [templateName, setTemplateName] = useState('');
   const [savedTemplates, setSavedTemplates] = useState([]);
@@ -1006,6 +1188,31 @@ export default function PrintTemplateDesigner() {
     }
   };
 
+  const addContainer = () => {
+    const newContainer = {
+      id: `container-${Date.now()}-${Math.random()}`,
+      position: { colSpan: gridColumns, rowSpan: 10 }
+    };
+    setTemplateContainers([...templateContainers, newContainer]);
+  };
+
+  const removeContainer = (containerId) => {
+    if (confirm('🗑️ Remove this container and all fields inside it?')) {
+      setTemplateContainers(templateContainers.filter(c => c.id !== containerId));
+      setTemplateCells(templateCells.filter(c => c.containerId !== containerId));
+    }
+  };
+
+  const resizeContainer = (containerId, dimension, value) => {
+    setTemplateContainers(templateContainers.map(container =>
+      container.id === containerId
+        ? { ...container, position: { ...container.position, [dimension]: value } }
+        : container
+    ));
+  };
+
+  // Rest of add fields
+
   const addFieldToTemplate = (field) => {
     const newCell = {
       id: `cell-${Date.now()}-${Math.random()}`,
@@ -1050,6 +1257,24 @@ export default function PrintTemplateDesigner() {
     setTemplateCells([...templateCells, newCell]);
   };
 
+  const addCellToContainer = (containerId) => {
+    const newCell = {
+      id: `custom-${Date.now()}-${Math.random()}`,
+      containerId,
+      isCustom: true,
+      customType: 'custom-empty-field',
+      customValue: 'New Field',
+      customPlaceholder: 'Description',
+      field: {
+        name: 'New Field',
+        type: 'custom-empty-field',
+        department: null,
+      },
+      position: { colSpan: 1, rowSpan: 1, height: 'auto' }
+    };
+    setTemplateCells([...templateCells, newCell]);
+  };
+
   const updateCustomElement = (cellId, newValue, newPlaceholder) => {
     setTemplateCells(templateCells.map(cell =>
       cell.id === cellId
@@ -1082,14 +1307,28 @@ export default function PrintTemplateDesigner() {
     ));
   };
 
-  // Improved drag handlers
   const handleDragStart = useCallback((event) => {
     setActiveId(event.active.id);
   }, []);
 
   const handleDragOver = useCallback((event) => {
-    const { over } = event;
-    setOverId(over?.id || null);
+    const { over, active } = event;
+    const overId = over?.id;
+
+    if (!overId) {
+      setOverId(null);
+      return;
+    }
+
+    // Determine the container we are hovering over if we hover a droppable context
+    if (over.data.current?.type === 'container-drop-zone') {
+      setOverId(overId);
+    } else if (over.data.current?.sortable?.containerId) {
+      // Hovering another cell within a container context
+      setOverId(overId);
+    } else {
+      setOverId(null);
+    }
   }, []);
 
   const handleDragEnd = useCallback((event) => {
@@ -1098,38 +1337,55 @@ export default function PrintTemplateDesigner() {
     setActiveId(null);
     setOverId(null);
 
-    if (!over) {
+    if (!over) return; // Dropped nowhere
+
+    const activeData = active.data.current;
+
+    // Case A: Dragging a CONTAINER
+    if (activeData?.type === 'container') {
+      if (active.id === over.id) return;
+
+      const overContainerId = over.data.current?.containerId || over.id.replace('droppable-', '');
+      const oldIndex = templateContainers.findIndex(c => c.id === active.id);
+      const newIndex = templateContainers.findIndex(c => c.id === overContainerId);
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        setTemplateContainers(items => arrayMove(items, oldIndex, newIndex));
+      }
       return;
     }
 
-    const activeData = active.data.current;
-    const overId = over.id;
+    // Determine target container ID
+    let targetContainerId = null;
+    let newIndexInContainer = -1;
 
-    // Case 1: Dragging from sidebar (field or custom) to canvas
+    // Check if hovered over a container's direct droppable zone or sortable item area
+    if (over.data.current?.type === 'container-drop-zone' || over.data.current?.type === 'container') {
+      targetContainerId = over.data.current.containerId;
+      newIndexInContainer = templateCells.filter(c => c.containerId === targetContainerId).length; // append to end
+    } else {
+      // Check if dropped on another cell
+      const overCell = templateCells.find(c => c.id === over.id);
+      if (overCell) {
+        targetContainerId = overCell.containerId;
+        const containerCells = templateCells.filter(c => c.containerId === targetContainerId);
+        newIndexInContainer = containerCells.findIndex(c => c.id === overCell.id);
+      }
+    }
+
+    if (!targetContainerId) {
+      // Dropped somewhere obscure on canvas without a container. Ignore.
+      return;
+    }
+
+    // Case 1: Dragging NEW item from Sidebar to a Container
     if (activeData?.type === 'sidebar-field' || activeData?.type === 'sidebar-custom') {
-      // Find the target position
-      let insertIndex = templateCells.length; // Default: append to end
-
-      // Check if dropping on an existing cell
-      const overCellIndex = templateCells.findIndex(c => c.id === overId);
-      if (overCellIndex !== -1) {
-        insertIndex = overCellIndex;
-      }
-
-      // Check if dropping on a drop zone
-      if (typeof overId === 'string' && overId.startsWith('drop-zone-')) {
-        const zoneIndex = parseInt(overId.replace('drop-zone-', ''));
-        if (!isNaN(zoneIndex)) {
-          insertIndex = zoneIndex;
-        }
-      }
-
-      // Create the new cell
       let newCell;
       if (activeData.type === 'sidebar-field') {
         const field = activeData.field;
         newCell = {
           id: `cell-${Date.now()}-${Math.random()}`,
+          containerId: targetContainerId,
           fieldId: field._id,
           field: field,
           isCustom: false,
@@ -1145,6 +1401,7 @@ export default function PrintTemplateDesigner() {
         const elementType = activeData.elementType;
         newCell = {
           id: `custom-${Date.now()}-${Math.random()}`,
+          containerId: targetContainerId,
           isCustom: true,
           customType: elementType.type,
           customValue: elementType.defaultValue,
@@ -1168,31 +1425,59 @@ export default function PrintTemplateDesigner() {
         };
       }
 
-      // Insert at the calculated position
       setTemplateCells(items => {
-        const newItems = [...items];
-        newItems.splice(insertIndex, 0, newCell);
-        return newItems;
+        const currentItems = [...items];
+        // Figure out absolute index insertion based on container scoped index
+        if (newIndexInContainer === -1) {
+          currentItems.push(newCell);
+          return currentItems;
+        }
+
+        // Insert exactly where dropped by relative search
+        const relevantCells = currentItems.filter(c => c.containerId === targetContainerId);
+        relevantCells.splice(newIndexInContainer, 0, newCell);
+
+        // Re-construct the state array replacing the sub-array
+        const otherCells = currentItems.filter(c => c.containerId !== targetContainerId);
+        return [...otherCells, ...relevantCells];
       });
       return;
     }
 
-    // Case 2: Reordering within canvas
+    // Case 2: Dragging an EXISTING cell
     if (active.id === over.id) {
+      return; // Dropped on itself
+    }
+
+    // Find active cell
+    const activeCell = templateCells.find(c => c.id === active.id);
+    if (!activeCell) return;
+
+    // Reject dragging outside its designated container completely
+    if (activeCell.containerId !== targetContainerId) {
+      alert("Fields cannot be moved outside of their original container.");
       return;
     }
 
+    // Process reordering WITHIN the scoped container
     setTemplateCells((items) => {
-      const oldIndex = items.findIndex(item => item.id === active.id);
-      const newIndex = items.findIndex(item => item.id === over.id);
+      // Extract only cells from this container
+      const containerCells = items.filter(c => c.containerId === targetContainerId);
+      const otherCells = items.filter(c => c.containerId !== targetContainerId);
 
-      if (oldIndex === -1 || newIndex === -1) {
-        return items;
+      const oldIndex = containerCells.findIndex(item => item.id === active.id);
+
+      // Determine index based on placement
+      let determinedNewIndex = newIndexInContainer;
+      if (determinedNewIndex === -1) {
+        determinedNewIndex = containerCells.length;
       }
 
-      return arrayMove(items, oldIndex, newIndex);
+      const movedContainerCells = arrayMove(containerCells, oldIndex, determinedNewIndex);
+      return [...otherCells, ...movedContainerCells];
     });
-  }, [templateCells.length]);
+
+  }, [templateCells, templateContainers]);
 
   const handleDragCancel = useCallback(() => {
     setActiveId(null);
@@ -1360,6 +1645,7 @@ export default function PrintTemplateDesigner() {
           customType: cell.customType || null,
           customValue: cell.customValue || null,
           customPlaceholder: cell.customPlaceholder || null,
+          containerId: cell.containerId,
           position: cell.position,
         })),
         isActive: false,
@@ -1393,10 +1679,21 @@ export default function PrintTemplateDesigner() {
     setGridColumns(template.gridColumns || 6);
     setTemplateTheme(template.theme || 'default');
 
+    // Safety check - older templates might not have containers
+    const loadedContainers = template.containers && template.containers.length > 0
+      ? template.containers
+      : [{ id: `container-default`, position: { colSpan: template.gridColumns || 6, rowSpan: 10 } }];
+
+    setTemplateContainers(loadedContainers);
+
     const cells = template.cells.map((cell) => {
+      // If old cell has no container, assign to default
+      const assignedContainerId = cell.containerId || loadedContainers[0].id;
+
       if (cell.isCustom) {
         return {
           id: `custom-${Date.now()}-${Math.random()}`,
+          containerId: assignedContainerId,
           isCustom: true,
           customType: cell.customType,
           customValue: cell.customValue,
@@ -1415,6 +1712,7 @@ export default function PrintTemplateDesigner() {
         const field = allFields.find(f => f._id === cell.fieldId);
         return {
           id: `cell-${Date.now()}-${Math.random()}`,
+          containerId: assignedContainerId,
           fieldId: cell.fieldId,
           field: field || { name: 'Unknown Field', type: 'text', department: 'unknown' },
           isCustom: false,
@@ -1467,6 +1765,7 @@ export default function PrintTemplateDesigner() {
       name: templateName,
       gridColumns,
       theme: templateTheme,
+      containers: templateContainers,
       cells: templateCells,
       exportedAt: new Date().toISOString(),
     };
@@ -1491,7 +1790,20 @@ export default function PrintTemplateDesigner() {
         setTemplateName(templateData.name || '');
         setGridColumns(templateData.gridColumns || 6);
         setTemplateTheme(templateData.theme || 'default');
-        setTemplateCells(templateData.cells || []);
+
+        // Ensure backward compatibility on import too
+        const importedContainers = templateData.containers && templateData.containers.length > 0
+          ? templateData.containers
+          : [{ id: `container-default`, position: { colSpan: templateData.gridColumns || 6, rowSpan: 10 } }];
+
+        setTemplateContainers(importedContainers);
+
+        const validatedCells = (templateData.cells || []).map(c => ({
+          ...c,
+          containerId: c.containerId || importedContainers[0].id
+        }));
+
+        setTemplateCells(validatedCells);
         alert('✅ Template imported successfully!');
       } catch (err) {
         alert('❌ Invalid template file');
@@ -1805,73 +2117,66 @@ export default function PrintTemplateDesigner() {
               </CardHeader>
 
               <CardContent>
-                {templateCells.length === 0 ? (
+                {templateContainers.length === 0 ? (
                   <div className="text-center py-12">
                     <Grid3x3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
                       Start Building Your Template
                     </h3>
                     <p className="text-gray-600 mb-4">
-                      Add database fields or custom elements from the left sidebar
+                      Add a Container first, then drop fields into it from the left menu.
                     </p>
-                    <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
-                      <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-blue-200 rounded"></div>
-                        <span>VMD</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-green-200 rounded"></div>
-                        <span>CAD</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-purple-200 rounded"></div>
-                        <span>Commercial</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-orange-200 rounded"></div>
-                        <span>MMC</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-indigo-200 rounded"></div>
-                        <span>Custom</span>
-                      </div>
-                    </div>
+                    <Button onClick={addContainer} className="mb-6">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add First Container
+                    </Button>
                   </div>
                 ) : (
-                  <SortableContext
-                    items={templateCells.map(c => c.id)}
-                    strategy={rectSortingStrategy}
-                  >
-                    <div
-                      className="grid gap-3"
-                      style={{
-                        gridTemplateColumns: `repeat(${gridColumns * 2}, minmax(0, 1fr))`,
-                      }}
-                    >
-                      {templateCells.map((cell) => (
-                        <SortableTemplateCell
-                          key={cell.id}
-                          id={cell.id}
-                          field={cell.field}
-                          position={cell.position}
-                          onRemove={removeCell}
-                          onResize={resizeCell}
-                          onEdit={handleEditElement}
-                          onSwapStart={handleSwapStart}
-                          onSwapSelect={handleSwapSelect}
-                          isCustom={cell.isCustom}
-                          customType={cell.customType}
-                          customValue={cell.customValue}
-                          customPlaceholder={cell.customPlaceholder}
-                          isDraggingThis={activeId === cell.id}
-                          isOverThis={overId === cell.id && activeId !== cell.id}
-                          swapMode={swapMode}
-                          isSwapSource={swapSourceId === cell.id}
-                          isSwapTarget={swapMode && swapSourceId !== cell.id}
-                        />
-                      ))}
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200">
+                      <div className="text-sm text-gray-600 font-medium">
+                        Canvas layout spans {gridColumns * 2} sub-grid columns
+                      </div>
+                      <Button onClick={addContainer} variant="outline" size="sm" className="bg-white">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Another Container
+                      </Button>
                     </div>
-                  </SortableContext>
+
+                    <SortableContext
+                      items={templateContainers.map(c => c.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div
+                        className="grid gap-6"
+                        style={{
+                          gridTemplateColumns: `repeat(${gridColumns * 2}, minmax(0, 1fr))`,
+                        }}
+                      >
+                        {templateContainers.map((container) => (
+                          <SortableContainer
+                            key={container.id}
+                            id={container.id}
+                            position={container.position}
+                            gridColumns={gridColumns}
+                            cells={templateCells.filter(c => c.containerId === container.id)}
+                            onRemove={removeContainer}
+                            onResize={resizeContainer}
+                            onRemoveCell={removeCell}
+                            onResizeCell={resizeCell}
+                            onEditCell={handleEditElement}
+                            onSwapStart={handleSwapStart}
+                            onSwapSelect={handleSwapSelect}
+                            onAddCellToContainer={addCellToContainer}
+                            activeId={activeId}
+                            overId={overId}
+                            swapMode={swapMode}
+                            swapSourceId={swapSourceId}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -1989,43 +2294,50 @@ export default function PrintTemplateDesigner() {
                   </div>
                 </div>
 
-                <div
-                  className="grid gap-4"
-                  style={{
-                    gridTemplateColumns: `repeat(${gridColumns * 2}, minmax(0, 1fr))`,
-                  }}
-                >
-                  {templateCells.map((cell) => (
+                <div className="space-y-6">
+                  {templateContainers.map((container) => (
                     <div
-                      key={cell.id}
-                      className="border border-gray-300 rounded"
+                      key={container.id}
+                      className="grid gap-4 bg-white border border-gray-400 p-4"
                       style={{
-                        gridColumn: `span ${(cell.position.colSpan || 1) * 2}`,
-                        gridRow: `span ${cell.position.rowSpan || 1}`,
-                        minHeight: cell.position.height === 'small' ? '40px' :
-                          cell.position.height === 'medium' ? '80px' :
-                            cell.position.height === 'large' ? '120px' :
-                              cell.position.height === 'xlarge' ? '200px' : 'auto',
+                        gridTemplateColumns: `repeat(${(container.position.colSpan || gridColumns) * 2}, minmax(0, 1fr))`,
                       }}
                     >
-                      {cell.isCustom ? (
-                        renderCustomElementPreview(cell)
-                      ) : (
-                        <div className="p-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="text-sm font-medium text-gray-700">
-                              {cell.field.name}
-                              {cell.field.isRequired && (
-                                <span className="text-red-500 ml-1">*</span>
-                              )}
-                            </div>
-                            <Badge variant="outline" className="text-xs">
-                              {cell.field.department?.toUpperCase()}
-                            </Badge>
+                      {templateCells
+                        .filter((cell) => cell.containerId === container.id)
+                        .map((cell) => (
+                          <div
+                            key={cell.id}
+                            className="border border-gray-300 rounded"
+                            style={{
+                              gridColumn: `span ${(cell.position.colSpan || 1) * 2}`,
+                              gridRow: `span ${cell.position.rowSpan || 1}`,
+                              minHeight: cell.position.height === 'small' ? '40px' :
+                                cell.position.height === 'medium' ? '80px' :
+                                  cell.position.height === 'large' ? '120px' :
+                                    cell.position.height === 'xlarge' ? '200px' : 'auto',
+                            }}
+                          >
+                            {cell.isCustom ? (
+                              renderCustomElementPreview(cell)
+                            ) : (
+                              <div className="p-3">
+                                <div className="flex items-center justify-between mb-1">
+                                  <div className="text-sm font-medium text-gray-700">
+                                    {cell.field.name}
+                                    {cell.field.isRequired && (
+                                      <span className="text-red-500 ml-1">*</span>
+                                    )}
+                                  </div>
+                                  <Badge variant="outline" className="text-xs">
+                                    {cell.field.department?.toUpperCase()}
+                                  </Badge>
+                                </div>
+                                <div className="border-b border-gray-300 min-h-[24px]"></div>
+                              </div>
+                            )}
                           </div>
-                          <div className="border-b border-gray-300 min-h-[24px]"></div>
-                        </div>
-                      )}
+                        ))}
                     </div>
                   ))}
                 </div>

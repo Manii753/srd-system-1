@@ -1,6 +1,12 @@
 import mongoose from 'mongoose';
 
 const PrintTemplateCellSchema = new mongoose.Schema({
+  // Reference to the container it belongs to
+  containerId: {
+    type: String,
+    required: true,
+  },
+
   // For database fields - reference to Field model
   // NOT required because custom elements don't have a fieldId
   fieldId: {
@@ -9,7 +15,7 @@ const PrintTemplateCellSchema = new mongoose.Schema({
     required: false,  // Changed from default behavior
     default: null,
   },
-  
+
   // Custom element properties
   isCustom: {
     type: Boolean,
@@ -19,7 +25,7 @@ const PrintTemplateCellSchema = new mongoose.Schema({
     type: String,
     enum: [
       'custom-heading',
-      'custom-text', 
+      'custom-text',
       'custom-empty-field',
       'custom-textarea',
       'custom-table',
@@ -37,7 +43,7 @@ const PrintTemplateCellSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
-  
+
   // Position and sizing
   position: {
     colSpan: {
@@ -60,8 +66,29 @@ const PrintTemplateCellSchema = new mongoose.Schema({
   },
 }, { _id: false }); // Disable _id for subdocuments to keep it cleaner
 
+const PrintContainerSchema = new mongoose.Schema({
+  id: {
+    type: String,
+    required: true,
+  },
+  position: {
+    colSpan: {
+      type: Number,
+      default: 6,
+      min: 1,
+      max: 12,
+    },
+    rowSpan: {
+      type: Number,
+      default: 1,
+      min: 1,
+      max: 100, // Manual height row span limit
+    },
+  },
+}, { _id: false });
+
 // Custom validation: either fieldId OR isCustom must be set
-PrintTemplateCellSchema.pre('validate', function(next) {
+PrintTemplateCellSchema.pre('validate', function (next) {
   if (!this.isCustom && !this.fieldId) {
     // If it's not a custom element, fieldId is required
     this.invalidate('fieldId', 'fieldId is required for non-custom elements');
@@ -90,7 +117,8 @@ const PrintTemplateSchema = new mongoose.Schema({
     enum: ['default', 'modern', 'professional', 'minimal'],
     default: 'default',
   },
-  cells: [PrintTemplateCellSchema],
+  containers: [PrintContainerSchema],
+  cells: [PrintTemplateCellSchema], // Cells now map to containers by returning containerId
   isActive: {
     type: Boolean,
     default: false,
@@ -108,12 +136,12 @@ PrintTemplateSchema.index({ isActive: 1 });
 PrintTemplateSchema.index({ createdAt: -1 });
 
 // Virtual to get cell count
-PrintTemplateSchema.virtual('cellCount').get(function() {
+PrintTemplateSchema.virtual('cellCount').get(function () {
   return this.cells?.length || 0;
 });
 
 // Virtual to get custom element count
-PrintTemplateSchema.virtual('customElementCount').get(function() {
+PrintTemplateSchema.virtual('customElementCount').get(function () {
   return this.cells?.filter(c => c.isCustom).length || 0;
 });
 

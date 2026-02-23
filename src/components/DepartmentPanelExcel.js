@@ -434,254 +434,268 @@ export default function DepartmentPanelExcel({
       const gridColumns = activeTemplateForPrint.gridColumns || 6;
       let fieldsHTML = '';
 
-      activeTemplateForPrint.cells.forEach(cell => {
-        const colSpan = (cell.position?.colSpan || 1) * 2;
-        const rowSpan = cell.position?.rowSpan || 1;
-        const height = cell.position?.height || 'auto';
+      const templateContainers = activeTemplateForPrint.containers && activeTemplateForPrint.containers.length > 0
+        ? activeTemplateForPrint.containers
+        : [{ id: `container-default`, position: { colSpan: gridColumns, rowSpan: 10 } }];
 
-        const minHeight =
-          height === 'small' ? '12px' :
-            height === 'medium' ? '25px' :
-              height === 'large' ? '50px' :
-                height === 'xlarge' ? '90px' : 'auto';
+      templateContainers.forEach(container => {
+        const containerColSpan = (container.position?.colSpan || gridColumns) * 2;
 
-        // Handle custom elements
-        if (cell.isCustom) {
-          // ... (keep custom logic)
-          const customType = cell.customType;
-          const customValue = cell.customValue || '';
-          const customPlaceholder = cell.customPlaceholder || '';
+        fieldsHTML += `
+          <div class="print-container" style="grid-column: span ${containerColSpan};">
+            <div class="template-grid" style="grid-template-columns: repeat(${containerColSpan}, minmax(0, 1fr));">
+        `;
 
-          let customHTML = '';
+        const containerCells = activeTemplateForPrint.cells.filter(c =>
+          c.containerId === container.id || (!c.containerId && container.id === 'container-default')
+        );
 
-          switch (customType) {
-            case 'custom-heading':
-              customHTML = `
-            <div class="field-cell cell-heading" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
-              <div class="heading-content" style="text-align: left; width: 100%;">${customValue}</div>
-            </div>
-          `;
-              break;
+        containerCells.forEach(cell => {
+          const colSpan = (cell.position?.colSpan || 1) * 2;
+          const rowSpan = cell.position?.rowSpan || 1;
+          const height = cell.position?.height || 'auto';
 
-            case 'custom-text':
-              customHTML = `
-              <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
-                <div class="static-text">${customValue}</div>
+          const minHeight =
+            height === 'small' ? '12px' :
+              height === 'medium' ? '25px' :
+                height === 'large' ? '50px' :
+                  height === 'xlarge' ? '90px' : 'auto';
+
+          // Handle custom elements
+          if (cell.isCustom) {
+            const customType = cell.customType;
+            const customValue = cell.customValue || '';
+            const customPlaceholder = cell.customPlaceholder || '';
+
+            let customHTML = '';
+
+            switch (customType) {
+              case 'custom-heading':
+                customHTML = `
+              <div class="field-cell cell-heading" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+                <div class="heading-content" style="text-align: left; width: 100%;">${customValue}</div>
               </div>
             `;
-              break;
+                break;
 
-            case 'custom-empty-field':
-              customHTML = `
-              <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
-                <div class="cell-content">
-                  <span class="cell-label">${customValue}</span>
-                  <span class="">${customPlaceholder ? `<span class="placeholder-text">${customPlaceholder}</span>` : ''}</span>
+              case 'custom-text':
+                customHTML = `
+                <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+                  <div class="static-text">${customValue}</div>
                 </div>
-              </div>
-            `;
-              break;
+              `;
+                break;
 
-            case 'custom-textarea':
-              customHTML = `
-              <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
-                <div class="textarea-container">
-                  <div class="textarea-label">${customValue}:</div>
-                  <div class="textarea-box">${customPlaceholder ? `<span class="placeholder-text">${customPlaceholder}</span>` : ''}</div>
+              case 'custom-empty-field':
+                customHTML = `
+                <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+                  <div class="cell-content">
+                    <span class="cell-label">${customValue}</span>
+                    <span class="">${customPlaceholder ? `<span class="placeholder-text">${customPlaceholder}</span>` : ''}</span>
+                  </div>
                 </div>
-              </div>
-            `;
-              break;
+              `;
+                break;
 
-            case 'custom-separator':
-              customHTML = `
-              <div class="field-cell separator-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan};">
-                <div class="separator-line"></div>
-              </div>
-            `;
-              break;
-
-            case 'custom-signature':
-              customHTML = `
-              <div class="field-cell signature-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
-                <div class="signature-container">
-                  <div class="signature-label">${customValue}</div>
-                  <div class="signature-line"></div>
-                  <div class="signature-helper">SIGNATURE & DATE</div>
+              case 'custom-textarea':
+                customHTML = `
+                <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+                  <div class="textarea-container">
+                    <div class="textarea-label">${customValue}:</div>
+                    <div class="textarea-box">${customPlaceholder ? `<span class="placeholder-text">${customPlaceholder}</span>` : ''}</div>
+                  </div>
                 </div>
-              </div>
-            `;
-              break;
+              `;
+                break;
 
-            default:
-              customHTML = `
-              <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
-                <div class="cell-content">
-                  <span class="cell-underline"></span>
+              case 'custom-separator':
+                customHTML = `
+                <div class="field-cell separator-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan};">
+                  <div class="separator-line"></div>
                 </div>
-              </div>
-            `;
+              `;
+                break;
+
+              case 'custom-signature':
+                customHTML = `
+                <div class="field-cell signature-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+                  <div class="signature-container">
+                    <div class="signature-label">${customValue}</div>
+                    <div class="signature-line"></div>
+                    <div class="signature-helper">SIGNATURE & DATE</div>
+                  </div>
+                </div>
+              `;
+                break;
+
+              default:
+                customHTML = `
+                <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+                  <div class="cell-content">
+                    <span class="cell-underline"></span>
+                  </div>
+                </div>
+              `;
+            }
+
+            fieldsHTML += customHTML;
+            return;
           }
 
-          fieldsHTML += customHTML;
-          return;
-        }
+          // Handle regular database fields
+          let fieldDef = null;
 
-        // Handle regular database fields
-        // Get field definition - prioritize populated object from template
-        let fieldDef = null;
+          if (cell.fieldId && typeof cell.fieldId === 'object' && cell.fieldId._id) {
+            fieldDef = cell.fieldId;
+          } else if (cell.fieldId) {
+            fieldDef = allFieldDefsForPrint.find(f => f._id.toString() === cell.fieldId.toString());
+          }
 
-        if (cell.fieldId && typeof cell.fieldId === 'object' && cell.fieldId._id) {
-          // It's already populated! Use it.
-          fieldDef = cell.fieldId;
-        } else if (cell.fieldId) {
-          // It's just an ID, look it up (fallback)
-          fieldDef = allFieldDefsForPrint.find(f => f._id.toString() === cell.fieldId.toString());
-        }
+          if (!fieldDef) {
+            console.warn(`Field definition not found for ID: ${cell.fieldId}`);
+            return;
+          }
 
-        if (!fieldDef) {
-          console.warn(`Field definition not found for ID: ${cell.fieldId}`);
-          return;
-        }
-
-        // Check if field is active OR hidden dynamically
-        // If so, render a placeholder to preserve layout
-        if (fieldDef.active === false || isFieldHidden(fieldDef)) {
-          fieldsHTML += `
-            <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
-              <div class="cell-content">
-                <span class="cell-label" style="opacity: 0.5;">${fieldDef.name}</span>
-                <span class="cell-underline" style="border-bottom: 0.4px dashed #ccc;"></span>
+          if (fieldDef.active === false || isFieldHidden(fieldDef)) {
+            fieldsHTML += `
+              <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+                <div class="cell-content">
+                  <span class="cell-label" style="opacity: 0.5;">${fieldDef.name}</span>
+                  <span class="cell-underline" style="border-bottom: 0.4px dashed #ccc;"></span>
+                </div>
               </div>
-            </div>
-          `;
-          return;
-        }
+            `;
+            return;
+          }
 
-        // Find the field value from SRD data - Use local 'fields' state as source of truth
-        let fieldValue = '';
-        const localField = fields.find(f => {
-          return (
-            (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString()) ||
-            (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
-            (f.name === fieldDef.name && f.department === fieldDef.department)
-          );
-        });
-
-        if (localField) {
-          fieldValue = localField.value || '';
-        } else {
-          // Fallback to srd prop if not in local state
-          const srdField = srd.dynamicFields?.find(f => {
+          let fieldValue = '';
+          const localField = fields.find(f => {
             return (
-              (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
               (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString()) ||
+              (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
               (f.name === fieldDef.name && f.department === fieldDef.department)
             );
           });
-          if (srdField) {
-            fieldValue = srdField.value || '';
-          }
-        }
 
-        let valueDisplay = '';
-        const isHeading = fieldDef.type === 'heading';
-        const isImage = fieldDef.type === 'image';
-        const isFile = fieldDef.type === 'file';
-        const isTable = fieldDef.type === 'table';
-
-        if (fieldDef.type === 'boolean') {
-          if (fieldDef.booleanDisplayType === 'instock-purchase') {
-            valueDisplay = `
-            <div class="checkbox-group">
-              <span class="checkbox-item">${fieldValue ? 'In Stock' : 'Purchase'}</span>
-            </div>
-          `;
+          if (localField) {
+            fieldValue = localField.value || '';
           } else {
-            valueDisplay = `
-            <div class="checkbox-group">
-              <span class="checkbox-item">${fieldValue ? 'Yes' : 'NO'}</span>
-            </div>
-          `;
+            const srdField = srd.dynamicFields?.find(f => {
+              return (
+                (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
+                (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString()) ||
+                (f.name === fieldDef.name && f.department === fieldDef.department)
+              );
+            });
+            if (srdField) {
+              fieldValue = srdField.value || '';
+            }
           }
-        } else if (isTable) {
-          const tableData = fieldValue && typeof fieldValue === 'object' ? fieldValue : { headers: [], rows: [] };
-          if (tableData.headers && tableData.headers.length > 0) {
-            const predefinedHeaders = `<th class="table-header" style="background:transparent;color:#4338ca;">Purchase/Stock</th><th class="table-header" style="background:transparent;color:#4338ca;">OPD</th><th class="table-header" style="background:transparent;color:#4338ca;">ETD</th>`;
-            const headerRow = tableData.headers.map(h => `<th class="table-header">${h}</th>`).join('') + predefinedHeaders;
-            const predefinedData = Array.isArray(tableData.predefinedData) ? tableData.predefinedData : [];
-            const bodyRows = (tableData.rows || []).map((row, rowIdx) => {
-              const firstCell = row[0] || '';
-              const restCells = row.slice(1).map(cell => `<td class="table-field-cell"><span class="table-field-underline">${cell || ''}</span></td>`).join('');
-              const rp = predefinedData[rowIdx] || { purchaseType: 'purchase', opd: '', etd: '' };
-              const isInStock = rp.purchaseType === 'instock';
-              const typeLabel = isInStock ? 'In Stock' : 'Purchase';
-              const opdVal = isInStock ? '-' : (rp.opd || '');
-              const etdVal = isInStock ? '-' : (rp.etd || '');
-              const predefinedCells = `<td class="table-field-cell" style="text-align:start;"><span class="table-field-underline" style="font-weight:600;color:${isInStock ? '#059669' : '#2563eb'}">${typeLabel}</span></td><td class="table-field-cell"><span class="table-field-underline">${opdVal}</span></td><td class="table-field-cell"><span class="table-field-underline">${etdVal}</span></td>`;
-              return `<tr><td class="table-field-label">${firstCell}</td>${restCells}${predefinedCells}</tr>`;
-            }).join('');
-            valueDisplay = `
-              <table class="print-table">
-                <thead><tr>${headerRow}</tr></thead>
-                <tbody>${bodyRows}</tbody>
-              </table>
+
+          let valueDisplay = '';
+          const isHeading = fieldDef.type === 'heading';
+          const isImage = fieldDef.type === 'image';
+          const isFile = fieldDef.type === 'file';
+          const isTable = fieldDef.type === 'table';
+
+          if (fieldDef.type === 'boolean') {
+            if (fieldDef.booleanDisplayType === 'instock-purchase') {
+              valueDisplay = `
+              <div class="checkbox-group">
+                <span class="checkbox-item">${fieldValue ? 'In Stock' : 'Purchase'}</span>
+              </div>
             `;
-          } else {
-            valueDisplay = '<span class="no-value">No table data</span>';
-          }
-        } else if (isFile) {
-          if (fieldValue) {
-            valueDisplay = `
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span>📊</span>
-              <span style="font-size: 8px;">Excel File Attached</span>
-            </div>
-          `;
-          } else {
-            valueDisplay = '<span class="no-value"></span>';
-          }
-        } else if (isImage) {
-          const images = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-          const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-          const allImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
+            } else {
+              valueDisplay = `
+              <div class="checkbox-group">
+                <span class="checkbox-item">${fieldValue ? 'Yes' : 'NO'}</span>
+              </div>
+            `;
+            }
+          } else if (isTable) {
+            const tableData = fieldValue && typeof fieldValue === 'object' ? fieldValue : { headers: [], rows: [] };
+            if (tableData.headers && tableData.headers.length > 0) {
+              const predefinedHeaders = `<th class="table-header" style="background:transparent;color:#4338ca;">Purchase/Stock</th><th class="table-header" style="background:transparent;color:#4338ca;">OPD</th><th class="table-header" style="background:transparent;color:#4338ca;">ETD</th>`;
+              const headerRow = tableData.headers.map(h => `<th class="table-header">${h}</th>`).join('') + predefinedHeaders;
+              const predefinedData = Array.isArray(tableData.predefinedData) ? tableData.predefinedData : [];
+              const bodyRows = (tableData.rows || []).map((row, rowIdx) => {
+                const firstCell = row[0] || '';
+                const restCells = row.slice(1).map(cell => `<td class="table-field-cell"><span class="table-field-underline">${cell || ''}</span></td>`).join('');
+                const rp = predefinedData[rowIdx] || { purchaseType: 'purchase', opd: '', etd: '' };
+                const isInStock = rp.purchaseType === 'instock';
+                const typeLabel = isInStock ? 'In Stock' : 'Purchase';
+                const opdVal = isInStock ? '-' : (rp.opd || '');
+                const etdVal = isInStock ? '-' : (rp.etd || '');
+                const predefinedCells = `<td class="table-field-cell" style="text-align:start;"><span class="table-field-underline" style="font-weight:600;color:${isInStock ? '#059669' : '#2563eb'}">${typeLabel}</span></td><td class="table-field-cell"><span class="table-field-underline">${opdVal}</span></td><td class="table-field-cell"><span class="table-field-underline">${etdVal}</span></td>`;
+                return `<tr><td class="table-field-label">${firstCell}</td>${restCells}${predefinedCells}</tr>`;
+              }).join('');
+              valueDisplay = `
+                <table class="print-table">
+                  <thead><tr>${headerRow}</tr></thead>
+                  <tbody>${bodyRows}</tbody>
+                </table>
+              `;
+            } else {
+              valueDisplay = '<span class="no-value">No table data</span>';
+            }
+          } else if (isFile) {
+            if (fieldValue) {
+              valueDisplay = `
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <span>📊</span>
+                <span style="font-size: 8px;">Excel File Attached</span>
+              </div>
+            `;
+            } else {
+              valueDisplay = '<span class="no-value"></span>';
+            }
+          } else if (isImage) {
+            const images = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+            const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
+            const allImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
 
-          if (allImages.length > 0) {
-            const imgGrid = allImages.map(img =>
-              `<div class="img-wrapper"><img src="${img}" class="img-print" alt="Product image" /></div>`
-            ).join('');
-            valueDisplay = `<div class="image-stack">${imgGrid}</div>`;
+            if (allImages.length > 0) {
+              const imgGrid = allImages.map(img =>
+                `<div class="img-wrapper"><img src="${img}" class="img-print" alt="Product image" /></div>`
+              ).join('');
+              valueDisplay = `<div class="image-stack">${imgGrid}</div>`;
+            } else {
+              valueDisplay = '<span class="no-value"></span>';
+            }
+          } else if (isHeading) {
+            valueDisplay = fieldDef.name;
           } else {
-            valueDisplay = '<span class="no-value"></span>';
+            valueDisplay = fieldValue || '';
           }
-        } else if (isHeading) {
-          valueDisplay = fieldDef.name;
-        } else {
-          valueDisplay = fieldValue || '';
-        }
+
+          fieldsHTML += `
+          <div class="field-cell ${isHeading ? 'cell-heading' : ''} ${isImage ? 'cell-image' : ''} ${isTable ? 'cell-table' : ''} ${colSpan === 1 ? 'is-small-cell' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
+            ${!isHeading && !isImage && !isTable ? `
+                <div class="cell-content">
+                  <span style="font-size: 11px;" class="cell-label">${fieldDef.name}</span>
+                  <span style="font-size: 11px;" class="cell-underline">${valueDisplay}</span>
+                </div>
+            ` : isImage ? `
+                <div class="cell-image-container">
+                  <div class="image-label">${fieldDef.name}</div>
+                  ${valueDisplay}
+                </div>
+            ` : isTable ? `
+                <div class="cell-table-container">
+                  <div class="table-label">${fieldDef.name}</div>
+                  ${valueDisplay}
+                </div>
+            ` : `
+                <div class="heading-content">${valueDisplay}</div>
+            `}
+          </div>
+        `;
+        });
 
         fieldsHTML += `
-        <div class="field-cell ${isHeading ? 'cell-heading' : ''} ${isImage ? 'cell-image' : ''} ${isTable ? 'cell-table' : ''} ${colSpan === 1 ? 'is-small-cell' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
-          ${!isHeading && !isImage && !isTable ? `
-              <div class="cell-content">
-                <span style="font-size: 11px;" class="cell-label">${fieldDef.name}</span>
-                <span style="font-size: 11px;" class="cell-underline">${valueDisplay}</span>
-              </div>
-          ` : isImage ? `
-              <div class="cell-image-container">
-                <div class="image-label">${fieldDef.name}</div>
-                ${valueDisplay}
-              </div>
-          ` : isTable ? `
-              <div class="cell-table-container">
-                <div class="table-label">${fieldDef.name}</div>
-                ${valueDisplay}
-              </div>
-          ` : `
-              <div class="heading-content">${valueDisplay}</div>
-          `}
-        </div>
-      `;
+            </div>
+          </div>
+        `;
       });
 
       // If no fields were rendered, show a message
@@ -753,11 +767,23 @@ export default function DepartmentPanelExcel({
       margin-bottom: 1px;
     }
     
-    .template-grid {
+    .main-grid {
       display: grid;
       grid-template-columns: repeat(${gridColumns * 2}, minmax(0, 1fr));
-      gap: 4px 1px;
+      gap: 15px;
       margin-bottom: 10px;
+    }
+
+    .print-container {
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    
+    .template-grid {
+      display: grid;
+      gap: 4px 1px;
     }
     
     .field-cell {
@@ -1142,7 +1168,7 @@ export default function DepartmentPanelExcel({
     <h1>Sample Request Form</h1>
   </div>
   
-  <div class="template-grid">
+  <div class="main-grid">
     ${fieldsHTML}
   </div>
 
@@ -1403,117 +1429,117 @@ export default function DepartmentPanelExcel({
                     const isInStock = rowPredefined.purchaseType === 'instock';
 
                     return (
-                    <tr key={rowIdx} className="group/row hover:bg-blue-50/30 transition-colors duration-100">
-                      {row.map((cell, colIdx) => (
-                        <td key={colIdx} className="border border-gray-200 p-0">
-                          {canEdit ? (
-                            <input
-                              type="text"
-                              value={cell}
-                              onChange={(e) => {
-                                const newRows = [...tableData.rows];
-                                newRows[rowIdx][colIdx] = e.target.value;
-                                handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
+                      <tr key={rowIdx} className="group/row hover:bg-blue-50/30 transition-colors duration-100">
+                        {row.map((cell, colIdx) => (
+                          <td key={colIdx} className="border border-gray-200 p-0">
+                            {canEdit ? (
+                              <input
+                                type="text"
+                                value={cell}
+                                onChange={(e) => {
                                   const newRows = [...tableData.rows];
-                                  newRows.splice(rowIdx + 1, 0, new Array(tableData.headers.length).fill(''));
-                                  const newPredefined = [...predefinedData];
-                                  newPredefined.splice(rowIdx + 1, 0, { purchaseType: 'purchase', opd: '', etd: '' });
-                                  handleFieldChange(fieldId, name, { ...tableData, rows: newRows, predefinedData: newPredefined }, department, fieldDef);
-                                  setTimeout(() => {
-                                    const nextInput = e.target.closest('tr')?.nextElementSibling?.querySelector('input');
-                                    if (nextInput) nextInput.focus();
-                                  }, 50);
-                                }
+                                  newRows[rowIdx][colIdx] = e.target.value;
+                                  handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const newRows = [...tableData.rows];
+                                    newRows.splice(rowIdx + 1, 0, new Array(tableData.headers.length).fill(''));
+                                    const newPredefined = [...predefinedData];
+                                    newPredefined.splice(rowIdx + 1, 0, { purchaseType: 'purchase', opd: '', etd: '' });
+                                    handleFieldChange(fieldId, name, { ...tableData, rows: newRows, predefinedData: newPredefined }, department, fieldDef);
+                                    setTimeout(() => {
+                                      const nextInput = e.target.closest('tr')?.nextElementSibling?.querySelector('input');
+                                      if (nextInput) nextInput.focus();
+                                    }, 50);
+                                  }
+                                }}
+                                className="w-full h-full px-2 py-1.5 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 bg-transparent transition-colors duration-100"
+                                disabled={!canEdit}
+                              />
+                            ) : (
+                              <span className="px-2 py-1.5 block">{cell}</span>
+                            )}
+                          </td>
+                        ))}
+                        {canEdit && (
+                          <td className="border border-gray-200 p-0 w-9 bg-gray-50/50 text-center">
+                            <button
+                              onClick={() => {
+                                const newRows = tableData.rows.filter((_, idx) => idx !== rowIdx);
+                                const newPredefined = predefinedData.filter((_, idx) => idx !== rowIdx);
+                                handleFieldChange(fieldId, name, {
+                                  ...tableData,
+                                  rows: newRows.length > 0 ? newRows : [new Array(tableData.headers.length).fill('')],
+                                  predefinedData: newPredefined.length > 0 ? newPredefined : [{ purchaseType: 'purchase', opd: '', etd: '' }]
+                                }, department, fieldDef);
                               }}
-                              className="w-full h-full px-2 py-1.5 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 bg-transparent transition-colors duration-100"
+                              className="w-full h-full flex items-center justify-center py-1.5 opacity-0 group-hover/row:opacity-100 transition-opacity duration-150 text-red-400 hover:text-red-600 hover:bg-red-50"
+                              title="Delete row"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </td>
+                        )}
+                        {/* Predefined Purchase/Stock toggle */}
+                        <td className="border border-gray-200 p-0 bg-indigo-50/30">
+                          <div className="flex items-center justify-center gap-1 px-1 py-1">
+                            <button
+                              onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
                               disabled={!canEdit}
-                            />
-                          ) : (
-                            <span className="px-2 py-1.5 block">{cell}</span>
-                          )}
+                              className={cn(
+                                "px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-150 border",
+                                !isInStock
+                                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                  : "bg-white text-gray-500 border-gray-300 hover:border-blue-400 hover:text-blue-600",
+                                !canEdit && "opacity-50 cursor-not-allowed"
+                              )}
+                            >
+                              Purchase
+                            </button>
+                            <button
+                              onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'instock')}
+                              disabled={!canEdit}
+                              className={cn(
+                                "px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-150 border",
+                                isInStock
+                                  ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                                  : "bg-white text-gray-500 border-gray-300 hover:border-emerald-400 hover:text-emerald-600",
+                                !canEdit && "opacity-50 cursor-not-allowed"
+                              )}
+                            >
+                              InStock
+                            </button>
+                          </div>
                         </td>
-                      ))}
-                      {canEdit && (
-                        <td className="border border-gray-200 p-0 w-9 bg-gray-50/50 text-center">
-                          <button
-                            onClick={() => {
-                              const newRows = tableData.rows.filter((_, idx) => idx !== rowIdx);
-                              const newPredefined = predefinedData.filter((_, idx) => idx !== rowIdx);
-                              handleFieldChange(fieldId, name, {
-                                ...tableData,
-                                rows: newRows.length > 0 ? newRows : [new Array(tableData.headers.length).fill('')],
-                                predefinedData: newPredefined.length > 0 ? newPredefined : [{ purchaseType: 'purchase', opd: '', etd: '' }]
-                              }, department, fieldDef);
-                            }}
-                            className="w-full h-full flex items-center justify-center py-1.5 opacity-0 group-hover/row:opacity-100 transition-opacity duration-150 text-red-400 hover:text-red-600 hover:bg-red-50"
-                            title="Delete row"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
+                        {/* Predefined OPD date */}
+                        <td className={cn("border border-gray-200 p-0", isInStock ? "bg-gray-100" : "bg-indigo-50/30")}>
+                          <input
+                            type="date"
+                            value={rowPredefined.opd || ''}
+                            onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
+                            disabled={!canEdit || isInStock}
+                            className={cn(
+                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 bg-transparent text-xs transition-colors duration-100",
+                              isInStock && "opacity-40 cursor-not-allowed"
+                            )}
+                          />
                         </td>
-                      )}
-                      {/* Predefined Purchase/Stock toggle */}
-                      <td className="border border-gray-200 p-0 bg-indigo-50/30">
-                        <div className="flex items-center justify-center gap-1 px-1 py-1">
-                          <button
-                            onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
-                            disabled={!canEdit}
+                        {/* Predefined ETD date */}
+                        <td className={cn("border border-gray-200 p-0", isInStock ? "bg-gray-100" : "bg-indigo-50/30")}>
+                          <input
+                            type="date"
+                            value={rowPredefined.etd || ''}
+                            onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
+                            disabled={!canEdit || isInStock}
                             className={cn(
-                              "px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-150 border",
-                              !isInStock
-                                ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                                : "bg-white text-gray-500 border-gray-300 hover:border-blue-400 hover:text-blue-600",
-                              !canEdit && "opacity-50 cursor-not-allowed"
+                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 bg-transparent text-xs transition-colors duration-100",
+                              isInStock && "opacity-40 cursor-not-allowed"
                             )}
-                          >
-                            Purchase
-                          </button>
-                          <button
-                            onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'instock')}
-                            disabled={!canEdit}
-                            className={cn(
-                              "px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-150 border",
-                              isInStock
-                                ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                                : "bg-white text-gray-500 border-gray-300 hover:border-emerald-400 hover:text-emerald-600",
-                              !canEdit && "opacity-50 cursor-not-allowed"
-                            )}
-                          >
-                            InStock
-                          </button>
-                        </div>
-                      </td>
-                      {/* Predefined OPD date */}
-                      <td className={cn("border border-gray-200 p-0", isInStock ? "bg-gray-100" : "bg-indigo-50/30")}>
-                        <input
-                          type="date"
-                          value={rowPredefined.opd || ''}
-                          onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
-                          disabled={!canEdit || isInStock}
-                          className={cn(
-                            "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 bg-transparent text-xs transition-colors duration-100",
-                            isInStock && "opacity-40 cursor-not-allowed"
-                          )}
-                        />
-                      </td>
-                      {/* Predefined ETD date */}
-                      <td className={cn("border border-gray-200 p-0", isInStock ? "bg-gray-100" : "bg-indigo-50/30")}>
-                        <input
-                          type="date"
-                          value={rowPredefined.etd || ''}
-                          onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
-                          disabled={!canEdit || isInStock}
-                          className={cn(
-                            "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 bg-transparent text-xs transition-colors duration-100",
-                            isInStock && "opacity-40 cursor-not-allowed"
-                          )}
-                        />
-                      </td>
-                    </tr>
+                          />
+                        </td>
+                      </tr>
                     );
                   })}
                 </tbody>
