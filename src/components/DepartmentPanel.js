@@ -424,7 +424,7 @@ export default function DepartmentPanel({
         const hasValue = hasFieldValue(name);
         const isEditing = editingFields.has(name);
         return (
-          <div key={_id}>
+          <div key={name}>
             <Label htmlFor={name}>{name}</Label>
             <div className="relative mt-1">
               {hasValue && !isEditing ? (
