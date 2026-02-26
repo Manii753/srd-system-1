@@ -725,6 +725,7 @@ export default function Page() {
                     <option value="table">📊 Table (Excel-like)</option>
                     <option value="file">📎 File Upload</option>
                     <option value="image">🖼️ Image Upload</option>
+                    <option value="createdAt">📅 Created At</option>
                   </select>
                 </div>
 
@@ -784,9 +785,15 @@ export default function Page() {
                     ))}
                   </select>
                 </div>
-
+                {values.type === 'createdAt' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      This Will Be Set Automatically
+                    </label>
+                  </div>
+                )}
                 {/* Placeholder */}
-                {values.type !== 'heading' && (
+                {values.type !== 'heading' && values.type !== 'createdAt' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Placeholder (optional)

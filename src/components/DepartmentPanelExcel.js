@@ -50,6 +50,7 @@ export default function DepartmentPanelExcel({
   // Fetch active template and all field definitions
   useEffect(() => {
     async function fetchData() {
+      
       setIsLoading(true);
       try {
         // Fetch active template
@@ -589,6 +590,7 @@ export default function DepartmentPanelExcel({
         const isImage = fieldDef.type === 'image';
         const isFile = fieldDef.type === 'file';
         const isTable = fieldDef.type === 'table';
+        const isCreatedAt = fieldDef.type === 'createdAt';
 
         if (fieldDef.type === 'boolean') {
           if (fieldDef.booleanDisplayType === 'instock-purchase') {
@@ -656,6 +658,9 @@ export default function DepartmentPanelExcel({
           }
         } else if (isHeading) {
           valueDisplay = fieldDef.name;
+        } else if (isCreatedAt) {
+          // For createdAt type, display the SRD's createdAt
+          valueDisplay = srd.createdAt ? new Date(srd.createdAt).toISOString().split('T')[0] : '';
         } else {
           valueDisplay = fieldValue || '';
         }
@@ -1245,14 +1250,17 @@ export default function DepartmentPanelExcel({
       case 'text':
       case 'number':
       case 'date':
+      case 'createdAt':
+        // For createdAt type, use srd.createdAt as the value
+        const displayValue = type === 'createdAt' ? (srd.createdAt ? new Date(srd.createdAt).toISOString().split('T')[0] : '') : fieldValue;
         return (
           <Input
-            type={type}
+            type={type === 'createdAt' ? 'date' : type}
             placeholder={placeholder || ''}
-            value={fieldValue}
+            value={displayValue}
             onChange={(e) => handleFieldChange(fieldId, name, e.target.value, department, fieldDef)}
             required={isRequired}
-            disabled={!canEdit}
+            disabled={!canEdit || type === 'createdAt'}
             className={cn(
               "h-8 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 w-full bg-transparent",
               !canEdit && "bg-gray-100 cursor-not-allowed"
