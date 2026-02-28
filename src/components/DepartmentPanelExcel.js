@@ -607,7 +607,11 @@ export default function DepartmentPanelExcel({
           `;
           }
         } else if (isTable) {
-          const tableData = fieldValue && typeof fieldValue === 'object' ? fieldValue : { headers: [], rows: [] };
+          const defaultHeaders = Array.isArray(fieldDef.tableHeaders) && fieldDef.tableHeaders.length > 0 
+            ? fieldDef.tableHeaders 
+            : ['Item Name', 'Code', 'Finish', 'Size'];
+            
+          const tableData = fieldValue && typeof fieldValue === 'object' ? fieldValue : { headers: defaultHeaders, rows: [new Array(defaultHeaders.length).fill('')] };
           if (tableData.headers && tableData.headers.length > 0) {
             const predefinedHeaders = `<th class="table-header" style="background:transparent;color:#4338ca;">Purchase/Stock</th><th class="table-header" style="background:transparent;color:#4338ca;">OPD</th><th class="table-header" style="background:transparent;color:#4338ca;">ETD</th>`;
             const headerRow = tableData.headers.map(h => `<th class="table-header">${h}</th>`).join('') + predefinedHeaders;
@@ -623,12 +627,73 @@ export default function DepartmentPanelExcel({
               const predefinedCells = `<td class="table-field-cell" style="text-align:start;"><span class="table-field-underline" style="font-weight:600;color:${isInStock ? '#059669' : '#2563eb'}">${typeLabel}</span></td><td class="table-field-cell"><span class="table-field-underline">${opdVal}</span></td><td class="table-field-cell"><span class="table-field-underline">${etdVal}</span></td>`;
               return `<tr><td class="table-field-label">${firstCell}</td>${restCells}${predefinedCells}</tr>`;
             }).join('');
-            valueDisplay = `
-              <table class="print-table">
+            const totalCols = tableData.headers.length + 3; // +3 for predefined columns
+            
+            if (totalCols >= 10) {
+              // Card/List Layout for wide tables
+              const cardsHtml = (tableData.rows || []).map((row, rowIdx) => {
+                const rp = predefinedData[rowIdx] || { purchaseType: 'purchase', opd: '', etd: '' };
+                const isInStock = rp.purchaseType === 'instock';
+                const typeLabel = isInStock ? 'In Stock' : 'Purchase';
+                const opdVal = isInStock ? '-' : (rp.opd || '');
+                const etdVal = isInStock ? '-' : (rp.etd || '');
+                
+                // 1. First column (first 4 fields)
+                const col1Items = [];
+                // 2. Second column (all other dynamic fields)
+                const col2Items = [];
+                // 3. Third column (predefined fields)
+                const col3Items = [];
+
+                // Collect first 4 columns
+                for (let i = 0; i < Math.min(4, tableData.headers.length); i++) {
+                  col1Items.push({ label: tableData.headers[i] || (i === 0 ? 'Item Name' : `Column ${i+1}`), value: row[i] || '' });
+                }
+
+                // Collect remaining middle columns
+                for (let i = 4; i < tableData.headers.length; i++) {
+                  col2Items.push({ label: tableData.headers[i] || `Column ${i+1}`, value: row[i] || '' });
+                }
+
+                // Collect predefined columns
+                col3Items.push({ 
+                  label: 'Purchase/Stock', 
+                  value: `<span style="font-weight:600;color:${isInStock ? '#059669' : '#2563eb'}">${typeLabel}</span>` 
+                });
+                col3Items.push({ label: 'OPD', value: opdVal });
+                col3Items.push({ label: 'ETD', value: etdVal });
+
+                const renderColumn = (items) => items.map(item => `
+                  <div class="field-cell" style="flex:0 0 auto;">
+                    <div class="cell-content">
+                      <span class="cell-label">${item.label}</span>
+                      <span class="cell-underline">${item.value}</span>
+                    </div>
+                  </div>
+                `).join('');
+
+                return `
+                  <div class="print-table-card">
+                    <div class="print-card-col">${renderColumn(col1Items)}</div>
+                    <div class="print-card-col">${col2Items.length > 0 ? renderColumn(col2Items) : '<div class="print-card-empty">-</div>'}</div>
+                    <div class="print-card-col">${renderColumn(col3Items)}</div>
+                  </div>
+                `;
+              }).join('');
+
+              valueDisplay = `<div class="print-cards-container">${cardsHtml}</div>`;
+              
+            } else {
+              // Standard Grid Layout (Condensed if 8-9 cols)
+              const condensedClass = totalCols >= 8 ? ' print-table-condensed' : '';
+
+              valueDisplay = `
+              <table class="print-table${condensedClass}">
                 <thead><tr>${headerRow}</tr></thead>
                 <tbody>${bodyRows}</tbody>
               </table>
             `;
+            }
           } else {
             valueDisplay = '<span class="no-value">No table data</span>';
           }
@@ -1035,7 +1100,8 @@ export default function DepartmentPanelExcel({
       margin-bottom: 5px;
       color: #333;
       text-transform: capitalize;
-      white-space: nowrap;
+      white-space: normal; /* Changed from nowrap to allow text wrapping on tight columns */
+      word-break: break-word;
       border: none;
     }
 
@@ -1055,6 +1121,57 @@ export default function DepartmentPanelExcel({
       padding: 0 2px;
       line-height: 14px;
       white-space: pre-wrap;
+    }
+    
+    /* Condensed styles for tables with many columns */
+    .print-table-condensed {
+      font-size: 8.5px !important;
+    }
+    .print-table-condensed .table-header,
+    .print-table-condensed .table-field-label,
+    .print-table-condensed .table-field-underline {
+      font-size: 8.5px !important;
+      white-space: normal !important;
+      word-break: break-word;
+      padding: 1px 2px !important;
+      min-height: auto !important;
+      line-height: 1.1 !important;
+    }
+    
+    /* Card Layout for Very Wide Tables (10+ columns) */
+    .print-cards-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 6px;
+      width: 100%;
+    }
+    
+    .print-table-card {
+      background-color: transparent;
+      padding-top: 4px;
+      padding-bottom: 4px;
+      border-bottom: 0.5px dashed #ccc;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 15px;
+      break-inside: avoid;
+    }
+    
+    .print-card-col {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: stretch;
+      gap: 2px;
+    }
+    
+    .print-card-empty {
+      color: #999;
+      font-style: italic;
+      font-size: 11px;
+      text-align: center;
+      margin-top: 4px;
     }
     
     .footer {
@@ -1312,9 +1429,13 @@ export default function DepartmentPanelExcel({
         );
 
       case 'table':
+        const defaultHeaders = Array.isArray(fieldDef.tableHeaders) && fieldDef.tableHeaders.length > 0 
+          ? fieldDef.tableHeaders 
+          : ['Item Name', 'Code', 'Finish', 'Size'];
+          
         const tableData = fieldValue && typeof fieldValue === 'object' && fieldValue.headers
           ? fieldValue
-          : { headers: ['Item Name', 'Finish', 'Size'], rows: [[' ', ' ', ' ']] };
+          : { headers: defaultHeaders, rows: [new Array(defaultHeaders.length).fill('')] };
 
         // Ensure predefinedData array exists and matches row count
         const predefinedData = Array.isArray(tableData.predefinedData)
@@ -1337,6 +1458,212 @@ export default function DepartmentPanelExcel({
           handleFieldChange(fieldId, name, { ...tableData, predefinedData: newPredefined }, department, fieldDef);
         };
 
+        const totalCols = (tableData.headers?.length || 0) + 3;
+
+        // Interactive Card Layout for wide tables
+        if (totalCols >= 10) {
+          return (
+            <div className="space-y-4 p-2 overflow-auto max-h-96 bg-gray-50/50 rounded-md">
+              
+              {/* Card Headers Controls */}
+              <div className="flex flex-wrap items-center gap-2 mb-4 p-2 bg-white border border-gray-200 rounded-md shadow-sm">
+                <span className="text-xs font-semibold text-gray-700 mr-2">Columns:</span>
+                {tableData.headers?.map((header, colIdx) => (
+                  <div key={colIdx} className="flex items-center group relative">
+                    <input
+                      type="text"
+                      value={header}
+                      onChange={(e) => {
+                        const newHeaders = [...tableData.headers];
+                        newHeaders[colIdx] = e.target.value;
+                        handleFieldChange(fieldId, name, { ...tableData, headers: newHeaders }, department, fieldDef);
+                      }}
+                      className="w-24 text-xs bg-gray-100 border-none focus:ring-1 focus:ring-blue-400 rounded px-2 py-1"
+                      disabled={!canEdit}
+                    />
+                    {canEdit && tableData.headers.length > 1 && (
+                      <button
+                        onClick={() => {
+                          const newHeaders = tableData.headers.filter((_, idx) => idx !== colIdx);
+                          const newRows = tableData.rows.map(row => row.filter((_, idx) => idx !== colIdx));
+                          handleFieldChange(fieldId, name, { headers: newHeaders, rows: newRows }, department, fieldDef);
+                        }}
+                        className="absolute -top-1.5 -right-1.5 opacity-0 group-hover:opacity-100 bg-red-100 text-red-500 rounded-full p-0.5 hover:bg-red-200 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {canEdit && (
+                  <button
+                    onClick={() => {
+                      const newHeaders = [...tableData.headers, `Column ${tableData.headers.length + 1}`];
+                      const newRows = tableData.rows.map(row => [...row, '']);
+                      handleFieldChange(fieldId, name, { headers: newHeaders, rows: newRows }, department, fieldDef);
+                    }}
+                    className="flex items-center justify-center p-1 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded transition-colors"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Data Cards */}
+              <div className="flex flex-col gap-4">
+                {tableData.rows?.map((row, rowIdx) => {
+                  const rowPredefined = predefinedData[rowIdx] || { purchaseType: 'purchase', opd: '', etd: '' };
+                  const isInStock = rowPredefined.purchaseType === 'instock';
+
+                  // Group items for 3-column layout
+                  const col1Indexes = [];
+                  for (let i = 0; i < Math.min(4, tableData.headers.length); i++) col1Indexes.push(i);
+                  
+                  const col2Indexes = [];
+                  for (let i = 4; i < tableData.headers.length; i++) col2Indexes.push(i);
+
+                  return (
+                    <div key={rowIdx} className="bg-white border border-gray-200 shadow-sm rounded-md p-3 relative group">
+                      {canEdit && (
+                        <button
+                          onClick={() => {
+                            const newRows = tableData.rows.filter((_, idx) => idx !== rowIdx);
+                            const newPredefined = predefinedData.filter((_, idx) => idx !== rowIdx);
+                            handleFieldChange(fieldId, name, {
+                              ...tableData,
+                              rows: newRows.length > 0 ? newRows : [new Array(tableData.headers.length).fill('')],
+                              predefinedData: newPredefined.length > 0 ? newPredefined : [{ purchaseType: 'purchase', opd: '', etd: '' }]
+                            }, department, fieldDef);
+                          }}
+                          className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 bg-red-100 text-red-500 hover:bg-red-500 hover:text-white rounded-full p-1 transition-all z-10 shadow-sm"
+                          title="Delete row card"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Col 1: First 4 fields */}
+                        <div className="flex flex-col gap-2">
+                          {col1Indexes.map(idx => (
+                            <div key={idx} className="flex items-center text-xs">
+                              <span className="w-20 flex-shrink-0 font-semibold text-gray-700 whitespace-nowrap capitalize break-words pr-2">{tableData.headers[idx] || `Col ${idx+1}`}:</span>
+                              <input
+                                type="text"
+                                value={row[idx] || ''}
+                                onChange={(e) => {
+                                  const newRows = [...tableData.rows];
+                                  newRows[rowIdx][idx] = e.target.value;
+                                  handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
+                                }}
+                                className="flex-1 ml-5 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent px-1 py-0.5"
+                                disabled={!canEdit}
+                              />
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Col 2: Remaining fields */}
+                        <div className="flex flex-col gap-2">
+                          {col2Indexes.length > 0 ? (
+                            col2Indexes.map(idx => (
+                              <div key={idx} className="flex items-center text-xs">
+                                <span className="w-20 flex-shrink-0 font-semibold text-gray-700 capitalize break-words whitespace-nowrap pr-2">{tableData.headers[idx] || `Col ${idx+1}`}:</span>
+                                <input
+                                  type="text"
+                                  value={row[idx] || ''}
+                                  onChange={(e) => {
+                                    const newRows = [...tableData.rows];
+                                    newRows[rowIdx][idx] = e.target.value;
+                                    handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
+                                  }}
+                                  className="flex-1 ml-5 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent px-1 py-0.5"
+                                  disabled={!canEdit}
+                                />
+                              </div>
+                            ))
+                          ) : (
+                             <div className="text-gray-400 italic text-xs h-full flex items-center justify-center">-</div>
+                          )}
+                        </div>
+
+                        {/* Col 3: Predefined Fields */}
+                        <div className="flex flex-col gap-2 rounded-md bg-indigo-50/30 p-2 border border-indigo-100">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-semibold text-indigo-800">Status:</span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
+                                disabled={!canEdit}
+                                className={cn(
+                                  "px-2 py-0.5 rounded text-[10px] font-medium border",
+                                  !isInStock ? "bg-blue-600 text-white border-blue-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-blue-400"
+                                )}
+                              >
+                                Purchase
+                              </button>
+                              <button
+                                onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'instock')}
+                                disabled={!canEdit}
+                                className={cn(
+                                  "px-2 py-0.5 rounded text-[10px] font-medium border",
+                                  isInStock ? "bg-emerald-600 text-white border-emerald-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-emerald-400"
+                                )}
+                              >
+                                InStock
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between text-xs mt-1">
+                            <span className="font-semibold text-indigo-800">OPD:</span>
+                            <input
+                              type="date"
+                              value={rowPredefined.opd || ''}
+                              onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
+                              disabled={!canEdit || isInStock}
+                              className={cn(
+                                "w-28 px-1 py-0.5 border border-indigo-200 rounded text-[10px] bg-white text-gray-700",
+                                isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
+                              )}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-semibold text-indigo-800">ETD:</span>
+                            <input
+                              type="date"
+                              value={rowPredefined.etd || ''}
+                              onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
+                              disabled={!canEdit || isInStock}
+                              className={cn(
+                                "w-28 px-1 py-0.5 border border-indigo-200 rounded text-[10px] bg-white text-gray-700",
+                                isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
+                              )}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {canEdit && (
+                  <button
+                    onClick={() => {
+                      const newRows = [...tableData.rows, new Array(tableData.headers.length).fill('')];
+                      const newPredefined = [...predefinedData, { purchaseType: 'purchase', opd: '', etd: '' }];
+                      handleFieldChange(fieldId, name, { ...tableData, rows: newRows, predefinedData: newPredefined }, department, fieldDef);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2 border-2 border-dashed border-gray-300 rounded-md text-gray-500 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all text-xs font-semibold mt-2"
+                  >
+                    <Plus className="h-4 w-4" /> Add New Row Card
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        // Standard Interactive Table Layout
         return (
           <div className="space-y-1 p-0 overflow-auto max-h-96">
             <div className="border border-gray-200 overflow-hidden">

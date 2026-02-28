@@ -71,6 +71,11 @@ const FieldSchema = new mongoose.Schema({
         type: String,
         enum: ['yes-no', 'instock-purchase', null],
         default: 'yes-no'
+    },
+    // For table fields: custom column headers
+    tableHeaders: {
+        type: [String],
+        default: []
     }
 }, {
     timestamps: true

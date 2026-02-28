@@ -22,6 +22,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { cn } from "@/lib/utils";
 
 const DEPARTMENTS = [
   'vmd',
@@ -235,7 +236,8 @@ export default function Page() {
     isConnectedTo: false,
     connectedFieldId: null,
     connectionType: null,
-    booleanDisplayType: null
+    booleanDisplayType: null,
+    tableHeaders: ['Item Name', 'Code', 'Finish', 'Size']
   });
   const router = useRouter();
   const [fields, setFields] = useState([]);
@@ -319,7 +321,8 @@ export default function Page() {
       isConnectedTo: false,
       connectedFieldId: null,
       connectionType: null,
-      booleanDisplayType: null
+      booleanDisplayType: null,
+      tableHeaders: ['Item Name', 'Code', 'Finish', 'Size']
     });
     setEditingId(null);
     setModalOpen(true);
@@ -342,7 +345,10 @@ export default function Page() {
       isConnectedTo: !!field.isConnectedTo,
       connectedFieldId: connectedId,
       connectionType: field.connectionType || null,
-      booleanDisplayType: field.booleanDisplayType || null
+      booleanDisplayType: field.booleanDisplayType || null,
+      tableHeaders: Array.isArray(field.tableHeaders) && field.tableHeaders.length > 0
+        ? field.tableHeaders
+        : ['Item Name', 'Code', 'Finish', 'Size']
     });
     setEditingId(field._id);
     setModalOpen(true);
@@ -744,6 +750,72 @@ export default function Page() {
                       <option value="yes-no">Yes / No</option>
                       <option value="instock-purchase">In Stock / Purchase</option>
                     </select>
+                  </div>
+                )}
+
+                {/* Table Headers Customization */}
+                {values.type === 'table' && (
+                  <div className="border border-gray-200 rounded-md p-3 bg-gray-50/50">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Custom Table Columns
+                    </label>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Define the default column headers for this table. Users can still add/remove columns inside individual SRDs.
+                    </p>
+
+                    <div className="space-y-2 mb-3">
+                      {values.tableHeaders?.map((header, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400 font-mono w-4">{idx + 1}.</span>
+                          <input
+                            type="text"
+                            className="flex-1 p-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                            value={header}
+                            onChange={(e) => {
+                              const newHeaders = [...values.tableHeaders];
+                              newHeaders[idx] = e.target.value;
+                              setValues({ ...values, tableHeaders: newHeaders });
+                            }}
+                            placeholder={`Column ${idx + 1}`}
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (values.tableHeaders.length > 1) {
+                                const newHeaders = values.tableHeaders.filter((_, i) => i !== idx);
+                                setValues({ ...values, tableHeaders: newHeaders });
+                              }
+                            }}
+                            className={cn(
+                              "p-1.5 rounded transition-colors",
+                              values.tableHeaders.length > 1
+                                ? "text-red-500 hover:bg-red-100"
+                                : "text-gray-300 cursor-not-allowed"
+                            )}
+                            disabled={values.tableHeaders.length <= 1}
+                            title={values.tableHeaders.length <= 1 ? "Minimum 1 column required" : "Remove column"}
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValues({
+                          ...values,
+                          tableHeaders: [...(values.tableHeaders || []), `Column ${(values.tableHeaders?.length || 0) + 1}`]
+                        });
+                      }}
+                      className="w-full py-1.5 border-2 border-dashed border-gray-300 text-gray-500 rounded text-xs font-semibold hover:border-blue-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-1"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add Column
+                    </button>
                   </div>
                 )}
 
