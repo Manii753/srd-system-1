@@ -284,7 +284,7 @@ export async function printDepartmentPanelExcel({
             const opdVal = isInStock ? '-' : (rp.opd || '');
             const etdVal = isInStock ? '-' : (rp.etd || '');
             const predefinedCells = `<td class="table-field-cell" style="text-align:start;"><span class="table-field-underline" style="font-weight:600;color:${isInStock ? '#059669' : '#2563eb'}">${typeLabel}</span></td><td class="table-field-cell"><span class="table-field-underline">${opdVal}</span></td><td class="table-field-cell"><span class="table-field-underline">${etdVal}</span></td>`;
-            return `<tr><td class="table-field-label">${firstCell}</td>${restCells}${predefinedCells}</tr>`;
+            return `<tr><td class="table-field-label"><span class="table-field-underline">${firstCell}</span></td>${restCells}${predefinedCells}</tr>`;
           }).join('');
           const totalCols = tableData.headers.length + 3; // +3 for predefined columns
 
@@ -790,12 +790,13 @@ export async function printDepartmentPanelExcel({
       font-size: 11px;
       color: #000;
       display: inline-block;
-      width: 100%;
+      width: calc(100% - 5px);
       border-bottom: 0.4px solid #999;
       min-height: 14px;
       padding: 0 2px;
       line-height: 14px;
       white-space: pre-wrap;
+      
     }
     
     /* Condensed styles for tables with many columns */
