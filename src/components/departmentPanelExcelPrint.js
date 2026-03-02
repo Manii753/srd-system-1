@@ -8,108 +8,108 @@ export async function printDepartmentPanelExcel({
   toast,
 }) {
 
-    try {
-      // If there are unsaved changes or auto-save is in progress, wait
-      if (hasUnsavedChanges || isAutoSaving) {
-        setIsPrinting(true);
-        // Wait for up to 5 seconds for auto-save to complete
-        let waitAttempts = 0;
-        while ((hasUnsavedChanges || isAutoSaving) && waitAttempts < 10) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          waitAttempts++;
-        }
-      }
-
+  try {
+    // If there are unsaved changes or auto-save is in progress, wait
+    if (hasUnsavedChanges || isAutoSaving) {
       setIsPrinting(true);
-
-      // Fetch the active print template
-      const templateRes = await fetch('/api/printTemplate/active');
-
-      if (!templateRes.ok) {
-        setIsPrinting(false);
-        throw new Error('Failed to fetch active template');
+      // Wait for up to 5 seconds for auto-save to complete
+      let waitAttempts = 0;
+      while ((hasUnsavedChanges || isAutoSaving) && waitAttempts < 10) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        waitAttempts++;
       }
+    }
 
-      const activeTemplateForPrint = await templateRes.json();
+    setIsPrinting(true);
 
-      if (!activeTemplateForPrint) {
-        setIsPrinting(false);
-        toast({
-          title: 'No active template',
-          description: 'Please create and activate a print template in the template designer.',
-          variant: 'destructive',
-        });
-        return;
-      }
+    // Fetch the active print template
+    const templateRes = await fetch('/api/printTemplate/active');
 
-      // Fetch all field definitions to get field metadata
-      const allFieldDefsForPrint = [];
-      for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
-        try {
-          const res = await fetch(`/api/newField?department=${dept}`);
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            allFieldDefsForPrint.push(...data);
-          }
-        } catch (err) {
-          console.error(`Failed to fetch ${dept} fields:`, err);
+    if (!templateRes.ok) {
+      setIsPrinting(false);
+      throw new Error('Failed to fetch active template');
+    }
+
+    const activeTemplateForPrint = await templateRes.json();
+
+    if (!activeTemplateForPrint) {
+      setIsPrinting(false);
+      toast({
+        title: 'No active template',
+        description: 'Please create and activate a print template in the template designer.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Fetch all field definitions to get field metadata
+    const allFieldDefsForPrint = [];
+    for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
+      try {
+        const res = await fetch(`/api/newField?department=${dept}`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          allFieldDefsForPrint.push(...data);
         }
+      } catch (err) {
+        console.error(`Failed to fetch ${dept} fields:`, err);
       }
+    }
 
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        setIsPrinting(false);
-        toast({
-          title: 'Print blocked',
-          description: 'Please allow popups for this site to enable printing',
-          variant: 'destructive',
-        });
-        return;
-      }
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      setIsPrinting(false);
+      toast({
+        title: 'Print blocked',
+        description: 'Please allow popups for this site to enable printing',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-      // Build the print content using the template
-      const gridColumns = activeTemplateForPrint.gridColumns || 6;
-      let fieldsHTML = '';
+    // Build the print content using the template
+    const gridColumns = activeTemplateForPrint.gridColumns || 6;
+    let fieldsHTML = '';
 
-      activeTemplateForPrint.cells.forEach(cell => {
-        const colSpan = (cell.position?.colSpan || 1) * 2;
-        const rowSpan = cell.position?.rowSpan || 1;
-        const height = cell.position?.height || 'auto';
+    activeTemplateForPrint.cells.forEach(cell => {
+      const colSpan = (cell.position?.colSpan || 1) * 2;
+      const rowSpan = cell.position?.rowSpan || 1;
+      const height = cell.position?.height || 'auto';
 
-        const minHeight =
-          height === 'small' ? '12px' :
-            height === 'medium' ? '25px' :
-              height === 'large' ? '50px' :
-                height === 'xlarge' ? '90px' : 'auto';
+      const minHeight =
+        height === 'small' ? '12px' :
+          height === 'medium' ? '25px' :
+            height === 'large' ? '50px' :
+              height === 'xlarge' ? '90px' : 'auto';
 
-        // Handle custom elements
-        if (cell.isCustom) {
-          // ... (keep custom logic)
-          const customType = cell.customType;
-          const customValue = cell.customValue || '';
-          const customPlaceholder = cell.customPlaceholder || '';
+      // Handle custom elements
+      if (cell.isCustom) {
+        // ... (keep custom logic)
+        const customType = cell.customType;
+        const customValue = cell.customValue || '';
+        const customPlaceholder = cell.customPlaceholder || '';
 
-          let customHTML = '';
+        let customHTML = '';
 
-          switch (customType) {
-            case 'custom-heading':
-              customHTML = `
+        switch (customType) {
+          case 'custom-heading':
+            customHTML = `
             <div class="field-cell cell-heading" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
               <div class="heading-content" style="text-align: left; width: 100%;">${customValue}</div>
             </div>
           `;
-              break;
+            break;
 
-            case 'custom-text':
-              customHTML = `
+          case 'custom-text':
+            customHTML = `
               <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
                 <div class="static-text">${customValue}</div>
               </div>
             `;
-              break;
+            break;
 
-            case 'custom-empty-field':
-              customHTML = `
+          case 'custom-empty-field':
+            customHTML = `
               <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
                 <div class="cell-content">
                   <span class="cell-label">${customValue}</span>
@@ -117,10 +117,10 @@ export async function printDepartmentPanelExcel({
                 </div>
               </div>
             `;
-              break;
+            break;
 
-            case 'custom-textarea':
-              customHTML = `
+          case 'custom-textarea':
+            customHTML = `
               <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
                 <div class="textarea-container">
                   <div class="textarea-label">${customValue}:</div>
@@ -128,18 +128,18 @@ export async function printDepartmentPanelExcel({
                 </div>
               </div>
             `;
-              break;
+            break;
 
-            case 'custom-separator':
-              customHTML = `
+          case 'custom-separator':
+            customHTML = `
               <div class="field-cell separator-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan};">
                 <div class="separator-line"></div>
               </div>
             `;
-              break;
+            break;
 
-            case 'custom-signature':
-              customHTML = `
+          case 'custom-signature':
+            customHTML = `
               <div class="field-cell signature-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
                 <div class="signature-container">
                   <div class="signature-label">${customValue}</div>
@@ -148,43 +148,43 @@ export async function printDepartmentPanelExcel({
                 </div>
               </div>
             `;
-              break;
+            break;
 
-            default:
-              customHTML = `
+          default:
+            customHTML = `
               <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
                 <div class="cell-content">
                   <span class="cell-underline"></span>
                 </div>
               </div>
             `;
-          }
-
-          fieldsHTML += customHTML;
-          return;
         }
 
-        // Handle regular database fields
-        // Get field definition - prioritize populated object from template
-        let fieldDef = null;
+        fieldsHTML += customHTML;
+        return;
+      }
 
-        if (cell.fieldId && typeof cell.fieldId === 'object' && cell.fieldId._id) {
-          // It's already populated! Use it.
-          fieldDef = cell.fieldId;
-        } else if (cell.fieldId) {
-          // It's just an ID, look it up (fallback)
-          fieldDef = allFieldDefsForPrint.find(f => f._id.toString() === cell.fieldId.toString());
-        }
+      // Handle regular database fields
+      // Get field definition - prioritize populated object from template
+      let fieldDef = null;
 
-        if (!fieldDef) {
-          console.warn(`Field definition not found for ID: ${cell.fieldId}`);
-          return;
-        }
+      if (cell.fieldId && typeof cell.fieldId === 'object' && cell.fieldId._id) {
+        // It's already populated! Use it.
+        fieldDef = cell.fieldId;
+      } else if (cell.fieldId) {
+        // It's just an ID, look it up (fallback)
+        fieldDef = allFieldDefsForPrint.find(f => f._id.toString() === cell.fieldId.toString());
+      }
 
-        // Check if field is active OR hidden dynamically
-        // If so, render a placeholder to preserve layout
-        if (fieldDef.active === false || isFieldHidden(fieldDef)) {
-          fieldsHTML += `
+      if (!fieldDef) {
+        console.warn(`Field definition not found for ID: ${cell.fieldId}`);
+        return;
+      }
+
+      // Check if field is active OR hidden dynamically
+      // If so, render a placeholder to preserve layout
+      if (fieldDef.active === false || isFieldHidden(fieldDef)) {
+        fieldsHTML += `
             <div class="field-cell" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
               <div class="cell-content">
                 <span class="cell-label" style="opacity: 0.5;">${fieldDef.name}</span>
@@ -192,137 +192,137 @@ export async function printDepartmentPanelExcel({
               </div>
             </div>
           `;
-          return;
-        }
+        return;
+      }
 
-        // Find the field value from SRD data - Use local 'fields' state as source of truth
-        let fieldValue = '';
-        const localField = fields.find(f => {
+      // Find the field value from SRD data - Use local 'fields' state as source of truth
+      let fieldValue = '';
+      const localField = fields.find(f => {
+        return (
+          (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString()) ||
+          (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
+          (f.name === fieldDef.name && f.department === fieldDef.department)
+        );
+      });
+
+      if (localField) {
+        fieldValue = localField.value || '';
+      } else {
+        // Fallback to srd prop if not in local state
+        const srdField = srd.dynamicFields?.find(f => {
           return (
-            (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString()) ||
             (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
+            (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString()) ||
             (f.name === fieldDef.name && f.department === fieldDef.department)
           );
         });
-
-        if (localField) {
-          fieldValue = localField.value || '';
-        } else {
-          // Fallback to srd prop if not in local state
-          const srdField = srd.dynamicFields?.find(f => {
-            return (
-              (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
-              (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString()) ||
-              (f.name === fieldDef.name && f.department === fieldDef.department)
-            );
-          });
-          if (srdField) {
-            fieldValue = srdField.value || '';
-          }
+        if (srdField) {
+          fieldValue = srdField.value || '';
         }
+      }
 
-        let valueDisplay = '';
-        const isHeading = fieldDef.type === 'heading';
-        const isImage = fieldDef.type === 'image';
-        const isFile = fieldDef.type === 'file';
-        const isTable = fieldDef.type === 'table';
-        const isCreatedAt = fieldDef.type === 'createdAt';
+      let valueDisplay = '';
+      const isHeading = fieldDef.type === 'heading';
+      const isImage = fieldDef.type === 'image';
+      const isFile = fieldDef.type === 'file';
+      const isTable = fieldDef.type === 'table';
+      const isCreatedAt = fieldDef.type === 'createdAt';
 
-        if (fieldDef.type === 'boolean') {
-          if (fieldDef.booleanDisplayType === 'instock-purchase') {
-            valueDisplay = `
+      if (fieldDef.type === 'boolean') {
+        if (fieldDef.booleanDisplayType === 'instock-purchase') {
+          valueDisplay = `
             <div class="checkbox-group">
               <span class="checkbox-item">${fieldValue ? 'In Stock' : 'Purchase'}</span>
             </div>
           `;
-          } else {
-            valueDisplay = `
+        } else {
+          valueDisplay = `
             <div class="checkbox-group">
               <span class="checkbox-item">${fieldValue ? 'Yes' : 'NO'}</span>
             </div>
           `;
-          }
-        } else if (isTable) {
-          const defaultHeaders = Array.isArray(fieldDef.tableHeaders) && fieldDef.tableHeaders.length > 0 
-            ? fieldDef.tableHeaders 
-            : ['Item Name', 'Code', 'Finish', 'Size'];
+        }
+      } else if (isTable) {
+        const defaultHeaders = Array.isArray(fieldDef.tableHeaders) && fieldDef.tableHeaders.length > 0
+          ? fieldDef.tableHeaders
+          : ['Item Name', 'Code', 'Finish', 'Size'];
 
-          const rawTableData = fieldValue && typeof fieldValue === 'object' && !Array.isArray(fieldValue)
-            ? fieldValue
-            : {};
-          const safeHeaders = Array.isArray(rawTableData.headers) && rawTableData.headers.length > 0
-            ? rawTableData.headers
-            : defaultHeaders;
-          const safeRows = Array.isArray(rawTableData.rows) && rawTableData.rows.length > 0
-            ? rawTableData.rows.map((row) => {
-                if (!Array.isArray(row)) return new Array(safeHeaders.length).fill('');
-                if (row.length >= safeHeaders.length) return row;
-                return [...row, ...new Array(safeHeaders.length - row.length).fill('')];
-              })
-            : [new Array(safeHeaders.length).fill('')];
-          const tableData = {
-            ...rawTableData,
-            headers: safeHeaders,
-            rows: safeRows
-          };
-          if (tableData.headers && tableData.headers.length > 0) {
-            const predefinedHeaders = `<th class="table-header" style="background:transparent;color:#4338ca;">Purchase/Stock</th><th class="table-header" style="background:transparent;color:#4338ca;">OPD</th><th class="table-header" style="background:transparent;color:#4338ca;">ETD</th>`;
-            const headerRow = tableData.headers.map(h => `<th class="table-header">${h}</th>`).join('') + predefinedHeaders;
-            const predefinedData = (Array.isArray(rawTableData.predefinedData) ? rawTableData.predefinedData : [])
-              .slice(0, tableData.rows.length)
-              .map((item) => ({
-                purchaseType: item?.purchaseType === 'instock' ? 'instock' : 'purchase',
-                opd: typeof item?.opd === 'string' ? item.opd : '',
-                etd: typeof item?.etd === 'string' ? item.etd : ''
-              }));
-            const bodyRows = (tableData.rows || []).map((row, rowIdx) => {
-              const firstCell = row[0] || '';
-              const restCells = row.slice(1).map(cell => `<td class="table-field-cell"><span class="table-field-underline">${cell || ''}</span></td>`).join('');
+        const rawTableData = fieldValue && typeof fieldValue === 'object' && !Array.isArray(fieldValue)
+          ? fieldValue
+          : {};
+        const safeHeaders = Array.isArray(rawTableData.headers) && rawTableData.headers.length > 0
+          ? rawTableData.headers
+          : defaultHeaders;
+        const safeRows = Array.isArray(rawTableData.rows) && rawTableData.rows.length > 0
+          ? rawTableData.rows.map((row) => {
+            if (!Array.isArray(row)) return new Array(safeHeaders.length).fill('');
+            if (row.length >= safeHeaders.length) return row;
+            return [...row, ...new Array(safeHeaders.length - row.length).fill('')];
+          })
+          : [new Array(safeHeaders.length).fill('')];
+        const tableData = {
+          ...rawTableData,
+          headers: safeHeaders,
+          rows: safeRows
+        };
+        if (tableData.headers && tableData.headers.length > 0) {
+          const predefinedHeaders = `<th class="table-header" style="background:transparent;color:#4338ca;">Purchase/Stock</th><th class="table-header" style="background:transparent;color:#4338ca;">OPD</th><th class="table-header" style="background:transparent;color:#4338ca;">ETD</th>`;
+          const headerRow = tableData.headers.map(h => `<th class="table-header">${h}</th>`).join('') + predefinedHeaders;
+          const predefinedData = (Array.isArray(rawTableData.predefinedData) ? rawTableData.predefinedData : [])
+            .slice(0, tableData.rows.length)
+            .map((item) => ({
+              purchaseType: item?.purchaseType === 'instock' ? 'instock' : 'purchase',
+              opd: typeof item?.opd === 'string' ? item.opd : '',
+              etd: typeof item?.etd === 'string' ? item.etd : ''
+            }));
+          const bodyRows = (tableData.rows || []).map((row, rowIdx) => {
+            const firstCell = row[0] || '';
+            const restCells = row.slice(1).map(cell => `<td class="table-field-cell"><span class="table-field-underline">${cell || ''}</span></td>`).join('');
+            const rp = predefinedData[rowIdx] || { purchaseType: 'purchase', opd: '', etd: '' };
+            const isInStock = rp.purchaseType === 'instock';
+            const typeLabel = isInStock ? 'In Stock' : 'Purchase';
+            const opdVal = isInStock ? '-' : (rp.opd || '');
+            const etdVal = isInStock ? '-' : (rp.etd || '');
+            const predefinedCells = `<td class="table-field-cell" style="text-align:start;"><span class="table-field-underline" style="font-weight:600;color:${isInStock ? '#059669' : '#2563eb'}">${typeLabel}</span></td><td class="table-field-cell"><span class="table-field-underline">${opdVal}</span></td><td class="table-field-cell"><span class="table-field-underline">${etdVal}</span></td>`;
+            return `<tr><td class="table-field-label">${firstCell}</td>${restCells}${predefinedCells}</tr>`;
+          }).join('');
+          const totalCols = tableData.headers.length + 3; // +3 for predefined columns
+
+          if (totalCols >= 10) {
+            // Card/List Layout for wide tables
+            const cardsHtml = (tableData.rows || []).map((row, rowIdx) => {
               const rp = predefinedData[rowIdx] || { purchaseType: 'purchase', opd: '', etd: '' };
               const isInStock = rp.purchaseType === 'instock';
               const typeLabel = isInStock ? 'In Stock' : 'Purchase';
               const opdVal = isInStock ? '-' : (rp.opd || '');
               const etdVal = isInStock ? '-' : (rp.etd || '');
-              const predefinedCells = `<td class="table-field-cell" style="text-align:start;"><span class="table-field-underline" style="font-weight:600;color:${isInStock ? '#059669' : '#2563eb'}">${typeLabel}</span></td><td class="table-field-cell"><span class="table-field-underline">${opdVal}</span></td><td class="table-field-cell"><span class="table-field-underline">${etdVal}</span></td>`;
-              return `<tr><td class="table-field-label">${firstCell}</td>${restCells}${predefinedCells}</tr>`;
-            }).join('');
-            const totalCols = tableData.headers.length + 3; // +3 for predefined columns
-            
-            if (totalCols >= 10) {
-              // Card/List Layout for wide tables
-              const cardsHtml = (tableData.rows || []).map((row, rowIdx) => {
-                const rp = predefinedData[rowIdx] || { purchaseType: 'purchase', opd: '', etd: '' };
-                const isInStock = rp.purchaseType === 'instock';
-                const typeLabel = isInStock ? 'In Stock' : 'Purchase';
-                const opdVal = isInStock ? '-' : (rp.opd || '');
-                const etdVal = isInStock ? '-' : (rp.etd || '');
-                
-                // 1. First column (first 4 fields)
-                const col1Items = [];
-                // 2. Second column (all other dynamic fields)
-                const col2Items = [];
-                // 3. Third column (predefined fields)
-                const col3Items = [];
 
-                // Collect first 4 columns
-                for (let i = 0; i < Math.min(4, tableData.headers.length); i++) {
-                  col1Items.push({ label: tableData.headers[i] || (i === 0 ? 'Item Name' : `Column ${i+1}`), value: row[i] || '' });
-                }
+              // 1. First column (first 4 fields)
+              const col1Items = [];
+              // 2. Second column (all other dynamic fields)
+              const col2Items = [];
+              // 3. Third column (predefined fields)
+              const col3Items = [];
 
-                // Collect remaining middle columns
-                for (let i = 4; i < tableData.headers.length; i++) {
-                  col2Items.push({ label: tableData.headers[i] || `Column ${i+1}`, value: row[i] || '' });
-                }
+              // Collect first 4 columns
+              for (let i = 0; i < Math.min(4, tableData.headers.length); i++) {
+                col1Items.push({ label: tableData.headers[i] || (i === 0 ? 'Item Name' : `Column ${i + 1}`), value: row[i] || '' });
+              }
 
-                // Collect predefined columns
-                col3Items.push({ 
-                  label: 'Purchase/Stock', 
-                  value: `<span style="font-weight:600;color:${isInStock ? '#059669' : '#2563eb'}">${typeLabel}</span>` 
-                });
-                col3Items.push({ label: 'OPD', value: opdVal });
-                col3Items.push({ label: 'ETD', value: etdVal });
+              // Collect remaining middle columns
+              for (let i = 4; i < tableData.headers.length; i++) {
+                col2Items.push({ label: tableData.headers[i] || `Column ${i + 1}`, value: row[i] || '' });
+              }
 
-                const renderColumn = (items) => items.map(item => `
+              // Collect predefined columns
+              col3Items.push({
+                label: 'Purchase/Stock',
+                value: `<span style="font-weight:600;color:${isInStock ? '#059669' : '#2563eb'}">${typeLabel}</span>`
+              });
+              col3Items.push({ label: 'OPD', value: opdVal });
+              col3Items.push({ label: 'ETD', value: etdVal });
+
+              const renderColumn = (items) => items.map(item => `
                   <div class="field-cell" style="flex:0 0 auto;">
                     <div class="cell-content">
                       <span class="cell-label">${item.label}</span>
@@ -331,65 +331,81 @@ export async function printDepartmentPanelExcel({
                   </div>
                 `).join('');
 
-                return `
+              return `
                   <div class="print-table-card">
                     <div class="print-card-col">${renderColumn(col1Items)}</div>
                     <div class="print-card-col">${col2Items.length > 0 ? renderColumn(col2Items) : '<div class="print-card-empty">-</div>'}</div>
                     <div class="print-card-col">${renderColumn(col3Items)}</div>
                   </div>
                 `;
-              }).join('');
+            }).join('');
 
-              valueDisplay = `<div class="print-cards-container">${cardsHtml}</div>`;
-              
-            } else {
-              // Standard Grid Layout (Condensed if 8-9 cols)
-              const condensedClass = totalCols >= 8 ? ' print-table-condensed' : '';
+            valueDisplay = `<div class="print-cards-container">${cardsHtml}</div>`;
 
-              valueDisplay = `
-              <table class="print-table${condensedClass}">
+          } else {
+            // Standard Grid Layout (Condensed if 8-9 cols)
+            const condensedClass = totalCols >= 8 ? ' print-table-condensed' : '';
+            const widePredefinedClass = ' print-table-wide-predefined';
+
+            // Build colgroup for width distribution: predefined cols get 1/3, dynamic cols get 2/3
+            let colgroupHTML = '';
+            {
+              const dynamicColCount = tableData.headers.length; // number of user-defined columns
+              const predefinedTotalWidth = 33.33; // 1/3 of page for 3 predefined columns
+              const dynamicTotalWidth = 66.67; // 2/3 for remaining columns
+              const perDynamicWidth = dynamicTotalWidth / dynamicColCount;
+              const perPredefinedWidth = predefinedTotalWidth / 3;
+              colgroupHTML = '<colgroup>'
+                + Array(dynamicColCount).fill(`<col style="width:${perDynamicWidth.toFixed(2)}%">`).join('')
+                + Array(3).fill(`<col style="width:${perPredefinedWidth.toFixed(2)}%">`).join('')
+                + '</colgroup>';
+            }
+
+            valueDisplay = `
+              <table class="print-table${condensedClass}${widePredefinedClass}">
+                ${colgroupHTML}
                 <thead><tr>${headerRow}</tr></thead>
                 <tbody>${bodyRows}</tbody>
               </table>
             `;
-            }
-          } else {
-            valueDisplay = '<span class="no-value">No table data</span>';
           }
-        } else if (isFile) {
-          if (fieldValue) {
-            valueDisplay = `
+        } else {
+          valueDisplay = '<span class="no-value">No table data</span>';
+        }
+      } else if (isFile) {
+        if (fieldValue) {
+          valueDisplay = `
             <div style="display: flex; align-items: center; gap: 4px;">
               <span>??</span>
               <span style="font-size: 8px;">Excel File Attached</span>
             </div>
           `;
-          } else {
-            valueDisplay = '<span class="no-value"></span>';
-          }
-        } else if (isImage) {
-          const images = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-          const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-          const allImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
-
-          if (allImages.length > 0) {
-            const imgGrid = allImages.map(img =>
-              `<div class="img-wrapper"><img src="${img}" class="img-print" alt="Product image" /></div>`
-            ).join('');
-            valueDisplay = `<div class="image-stack">${imgGrid}</div>`;
-          } else {
-            valueDisplay = '<span class="no-value"></span>';
-          }
-        } else if (isHeading) {
-          valueDisplay = fieldDef.name;
-        } else if (isCreatedAt) {
-          // For createdAt type, display the SRD's createdAt
-          valueDisplay = srd.createdAt ? new Date(srd.createdAt).toISOString().split('T')[0] : '';
         } else {
-          valueDisplay = fieldValue || '';
+          valueDisplay = '<span class="no-value"></span>';
         }
+      } else if (isImage) {
+        const images = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+        const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
+        const allImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
 
-        fieldsHTML += `
+        if (allImages.length > 0) {
+          const imgGrid = allImages.map(img =>
+            `<div class="img-wrapper"><img src="${img}" class="img-print" alt="Product image" /></div>`
+          ).join('');
+          valueDisplay = `<div class="image-stack">${imgGrid}</div>`;
+        } else {
+          valueDisplay = '<span class="no-value"></span>';
+        }
+      } else if (isHeading) {
+        valueDisplay = fieldDef.name;
+      } else if (isCreatedAt) {
+        // For createdAt type, display the SRD's createdAt
+        valueDisplay = srd.createdAt ? new Date(srd.createdAt).toISOString().split('T')[0] : '';
+      } else {
+        valueDisplay = fieldValue || '';
+      }
+
+      fieldsHTML += `
         <div class="field-cell ${isHeading ? 'cell-heading' : ''} ${isImage ? 'cell-image' : ''} ${isTable ? 'cell-table' : ''} ${colSpan === 1 ? 'is-small-cell' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
           ${!isHeading && !isImage && !isTable ? `
               <div class="cell-content">
@@ -411,28 +427,28 @@ export async function printDepartmentPanelExcel({
           `}
         </div>
       `;
-      });
+    });
 
-      // If no fields were rendered, show a message
-      if (!fieldsHTML.trim()) {
-        fieldsHTML = `
+    // If no fields were rendered, show a message
+    if (!fieldsHTML.trim()) {
+      fieldsHTML = `
         <div class="field-cell" style="grid-column: span ${gridColumns * 2}; text-align: center; padding: 40px;">
           <div style="color: #666; font-style: italic;">
             No matching fields found for this template. Please check your template configuration.
           </div>
         </div>
       `;
+    }
+
+    // Identify Excel files to include in print
+    const excelFiles = [];
+    srd.dynamicFields?.forEach(f => {
+      if (f.type === 'file' && f.value) {
+        excelFiles.push({ name: f.name, url: f.value });
       }
+    });
 
-      // Identify Excel files to include in print
-      const excelFiles = [];
-      srd.dynamicFields?.forEach(f => {
-        if (f.type === 'file' && f.value) {
-          excelFiles.push({ name: f.name, url: f.value });
-        }
-      });
-
-      const printContent = `<!DOCTYPE html>
+    const printContent = `<!DOCTYPE html>
 <html>
 <head>
   <title>SRD Complete Form - ${srd.refNo}</title>
@@ -440,7 +456,7 @@ export async function printDepartmentPanelExcel({
   <style>
     @page {
       size: A4;
-      margin: 0.1in;
+      margin: 0.03in;
     }
     
     body {
@@ -796,6 +812,11 @@ export async function printDepartmentPanelExcel({
       min-height: auto !important;
       line-height: 1.1 !important;
     }
+
+    /* Wide predefined columns layout for tables with < 8 columns */
+    .print-table-wide-predefined {
+      table-layout: fixed;
+    }
     
     /* Card Layout for Very Wide Tables (10+ columns) */
     .print-cards-container {
@@ -992,20 +1013,20 @@ export async function printDepartmentPanelExcel({
 </body>
 </html>`;
 
-      printWindow.document.write(printContent);
-      printWindow.document.close();
+    printWindow.document.write(printContent);
+    printWindow.document.close();
 
-      setTimeout(() => {
-        setIsPrinting(false);
-      }, 3000);
-
-    } catch (error) {
-      console.error('Print failed:', error);
+    setTimeout(() => {
       setIsPrinting(false);
-      toast({
-        title: 'Print failed',
-        description: error.message || 'Failed to generate print view',
-        variant: 'destructive',
-      });
-    }
+    }, 3000);
+
+  } catch (error) {
+    console.error('Print failed:', error);
+    setIsPrinting(false);
+    toast({
+      title: 'Print failed',
+      description: error.message || 'Failed to generate print view',
+      variant: 'destructive',
+    });
+  }
 }
