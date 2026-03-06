@@ -343,7 +343,7 @@ export default function SRDTable({ srds, department }) {
                   )}
                 </button>
               </th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Picture</th>
+              {/* <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Picture</th> */}
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Inquiry #</th>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Style</th>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
@@ -379,7 +379,7 @@ export default function SRDTable({ srds, department }) {
                         {new Date(srd.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </td>
-                    <td className="px-6 py-5 whitespace-nowrap">
+                    {/* <td className="px-6 py-5 whitespace-nowrap">
                       {(() => {
                         const allImages = getAllImages(srd);
                         return allImages.length > 0 ? (
@@ -412,7 +412,7 @@ export default function SRDTable({ srds, department }) {
                           </div>
                         );
                       })()}
-                    </td>
+                    </td> */}
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
