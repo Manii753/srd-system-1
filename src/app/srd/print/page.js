@@ -159,6 +159,10 @@ function SRDPrintPageContent() {
                     }
                     body {
                         -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    .bg-gray-200 {
+                        background-color: #e5e7eb !important;
                     }
                 }
             `}</style>
@@ -181,19 +185,19 @@ function SRDPrintPageContent() {
 
             <table className="w-full border-collapse border border-gray-300 text-xs" style={{ whiteSpace: 'nowrap' }}>
                 <thead>
-                    <tr className="bg-gray-100">
-                        <th className="border border-gray-300 p-2 text-left">Date</th>
-                        <th className="border border-gray-300 p-2 text-left">Inquiry #</th>
+                    <tr className="bg-gray-200">
+                        <th className="border border-gray-300 p-2 text-left bg-gray-200">Date</th>
+                        <th className="border border-gray-300 p-2 text-left bg-gray-200">Inquiry #</th>
 
                         {/* Dynamic Quick Details Columns */}
                         {quickDetailsFields.map(field => (
-                            <th key={field._id} className="border border-gray-300 p-2 text-left">
+                            <th key={field._id} className="border border-gray-300 p-2 text-left bg-gray-200">
                                 {field.name}
                             </th>
                         ))}
 
-                        <th className="border border-gray-300 p-2 text-left">Status</th>
-                        <th className="border border-gray-300 p-2 text-left">Latest Approved</th>
+                        <th className="border border-gray-300 p-2 text-left bg-gray-200">Status</th>
+                        <th className="border border-gray-300 p-2 text-left bg-gray-200">Latest Approved</th>
                     </tr>
                 </thead>
                 <tbody>

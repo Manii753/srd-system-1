@@ -520,21 +520,19 @@ export async function printDepartmentPanelExcel({
     }
     
     .cell-heading {
-      
+      background-color: #f3f4f6;
       justify-content: start;
       align-items: center;
-     
-      
     }
     
     .heading-content {
       font-weight: 700;
       text-transform: capitalize;
       font-size: 13px;
-      
+      background-color: #f3f4f6;
       text-align: left;
       width: 100%;
-      
+      padding: 4px;
     }
 
     .cell-content {
@@ -756,10 +754,10 @@ export async function printDepartmentPanelExcel({
     }
 
     .print-table .table-header {
-      background-color: transparent;
+      background-color: #f3f4f6;
       border: none;
       margin-bottom: 10px;
-      padding: 0px;
+      padding: 2px 3px;
       text-align: left;
       font-weight: 700;
       font-size: 11px;
@@ -775,7 +773,7 @@ export async function printDepartmentPanelExcel({
       margin-bottom: 5px;
       color: #333;
       text-transform: capitalize;
-      white-space: normal; /* Changed from nowrap to allow text wrapping on tight columns */
+      white-space: normal;
       word-break: break-word;
       border: none;
     }
@@ -796,22 +794,24 @@ export async function printDepartmentPanelExcel({
       padding: 0 2px;
       line-height: 14px;
       white-space: pre-wrap;
-      
     }
     
     /* Condensed styles for tables with many columns */
     .print-table-condensed {
-      font-size: 8.5px !important;
+      font-size: 11px !important;
     }
     .print-table-condensed .table-header,
     .print-table-condensed .table-field-label,
     .print-table-condensed .table-field-underline {
-      font-size: 8.5px !important;
+      font-size: 11px !important;
       white-space: normal !important;
       word-break: break-word;
-      padding: 1px 2px !important;
+      padding: 2px 3px !important;
       min-height: auto !important;
-      line-height: 1.1 !important;
+      line-height: 1.2 !important;
+    }
+    .print-table-condensed .table-header {
+      background-color: #f3f4f6 !important;
     }
 
     /* Wide predefined columns layout for tables with < 8 columns */
@@ -927,6 +927,15 @@ export async function printDepartmentPanelExcel({
       body { 
         -webkit-print-color-adjust: exact !important;
         color-adjust: exact !important;
+      }
+      
+      .cell-heading,
+      .heading-content,
+      .table-header,
+      .print-table .table-header {
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        background-color: #f3f4f6 !important;
       }
       
       .img-print {
