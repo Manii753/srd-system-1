@@ -11,7 +11,7 @@ function SRDPrintPageContent() {
     const searchParams = useSearchParams();
     const [srds, setSRDs] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [quickDetailsFields, setQuickDetailsFields] = useState([]);
+    const [reportFields, setReportFields] = useState([]);
 
     useEffect(() => {
         if (status === 'loading') return;
@@ -23,17 +23,19 @@ function SRDPrintPageContent() {
         const fetchData = async () => {
             setLoading(true);
             try {
-                // Fetch quick details fields configuration
-                const fieldsRes = await fetch('/api/newField');
-                const fieldsData = await fieldsRes.json();
-                let activeQuickFields = [];
-                if (Array.isArray(fieldsData)) {
-                    // Sort by order
-                    activeQuickFields = fieldsData
-                        .filter(f => f.isShownInQuickDetails && f.active)
-                        .sort((a, b) => (a.order || 0) - (b.order || 0));
-                    setQuickDetailsFields(activeQuickFields);
+                // Fetch report fields configuration from all departments
+                const allReportFields = [];
+                for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
+                    const fieldsRes = await fetch(`/api/newField?department=${dept}`);
+                    const fieldsData = await fieldsRes.json();
+                    if (Array.isArray(fieldsData)) {
+                        const reportFieldsForDept = fieldsData.filter(f => f.isShownInReport && f.active);
+                        allReportFields.push(...reportFieldsForDept);
+                    }
                 }
+                // Sort by reportColumnOrder
+                allReportFields.sort((a, b) => (a.reportColumnOrder || 0) - (b.reportColumnOrder || 0));
+                setReportFields(allReportFields);
 
                 // Fetch SRDs with filters
                 const query = new URLSearchParams(searchParams);
@@ -189,8 +191,8 @@ function SRDPrintPageContent() {
                         <th className="border border-gray-300 p-2 text-left bg-gray-200">Date</th>
                         <th className="border border-gray-300 p-2 text-left bg-gray-200">Inquiry #</th>
 
-                        {/* Dynamic Quick Details Columns */}
-                        {quickDetailsFields.map(field => (
+                        {/* Dynamic Report Columns */}
+                        {reportFields.map(field => (
                             <th key={field._id} className="border border-gray-300 p-2 text-left bg-gray-200">
                                 {field.name}
                             </th>
@@ -212,8 +214,8 @@ function SRDPrintPageContent() {
                                         {srd.refNo}
                                     </td>
 
-                                    {/* Dynamic Quick Details Values */}
-                                    {quickDetailsFields.map(field => (
+                                    {/* Dynamic Report Values */}
+                                    {reportFields.map(field => (
                                         <td key={field._id} className="border border-gray-300 p-2">
                                             {getDynamicFieldValue(srd, field)}
                                         </td>
@@ -230,7 +232,7 @@ function SRDPrintPageContent() {
                         })
                     ) : (
                         <tr>
-                            <td colSpan={4 + quickDetailsFields.length} className="border border-gray-300 p-8 text-center text-gray-500">
+                            <td colSpan={4 + reportFields.length} className="border border-gray-300 p-8 text-center text-gray-500">
                                 No SRDs found matching the criteria.
                             </td>
                         </tr>

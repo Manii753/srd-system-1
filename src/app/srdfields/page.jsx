@@ -32,7 +32,7 @@ const DEPARTMENTS = [
 ];
 
 // Sortable Field Item Component
-function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level = 0, isExpanded, onToggleExpanded, onToggleQuickDetails }) {
+function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level = 0, isExpanded, onToggleExpanded, onToggleQuickDetails, onToggleReport }) {
   const {
     attributes,
     listeners,
@@ -193,15 +193,26 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
         {/* Actions */}
         <div className="flex items-center space-x-2">
           {!isHeading && (
-            <label className="flex items-center space-x-1 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={field.isShownInQuickDetails || false}
-                onChange={() => onToggleQuickDetails(field)}
-                className="form-checkbox h-4 w-4 text-blue-600 rounded"
-              />
-              <span className="text-xs text-gray-600">Quick Details</span>
-            </label>
+            <>
+              <label className="flex items-center space-x-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={field.isShownInQuickDetails || false}
+                  onChange={() => onToggleQuickDetails(field)}
+                  className="form-checkbox h-4 w-4 text-blue-600 rounded"
+                />
+                <span className="text-xs text-gray-600">Quick Details</span>
+              </label>
+              <label className="flex items-center space-x-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={field.isShownInReport || false}
+                  onChange={() => onToggleReport(field)}
+                  className="form-checkbox h-4 w-4 text-green-600 rounded"
+                />
+                <span className="text-xs text-gray-600">Report</span>
+              </label>
+            </>
           )}
           <button
             className="text-blue-600 hover:text-blue-900 px-2 py-1 text-sm"
@@ -231,6 +242,8 @@ export default function Page() {
     isRequired: false,
     parentHeading: null,
     isShownInQuickDetails: false,
+    isShownInReport: false,
+    reportColumnOrder: 0,
     isConnectedTo: false,
     connectedFieldId: null,
     isConnectedTo: false,
@@ -318,6 +331,8 @@ export default function Page() {
       isRequired: false,
       parentHeading: parentHeading,
       isShownInQuickDetails: false,
+      isShownInReport: false,
+      reportColumnOrder: 0,
       isConnectedTo: false,
       connectedFieldId: null,
       connectionType: null,
@@ -342,6 +357,8 @@ export default function Page() {
       isRequired: !!field.isRequired,
       parentHeading: field.parentHeading || null,
       isShownInQuickDetails: !!field.isShownInQuickDetails,
+      isShownInReport: !!field.isShownInReport,
+      reportColumnOrder: field.reportColumnOrder || 0,
       isConnectedTo: !!field.isConnectedTo,
       connectedFieldId: connectedId,
       connectionType: field.connectionType || null,
@@ -379,6 +396,22 @@ export default function Page() {
       setFields((prev) => prev.map(f => f._id === updated._id ? updated : f));
     } catch (err) {
       console.error('Failed to toggle quick details', err);
+      alert('Failed to update field');
+    }
+  }
+
+  async function handleToggleReport(field) {
+    try {
+      const newValue = !field.isShownInReport;
+      const res = await fetch(`/api/newField?id=${field._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isShownInReport: newValue })
+      });
+      const updated = await res.json();
+      setFields((prev) => prev.map(f => f._id === updated._id ? updated : f));
+    } catch (err) {
+      console.error('Failed to toggle report', err);
       alert('Failed to update field');
     }
   }
@@ -625,6 +658,7 @@ export default function Page() {
                                   isHeading={false}
                                   level={1}
                                   onToggleQuickDetails={handleToggleQuickDetails}
+                                  onToggleReport={handleToggleReport}
                                 />
                               ))}
                             </div>
@@ -658,6 +692,7 @@ export default function Page() {
                           onDelete={handleDelete}
                           isHeading={false}
                           onToggleQuickDetails={handleToggleQuickDetails}
+                          onToggleReport={handleToggleReport}
                         />
                       );
                     }
@@ -902,6 +937,37 @@ export default function Page() {
                       onChange={(e) => setValues({ ...values, isShownInQuickDetails: e.target.checked })}
                     />
                     <span className="text-sm text-gray-700">Show in Quick Details</span>
+                  </div>
+                )}
+
+                {/* Show in Report */}
+                {values.type !== 'heading' && (
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        className="form-checkbox h-4 w-4"
+                        checked={values.isShownInReport}
+                        onChange={(e) => setValues({ ...values, isShownInReport: e.target.checked })}
+                      />
+                      <span className="text-sm text-gray-700">Show in Report</span>
+                    </div>
+                    {values.isShownInReport && (
+                      <div className="ml-6">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Report Column Order
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          className="w-24 p-1.5 text-sm border border-gray-300 rounded"
+                          value={values.reportColumnOrder || 0}
+                          onChange={(e) => setValues({ ...values, reportColumnOrder: parseInt(e.target.value) || 0 })}
+                          placeholder="0"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Lower numbers appear first</p>
+                      </div>
+                    )}
                   </div>
                 )}
 

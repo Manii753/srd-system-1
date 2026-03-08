@@ -22,6 +22,7 @@ import {
   Factory,
   Edit,
   FileSpreadsheet,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -112,6 +113,7 @@ export default function DynamicSidebar() {
           { name: 'Inbox', href: '/inbox', icon: Inbox, gradient: 'from-pink-500 to-rose-500', showBadge: true },
           { name: 'All SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
           { name: 'Production', href: '/production', icon: Package, gradient: 'from-red-500 to-orange-500' },
+          { name: 'Reports', href: '/reports', icon: BarChart3, gradient: 'from-indigo-500 to-purple-500' },
           { name: 'Settings', href: '/settings', icon: Settings, gradient: 'from-gray-500 to-slate-600' },
           { name: 'Departments', href: '/departments', icon: Edit, gradient: 'from-blue-500 to-indigo-500' },
           { name: 'Stages', href: '/stages', icon: GitBranch, gradient: 'from-teal-500 to-cyan-500' },
@@ -202,6 +204,12 @@ export default function DynamicSidebar() {
                 href: `/srd?department=${userRole}&status=approved`,
                 icon: CheckCircle,
                 gradient: 'from-green-500 to-emerald-500'
+              },
+              {
+                name: 'Reports',
+                href: '/reports',
+                icon: BarChart3,
+                gradient: 'from-indigo-500 to-purple-500'
               }
             );
 

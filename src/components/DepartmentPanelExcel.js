@@ -637,16 +637,23 @@ export default function DepartmentPanelExcel({
                           )}
                         </div>
 
-                        {/* Col 3: Predefined Fields */}
-                        <div className="flex flex-col gap-2 rounded-md bg-indigo-50/30 p-2 border border-indigo-100">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-semibold text-indigo-800">Status:</span>
+                        {/* Col 3: Predefined Fields - Purchase/Stock, OPD, IHD */}
+                        <div className="flex flex-col rounded-md bg-gray-100 p-3 border border-gray-300 gap-3">
+                          {/* Headers Row */}
+                          <div className="grid grid-cols-3 gap-6">
+                            <div className="text-xs font-semibold text-indigo-600">Purchase/Stock</div>
+                            <div className="text-xs font-semibold text-indigo-600">OPD</div>
+                            <div className="text-xs font-semibold text-indigo-600">IHD</div>
+                          </div>
+                          
+                          {/* Values Row */}
+                          <div className="grid grid-cols-3 gap-6 items-start">
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
                                 disabled={!canEdit}
                                 className={cn(
-                                  "px-2 py-0.5 rounded text-[10px] font-medium border",
+                                  "px-3 py-1 rounded text-xs font-medium border",
                                   !isInStock ? "bg-blue-600 text-white border-blue-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-blue-400"
                                 )}
                               >
@@ -656,39 +663,37 @@ export default function DepartmentPanelExcel({
                                 onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'instock')}
                                 disabled={!canEdit}
                                 className={cn(
-                                  "px-2 py-0.5 rounded text-[10px] font-medium border",
+                                  "px-3 py-1 rounded text-xs font-medium border",
                                   isInStock ? "bg-emerald-600 text-white border-emerald-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-emerald-400"
                                 )}
                               >
                                 InStock
                               </button>
                             </div>
-                          </div>
-                          <div className="flex items-center justify-between text-xs mt-1">
-                            <span className="font-semibold text-indigo-800">OPD:</span>
-                            <input
-                              type="date"
-                              value={rowPredefined.opd || ''}
-                              onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
-                              disabled={!canEdit || isInStock}
-                              className={cn(
-                                "w-28 px-1 py-0.5 border border-indigo-200 rounded text-[10px] bg-white text-gray-700",
-                                isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
-                              )}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-semibold text-indigo-800">ETD:</span>
-                            <input
-                              type="date"
-                              value={rowPredefined.etd || ''}
-                              onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
-                              disabled={!canEdit || isInStock}
-                              className={cn(
-                                "w-28 px-1 py-0.5 border border-indigo-200 rounded text-[10px] bg-white text-gray-700",
-                                isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
-                              )}
-                            />
+                            <div>
+                              <input
+                                type="date"
+                                value={rowPredefined.opd || ''}
+                                onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
+                                disabled={!canEdit || isInStock}
+                                className={cn(
+                                  "w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white text-gray-700",
+                                  isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
+                                )}
+                              />
+                            </div>
+                            <div>
+                              <input
+                                type="date"
+                                value={rowPredefined.etd || ''}
+                                onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
+                                disabled={!canEdit || isInStock}
+                                className={cn(
+                                  "w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white text-gray-700",
+                                  isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
+                                )}
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>

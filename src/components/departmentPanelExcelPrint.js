@@ -266,7 +266,7 @@ export async function printDepartmentPanelExcel({
           rows: safeRows
         };
         if (tableData.headers && tableData.headers.length > 0) {
-          const predefinedHeaders = `<th class="table-header" style="background:transparent;color:#4338ca;">Purchase/Stock</th><th class="table-header" style="background:transparent;color:#4338ca;">OPD</th><th class="table-header" style="background:transparent;color:#4338ca;">ETD</th>`;
+          const predefinedHeaders = `<th class="table-header" style="background:transparent;color:#4338ca;">Purchase/Stock</th><th class="table-header" style="background:transparent;color:#4338ca;">OPD</th><th class="table-header" style="background:transparent;color:#4338ca;">IHD</th>`;
           const headerRow = tableData.headers.map(h => `<th class="table-header">${h}</th>`).join('') + predefinedHeaders;
           const predefinedData = (Array.isArray(rawTableData.predefinedData) ? rawTableData.predefinedData : [])
             .slice(0, tableData.rows.length)
@@ -314,13 +314,25 @@ export async function printDepartmentPanelExcel({
                 col2Items.push({ label: tableData.headers[i] || `Column ${i + 1}`, value: row[i] || '' });
               }
 
-              // Collect predefined columns
-              col3Items.push({
-                label: 'Purchase/Stock',
-                value: `<span style="font-weight:600;color:${isInStock ? '#059669' : '#2563eb'}">${typeLabel}</span>`
-              });
-              col3Items.push({ label: 'OPD', value: opdVal });
-              col3Items.push({ label: 'ETD', value: etdVal });
+              // Render predefined column with horizontal layout
+              const renderPredefinedColumn = () => `
+                  <div class="predefined-col-wrapper">
+                    <div class="predefined-row">
+                      <div class="predefined-item">
+                        <div class="predefined-header">Purchase/Stock</div>
+                        <div class="predefined-value"><span style="font-weight:600;color:${isInStock ? '#059669' : '#2563eb'}">${typeLabel}</span></div>
+                      </div>
+                      <div class="predefined-item">
+                        <div class="predefined-header">OPD</div>
+                        <div class="predefined-value">${opdVal}</div>
+                      </div>
+                      <div class="predefined-item">
+                        <div class="predefined-header">IHD</div>
+                        <div class="predefined-value">${etdVal}</div>
+                      </div>
+                    </div>
+                  </div>
+                `;
 
               const renderColumn = (items) => items.map(item => `
                   <div class="field-cell" style="flex:0 0 auto;">
@@ -335,7 +347,7 @@ export async function printDepartmentPanelExcel({
                   <div class="print-table-card">
                     <div class="print-card-col">${renderColumn(col1Items)}</div>
                     <div class="print-card-col">${col2Items.length > 0 ? renderColumn(col2Items) : '<div class="print-card-empty">-</div>'}</div>
-                    <div class="print-card-col">${renderColumn(col3Items)}</div>
+                    <div class="print-card-col print-card-col-predefined">${renderPredefinedColumn()}</div>
                   </div>
                 `;
             }).join('');
@@ -845,6 +857,51 @@ export async function printDepartmentPanelExcel({
       justify-content: flex-start;
       align-items: stretch;
       gap: 2px;
+    }
+    
+    /* Light background for predefined fields column (3rd column) */
+    .print-card-col-predefined {
+      background-color: #f3f4f6;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #d1d5db;
+    }
+    
+    /* Predefined column wrapper with horizontal layout */
+    .predefined-col-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .predefined-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+    
+    .predefined-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .predefined-header {
+      font-size: 9px;
+      font-weight: 700;
+      color: #4f46e5;
+      text-align: left;
+      margin-bottom: 2px;
+    }
+    
+    .predefined-value {
+      font-size: 9px;
+      color: #1f2937;
+      text-align: left;
+      padding: 3px 0;
+      border-bottom: 1px solid #9ca3af;
+      min-height: 18px;
     }
     
     .print-card-empty {
