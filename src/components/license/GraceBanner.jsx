@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { ShieldAlert, X } from 'lucide-react';
 import { useLicenseStatus } from './LicenseProvider';
 
-const GRACE_BANNER_RESET_KEY = 'license-grace-banner-reset';
 const GRACE_BANNER_DISMISS_PREFIX = 'license-grace-banner-dismissed';
 
 function getDismissKey(email) {
@@ -20,34 +19,17 @@ function formatGraceDays(daysLeft) {
   return `${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining in the grace period.`;
 }
 
-export default function GraceBanner() {
-  const { data: session, status } = useSession();
-  const { licenseStatus } = useLicenseStatus();
-  const [dismissed, setDismissed] = useState(true);
-  const dismissKey = getDismissKey(session?.user?.email);
-
-  useEffect(() => {
-    if (status !== 'authenticated' || !licenseStatus?.grace) {
-      setDismissed(true);
-      return;
+function GraceBannerContent({ email, graceDaysLeft }) {
+  const dismissKey = getDismissKey(email);
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === 'undefined' || !dismissKey) {
+      return false;
     }
 
-    if (!dismissKey) {
-      setDismissed(false);
-      return;
-    }
+    return window.sessionStorage.getItem(dismissKey) === '1';
+  });
 
-    const shouldReset = window.sessionStorage.getItem(GRACE_BANNER_RESET_KEY) === '1';
-
-    if (shouldReset) {
-      window.sessionStorage.removeItem(dismissKey);
-      window.sessionStorage.removeItem(GRACE_BANNER_RESET_KEY);
-    }
-
-    setDismissed(window.sessionStorage.getItem(dismissKey) === '1');
-  }, [dismissKey, licenseStatus?.grace, status]);
-
-  if (status !== 'authenticated' || !licenseStatus?.grace || dismissed) {
+  if (dismissed) {
     return null;
   }
 
@@ -68,7 +50,7 @@ export default function GraceBanner() {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">License grace period is active.</p>
           <p className="mt-1 text-sm text-amber-900">
-            {formatGraceDays(licenseStatus?.graceDaysLeft)}
+            {formatGraceDays(graceDaysLeft)}
           </p>
         </div>
         <button
@@ -81,5 +63,23 @@ export default function GraceBanner() {
         </button>
       </div>
     </section>
+  );
+}
+
+export default function GraceBanner() {
+  const { data: session, status } = useSession();
+  const { licenseStatus } = useLicenseStatus();
+  const email = session?.user?.email;
+
+  if (status !== 'authenticated' || !licenseStatus?.grace || !email) {
+    return null;
+  }
+
+  return (
+    <GraceBannerContent
+      key={email}
+      email={email}
+      graceDaysLeft={licenseStatus?.graceDaysLeft}
+    />
   );
 }
