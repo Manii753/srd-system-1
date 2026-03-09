@@ -1040,18 +1040,109 @@ export async function printDepartmentPanelExcel({
           
           workbook.SheetNames.forEach(sheetName => {
             const sheet = workbook.Sheets[sheetName];
+            
+            // Recalculate sheet range to ignore trailing/leading empty rows and columns
+            if (sheet['!ref']) {
+              const range = XLSX.utils.decode_range(sheet['!ref']);
+              let maxRow = range.s.r, maxCol = range.s.c;
+              let minRow = range.e.r, minCol = range.e.c;
+              let hasData = false;
+              
+              for(let R = range.s.r; R <= range.e.r; ++R) {
+                for(let C = range.s.c; C <= range.e.c; ++C) {
+                  const cellRef = XLSX.utils.encode_cell({c: C, r: R});
+                  const cell = sheet[cellRef];
+                  if (cell && cell.v !== undefined && cell.v !== null && String(cell.v).trim() !== '') {
+                    hasData = true;
+                    if (R < minRow) minRow = R;
+                    if (R > maxRow) maxRow = R;
+                    if (C < minCol) minCol = C;
+                    if (C > maxCol) maxCol = C;
+                  }
+                }
+              }
+              
+              if (hasData) {
+                sheet['!ref'] = XLSX.utils.encode_range({
+                  s: { c: minCol, r: minRow },
+                  e: { c: maxCol, r: maxRow }
+                });
+              } else {
+                return; // Skip empty sheet completely
+              }
+            }
+
             const htmlTable = XLSX.utils.sheet_to_html(sheet);
             
             const sheetTitle = document.createElement('div');
             sheetTitle.style.fontWeight = 'bold';
             sheetTitle.style.margin = '5px 0';
             sheetTitle.textContent = 'Sheet: ' + sheetName;
-            section.appendChild(sheetTitle);
             
             const wrapper = document.createElement('div');
             wrapper.className = 'excel-table-wrapper';
             wrapper.innerHTML = htmlTable;
-            section.appendChild(wrapper);
+
+            // DOM Cleanup for internal empty rows and columns
+            // Remove empty rows
+            const rows = wrapper.querySelectorAll('tr');
+            rows.forEach(row => {
+              let isEmpty = true;
+              const cells = row.querySelectorAll('td, th');
+              cells.forEach(cell => {
+                const text = cell.textContent || '';
+                if (text.trim().replace(new RegExp(String.fromCharCode(160), 'g'), '') !== '') {
+                  isEmpty = false;
+                }
+              });
+              if (isEmpty) {
+                row.remove();
+              }
+            });
+
+            // Remove empty columns only if there are no merged cells to avoid structure breakage
+            const table = wrapper.querySelector('table');
+            if (table && !table.querySelector('[colspan], [rowspan]')) {
+              const rowsList = Array.from(table.rows);
+              let maxCols = 0;
+              rowsList.forEach(row => {
+                if (row.cells.length > maxCols) maxCols = row.cells.length;
+              });
+              
+              const emptyCols = [];
+              for (let i = 0; i < maxCols; i++) {
+                let isEmpty = true;
+                for (let j = 0; j < rowsList.length; j++) {
+                  const cell = rowsList[j].cells[i];
+                  if (cell) {
+                    const text = cell.textContent || '';
+                    if (text.trim().replace(new RegExp(String.fromCharCode(160), 'g'), '') !== '') {
+                      isEmpty = false;
+                      break;
+                    }
+                  }
+                }
+                if (isEmpty) {
+                  emptyCols.push(i);
+                }
+              }
+              
+              // Remove empty columns from right to left
+              for (let i = emptyCols.length - 1; i >= 0; i--) {
+                const colIndex = emptyCols[i];
+                for (let j = 0; j < rowsList.length; j++) {
+                  if (rowsList[j].cells[colIndex]) {
+                    rowsList[j].deleteCell(colIndex);
+                  }
+                }
+              }
+            }
+            
+            // Only append the sheet if it still has data after cleanup
+            if (wrapper.querySelectorAll('tr').length > 0 && wrapper.querySelectorAll('td, th').length > 0) {
+              section.appendChild(sheetTitle);
+              section.appendChild(wrapper);
+            }
           });
           
           container.appendChild(section);
