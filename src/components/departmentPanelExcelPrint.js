@@ -861,10 +861,10 @@ export async function printDepartmentPanelExcel({
     
     /* Light background for predefined fields column (3rd column) */
     .print-card-col-predefined {
-      background-color: #f3f4f6;
-      padding: 8px;
-      border-radius: 4px;
-      border: 1px solid #d1d5db;
+      
+      transform: translateY(-23px);
+      
+      
     }
     
     /* Predefined column wrapper with horizontal layout */
@@ -888,7 +888,7 @@ export async function printDepartmentPanelExcel({
     }
     
     .predefined-header {
-      font-size: 9px;
+      font-size: 12px;
       font-weight: 700;
       color: #4f46e5;
       text-align: left;
@@ -896,12 +896,12 @@ export async function printDepartmentPanelExcel({
     }
     
     .predefined-value {
-      font-size: 9px;
+      font-size: 11px;
       color: #1f2937;
       text-align: left;
       padding: 3px 0;
       border-bottom: 1px solid #9ca3af;
-      min-height: 18px;
+      min-height: 15px;
     }
     
     .print-card-empty {
