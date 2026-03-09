@@ -948,11 +948,12 @@ export async function printDepartmentPanelExcel({
 
     .excel-table-wrapper {
       width: 100%;
+      justify-items: center;
       overflow: visible;
     }
 
     table {
-      width: 100%;
+      
       border-collapse: collapse;
       table-layout: fixed; /* Ensures equal column widths */
     }
