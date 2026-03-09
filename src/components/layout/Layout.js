@@ -5,6 +5,7 @@ import Header from './Header';
 import DynamicSidebar from './DynamicSidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import GraceBanner from '@/components/license/GraceBanner';
 
 export default function Layout({ children }) {
   const { status } = useSession();
@@ -23,6 +24,7 @@ export default function Layout({ children }) {
       <SidebarInset>
         <div className="min-h-screen bg-gray-50">
           <Header />
+          <GraceBanner />
           <main className="flex-1 p-6">
             {children}
           </main>

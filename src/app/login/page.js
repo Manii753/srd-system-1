@@ -55,7 +55,7 @@ export default function LoginPage() {
       if (result?.error) {
         setError('Invalid email or password');
       } else {
-
+        window.sessionStorage.setItem('license-grace-banner-reset', '1');
       }
     } catch (error) {
       setError('An error occurred during login');
