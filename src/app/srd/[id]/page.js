@@ -117,7 +117,7 @@ export default function SRDDetailPage() {
 
 
       if (data.success) {
-        if (shouldRefreshSrd) {
+        if (data.data) {
           setSrd(data.data);
         }
         toast({
@@ -131,12 +131,16 @@ export default function SRDDetailPage() {
         if (timelineData.success) {
           setTimeline(timelineData.data);
         }
+
+        return data.data;
       } else {
         toast({
           title: 'Error',
           description: data.error || 'Update failed',
           variant: 'destructive',
         });
+
+        return null;
       }
     } catch (error) {
       console.error('[Frontend] Update error:', error);
@@ -145,6 +149,8 @@ export default function SRDDetailPage() {
         description: 'Failed to update department',
         variant: 'destructive',
       });
+
+      return null;
     }
   };
 

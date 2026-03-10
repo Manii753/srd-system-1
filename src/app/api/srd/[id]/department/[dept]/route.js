@@ -5,6 +5,16 @@ import User from '@/models/User';
 import Notification from '@/models/Notification';
 import pusher from '@/lib/pusher-server';
 
+function normalizeFieldId(fieldId) {
+  if (!fieldId) return null;
+  if (typeof fieldId === 'object') {
+    if (fieldId._id) return fieldId._id.toString();
+    if (typeof fieldId.toString === 'function') return fieldId.toString();
+    return null;
+  }
+  return fieldId.toString();
+}
+
 export async function PATCH(request, context) {
   try {
     await dbConnect();
@@ -69,8 +79,13 @@ export async function PATCH(request, context) {
         if (body.fields && Array.isArray(body.fields) && body.fields.length > 0) {
           // Update existing dynamicFields array
           body.fields.forEach(updatedField => {
+            const updatedFieldId = normalizeFieldId(updatedField.originalFieldId || updatedField.field);
             const existingFieldIndex = srd.dynamicFields.findIndex(
-              f => f.name === updatedField.name && f.department === dept
+              f => {
+                const currentFieldId = normalizeFieldId(f.originalFieldId || f.field);
+                return (updatedFieldId && currentFieldId === updatedFieldId) ||
+                  (f.name === updatedField.name && f.department === dept);
+              }
             );
 
             if (existingFieldIndex > -1) {

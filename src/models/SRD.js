@@ -78,6 +78,8 @@ const srdSchema = new mongoose.Schema({
     type: { type: String },
     value: { type: mongoose.Schema.Types.Mixed },
     isRequired: { type: Boolean, default: false },
+    isOptional: { type: Boolean, default: false },
+    isOptionalEnabled: { type: Boolean, default: true },
     placeholder: { type: String },
     order: { type: Number, default: 0 },
     parentHeading: { type: String }, // Store heading name, not ID for immutability
@@ -103,4 +105,7 @@ srdSchema.pre('save', function (next) {
   next();
 });
 
-export default mongoose.models.SRD || mongoose.model('SRD', srdSchema);
+// Force recompilation so newly added dynamic field properties are not dropped in dev.
+delete mongoose.models.SRD;
+
+export default mongoose.model('SRD', srdSchema);

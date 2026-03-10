@@ -22,6 +22,11 @@ const FieldSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    // whether this field is user-enabled per SRD before it can be filled/printed
+    isOptional: {
+        type: Boolean,
+        default: false
+    },
     // a slug/key used by SRD records (optional)
     slug: {
         type: String

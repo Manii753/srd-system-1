@@ -182,6 +182,11 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
                 Required
               </span>
             )}
+            {field.isOptional && (
+              <span className="text-xs text-amber-700 bg-amber-100 px-2 py-1 rounded">
+                Optional Toggle
+              </span>
+            )}
           </div>
           {field.placeholder && (
             <div className="text-sm text-gray-500 mt-1">
@@ -240,6 +245,7 @@ export default function Page() {
     placeholder: "",
     department: 'vmd',
     isRequired: false,
+    isOptional: false,
     parentHeading: null,
     isShownInQuickDetails: false,
     isShownInReport: false,
@@ -329,6 +335,7 @@ export default function Page() {
       placeholder: "",
       department: selectedDepartment,
       isRequired: false,
+      isOptional: false,
       parentHeading: parentHeading,
       isShownInQuickDetails: false,
       isShownInReport: false,
@@ -354,7 +361,8 @@ export default function Page() {
       type: field.type || 'text',
       placeholder: field.placeholder || '',
       department: field.department || selectedDepartment,
-      isRequired: !!field.isRequired,
+      isRequired: !!field.isRequired && !field.isOptional,
+      isOptional: !!field.isOptional,
       parentHeading: field.parentHeading || null,
       isShownInQuickDetails: !!field.isShownInQuickDetails,
       isShownInReport: !!field.isShownInReport,
@@ -420,13 +428,17 @@ export default function Page() {
     e.preventDefault();
     if (!values.name.trim()) return alert('Please provide a field name.');
     if (!values.type) return alert('Please select a field type.');
+    const payload = {
+      ...values,
+      isRequired: values.isOptional ? false : values.isRequired,
+    };
 
     try {
       if (editingId) {
         const res = await fetch(`/api/newField?id=${editingId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(values)
+          body: JSON.stringify(payload)
         });
         const updated = await res.json();
         setFields((prev) => prev.map(f => f._id === updated._id ? updated : f));
@@ -434,7 +446,7 @@ export default function Page() {
         const res = await fetch('/api/newField', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(values)
+          body: JSON.stringify(payload)
         });
         const created = await res.json();
         setFields((prev) => [...prev, created]);
@@ -922,8 +934,26 @@ export default function Page() {
                       className="form-checkbox h-4 w-4"
                       checked={values.isRequired}
                       onChange={(e) => setValues({ ...values, isRequired: e.target.checked })}
+                      disabled={values.isOptional}
                     />
-                    <span className="text-sm text-gray-700">Required</span>
+                    <span className={cn("text-sm text-gray-700", values.isOptional && "text-gray-400")}>Required</span>
+                  </div>
+                )}
+
+                {/* Optional Toggle */}
+                {values.type !== 'heading' && (
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      className="form-checkbox h-4 w-4"
+                      checked={values.isOptional}
+                      onChange={(e) => setValues({
+                        ...values,
+                        isOptional: e.target.checked,
+                        isRequired: e.target.checked ? false : values.isRequired
+                      })}
+                    />
+                    <span className="text-sm text-gray-700">Show toggle in SRD panel</span>
                   </div>
                 )}
 

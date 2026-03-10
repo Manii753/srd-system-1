@@ -1,3 +1,72 @@
+function normalizeFieldId(fieldId) {
+  if (!fieldId) return null;
+  if (typeof fieldId === 'object') {
+    if (fieldId._id) return fieldId._id.toString();
+    if (typeof fieldId.toString === 'function') return fieldId.toString();
+    return null;
+  }
+  return fieldId.toString();
+}
+
+function hasMeaningfulFieldValue(value, type) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'boolean') return true;
+  if (typeof value === 'number') return !Number.isNaN(value);
+  if (typeof value === 'string') return value.trim() !== '';
+
+  if (Array.isArray(value)) {
+    return value.some(item => hasMeaningfulFieldValue(item, type));
+  }
+
+  if (typeof value === 'object') {
+    if (type === 'table') {
+      const rows = Array.isArray(value.rows) ? value.rows : [];
+      const predefinedData = Array.isArray(value.predefinedData) ? value.predefinedData : [];
+
+      const hasRowContent = rows.some(row =>
+        Array.isArray(row) && row.some(cell => typeof cell === 'string' ? cell.trim() !== '' : !!cell)
+      );
+
+      const hasPredefinedContent = predefinedData.some(item =>
+        (typeof item?.opd === 'string' && item.opd.trim() !== '') ||
+        (typeof item?.etd === 'string' && item.etd.trim() !== '') ||
+        item?.purchaseType === 'instock'
+      );
+
+      return hasRowContent || hasPredefinedContent;
+    }
+
+    return Object.values(value).some(item => hasMeaningfulFieldValue(item, type));
+  }
+
+  return false;
+}
+
+function findFieldState(fields, fieldId, fieldDef = null) {
+  const normalizedFieldId = normalizeFieldId(fieldId);
+
+  return fields.find(field => {
+    const currentFieldId = normalizeFieldId(
+      field.originalFieldId ||
+      (field.field && (typeof field.field === 'object' ? field.field._id || field.field : field.field))
+    );
+
+    return (normalizedFieldId && currentFieldId === normalizedFieldId) ||
+      (fieldDef && field.name === fieldDef.name && field.department === fieldDef.department);
+  }) || null;
+}
+
+function isOptionalFieldEnabled(fields, fieldId, fieldDef) {
+  if (!fieldDef?.isOptional) return true;
+
+  const fieldState = findFieldState(fields, fieldId, fieldDef);
+  if (typeof fieldState?.isOptionalEnabled === 'boolean') {
+    return fieldState.isOptionalEnabled;
+  }
+
+  return hasMeaningfulFieldValue(fieldState?.value, fieldDef.type);
+}
+
 export async function printDepartmentPanelExcel({
   fields,
   hasUnsavedChanges,
@@ -55,6 +124,9 @@ export async function printDepartmentPanelExcel({
         console.error(`Failed to fetch ${dept} fields:`, err);
       }
     }
+    const allFieldDefsMap = Object.fromEntries(
+      allFieldDefsForPrint.map(field => [field._id.toString(), field])
+    );
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
@@ -167,17 +239,27 @@ export async function printDepartmentPanelExcel({
       // Handle regular database fields
       // Get field definition - prioritize populated object from template
       let fieldDef = null;
+      let fieldIdStr = null;
 
       if (cell.fieldId && typeof cell.fieldId === 'object' && cell.fieldId._id) {
         // It's already populated! Use it.
         fieldDef = cell.fieldId;
+        fieldIdStr = cell.fieldId._id.toString();
       } else if (cell.fieldId) {
         // It's just an ID, look it up (fallback)
-        fieldDef = allFieldDefsForPrint.find(f => f._id.toString() === cell.fieldId.toString());
+        fieldIdStr = normalizeFieldId(cell.fieldId);
+        fieldDef = allFieldDefsMap[fieldIdStr];
       }
 
       if (!fieldDef) {
         console.warn(`Field definition not found for ID: ${cell.fieldId}`);
+        return;
+      }
+
+      if (fieldDef.isOptional && !isOptionalFieldEnabled(fields, fieldIdStr, fieldDef)) {
+        fieldsHTML += `
+            
+          `;
         return;
       }
 
@@ -197,25 +279,13 @@ export async function printDepartmentPanelExcel({
 
       // Find the field value from SRD data - Use local 'fields' state as source of truth
       let fieldValue = '';
-      const localField = fields.find(f => {
-        return (
-          (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString()) ||
-          (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
-          (f.name === fieldDef.name && f.department === fieldDef.department)
-        );
-      });
+      const localField = findFieldState(fields, fieldIdStr, fieldDef);
 
       if (localField) {
         fieldValue = localField.value || '';
       } else {
         // Fallback to srd prop if not in local state
-        const srdField = srd.dynamicFields?.find(f => {
-          return (
-            (f.field?._id && f.field._id.toString() === cell.fieldId.toString()) ||
-            (f.originalFieldId && f.originalFieldId.toString() === cell.fieldId.toString()) ||
-            (f.name === fieldDef.name && f.department === fieldDef.department)
-          );
-        });
+        const srdField = findFieldState(srd.dynamicFields || [], fieldIdStr, fieldDef);
         if (srdField) {
           fieldValue = srdField.value || '';
         }
@@ -453,12 +523,22 @@ export async function printDepartmentPanelExcel({
     }
 
     // Identify Excel files to include in print
-    const excelFiles = [];
-    srd.dynamicFields?.forEach(f => {
-      if (f.type === 'file' && f.value) {
-        excelFiles.push({ name: f.name, url: f.value });
+    const excelFiles = fields.reduce((result, field) => {
+      const fieldId = normalizeFieldId(field.originalFieldId || field.field);
+      const fieldDef = (fieldId && allFieldDefsMap[fieldId]) || allFieldDefsForPrint.find(def => def.name === field.name && def.department === field.department);
+      const effectiveType = field.type || fieldDef?.type;
+
+      if (effectiveType !== 'file' || !field.value) {
+        return result;
       }
-    });
+
+      if (fieldDef?.isOptional && !isOptionalFieldEnabled(fields, fieldId, fieldDef)) {
+        return result;
+      }
+
+      result.push({ name: field.name, url: field.value });
+      return result;
+    }, []);
 
     const printContent = `<!DOCTYPE html>
 <html>
@@ -844,7 +924,7 @@ export async function printDepartmentPanelExcel({
       background-color: transparent;
       padding-top: 4px;
       padding-bottom: 4px;
-      border-bottom: 0.5px dashed #ccc;
+      
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 0px;
@@ -861,10 +941,7 @@ export async function printDepartmentPanelExcel({
     
     /* Light background for predefined fields column (3rd column) */
     .print-card-col-predefined {
-      
       transform: translateY(-23px);
-      
-      
     }
     
     /* Predefined column wrapper with horizontal layout */

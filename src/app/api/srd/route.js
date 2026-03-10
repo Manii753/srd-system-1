@@ -7,6 +7,40 @@ import Field from '@/models/Field';
 import pusher from '@/lib/pusher-server';
 import mongoose from 'mongoose';
 
+function hasMeaningfulFieldValue(value, type) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'boolean') return true;
+  if (typeof value === 'number') return !Number.isNaN(value);
+  if (typeof value === 'string') return value.trim() !== '';
+
+  if (Array.isArray(value)) {
+    return value.some(item => hasMeaningfulFieldValue(item, type));
+  }
+
+  if (typeof value === 'object') {
+    if (type === 'table') {
+      const rows = Array.isArray(value.rows) ? value.rows : [];
+      const predefinedData = Array.isArray(value.predefinedData) ? value.predefinedData : [];
+
+      const hasRowContent = rows.some(row =>
+        Array.isArray(row) && row.some(cell => typeof cell === 'string' ? cell.trim() !== '' : !!cell)
+      );
+
+      const hasPredefinedContent = predefinedData.some(item =>
+        (typeof item?.opd === 'string' && item.opd.trim() !== '') ||
+        (typeof item?.etd === 'string' && item.etd.trim() !== '') ||
+        item?.purchaseType === 'instock'
+      );
+
+      return hasRowContent || hasPredefinedContent;
+    }
+
+    return Object.values(value).some(item => hasMeaningfulFieldValue(item, type));
+  }
+
+  return false;
+}
+
 export async function GET(request) {
   try {
     await dbConnect();
@@ -169,6 +203,18 @@ export async function POST(request) {
     if (!Array.isArray(body.dynamicFields)) {
       body.dynamicFields = [];
     }
+    body.dynamicFields = body.dynamicFields.map(field => {
+      const isOptional = !!field.isOptional;
+      const hasExplicitOptionalState = typeof field.isOptionalEnabled === 'boolean';
+
+      return {
+        ...field,
+        isOptional,
+        isOptionalEnabled: isOptional
+          ? (hasExplicitOptionalState ? field.isOptionalEnabled : hasMeaningfulFieldValue(field.value, field.type))
+          : true,
+      };
+    });
     console.log('Sanitized dynamicFields:', JSON.stringify(body.dynamicFields));
 
     // --- Populate missing dynamic fields ---
@@ -195,6 +241,8 @@ export async function POST(request) {
           type: fieldDef.type,
           value: null, // Initialize with null
           isRequired: fieldDef.isRequired,
+          isOptional: !!fieldDef.isOptional,
+          isOptionalEnabled: fieldDef.isOptional ? false : true,
           placeholder: fieldDef.placeholder,
           order: fieldDef.order,
           // For parentHeading, we might need to fetch the parent field name if it's populated in FieldSchema

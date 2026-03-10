@@ -24,7 +24,7 @@ export default function DepartmentPanelExcel({
 }) {
   const { toast } = useToast();
   const [activeTemplate, setActiveTemplate] = useState(null);
-  const [allFieldDefs, setAllFieldDefs] = useState([]);
+  const [allFieldDefs, setAllFieldDefs] = useState({});
   const [fields, setFields] = useState(srd.dynamicFields || []);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -79,10 +79,6 @@ export default function DepartmentPanelExcel({
           }
         }
         setAllFieldDefs(fieldDefsMap);
-
-        // Initialize fields from SRD
-        setFields(srd.dynamicFields || []);
-        lastSavedFieldsRef.current = JSON.stringify(srd.dynamicFields || []);
       } catch (err) {
         console.error('Failed to fetch data:', err);
         toast({
@@ -95,7 +91,12 @@ export default function DepartmentPanelExcel({
       }
     }
     fetchData();
-  }, [srd, toast]);
+  }, [srd?._id, toast]);
+
+  useEffect(() => {
+    setFields(srd.dynamicFields || []);
+    lastSavedFieldsRef.current = JSON.stringify(srd.dynamicFields || []);
+  }, [srd?.dynamicFields]);
 
   // Auto-save function with debouncing - saves per department
   const debouncedAutoSave = useCallback(async (fieldsToSave, department) => {
@@ -156,33 +157,147 @@ export default function DepartmentPanelExcel({
     };
   }, []);
 
-  // Handle field change with department tracking
-  const handleFieldChange = useCallback((fieldId, name, value, department, fieldDef = null) => {
-    setFields(prev => {
-      const existingFieldIndex = prev.findIndex(f =>
-        (f.originalFieldId === fieldId) ||
-        (f.field?._id === fieldId) ||
-        (f.name === name && f.department === department)
+  const normalizeFieldId = useCallback((fieldId) => {
+    if (!fieldId) return null;
+    if (typeof fieldId === 'object') {
+      if (fieldId._id) return fieldId._id.toString();
+      if (typeof fieldId.toString === 'function') return fieldId.toString();
+      return null;
+    }
+    return fieldId.toString();
+  }, []);
+
+  const hasMeaningfulValue = useCallback((value, fieldType) => {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'boolean') return true;
+    if (typeof value === 'number') return !Number.isNaN(value);
+    if (typeof value === 'string') return value.trim() !== '';
+
+    if (Array.isArray(value)) {
+      return value.some(item => hasMeaningfulValue(item, fieldType));
+    }
+
+    if (typeof value === 'object') {
+      if (fieldType === 'table') {
+        const rows = Array.isArray(value.rows) ? value.rows : [];
+        const predefinedData = Array.isArray(value.predefinedData) ? value.predefinedData : [];
+
+        const hasRowContent = rows.some(row =>
+          Array.isArray(row) && row.some(cell => typeof cell === 'string' ? cell.trim() !== '' : !!cell)
+        );
+
+        const hasPredefinedContent = predefinedData.some(item =>
+          (typeof item?.opd === 'string' && item.opd.trim() !== '') ||
+          (typeof item?.etd === 'string' && item.etd.trim() !== '') ||
+          item?.purchaseType === 'instock'
+        );
+
+        return hasRowContent || hasPredefinedContent;
+      }
+
+      return Object.values(value).some(item => hasMeaningfulValue(item, fieldType));
+    }
+
+    return false;
+  }, []);
+
+  const findFieldIndex = useCallback((sourceFields, fieldId, fieldDef = null, department = null) => {
+    const normalizedFieldId = normalizeFieldId(fieldId);
+    const expectedDepartment = department || fieldDef?.department;
+
+    return sourceFields.findIndex(field => {
+      const currentFieldId = normalizeFieldId(
+        field.originalFieldId ||
+        (field.field && (typeof field.field === 'object' ? field.field._id || field.field : field.field))
       );
 
+      return (normalizedFieldId && currentFieldId === normalizedFieldId) ||
+        (fieldDef && field.name === fieldDef.name && field.department === expectedDepartment);
+    });
+  }, [normalizeFieldId]);
+
+  const findFieldState = useCallback((fieldId, fieldDef = null, sourceFields = fields) => {
+    const fieldIndex = findFieldIndex(sourceFields, fieldId, fieldDef, fieldDef?.department);
+    return fieldIndex > -1 ? sourceFields[fieldIndex] : null;
+  }, [fields, findFieldIndex]);
+
+  const isOptionalFieldEnabled = useCallback((fieldId, fieldDef, sourceFields = fields) => {
+    if (!fieldDef?.isOptional) return true;
+
+    const fieldState = findFieldState(fieldId, fieldDef, sourceFields);
+    if (typeof fieldState?.isOptionalEnabled === 'boolean') {
+      return fieldState.isOptionalEnabled;
+    }
+
+    return hasMeaningfulValue(fieldState?.value, fieldDef.type);
+  }, [fields, findFieldState, hasMeaningfulValue]);
+
+  const buildFieldState = useCallback((fieldId, fieldDef, department, overrides = {}) => {
+    const normalizedFieldId = normalizeFieldId(fieldId);
+    const parentHeadingName = fieldDef?.parentHeading
+      ? (typeof fieldDef.parentHeading === 'object' ? fieldDef.parentHeading.name : fieldDef.parentHeading)
+      : undefined;
+
+    return {
+      field: normalizedFieldId,
+      originalFieldId: normalizedFieldId,
+      name: fieldDef?.name || overrides.name || '',
+      slug: fieldDef?.slug,
+      type: fieldDef?.type,
+      department: department || fieldDef?.department,
+      value: '',
+      isRequired: !!fieldDef?.isRequired,
+      isOptional: !!fieldDef?.isOptional,
+      isOptionalEnabled: fieldDef?.isOptional ? false : true,
+      placeholder: fieldDef?.placeholder || '',
+      order: fieldDef?.order || 0,
+      parentHeading: parentHeadingName,
+      fieldVersion: new Date(),
+      isConnectedTo: !!fieldDef?.isConnectedTo,
+      connectedFieldId: normalizeFieldId(fieldDef?.connectedFieldId),
+      connectionType: fieldDef?.connectionType || null,
+      booleanDisplayType: fieldDef?.booleanDisplayType || null,
+      tableHeaders: Array.isArray(fieldDef?.tableHeaders) ? fieldDef.tableHeaders : [],
+      ...overrides,
+    };
+  }, [normalizeFieldId]);
+
+  const handleFieldUpdate = useCallback((fieldId, department, fieldDef, updates) => {
+    const normalizedFieldId = normalizeFieldId(fieldId);
+    const resolvedDepartment = department || fieldDef?.department;
+
+    setFields(prev => {
+      const existingFieldIndex = findFieldIndex(prev, normalizedFieldId, fieldDef, resolvedDepartment);
+
+      const baseField = buildFieldState(normalizedFieldId, fieldDef, resolvedDepartment, updates);
       let newFields;
       if (existingFieldIndex > -1) {
         newFields = [...prev];
-        newFields[existingFieldIndex] = { ...newFields[existingFieldIndex], value };
+        const currentField = newFields[existingFieldIndex];
+        newFields[existingFieldIndex] = {
+          ...baseField,
+          ...currentField,
+          ...updates,
+          department: resolvedDepartment,
+          field: currentField.field || baseField.field,
+          originalFieldId: currentField.originalFieldId || baseField.originalFieldId,
+          fieldVersion: currentField.fieldVersion || baseField.fieldVersion,
+        };
       } else {
-        newFields = [...prev, {
-          name,
-          value,
-          department,
-          originalFieldId: fieldId,
-        }];
+        newFields = [...prev, baseField];
       }
+
+      const currentFieldIndex = existingFieldIndex > -1 ? existingFieldIndex : newFields.length - 1;
+      const currentField = newFields[currentFieldIndex];
+      const nextValue = Object.prototype.hasOwnProperty.call(updates, 'value')
+        ? updates.value
+        : currentField.value;
 
       // Handle Connected Fields
       // We must check if the modified field has connection properties
       // First, try to find the full field definition from the instance data (preferred)
       // or use the passed fieldDef or look it up in allFieldDefs
-      let currentFieldDef = newFields[existingFieldIndex > -1 ? existingFieldIndex : newFields.length - 1];
+      let currentFieldDef = currentField;
 
       // If instance doesn't have connection info (e.g. legacy), try to merge with static def
       if (!currentFieldDef.isConnectedTo && fieldDef) {
@@ -190,38 +305,25 @@ export default function DepartmentPanelExcel({
       }
 
       // 1. Auto-True Logic
-      if (currentFieldDef.isConnectedTo && currentFieldDef.connectionType === 'auto-true' && value === true) {
+      if (currentFieldDef.isConnectedTo && currentFieldDef.connectionType === 'auto-true' && nextValue === true) {
         let connectedFieldId = currentFieldDef.connectedFieldId;
         // Handle populated object or string ID
         if (connectedFieldId && typeof connectedFieldId === 'object' && connectedFieldId._id) {
           connectedFieldId = connectedFieldId._id;
         }
+        connectedFieldId = normalizeFieldId(connectedFieldId);
 
         if (connectedFieldId) {
           // Find the connected field in current fields
-          let connectedIndex = newFields.findIndex(f => {
-            const fId = f.originalFieldId || (f.field && typeof f.field === 'object' ? f.field._id : f.field);
-            return fId?.toString() === connectedFieldId?.toString();
-          });
-
-
+          let connectedIndex = findFieldIndex(newFields, connectedFieldId, allFieldDefs[connectedFieldId], allFieldDefs[connectedFieldId]?.department);
 
           // If not found in current fields, try to add it from definitions
           if (connectedIndex === -1 && allFieldDefs[connectedFieldId]) {
             const connectedDef = allFieldDefs[connectedFieldId];
-
-
-            newFields.push({
-              originalFieldId: connectedFieldId,
-              name: connectedDef.name,
-              type: connectedDef.type,
-              department: connectedDef.department,
-              value: '', // Initial value
-              fieldVersion: new Date(),
-              isConnectedTo: connectedDef.isConnectedTo,
-              connectedFieldId: connectedDef.connectedFieldId,
-              connectionType: connectedDef.connectionType
-            });
+            newFields.push(buildFieldState(connectedFieldId, connectedDef, connectedDef.department, {
+              value: true,
+              isOptionalEnabled: true,
+            }));
             connectedIndex = newFields.length - 1;
           }
 
@@ -230,10 +332,14 @@ export default function DepartmentPanelExcel({
 
             // Only update if not already true
             if (connectedField.value !== true) {
-              newFields[connectedIndex] = { ...connectedField, value: true };
+              newFields[connectedIndex] = {
+                ...connectedField,
+                value: true,
+                isOptionalEnabled: true,
+              };
 
               // Trigger auto-save for the connected field's department if different
-              if (connectedField.department !== department) {
+              if (connectedField.department !== resolvedDepartment) {
                 debouncedAutoSave(newFields, connectedField.department);
               }
             }
@@ -242,23 +348,39 @@ export default function DepartmentPanelExcel({
       }
 
       // Trigger auto-save for this department
-      debouncedAutoSave(newFields, department);
+      if (resolvedDepartment) {
+        debouncedAutoSave(newFields, resolvedDepartment);
+      }
 
       return newFields;
     });
 
     setHasUnsavedChanges(true);
-  }, [debouncedAutoSave, allFieldDefs]);
+  }, [allFieldDefs, buildFieldState, debouncedAutoSave, findFieldIndex, normalizeFieldId]);
+
+  // Handle field change with department tracking
+  const handleFieldChange = useCallback((fieldId, name, value, department, fieldDef = null) => {
+    const resolvedFieldDef = fieldDef || allFieldDefs[normalizeFieldId(fieldId)] || { name, department };
+    handleFieldUpdate(fieldId, department, resolvedFieldDef, {
+      name,
+      value,
+      ...(resolvedFieldDef?.isOptional ? { isOptionalEnabled: true } : {}),
+    });
+  }, [allFieldDefs, handleFieldUpdate, normalizeFieldId]);
+
+  const handleOptionalFieldToggle = useCallback((fieldId, fieldDef, isEnabled) => {
+    handleFieldUpdate(fieldId, fieldDef.department, fieldDef, {
+      name: fieldDef.name,
+      isOptional: true,
+      isOptionalEnabled: isEnabled,
+    });
+  }, [handleFieldUpdate]);
 
   // Get field value from SRD dynamicFields by fieldId - memoized
   const getFieldValue = useCallback((fieldId, fieldDef) => {
-    const srdField = fields.find(f =>
-      (f.originalFieldId && f.originalFieldId.toString() === fieldId?.toString()) ||
-      (f.field?._id && f.field._id.toString() === fieldId?.toString()) ||
-      (f.name === fieldDef?.name && f.department === fieldDef?.department)
-    );
+    const srdField = findFieldState(fieldId, fieldDef);
     return srdField?.value ?? '';
-  }, [fields]);
+  }, [findFieldState]);
 
   // Check if a field should be hidden based on toggle-active connection
   const isFieldHidden = useCallback((fieldDef) => {
@@ -266,18 +388,20 @@ export default function DepartmentPanelExcel({
       return false;
     }
 
-    const connectedFieldId = fieldDef.connectedFieldId;
+    const connectedFieldId = normalizeFieldId(fieldDef.connectedFieldId);
     if (!connectedFieldId) return false;
 
     // Find the connected field value in current fields
-    const connectedField = fields.find(f => {
-      const fId = f.originalFieldId || (f.field && typeof f.field === 'object' ? f.field._id : f.field);
-      return fId?.toString() === connectedFieldId?.toString();
-    });
+    const connectedFieldDef = allFieldDefs[connectedFieldId];
+    const connectedField = findFieldState(connectedFieldId, connectedFieldDef);
+
+    if (connectedFieldDef?.isOptional && !isOptionalFieldEnabled(connectedFieldId, connectedFieldDef)) {
+      return false;
+    }
 
     // If connected field is true, hide this field
     return connectedField?.value === true;
-  }, [fields]);
+  }, [allFieldDefs, findFieldState, isOptionalFieldEnabled, normalizeFieldId]);
 
   const handleRemoveImage = useCallback((fieldId, name, department, imageIndex, allImages) => {
     const imageToRemove = allImages[imageIndex];
@@ -1222,6 +1346,7 @@ export default function DepartmentPanelExcel({
             const canEdit = fieldDef.type === 'table' ? isFieldActive : (canEditField(fieldDef.department) && isFieldActive);
             const isHeading = fieldDef.type === 'heading';
             const isHidden = isFieldHidden(fieldDef);
+            const isOptionalEnabled = isOptionalFieldEnabled(fieldIdStr, fieldDef);
             const deptBgColor = {
               vmd: 'bg-purple-100',
               cad: 'bg-amber-100',
@@ -1266,6 +1391,7 @@ export default function DepartmentPanelExcel({
                   className={cn(
                     "border rounded h-full flex flex-col",
                     isHeading ? "bg-blue-50 border-blue-200" : "bg-transparent border-gray-300",
+                    fieldDef.isOptional && !isOptionalEnabled && "bg-gray-50/70 border-dashed border-gray-300",
                     !canEdit && !isHeading && "opacity-75"
                   )}
                 >
@@ -1275,7 +1401,21 @@ export default function DepartmentPanelExcel({
                       <span className="text-xs font-medium text-gray-700 truncate" title={fieldDef.name}>
                         {fieldDef.name}
                       </span>
-                      <div className="flex items-center space-x-1 ml-1">
+                      <div className="flex items-center gap-2 ml-1">
+                        {fieldDef.isOptional && (
+                          <div className="flex items-center gap-2 rounded-full bg-white/80 px-2 py-0.5">
+                            <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                              Optional
+                            </span>
+                            <Switch
+                              checked={isOptionalEnabled}
+                              onCheckedChange={(checked) => handleOptionalFieldToggle(fieldIdStr, fieldDef, checked)}
+                              disabled={!canEdit}
+                              aria-label={`Toggle ${fieldDef.name}`}
+                              className="scale-75"
+                            />
+                          </div>
+                        )}
                         {fieldDef.isRequired && (
                           <span className="text-red-500 text-xs font-bold">*</span>
                         )}
@@ -1285,7 +1425,13 @@ export default function DepartmentPanelExcel({
 
                   {/* Field input */}
                   <div className={cn(!isHeading && "p-1", "flex-1")}>
-                    {renderCellInput(fieldDef, fieldIdStr, canEdit)}
+                    {fieldDef.isOptional && !isOptionalEnabled ? (
+                      <div className="flex h-full min-h-[64px] items-center justify-center rounded border border-dashed border-gray-300 bg-white/70 px-3 text-center text-xs text-gray-500">
+                        {canEdit ? 'Turn on to fill this field.' : 'This optional field is turned off.'}
+                      </div>
+                    ) : (
+                      renderCellInput(fieldDef, fieldIdStr, canEdit)
+                    )}
                   </div>
                 </div>
               </div>
