@@ -727,14 +727,14 @@ export default function Page() {
           />
 
           {/* Centered modal */}
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg border border-gray-200 overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-4 border-b">
-                <h2 className="text-lg font-semibold">
+          <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:items-center sm:p-4">
+            <div className="bg-white rounded-lg sm:rounded-xl shadow-2xl w-full max-w-3xl border border-gray-200 overflow-hidden max-h-[calc(100vh-1rem)] sm:max-h-[90vh] flex flex-col">
+              <div className="flex items-start justify-between gap-4 px-4 py-3 border-b sm:px-6 sm:py-4 shrink-0">
+                <h2 className="text-base sm:text-lg font-semibold pr-4">
                   {editingId ? "Edit SRD Field" : "Add New SRD Field"}
                 </h2>
                 <button
-                  className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
+                  className="text-gray-500 hover:text-gray-800 text-2xl leading-none shrink-0"
                   onClick={() => setModalOpen(false)}
                   aria-label="Close modal"
                 >
@@ -742,7 +742,8 @@ export default function Page() {
                 </button>
               </div>
 
-              <form className="px-6 py-4 space-y-4" onSubmit={handleSubmit}>
+              <form className="overflow-y-auto px-4 py-4 space-y-4 sm:px-6" onSubmit={handleSubmit}>
+                <div className="grid gap-4 md:grid-cols-2">
                 {/* Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -780,6 +781,7 @@ export default function Page() {
                     <option value="image">🖼️ Image Upload</option>
                     <option value="createdAt">📅 Created At</option>
                   </select>
+                </div>
                 </div>
 
                 {/* Boolean Display Type */}
@@ -888,29 +890,31 @@ export default function Page() {
                 )}
 
                 {/* Department */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Department
-                  </label>
-                  <select
-                    className="w-full p-2 border border-gray-300 rounded"
-                    value={values.department}
-                    onChange={(e) => setValues({ ...values, department: e.target.value })}
-                  >
-                    {DEPARTMENTS.map((d) => (
-                      <option key={d} value={d}>
-                        {d.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {values.type === 'createdAt' && (
+                <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      This Will Be Set Automatically
+                      Department
                     </label>
+                    <select
+                      className="w-full p-2 border border-gray-300 rounded"
+                      value={values.department}
+                      onChange={(e) => setValues({ ...values, department: e.target.value })}
+                    >
+                      {DEPARTMENTS.map((d) => (
+                        <option key={d} value={d}>
+                          {d.toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                )}
+                  {values.type === 'createdAt' && (
+                    <div className="flex items-end">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        This Will Be Set Automatically
+                      </label>
+                    </div>
+                  )}
+                </div>
                 {/* Placeholder */}
                 {values.type !== 'heading' && values.type !== 'createdAt' && (
                   <div>
@@ -983,7 +987,7 @@ export default function Page() {
                       <span className="text-sm text-gray-700">Show in Report</span>
                     </div>
                     {values.isShownInReport && (
-                      <div className="ml-6">
+                      <div className="ml-0 sm:ml-6">
                         <label className="block text-xs font-medium text-gray-600 mb-1">
                           Report Column Order
                         </label>
@@ -1020,7 +1024,7 @@ export default function Page() {
                     </div>
 
                     {values.isConnectedTo && (
-                      <div className="space-y-3 pl-6 border-l-2 border-blue-200">
+                      <div className="space-y-3 pl-4 sm:pl-6 border-l-2 border-blue-200">
                         {/* Select Connected Field */}
                         <div className="relative">
                           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1047,7 +1051,7 @@ export default function Page() {
                             </div>
                           )}
                           {showFieldDropdown && (
-                            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-52 sm:max-h-64 overflow-y-auto">
                               <div className="sticky top-0 bg-gray-100 px-3 py-2 border-b flex justify-between items-center">
                                 <span className="text-xs font-medium text-gray-500">Available Fields</span>
                                 <button
@@ -1119,17 +1123,17 @@ export default function Page() {
                 )}
 
                 {/* Buttons */}
-                <div className="flex justify-end pt-3 border-t border-gray-200">
+                <div className="flex flex-col-reverse gap-2 pt-3 border-t border-gray-200 sm:flex-row sm:justify-end">
                   <button
                     type="button"
-                    className="bg-gray-200 text-gray-700 px-4 py-2 rounded mr-2"
+                    className="bg-gray-200 text-gray-700 px-4 py-2 rounded w-full sm:w-auto"
                     onClick={() => setModalOpen(false)}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full sm:w-auto"
                   >
                     {editingId ? "Save changes" : "Save"}
                   </button>
