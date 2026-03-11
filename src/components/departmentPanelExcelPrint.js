@@ -458,7 +458,7 @@ export async function printDepartmentPanelExcel({
         if (fieldValue) {
           valueDisplay = `
             <div style="display: flex; align-items: center; gap: 4px;">
-              <span>??</span>
+              
               <span style="font-size: 8px;">Excel File Attached</span>
             </div>
           `;
