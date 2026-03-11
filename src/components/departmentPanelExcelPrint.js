@@ -8,6 +8,37 @@ function normalizeFieldId(fieldId) {
   return fieldId.toString();
 }
 
+function normalizeAssetUrls(value) {
+  const items = Array.isArray(value) ? value : (value ? [value] : []);
+
+  return items.flatMap((item) => {
+    if (!item) return [];
+
+    if (typeof item === 'string') {
+      const trimmed = item.trim();
+      return trimmed ? [trimmed] : [];
+    }
+
+    if (typeof item === 'object') {
+      const candidates = [item.url, item.src, item.path, item.location];
+      return candidates
+        .filter((candidate) => typeof candidate === 'string')
+        .map((candidate) => candidate.trim())
+        .filter(Boolean);
+    }
+
+    return [];
+  });
+}
+
+function escapeHtmlAttribute(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function hasMeaningfulFieldValue(value, type) {
   if (value === null || value === undefined) return false;
   if (typeof value === 'boolean') return true;
@@ -457,7 +488,7 @@ export async function printDepartmentPanelExcel({
       } else if (isFile) {
         if (fieldValue) {
           valueDisplay = `
-            <div style="display: flex; align-items: center; gap: 4px;">
+            <div style="display: flex; page-break-after:always; align-items: center; gap: 4px;">
               
               <span style="font-size: 8px;">Excel File Attached</span>
             </div>
@@ -466,15 +497,24 @@ export async function printDepartmentPanelExcel({
           valueDisplay = '<span class="no-value"></span>';
         }
       } else if (isImage) {
-        const images = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-        const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-        const allImages = [...new Set([...globalImages, ...images])].filter(img => img && img.trim() !== '');
+        const images = normalizeAssetUrls(fieldValue);
+        const globalImages = normalizeAssetUrls(srd.images);
+        const allImages = [...new Set([...globalImages, ...images])];
 
         if (allImages.length > 0) {
-          const imgGrid = allImages.map(img =>
-            `<div class="img-wrapper"><img src="${img}" class="img-print" alt="Product image" /></div>`
+          const imgGrid = allImages.map((img, index) =>
+            `<div class="img-wrapper ${allImages.length === 1 ? 'is-single-image' : ''}">
+              <img
+                src="${escapeHtmlAttribute(img)}"
+                class="img-print"
+                alt="${escapeHtmlAttribute(`${fieldDef.name} ${index + 1}`)}"
+                data-print-image
+                loading="eager"
+                decoding="sync"
+              />
+            </div>`
           ).join('');
-          valueDisplay = `<div class="image-stack">${imgGrid}</div>`;
+          valueDisplay = `<div class="image-stack ${allImages.length === 1 ? 'is-single-image' : ''}">${imgGrid}</div>`;
         } else {
           valueDisplay = '<span class="no-value"></span>';
         }
@@ -732,37 +772,43 @@ export async function printDepartmentPanelExcel({
 
     /* Image stack - fills remaining space after label */
     .image-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 0px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4px;
       width: 100%;
-      flex: 1;
-      overflow: hidden;
+      align-content: start;
+    }
+
+    .image-stack.is-single-image {
+      grid-template-columns: 1fr;
     }
     
     .img-wrapper {
       width: 100%;
-      flex: 1;
-      
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      min-height: 0;
+      min-height: 72px;
+      aspect-ratio: 4 / 3;
       position: relative;
+      border: 0.5px solid #ddd;
+      background: #fff;
+      
+    }
+
+    .img-wrapper.is-single-image {
+      min-height: 140px;
     }
 
     .img-print {
       max-width: 100%;
       max-height: 100%;
-      width: auto;
-      height: auto;
+      width: 100%;
+      height: 100%;
       display: block;
       object-fit: contain;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      position: static;
     }
 
     /* Custom element styles */
@@ -1041,7 +1087,7 @@ export async function printDepartmentPanelExcel({
     /* Excel Print Styles */
     .excel-container {
       margin-top: 20px;
-      page-break-before: always;
+      
     }
 
     .excel-title {
@@ -1109,9 +1155,7 @@ export async function printDepartmentPanelExcel({
         color-adjust: exact !important;
       }
 
-      .excel-container {
-        page-break-before: always;
-      }
+     
     }
   </style>
 </head>
@@ -1143,23 +1187,35 @@ export async function printDepartmentPanelExcel({
   <div id="excel-sections"></div>
 
   <script>
-    async function waitForQrImage() {
-      const qrImage = document.querySelector('[data-srd-qr]');
+    async function waitForImages(selector, timeoutMs = 5000) {
+      const images = Array.from(document.querySelectorAll(selector));
 
-      if (!qrImage || qrImage.complete) {
+      if (!images.length) {
         return;
       }
 
-      await new Promise((resolve) => {
-        const done = () => resolve();
-        qrImage.addEventListener('load', done, { once: true });
-        qrImage.addEventListener('error', done, { once: true });
-        setTimeout(done, 3000);
-      });
+      await Promise.all(images.map((image) => {
+        if (image.complete) {
+          return Promise.resolve();
+        }
+
+        return new Promise((resolve) => {
+          let settled = false;
+          const done = () => {
+            if (settled) return;
+            settled = true;
+            resolve();
+          };
+
+          image.addEventListener('load', done, { once: true });
+          image.addEventListener('error', done, { once: true });
+          setTimeout(done, timeoutMs);
+        });
+      }));
     }
 
     async function printWhenReady(delay = 250) {
-      await waitForQrImage();
+      await waitForImages('[data-srd-qr], [data-print-image]');
       setTimeout(() => {
         window.focus();
         window.print();
