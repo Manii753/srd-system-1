@@ -540,11 +540,20 @@ export async function printDepartmentPanelExcel({
       return result;
     }, []);
 
+    const srdId = normalizeFieldId(srd?._id || srd?.id);
+    const qrBaseUrl = window.location.origin;
+    const srdDetailUrl = srdId
+      ? new URL(`/srd/${encodeURIComponent(srdId)}/details`, qrBaseUrl).toString()
+      : '';
+    const srdQrUrl = srdDetailUrl
+      ? `https://api.qrserver.com/v1/create-qr-code/?size=128x128&margin=0&data=${encodeURIComponent(srdDetailUrl)}`
+      : '';
+
     const printContent = `<!DOCTYPE html>
 <html>
 <head>
   <title>SRD Complete Form - ${srd.refNo}</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  ${excelFiles.length > 0 ? '<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>' : ''}
   <style>
     @page {
       size: A4;
@@ -564,6 +573,16 @@ export async function printDepartmentPanelExcel({
     
     .header {
       margin-top: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .header-main {
+      flex: 1;
+      min-width: 0;
     }
     
     .header h1 {
@@ -576,20 +595,32 @@ export async function printDepartmentPanelExcel({
       padding-bottom: 2px;
     }
     
-    .header-info {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 6px;
-      font-size: 8px;
+    .header-qr {
+      width: 150px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .header-item strong {
-      display: block;
-      font-size: 6.5px;
-      color: #666;
-      margin-bottom: 1px;
+    .header-qr-frame {
+      width: 150px;
+      height: 100px;
+      border: 1px solid #d1d5db;
+      background: #fff;
+      padding: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    
+
+    .header-qr-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
     .template-grid {
       display: grid;
       grid-template-columns: repeat(${gridColumns * 2}, minmax(0, 1fr));
@@ -601,7 +632,7 @@ export async function printDepartmentPanelExcel({
       padding: 2px 0 0 0;
       background: white;
       display: flex;
-      min-height: 20px !important;
+      min-height: 15px !important;
       flex-direction: column;
       justify-content: flex-start;
     }
@@ -1086,7 +1117,23 @@ export async function printDepartmentPanelExcel({
 </head>
 <body>
   <div class="header">
-    <h1>Sample Request Form</h1>
+    <div class="header-main">
+      <h1>Sample Request Form</h1>
+    </div>
+    ${srdQrUrl ? `
+      <div class="header-qr">
+        <div class="header-qr-frame">
+          <img
+            src="${srdQrUrl}"
+            alt="SRD detail QR code"
+            class="header-qr-image"
+            data-srd-qr
+            loading="eager"
+            decoding="sync"
+          />
+        </div>
+      </div>
+    ` : ''}
   </div>
   
   <div class="template-grid">
@@ -1096,6 +1143,29 @@ export async function printDepartmentPanelExcel({
   <div id="excel-sections"></div>
 
   <script>
+    async function waitForQrImage() {
+      const qrImage = document.querySelector('[data-srd-qr]');
+
+      if (!qrImage || qrImage.complete) {
+        return;
+      }
+
+      await new Promise((resolve) => {
+        const done = () => resolve();
+        qrImage.addEventListener('load', done, { once: true });
+        qrImage.addEventListener('error', done, { once: true });
+        setTimeout(done, 3000);
+      });
+    }
+
+    async function printWhenReady(delay = 250) {
+      await waitForQrImage();
+      setTimeout(() => {
+        window.focus();
+        window.print();
+      }, delay);
+    }
+
     async function loadExcelFiles() {
       const files = ${JSON.stringify(excelFiles)};
       const container = document.getElementById('excel-sections');
@@ -1229,21 +1299,13 @@ export async function printDepartmentPanelExcel({
       }
       
       // Notify parent that we are ready or just print
-      setTimeout(() => {
-        window.focus();
-        window.print();
-        // window.close(); // Optional: close after print
-      }, 1000);
+      printWhenReady(1000);
     }
     
     if (${excelFiles.length} > 0) {
       loadExcelFiles();
     } else {
-      setTimeout(() => {
-        window.focus();
-        window.print();
-        // window.close();
-      }, 500);
+      printWhenReady(500);
     }
   </script>
 </body>

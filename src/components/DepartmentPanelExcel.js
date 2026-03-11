@@ -698,7 +698,9 @@ export default function DepartmentPanelExcel({
 
                   return (
                     <div key={rowIdx} className="bg-white border border-gray-200 shadow-sm rounded-md p-3 relative group">
-                      {canEdit && (
+                      
+                      {/* Add delete row button if user can edit and there's more than 1 row */}
+                      {/* {canEdit && (
                         <button
                           onClick={() => {
                             const newRows = tableData.rows.filter((_, idx) => idx !== rowIdx);
@@ -714,7 +716,7 @@ export default function DepartmentPanelExcel({
                         >
                           <Trash2 className="h-3 w-3" />
                         </button>
-                      )}
+                      )} */}
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Col 1: First 4 fields */}
@@ -825,7 +827,7 @@ export default function DepartmentPanelExcel({
                   );
                 })}
 
-                {canEdit && (
+                {/* {canEdit && (
                   <button
                     onClick={() => {
                       const newRows = [...tableData.rows, new Array(tableData.headers.length).fill('')];
@@ -836,7 +838,7 @@ export default function DepartmentPanelExcel({
                   >
                     <Plus className="h-4 w-4" /> Add New Row Card
                   </button>
-                )}
+                )} */}
               </div>
             </div>
           );
@@ -1532,7 +1534,7 @@ export default function DepartmentPanelExcel({
       {srd.audit && srd.audit.length > 0 && (
         <div className="border-t border-gray-200 p-3">
           <h4 className="text-sm font-semibold text-gray-700 mb-2">Activity</h4>
-          <div className="space-y-2 max-h-100 overflow-y-auto">
+          <div className="space-y-2 max-h-96 overflow-y-auto">
             {srd.audit.slice().reverse().map((entry, idx) => {
               // Find comment with matching timestamp (within 1 second tolerance)
               const relatedComment = srd.comments?.find(comment =>
