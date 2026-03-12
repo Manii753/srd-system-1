@@ -7,6 +7,8 @@ import { EJSON } from 'bson';
 
 export const BACKUP_FORMAT_ZIP = 'zip-v2';
 export const BACKUP_FORMAT_JSON = 'json-v1';
+export const AUTO_BACKUP_ID = 'auto-backup-latest';
+export const AUTO_BACKUP_FILE_NAME = `${AUTO_BACKUP_ID}.zip`;
 export const BACKUP_MIME_TYPES = {
   [BACKUP_FORMAT_ZIP]: 'application/zip',
   [BACKUP_FORMAT_JSON]: 'application/json',
@@ -24,6 +26,10 @@ export function getBackupsDirectory() {
 
 export function getUploadsDirectory() {
   return path.join(process.cwd(), 'public', 'uploads');
+}
+
+export function getAutomaticBackupPath() {
+  return path.join(getBackupsDirectory(), AUTO_BACKUP_FILE_NAME);
 }
 
 export async function ensureDirectoryExists(directoryPath) {
@@ -57,6 +63,10 @@ export function getBackupMimeType(backup = {}) {
   return BACKUP_MIME_TYPES[normalizeBackupFormat(backup)] || 'application/octet-stream';
 }
 
+export function getBackupSortDate(backup = {}) {
+  return backup.lastRunAt || backup.updatedAt || backup.createdAt || null;
+}
+
 export async function deleteLocalBackupFileIfExists(backup = {}) {
   if (backup.location !== 'local' || !backup.path) {
     return false;
@@ -78,10 +88,13 @@ export async function createZipBackup({
   createdAt = new Date(),
   includeUploads = true,
   excludedCollections = DEFAULT_EXCLUDED_COLLECTIONS,
+  backupPath: customBackupPath,
+  backupName,
 }) {
   await ensureDirectoryExists(getBackupsDirectory());
 
-  const backupPath = path.join(getBackupsDirectory(), `${backupId}.zip`);
+  const backupPath = customBackupPath || path.join(getBackupsDirectory(), `${backupId}.zip`);
+  const resolvedBackupName = backupName || path.basename(backupPath);
   const { databaseData, collectionSummaries, totalDocuments } = await exportDatabaseCollections(db, {
     excludedCollections,
   });
@@ -111,7 +124,7 @@ export async function createZipBackup({
   const stats = await fs.promises.stat(backupPath);
   const backupRecord = {
     id: backupId,
-    name: `${backupId}.zip`,
+    name: resolvedBackupName,
     location,
     size: stats.size,
     createdAt,
@@ -125,6 +138,39 @@ export async function createZipBackup({
   };
 
   return { backupRecord, manifest, backupPath };
+}
+
+export async function replaceFileAtomically(sourcePath, destinationPath) {
+  await ensureDirectoryExists(path.dirname(destinationPath));
+
+  const existingBackupPath = `${destinationPath}.previous-${crypto.randomUUID()}`;
+  const destinationExists = fs.existsSync(destinationPath);
+
+  try {
+    if (destinationExists) {
+      await fs.promises.rename(destinationPath, existingBackupPath);
+    }
+
+    await fs.promises.rename(sourcePath, destinationPath);
+
+    if (destinationExists && fs.existsSync(existingBackupPath)) {
+      await fs.promises.rm(existingBackupPath, { force: true });
+    }
+  } catch (error) {
+    if (!fs.existsSync(destinationPath) && destinationExists && fs.existsSync(existingBackupPath)) {
+      await fs.promises.rename(existingBackupPath, destinationPath).catch(() => {});
+    }
+
+    throw error;
+  } finally {
+    if (fs.existsSync(sourcePath)) {
+      await fs.promises.rm(sourcePath, { force: true });
+    }
+
+    if (fs.existsSync(existingBackupPath)) {
+      await fs.promises.rm(existingBackupPath, { force: true });
+    }
+  }
 }
 
 export async function exportDatabaseCollections(db, { excludedCollections = DEFAULT_EXCLUDED_COLLECTIONS } = {}) {

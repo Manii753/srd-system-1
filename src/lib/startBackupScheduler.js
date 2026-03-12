@@ -1,6 +1,6 @@
 import { backupScheduler } from './backupScheduler.js';
 
-// Start the backup scheduler when the application starts
+// Run the backup scheduler as a dedicated worker process.
 if (process.env.NODE_ENV === 'production' || process.env.ENABLE_BACKUP_SCHEDULER === 'true') {
   backupScheduler.start();
   

@@ -1,9 +1,15 @@
 import mongoose from 'mongoose';
+import fs from 'fs';
 import {
-  createBackupId,
+  AUTO_BACKUP_FILE_NAME,
+  AUTO_BACKUP_ID,
   createZipBackup,
   deleteLocalBackupFileIfExists,
+  getAutomaticBackupPath,
+  getBackupsDirectory,
+  replaceFileAtomically,
 } from './backupUtils.js';
+import path from 'path';
 
 export class BackupScheduler {
   constructor() {
@@ -15,6 +21,8 @@ export class BackupScheduler {
     
     this.isRunning = true;
     console.log('Backup scheduler started');
+
+    await this.checkScheduledBackups();
     
     // Check for scheduled backups every hour
     this.interval = setInterval(async () => {
@@ -52,7 +60,32 @@ export class BackupScheduler {
         .collection('backup_schedule')
         .findOne({ type: 'next_backup' });
 
-      if (!schedule || new Date() < new Date(schedule.scheduledFor)) {
+      const automaticBackup = await mongoose.connection.db
+        .collection('backups')
+        .findOne({ id: AUTO_BACKUP_ID });
+      const automaticBackupMissing =
+        !automaticBackup ||
+        !automaticBackup.path ||
+        !fs.existsSync(automaticBackup.path);
+
+      if (!schedule) {
+        if (automaticBackupMissing) {
+          console.log('No automatic backup schedule found. Creating initial rolling backup.');
+          await this.createAutomaticBackup(settings);
+        }
+
+        await this.scheduleNextBackup(settings.backupFrequency);
+        return;
+      }
+
+      if (automaticBackupMissing) {
+        console.log('Rolling automatic backup is missing. Recreating it now.');
+        await this.createAutomaticBackup(settings);
+        await this.scheduleNextBackup(settings.backupFrequency);
+        return;
+      }
+
+      if (new Date() < new Date(schedule.scheduledFor)) {
         return; // Not time yet
       }
 
@@ -69,18 +102,54 @@ export class BackupScheduler {
 
   async createAutomaticBackup(settings) {
     try {
-      const backupId = createBackupId('auto-backup');
+      const now = new Date();
+      const existingAutomaticBackup = await mongoose.connection.db
+        .collection('backups')
+        .findOne({ id: AUTO_BACKUP_ID });
+      const finalBackupPath = getAutomaticBackupPath();
+      const tempBackupPath = path.join(
+        getBackupsDirectory(),
+        `${AUTO_BACKUP_ID}.tmp-${now.toISOString().replace(/[:.]/g, '-')}.zip`
+      );
       const { backupRecord, manifest } = await createZipBackup({
         db: mongoose.connection.db,
-        backupId,
+        backupId: AUTO_BACKUP_ID,
         type: 'automatic',
         location: 'local',
+        createdAt: existingAutomaticBackup?.createdAt || now,
+        backupPath: tempBackupPath,
+        backupName: AUTO_BACKUP_FILE_NAME,
       });
 
-      await mongoose.connection.db.collection('backups').insertOne(backupRecord);
+      await replaceFileAtomically(tempBackupPath, finalBackupPath);
+
+      const automaticBackupRecord = {
+        ...backupRecord,
+        id: AUTO_BACKUP_ID,
+        name: AUTO_BACKUP_FILE_NAME,
+        path: finalBackupPath,
+        createdAt: existingAutomaticBackup?.createdAt || backupRecord.createdAt,
+        updatedAt: now,
+        lastRunAt: now,
+        schedulerMode: 'rolling',
+      };
+
+      await mongoose.connection.db.collection('backups').updateOne(
+        { id: AUTO_BACKUP_ID },
+        {
+          $set: automaticBackupRecord,
+          $setOnInsert: {
+            id: AUTO_BACKUP_ID,
+            type: 'automatic',
+          },
+        },
+        { upsert: true }
+      );
+
+      await this.cleanupLegacyAutomaticBackups();
 
       console.log(
-        `Automatic ZIP backup created: ${backupId} (${manifest.collectionCount} collections, ${manifest.totalDocuments} documents)`
+        `Rolling automatic ZIP backup updated: ${AUTO_BACKUP_ID} (${manifest.collectionCount} collections, ${manifest.totalDocuments} documents)`
       );
 
       // Cleanup old backups if needed
@@ -88,6 +157,26 @@ export class BackupScheduler {
 
     } catch (error) {
       console.error('Error creating automatic backup:', error);
+    }
+  }
+
+  async cleanupLegacyAutomaticBackups() {
+    const legacyAutomaticBackups = await mongoose.connection.db
+      .collection('backups')
+      .find({
+        type: 'automatic',
+        id: { $ne: AUTO_BACKUP_ID },
+      })
+      .toArray();
+
+    for (const backup of legacyAutomaticBackups) {
+      try {
+        await deleteLocalBackupFileIfExists(backup);
+        await mongoose.connection.db.collection('backups').deleteOne({ _id: backup._id });
+        console.log(`Deleted legacy automatic backup: ${backup.name}`);
+      } catch (error) {
+        console.error(`Error deleting legacy automatic backup ${backup.id}:`, error);
+      }
     }
   }
 
@@ -140,7 +229,7 @@ export class BackupScheduler {
         .collection('backups')
         .find({ 
           createdAt: { $lt: cutoffDate },
-          type: 'automatic'
+          type: { $nin: ['automatic', 'pre-restore'] }
         })
         .toArray();
 

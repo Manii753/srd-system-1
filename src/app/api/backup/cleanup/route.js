@@ -31,7 +31,7 @@ export async function POST() {
       .collection('backups')
       .find({ 
         createdAt: { $lt: cutoffDate },
-        type: { $ne: 'pre-restore' } // Keep pre-restore backups longer
+        type: { $nin: ['pre-restore', 'automatic'] } // Keep pre-restore and rolling automatic backups
       })
       .toArray();
 

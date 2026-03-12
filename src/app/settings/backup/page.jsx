@@ -285,6 +285,10 @@ export default function BackupPage() {
     return new Date(dateString).toLocaleString();
   };
 
+  const getBackupDisplayDate = (backup) => {
+    return backup.lastRunAt || backup.updatedAt || backup.createdAt;
+  };
+
   const extractDownloadFileName = (contentDisposition, fallbackName) => {
     if (!contentDisposition) {
       return fallbackName;
@@ -318,6 +322,32 @@ export default function BackupPage() {
     }
 
     return backup.includesUploads ? 'ZIP + uploads' : 'ZIP';
+  };
+
+  const getBackupTypeLabel = (backup) => {
+    switch (backup.type) {
+      case 'automatic':
+        return 'Automatic';
+      case 'uploaded':
+        return 'Uploaded';
+      case 'pre-restore':
+        return 'Pre-restore';
+      default:
+        return 'Manual';
+    }
+  };
+
+  const getBackupTypeDescription = (backup) => {
+    switch (backup.type) {
+      case 'automatic':
+        return 'Rolling automatic snapshot. Requires the `npm run backup:scheduler` worker to be running.';
+      case 'uploaded':
+        return 'Uploaded backup file stored on this server for restore/download.';
+      case 'pre-restore':
+        return 'Safety backup captured automatically before a restore runs.';
+      default:
+        return 'Manual local snapshot created from this page.';
+    }
   };
 
   if (loading) {
@@ -361,6 +391,14 @@ export default function BackupPage() {
             </Button>
           </div>
         </div>
+
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-gray-700">
+              Automatic backups use one rolling ZIP file and stay separate from manual backups. They only run when the separate scheduler worker is running with `npm run backup:scheduler`.
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -490,7 +528,7 @@ export default function BackupPage() {
                     Local storage only
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    Google Drive backup is currently disabled. Automatic and manual backups are stored locally as ZIP files.
+                    Google Drive backup is currently disabled. Automatic backup is a rolling full ZIP snapshot and requires the separate scheduler worker process.
                   </p>
                 </div>
                 
@@ -539,9 +577,15 @@ export default function BackupPage() {
                       </div>
                         <div>
                           <h3 className="font-medium">{backup.name}</h3>
-                          <div className="flex items-center space-x-4 text-sm text-gray-500">
-                            <span>{formatDate(backup.createdAt)}</span>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {getBackupTypeDescription(backup)}
+                          </p>
+                          <div className="flex items-center space-x-4 text-sm text-gray-500 mt-2">
+                            <span>{formatDate(getBackupDisplayDate(backup))}</span>
                             <span>{formatFileSize(backup.size)}</span>
+                            <Badge variant={backup.type === 'automatic' ? 'secondary' : 'outline'}>
+                              {getBackupTypeLabel(backup)}
+                            </Badge>
                             <Badge variant={backup.status === 'completed' ? 'default' : 'secondary'}>
                               {backup.status}
                             </Badge>
