@@ -1134,13 +1134,11 @@ export async function printDepartmentPanelExcel({
     }
 
     .excel-title {
+
       font-size: 11px;
       font-weight: 700;
       text-transform: capitalize;
       background: #f3f4f6;
-      padding: 4px;
-      border: 1px solid #333;
-      margin-bottom: 5px;
     }
 
     .excel-table-wrapper {
@@ -1149,10 +1147,41 @@ export async function printDepartmentPanelExcel({
       overflow: visible;
     }
 
+    .excel-sheets-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .excel-sheet-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1 1 320px;
+      min-width: 0;
+      break-inside: avoid;
+    }
+
+    .excel-sheet-card.is-single-sheet {
+      flex-basis: 100%;
+    }
+
+    .excel-sheet-title {
+      text-align: center;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 6px;
+      background: #f9fafb;
+      
+      text-transform: none;
+    }
+
     table {
       
       border-collapse: collapse;
-      table-layout: fixed; /* Ensures equal column widths */
+      
     }
 
     table, th, td {
@@ -1160,7 +1189,7 @@ export async function printDepartmentPanelExcel({
     }
 
     th, td {
-      padding: 4px 8px;
+      padding: 2px 4px;
       text-align: left;
       word-wrap: break-word;
       height: 12px; /* Enforce minimum height for rows */
@@ -1283,6 +1312,10 @@ export async function printDepartmentPanelExcel({
           title.className = 'excel-title';
           title.textContent = 'ATTACHED EXCEL: ' + file.name;
           section.appendChild(title);
+
+          const sheetsRow = document.createElement('div');
+          sheetsRow.className = 'excel-sheets-row';
+          const totalSheets = workbook.SheetNames.length;
           
           workbook.SheetNames.forEach(sheetName => {
             const sheet = workbook.Sheets[sheetName];
@@ -1321,10 +1354,9 @@ export async function printDepartmentPanelExcel({
             const htmlTable = XLSX.utils.sheet_to_html(sheet);
             
             const sheetTitle = document.createElement('div');
-            sheetTitle.style.fontWeight = 'bold';
-            sheetTitle.style.margin = '5px 0';
-            sheetTitle.textContent = 'Sheet: ' + sheetName;
-            
+            sheetTitle.className = 'excel-sheet-title';
+            sheetTitle.textContent = sheetName;
+             
             const wrapper = document.createElement('div');
             wrapper.className = 'excel-table-wrapper';
             wrapper.innerHTML = htmlTable;
@@ -1383,15 +1415,25 @@ export async function printDepartmentPanelExcel({
                 }
               }
             }
-            
+             
             // Only append the sheet if it still has data after cleanup
             if (wrapper.querySelectorAll('tr').length > 0 && wrapper.querySelectorAll('td, th').length > 0) {
-              section.appendChild(sheetTitle);
-              section.appendChild(wrapper);
+              const sheetCard = document.createElement('div');
+              sheetCard.className = 'excel-sheet-card';
+              if (totalSheets === 1) {
+                sheetCard.classList.add('is-single-sheet');
+              }
+
+              sheetCard.appendChild(sheetTitle);
+              sheetCard.appendChild(wrapper);
+              sheetsRow.appendChild(sheetCard);
             }
           });
-          
-          container.appendChild(section);
+
+          if (sheetsRow.children.length > 0) {
+            section.appendChild(sheetsRow);
+            container.appendChild(section);
+          }
         } catch (err) {
           console.error('Error loading excel:', err);
         }
