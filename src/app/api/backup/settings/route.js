@@ -44,8 +44,8 @@ export async function GET() {
       settings: {
         autoBackup: settings.autoBackup,
         retentionDays: settings.retentionDays,
-        backupLocation: settings.backupLocation,
-        googleDriveEnabled: settings.googleDriveEnabled,
+        backupLocation: 'local',
+        googleDriveEnabled: false,
         backupFrequency: settings.backupFrequency
       }
     });
@@ -78,6 +78,8 @@ export async function PUT(request) {
     // Update backup settings
     const updatedSettings = {
       ...newSettings,
+      backupLocation: 'local',
+      googleDriveEnabled: false,
       type: 'global',
       updatedAt: new Date()
     };
@@ -98,7 +100,11 @@ export async function PUT(request) {
     return NextResponse.json({
       success: true,
       message: 'Backup settings updated successfully',
-      settings: newSettings
+      settings: {
+        ...newSettings,
+        backupLocation: 'local',
+        googleDriveEnabled: false,
+      }
     });
 
   } catch (error) {

@@ -4,6 +4,15 @@ import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
 import fs from 'fs';
 import path from 'path';
+import {
+  BACKUP_FORMAT_JSON,
+  BACKUP_FORMAT_ZIP,
+  createBackupTimestamp,
+  ensureDirectoryExists,
+  getBackupsDirectory,
+  loadBackupFile,
+  sanitizeBackupFileName,
+} from '@/lib/backupUtils';
 
 export async function POST(request) {
   try {
@@ -25,52 +34,62 @@ export async function POST(request) {
       await mongoose.connect(process.env.MONGODB_URI);
     }
 
-    // Create backup directory if it doesn't exist
-    const backupDir = path.join(process.cwd(), 'backups');
-    if (!fs.existsSync(backupDir)) {
-      fs.mkdirSync(backupDir, { recursive: true });
+    const originalFileName = sanitizeBackupFileName(file.name || 'uploaded-backup.zip');
+    const extension = path.extname(originalFileName).toLowerCase();
+    if (!['.zip', '.json'].includes(extension)) {
+      return NextResponse.json({
+        success: false,
+        message: 'Only ZIP backups and legacy JSON backups are supported.',
+      }, { status: 400 });
     }
 
-    // Generate unique filename
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const fileName = `uploaded-backup-${timestamp}.json`;
+    const backupDir = await ensureDirectoryExists(getBackupsDirectory());
+    const fileName = `uploaded-backup-${createBackupTimestamp()}-${originalFileName}`;
     const filePath = path.join(backupDir, fileName);
 
-    // Save uploaded file
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     fs.writeFileSync(filePath, buffer);
 
-    // Validate backup file
+    let parsedBackup;
     try {
-      const backupContent = fs.readFileSync(filePath, 'utf8');
-      const backupJson = JSON.parse(backupContent);
-      
-      // Basic validation
-      if (!backupJson || (typeof backupJson !== 'object')) {
-        throw new Error('Invalid backup format');
-      }
+      parsedBackup = await loadBackupFile(
+        filePath,
+        extension === '.zip' ? BACKUP_FORMAT_ZIP : BACKUP_FORMAT_JSON
+      );
     } catch (error) {
-      // Delete invalid file
-      fs.unlinkSync(filePath);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
       return NextResponse.json({ 
         success: false, 
-        message: 'Invalid backup file format' 
+        message: error.message || 'Invalid backup file format',
       }, { status: 400 });
     }
 
     const stats = fs.statSync(filePath);
+    const metadata = parsedBackup.metadata || {};
+    const collectionList = Array.isArray(metadata.collections)
+      ? metadata.collections
+      : Object.keys(parsedBackup.databaseData || {});
+    const totalDocuments = metadata.totalDocuments || Object.values(parsedBackup.databaseData || {}).reduce(
+      (sum, collectionDocuments) => sum + (Array.isArray(collectionDocuments) ? collectionDocuments.length : 0),
+      0
+    );
 
-    // Save backup record to database
     const backupRecord = {
-      id: fileName.replace('.json', ''),
-      name: fileName,
+      id: fileName.replace(path.extname(fileName), ''),
+      name: originalFileName,
       location: 'local',
       size: stats.size,
       createdAt: new Date(),
       status: 'completed',
       path: filePath,
-      type: 'uploaded'
+      type: 'uploaded',
+      format: parsedBackup.format,
+      includesUploads: parsedBackup.includesUploads,
+      collectionCount: metadata.collectionCount || collectionList.length,
+      totalDocuments,
     };
 
     await mongoose.connection.db.collection('backups').insertOne(backupRecord);
@@ -78,7 +97,13 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       message: 'Backup uploaded successfully',
-      backup: backupRecord
+      backup: backupRecord,
+      summary: {
+        format: parsedBackup.format,
+        includesUploads: parsedBackup.includesUploads,
+        collectionCount: backupRecord.collectionCount,
+        totalDocuments: backupRecord.totalDocuments,
+      },
     });
 
   } catch (error) {

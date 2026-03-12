@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
 import fs from 'fs';
-import path from 'path';
+import { getBackupMimeType } from '@/lib/backupUtils';
 
 export async function GET(request, { params }) {
   try {
@@ -13,7 +13,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } =await params;
 
     // Connect to database
     if (!mongoose.connection.readyState) {
@@ -41,9 +41,9 @@ export async function GET(request, { params }) {
       
       return new NextResponse(fileBuffer, {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': getBackupMimeType(backup),
           'Content-Disposition': `attachment; filename="${backup.name}"`,
-          'Content-Length': backup.size.toString(),
+          'Content-Length': fileBuffer.length.toString(),
         },
       });
     }

@@ -3,8 +3,16 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
 import fs from 'fs';
-import path from 'path';
-// import AdmZip from 'adm-zip';
+import {
+  BACKUP_FORMAT_JSON,
+  BACKUP_FORMAT_ZIP,
+  createBackupId,
+  createZipBackup,
+  loadBackupFile,
+  normalizeBackupFormat,
+  restoreDatabaseCollections,
+  restoreUploadsFromZip,
+} from '@/lib/backupUtils';
 
 export async function POST(request, { params }) {
   try {
@@ -44,63 +52,62 @@ export async function POST(request, { params }) {
       return NextResponse.json({ success: false, message: 'Backup file not found' }, { status: 404 });
     }
 
-    // Read JSON backup file
-    const backupContent = fs.readFileSync(filePath, 'utf8');
-    const backupJson = JSON.parse(backupContent);
-    
-    let databaseData = null;
-    let metadata = null;
-
-    // Handle different backup formats
-    if (backupJson.data && backupJson.metadata) {
-      // New format with metadata
-      databaseData = backupJson.data;
-      metadata = backupJson.metadata;
-    } else {
-      // Old format - direct data
-      databaseData = backupJson;
-    }
-
-    if (!databaseData) {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'Invalid backup file - no database data found' 
+    let parsedBackup;
+    try {
+      parsedBackup = await loadBackupFile(filePath, normalizeBackupFormat(backup));
+    } catch (error) {
+      return NextResponse.json({
+        success: false,
+        message: error.message || 'Invalid backup file',
       }, { status: 400 });
     }
 
-    // Create backup of current data before restore
-    const currentBackupName = `pre-restore-${new Date().toISOString().replace(/[:.]/g, '-')}`;
-    await createCurrentDataBackup(currentBackupName);
+    const preRestoreBackupId = createBackupId('pre-restore');
+    const { backupRecord: preRestoreBackupRecord } = await createZipBackup({
+      db: mongoose.connection.db,
+      backupId: preRestoreBackupId,
+      type: 'pre-restore',
+      location: 'local',
+    });
+    await mongoose.connection.db.collection('backups').insertOne(preRestoreBackupRecord);
 
-    // Restore collections
-    const restoredCollections = [];
-    
-    for (const [collectionName, data] of Object.entries(databaseData)) {
-      try {
-        // Skip system collections
-        if (collectionName.startsWith('system.')) {
-          continue;
-        }
+    const databaseSummary = await restoreDatabaseCollections(
+      mongoose.connection.db,
+      parsedBackup.databaseData
+    );
+    const uploadSummary = parsedBackup.format === BACKUP_FORMAT_ZIP
+      ? await restoreUploadsFromZip(parsedBackup.zip, { tempPrefix: id })
+      : {
+          filesInBackup: 0,
+          filesRestored: 0,
+          filesSkipped: 0,
+          unsafeEntriesSkipped: 0,
+        };
 
-        // Clear existing collection
-        await mongoose.connection.db.collection(collectionName).deleteMany({});
-        
-        // Insert backup data
-        if (data.length > 0) {
-          await mongoose.connection.db.collection(collectionName).insertMany(data);
-        }
-        
-        restoredCollections.push(collectionName);
-      } catch (error) {
-        console.error(`Error restoring collection ${collectionName}:`, error);
-      }
-    }
+    const restoredCollections = databaseSummary.collections.map((collection) => collection.name);
+    const legacyMessage =
+      parsedBackup.format === BACKUP_FORMAT_JSON
+        ? ' Legacy JSON backups restore database data only and do not include uploaded files.'
+        : '';
 
     return NextResponse.json({
       success: true,
-      message: 'Backup restored successfully',
+      message: `Backup restored successfully.${legacyMessage}`,
       restoredCollections,
-      metadata
+      metadata: parsedBackup.metadata,
+      summary: {
+        format: parsedBackup.format,
+        collectionsProcessed: databaseSummary.collectionsProcessed,
+        collectionsSkipped: databaseSummary.collectionsSkipped,
+        documentsInserted: databaseSummary.documentsInserted + databaseSummary.documentsInsertedWithoutId,
+        documentsReplaced: databaseSummary.documentsReplaced,
+        filesInBackup: uploadSummary.filesInBackup,
+        filesRestored: uploadSummary.filesRestored,
+        filesSkipped: uploadSummary.filesSkipped,
+        unsafeEntriesSkipped: uploadSummary.unsafeEntriesSkipped,
+        includesUploads: parsedBackup.includesUploads,
+        preRestoreBackupId: preRestoreBackupRecord.id,
+      },
     });
 
   } catch (error) {
@@ -110,47 +117,5 @@ export async function POST(request, { params }) {
       message: 'Failed to restore backup',
       error: error.message
     }, { status: 500 });
-  }
-}
-
-async function createCurrentDataBackup(backupName) {
-  try {
-    // Get all collections
-    const collections = await mongoose.connection.db.listCollections().toArray();
-    const backupData = {};
-
-    // Export all collections
-    for (const collection of collections) {
-      const collectionName = collection.name;
-      const data = await mongoose.connection.db.collection(collectionName).find({}).toArray();
-      backupData[collectionName] = data;
-    }
-
-    // Create backup directory if it doesn't exist
-    const backupDir = path.join(process.cwd(), 'backups');
-    if (!fs.existsSync(backupDir)) {
-      fs.mkdirSync(backupDir, { recursive: true });
-    }
-
-    // Save current data as JSON (simple backup before restore)
-    const backupPath = path.join(backupDir, `${backupName}.json`);
-    fs.writeFileSync(backupPath, JSON.stringify(backupData, null, 2));
-
-    // Save backup record
-    const backupRecord = {
-      id: backupName,
-      name: `${backupName}.json`,
-      location: 'local',
-      size: fs.statSync(backupPath).size,
-      createdAt: new Date(),
-      status: 'completed',
-      path: backupPath,
-      type: 'pre-restore'
-    };
-
-    await mongoose.connection.db.collection('backups').insertOne(backupRecord);
-    
-  } catch (error) {
-    console.error('Error creating pre-restore backup:', error);
   }
 }

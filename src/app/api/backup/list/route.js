@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
+import { normalizeBackupFormat } from '@/lib/backupUtils';
 
 export async function GET() {
   try {
@@ -31,7 +32,14 @@ export async function GET() {
         location: backup.location,
         size: backup.size,
         createdAt: backup.createdAt,
-        status: backup.status
+        status: backup.status,
+        type: backup.type,
+        format: normalizeBackupFormat(backup),
+        includesUploads: typeof backup.includesUploads === 'boolean'
+          ? backup.includesUploads
+          : normalizeBackupFormat(backup) === 'zip-v2',
+        collectionCount: backup.collectionCount || 0,
+        totalDocuments: backup.totalDocuments || 0,
       }))
     });
 

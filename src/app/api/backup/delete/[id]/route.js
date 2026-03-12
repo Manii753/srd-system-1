@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
-import fs from 'fs';
+import { deleteLocalBackupFileIfExists } from '@/lib/backupUtils';
 
 export async function DELETE(request, { params }) {
   try {
@@ -31,9 +31,7 @@ export async function DELETE(request, { params }) {
     // Delete local file if it exists
     if (backup.location === 'local' && backup.path) {
       try {
-        if (fs.existsSync(backup.path)) {
-          fs.unlinkSync(backup.path);
-        }
+        await deleteLocalBackupFileIfExists(backup);
       } catch (error) {
         console.error('Error deleting local backup file:', error);
       }

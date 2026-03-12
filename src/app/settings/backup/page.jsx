@@ -13,10 +13,7 @@ import {
   Upload, 
   Cloud, 
   HardDrive, 
-  Calendar, 
   Settings,
-  CheckCircle,
-  AlertCircle,
   Clock,
   Trash2,
   RefreshCw
@@ -77,7 +74,7 @@ export default function BackupPage() {
     }
   };
 
-  const createBackup = async (location = 'local') => {
+  const createBackup = async () => {
     setBackupInProgress(true);
     setUploadProgress(0);
     
@@ -87,13 +84,17 @@ export default function BackupPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ location }),
+        body: JSON.stringify({ location: 'local' }),
       });
 
       const data = await response.json();
       
       if (data.success) {
-        toast.success(`Backup created successfully ${location === 'google' ? 'on Google Drive' : 'locally'}`);
+        const summary = data.summary;
+        const detail = summary
+          ? ` ${summary.collectionCount} collections, ${summary.totalDocuments} documents${summary.includesUploads ? ', uploads included' : ''}.`
+          : '';
+        toast.success(`ZIP backup created successfully.${detail}`);
         fetchBackups();
       } else {
         toast.error(data.message || 'Failed to create backup');
@@ -114,10 +115,15 @@ export default function BackupPage() {
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
+        const backup = backups.find((item) => item.id === backupId);
+        const downloadName = extractDownloadFileName(
+          response.headers.get('content-disposition'),
+          backup?.name || `backup-${backupId}`
+        );
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        a.download = `backup-${backupId}.zip`;
+        a.download = downloadName;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -154,7 +160,12 @@ export default function BackupPage() {
   };
 
   const restoreBackup = async (backupId) => {
-    if (!confirm('Are you sure you want to restore this backup? This will overwrite current data.')) return;
+    const backup = backups.find((item) => item.id === backupId);
+    const confirmMessage = backup?.format === 'json-v1'
+      ? 'Restore this legacy JSON backup? Matching documents will be replaced by _id, missing documents will be inserted, unrelated current data will stay, and no upload files will be restored from this backup.'
+      : 'Restore this backup? Matching documents will be replaced by _id, missing documents will be inserted, unrelated current data will stay, existing upload files will be kept, and missing upload files from the backup will be restored.';
+
+    if (!confirm(confirmMessage)) return;
     
     try {
       const response = await fetch(`/api/backup/restore/${backupId}`, {
@@ -164,7 +175,7 @@ export default function BackupPage() {
       const data = await response.json();
       
       if (data.success) {
-        toast.success('Backup restored successfully');
+        toast.success(buildRestoreSummaryMessage(data));
         // Refresh the page to show updated data
         window.location.reload();
       } else {
@@ -189,7 +200,7 @@ export default function BackupPage() {
       const data = await response.json();
       
       if (data.success) {
-        setSettings(newSettings);
+        setSettings(data.settings);
         toast.success('Settings updated successfully');
       } else {
         toast.error(data.message || 'Failed to update settings');
@@ -218,7 +229,13 @@ export default function BackupPage() {
       const data = await response.json();
       
       if (data.success) {
-        toast.success('Backup uploaded successfully');
+        const summary = data.summary;
+        const detail = summary?.format === 'json-v1'
+          ? ' Legacy JSON backup uploaded. It will restore database data only.'
+          : summary?.includesUploads
+            ? ' ZIP backup uploaded with uploads included.'
+            : ' ZIP backup uploaded.';
+        toast.success(`Backup uploaded successfully.${detail}`);
         fetchBackups();
       } else {
         toast.error(data.message || 'Failed to upload backup');
@@ -256,6 +273,7 @@ export default function BackupPage() {
   };
 
   const formatFileSize = (bytes) => {
+    if (!Number.isFinite(bytes)) return 'Unknown size';
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -265,6 +283,41 @@ export default function BackupPage() {
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString();
+  };
+
+  const extractDownloadFileName = (contentDisposition, fallbackName) => {
+    if (!contentDisposition) {
+      return fallbackName;
+    }
+
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match?.[1]) {
+      return decodeURIComponent(utf8Match[1]);
+    }
+
+    const plainMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+    return plainMatch?.[1] || fallbackName;
+  };
+
+  const buildRestoreSummaryMessage = (data) => {
+    const summary = data?.summary;
+    if (!summary) {
+      return data?.message || 'Backup restored successfully';
+    }
+
+    const uploadPart = summary.format === 'json-v1'
+      ? 'No upload files were included.'
+      : `${summary.filesRestored} files restored, ${summary.filesSkipped} existing files skipped.`;
+
+    return `${summary.collectionsProcessed} collections processed, ${summary.documentsInserted} documents inserted, ${summary.documentsReplaced} documents replaced. ${uploadPart}`;
+  };
+
+  const getBackupFormatLabel = (backup) => {
+    if (backup.format === 'json-v1') {
+      return 'Legacy JSON';
+    }
+
+    return backup.includesUploads ? 'ZIP + uploads' : 'ZIP';
   };
 
   if (loading) {
@@ -310,7 +363,7 @@ export default function BackupPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -320,10 +373,10 @@ export default function BackupPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600 mb-4">
-                Create a backup stored on the server's local storage
+                Create a downloadable ZIP backup with database data and everything under `public/uploads`
               </p>
               <Button 
-                onClick={() => createBackup('local')} 
+                onClick={createBackup} 
                 className="w-full"
                 disabled={backupInProgress}
               >
@@ -345,49 +398,17 @@ export default function BackupPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Cloud className="h-5 w-5" />
-                <span>Google Drive Backup</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600 mb-4">
-                Create a backup and upload to Google Drive
-              </p>
-              <Button 
-                onClick={() => createBackup('google')} 
-                className="w-full"
-                disabled={backupInProgress || !settings.googleDriveEnabled}
-                variant={settings.googleDriveEnabled ? "default" : "secondary"}
-              >
-                {backupInProgress ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Cloud className="h-4 w-4 mr-2" />
-                    {settings.googleDriveEnabled ? 'Backup to Google Drive' : 'Configure Google Drive'}
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
                 <Upload className="h-5 w-5" />
                 <span>Upload Backup</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600 mb-4">
-                Upload and restore from a backup file
+                Upload a ZIP backup or legacy JSON backup, then restore it from backup history
               </p>
               <input
                 type="file"
-                accept=".json,.zip,.tar.gz"
+                accept=".zip,.json"
                 className="hidden"
                 id="backup-upload"
                 onChange={handleFileUpload}
@@ -411,7 +432,7 @@ export default function BackupPage() {
             <CardContent className="pt-6">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Creating backup...</span>
+                  <span>Processing backup...</span>
                   <span>{uploadProgress}%</span>
                 </div>
                 <Progress value={uploadProgress} className="w-full" />
@@ -465,14 +486,12 @@ export default function BackupPage() {
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium">Default Location</label>
-                  <select 
-                    className="w-full mt-1 p-2 border rounded-md"
-                    value={settings.backupLocation}
-                    onChange={(e) => updateSettings({...settings, backupLocation: e.target.value})}
-                  >
-                    <option value="local">Local Storage</option>
-                    <option value="google">Google Drive</option>
-                  </select>
+                  <div className="w-full mt-1 p-2 border rounded-md bg-gray-50 text-sm text-gray-700">
+                    Local storage only
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Google Drive backup is currently disabled. Automatic and manual backups are stored locally as ZIP files.
+                  </p>
                 </div>
                 
                 <div className="flex items-center space-x-2">
@@ -518,17 +537,20 @@ export default function BackupPage() {
                           <HardDrive className="h-8 w-8 text-gray-500" />
                         )}
                       </div>
-                      <div>
-                        <h3 className="font-medium">{backup.name}</h3>
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          <span>{formatDate(backup.createdAt)}</span>
-                          <span>{formatFileSize(backup.size)}</span>
-                          <Badge variant={backup.status === 'completed' ? 'default' : 'secondary'}>
-                            {backup.status}
-                          </Badge>
+                        <div>
+                          <h3 className="font-medium">{backup.name}</h3>
+                          <div className="flex items-center space-x-4 text-sm text-gray-500">
+                            <span>{formatDate(backup.createdAt)}</span>
+                            <span>{formatFileSize(backup.size)}</span>
+                            <Badge variant={backup.status === 'completed' ? 'default' : 'secondary'}>
+                              {backup.status}
+                            </Badge>
+                            <Badge variant="outline">
+                              {getBackupFormatLabel(backup)}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
-                    </div>
                     <div className="flex items-center space-x-2">
                       <Button
                         size="sm"

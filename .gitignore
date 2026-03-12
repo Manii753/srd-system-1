@@ -37,6 +37,7 @@ next-env.d.ts
 .vscode
 .idea
 
+backups
 
 
 # Logs

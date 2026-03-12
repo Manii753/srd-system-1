@@ -1,6 +1,9 @@
 import mongoose from 'mongoose';
-import fs from 'fs';
-import path from 'path';
+import {
+  createBackupId,
+  createZipBackup,
+  deleteLocalBackupFileIfExists,
+} from './backupUtils.js';
 
 export class BackupScheduler {
   constructor() {
@@ -66,60 +69,19 @@ export class BackupScheduler {
 
   async createAutomaticBackup(settings) {
     try {
-      // Get all collections
-      const collections = await mongoose.connection.db.listCollections().toArray();
-      const backupData = {};
-
-      // Export all collections
-      for (const collection of collections) {
-        const collectionName = collection.name;
-        const data = await mongoose.connection.db.collection(collectionName).find({}).toArray();
-        backupData[collectionName] = data;
-      }
-
-      // Create backup directory if it doesn't exist
-      const backupDir = path.join(process.cwd(), 'backups');
-      if (!fs.existsSync(backupDir)) {
-        fs.mkdirSync(backupDir, { recursive: true });
-      }
-
-      // Generate backup filename with timestamp
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const backupName = `auto-backup-${timestamp}`;
-      const backupPath = path.join(backupDir, `${backupName}.json`);
-
-      // Create backup data with metadata
-      const backupData_with_metadata = {
-        metadata: {
-          created: new Date().toISOString(),
-          version: '1.0',
-          type: 'automatic',
-          collections: Object.keys(backupData),
-          totalRecords: Object.values(backupData).reduce((sum, data) => sum + data.length, 0)
-        },
-        data: backupData
-      };
-
-      // Write backup to file
-      fs.writeFileSync(backupPath, JSON.stringify(backupData_with_metadata, null, 2));
-      
-      const stats = fs.statSync(backupPath);
-
-      // Save backup record to database
-      const backupRecord = {
-        id: backupName,
-        name: `${backupName}.json`,
-        location: settings.backupLocation || 'local',
-        size: stats.size,
-        createdAt: new Date(),
-        status: 'completed',
-        path: backupPath,
-        type: 'automatic'
-      };
+      const backupId = createBackupId('auto-backup');
+      const { backupRecord, manifest } = await createZipBackup({
+        db: mongoose.connection.db,
+        backupId,
+        type: 'automatic',
+        location: 'local',
+      });
 
       await mongoose.connection.db.collection('backups').insertOne(backupRecord);
 
-      console.log(`Automatic backup created: ${backupName}`);
+      console.log(
+        `Automatic ZIP backup created: ${backupId} (${manifest.collectionCount} collections, ${manifest.totalDocuments} documents)`
+      );
 
       // Cleanup old backups if needed
       await this.cleanupOldBackups(settings.retentionDays || 30);
@@ -187,9 +149,7 @@ export class BackupScheduler {
         try {
           // Delete local file if it exists
           if (backup.location === 'local' && backup.path) {
-            if (fs.existsSync(backup.path)) {
-              fs.unlinkSync(backup.path);
-            }
+            await deleteLocalBackupFileIfExists(backup);
           }
 
           // Remove from database

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
-import fs from 'fs';
+import { deleteLocalBackupFileIfExists } from '@/lib/backupUtils';
 
 export async function POST() {
   try {
@@ -43,9 +43,7 @@ export async function POST() {
       try {
         // Delete local file if it exists
         if (backup.location === 'local' && backup.path) {
-          if (fs.existsSync(backup.path)) {
-            fs.unlinkSync(backup.path);
-          }
+          await deleteLocalBackupFileIfExists(backup);
         }
 
         // Remove from database
