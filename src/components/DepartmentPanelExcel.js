@@ -1428,18 +1428,7 @@ export default function DepartmentPanelExcel({
                         <span className="text-xs font-medium text-gray-700 truncate block" title={fieldDef.name}>
                           {fieldDef.name}
                         </span>
-                        {attachmentLabels.length > 0 && (
-                          <div className="mt-1 space-y-1">
-                            {attachmentLabels.map((label, index) => (
-                              <div
-                                key={`${label}-${index}`}
-                                className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"
-                              >
-                                {label}
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        
                       </div>
                       <div className="flex items-center gap-2 ml-1">
                         {fieldDef.isOptional && (
@@ -1473,8 +1462,22 @@ export default function DepartmentPanelExcel({
                       renderCellInput(fieldDef, fieldIdStr, canEdit)
                     )}
                   </div>
+                  {attachmentLabels.length > 0 && (
+                          <div className="mt-1 space-x-1 flex flex-row flex-wrap justify-start">
+                            {attachmentLabels.map((label, index) => (
+                              <div
+                                key={`${label}-${index}`}
+                                className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"
+                              >
+                                {label}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                 </div>
+                
               </div>
+              
             );
           })}
         </div>
