@@ -80,8 +80,10 @@ export async function POST(request, { params }) {
       comments,
       audit,
       revision,
+      images: _legacyImages,
       ...restOfSrd 
     } = originalSrd;
+    void _legacyImages;
 
     // Generate the new refNo
     const { refNo: newRefNo } = await getNextRefNo(refNo, isRedo);

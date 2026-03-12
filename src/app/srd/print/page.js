@@ -3,6 +3,11 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
+import {
+    formatFieldValueForDisplay,
+    getPrimaryAsset,
+    getAssetUrl,
+} from '@/lib/assetUtils';
 
 
 function SRDPrintPageContent() {
@@ -70,13 +75,7 @@ function SRDPrintPageContent() {
         // If this is an image field, render the actual image instead of the path
         const isImageField = fieldDef.type === 'image' || field.type === 'image';
         if (isImageField && field.value) {
-            // Handle arrays, comma-separated strings, or single URL
-            let firstImage = '';
-            if (Array.isArray(field.value)) {
-                firstImage = field.value[0] || '';
-            } else if (typeof field.value === 'string') {
-                firstImage = field.value.split(',')[0].trim();
-            }
+            const firstImage = getAssetUrl(getPrimaryAsset(field.value, { kind: 'image' }));
 
             if (firstImage) {
                 return (
@@ -93,9 +92,7 @@ function SRDPrintPageContent() {
             return '';
         }
 
-        if (Array.isArray(field.value)) return field.value.join(', ');
-
-        return String(field.value);
+        return formatFieldValueForDisplay(field.value, field.type || fieldDef.type);
     };
 
     const getLatestApprovedDept = (srd) => {

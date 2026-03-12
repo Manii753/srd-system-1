@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
+import { formatFieldValueForDisplay, getFirstImageUrlFromDynamicFields } from '@/lib/assetUtils';
 
 function ReportPrintContent() {
   const { data: session, status } = useSession();
@@ -53,9 +54,8 @@ function ReportPrintContent() {
     );
     
     if (!field || field.value === null || field.value === undefined) return '';
-    
-    if (Array.isArray(field.value)) return field.value.join(', ');
-    return String(field.value);
+
+    return formatFieldValueForDisplay(field.value, field.type || field.field?.type);
   };
 
   const getStatusDisplay = (srd) => {
@@ -70,8 +70,7 @@ function ReportPrintContent() {
   };
 
   const getImage = (srd) => {
-    const images = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-    return images.length > 0 ? images[0] : '';
+    return getFirstImageUrlFromDynamicFields(srd.dynamicFields);
   };
 
   if (loading) return <div className="p-8 text-center">Loading report data...</div>;

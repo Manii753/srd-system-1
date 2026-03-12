@@ -6,6 +6,11 @@ import { Progress } from '@/components/ui/progress';
 import { ChevronUp, ChevronDown, Search, Filter, X, ChevronLeft, ChevronRight, Star, Copy, Repeat } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import {
+  formatFieldValueForDisplay,
+  getAssetUrl,
+  getImageAssetsFromDynamicFields,
+} from '@/lib/assetUtils';
 
 
 export default function SRDTable({ srds, department }) {
@@ -138,12 +143,7 @@ export default function SRDTable({ srds, department }) {
       return 'N/A';
     }
 
-    // Handle array values (like multi-select or file uploads)
-    if (Array.isArray(field.value)) {
-      return field.value.join(', ') || 'N/A';
-    }
-
-    return field.value;
+    return formatFieldValueForDisplay(field.value, field.type || field.field?.type) || 'N/A';
   };
 
   // Helper function to get quick details fields for an SRD
@@ -183,8 +183,6 @@ export default function SRDTable({ srds, department }) {
         let displayValue = dynamicField.value;
         if (displayValue === null || displayValue === undefined || displayValue === '') {
           displayValue = 'N/A';
-        } else if (Array.isArray(displayValue)) {
-          displayValue = displayValue.length > 0 ? displayValue.join(', ') : 'N/A';
         } else if (dynamicField.type === 'date' && displayValue !== 'N/A') {
           try {
             const dateValue = new Date(displayValue);
@@ -194,6 +192,8 @@ export default function SRDTable({ srds, department }) {
           } catch (e) {
             // Keep original value if date parsing fails
           }
+        } else {
+          displayValue = formatFieldValueForDisplay(displayValue, dynamicField.type || quickField.type) || 'N/A';
         }
 
         return {
@@ -229,30 +229,9 @@ export default function SRDTable({ srds, department }) {
 
   // Helper function to get all images for an SRD
   const getAllImages = (srd) => {
-    const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-
-    const deptImageFields = srd.dynamicFields?.filter(f => {
-      if (f.department !== department) return false;
-      if (!f.value) return false;
-
-      if (typeof f.value === 'string' && (f.value.startsWith('/') || f.value.startsWith('http'))) {
-        return true;
-      }
-
-      if (Array.isArray(f.value) && f.value.length > 0) {
-        return f.value.some(v => typeof v === 'string' && (v.startsWith('/') || v.startsWith('http')));
-      }
-
-      return false;
-    }) || [];
-
-    const deptImages = deptImageFields.flatMap(field =>
-      Array.isArray(field.value) ? field.value : [field.value]
-    );
-
-    const allImages = Array.from(new Set([...globalImages, ...deptImages])).filter(Boolean);
-
-    return allImages;
+    return getImageAssetsFromDynamicFields(srd.dynamicFields, { department })
+      .map((asset) => getAssetUrl(asset))
+      .filter(Boolean);
   };
 
   const openImageSlider = (images) => {
@@ -518,7 +497,7 @@ export default function SRDTable({ srds, department }) {
                                 <div className="col-span-full bg-white rounded-lg p-6 text-center border border-gray-200">
                                   <div className="text-gray-500 text-sm">
                                     <div className="text-lg mb-2">📋</div>
-                                    No quick details fields configured. Enable "Show in Quick Details" for fields in the Fields Management page.
+                                    No quick details fields configured. Enable &ldquo;Show in Quick Details&rdquo; for fields in the Fields Management page.
                                   </div>
                                 </div>
                               );

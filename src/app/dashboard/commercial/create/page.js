@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/lib/use-toast';
 import { ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
-import UploadImage from '@/components/UploadImage';
 import DynamicFieldsRenderer from '@/components/DynamicFieldsRenderer';
 
 export default function CreateSRDPage() {
@@ -24,7 +23,6 @@ export default function CreateSRDPage() {
     title: '',
     description: '',
     refNo: '',
-    images: []
   });
 
   // dynamic fields fetched from DB for commercial department
@@ -73,7 +71,7 @@ export default function CreateSRDPage() {
     try {
       // validate required dynamic fields
       for (const def of dynamicDefs) {
-        if (def.isRequired) {
+        if (def.isRequired && def.type !== 'image' && def.type !== 'file') {
           const val = dynamicValues[def._id];
           if (val === undefined || val === null || String(val).trim() === '') {
             toast({ title: 'Validation', description: `Please fill required field: ${def.name}`, variant: 'destructive' });
@@ -103,7 +101,6 @@ export default function CreateSRDPage() {
             mmc: 'pending'
           },
           commercialFields: {},
-          images: formData.images || [],
           // include dynamic fields snapshot so SRD stores values independent of future field changes
           dynamicFields: dynamicDefs.map(d => ({
             field: d._id,
@@ -216,14 +213,6 @@ export default function CreateSRDPage() {
                 values={dynamicValues}
                 onChange={handleDynamicChange}
               />
-
-              {/* Image upload */}
-              <div className="mt-6 pt-6 border-t">
-                <Label>Images</Label>
-                <div className="mt-2">
-                  <UploadImage onUploaded={(urls) => setFormData(prev => ({ ...prev, images: Array.isArray(urls) ? urls : (urls ? [urls] : []) }))} />
-                </div>
-              </div>
             </CardContent>
           </Card>
 

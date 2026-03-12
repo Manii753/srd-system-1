@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ChevronDown, ChevronRight, Folder, FolderOpen } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 
 export default function DynamicFieldsRenderer({ 
   fields, 
@@ -12,17 +12,16 @@ export default function DynamicFieldsRenderer({
   onChange, 
   className = "" 
 }) {
-  const [expandedSections, setExpandedSections] = useState(new Set());
-
-  // Auto-expand all sections on first render
-  useEffect(() => {
-    const headingIds = fields.filter(f => f.type === 'heading').map(f => f._id);
-    setExpandedSections(new Set(headingIds));
-  }, [fields]);
+  const headingIds = useMemo(
+    () => fields.filter(f => f.type === 'heading').map(f => f._id),
+    [fields]
+  );
+  const [expandedSections, setExpandedSections] = useState(null);
 
   const toggleSection = (headingId) => {
     setExpandedSections(prev => {
-      const newSet = new Set(prev);
+      const baseSet = prev ?? new Set(headingIds);
+      const newSet = new Set(baseSet);
       if (newSet.has(headingId)) {
         newSet.delete(headingId);
       } else {
@@ -67,7 +66,8 @@ export default function DynamicFieldsRenderer({
         return parentId && parentId.toString() === headingId.toString();
       });
       
-      const isExpanded = expandedSections.has(heading._id);
+      const activeExpandedSections = expandedSections ?? new Set(headingIds);
+      const isExpanded = activeExpandedSections.has(heading._id);
       
       result.push(
         <div key={`section-${heading._id}`} className="mb-6">
@@ -161,34 +161,13 @@ export default function DynamicFieldsRenderer({
             </Label>
           </div>
         ) : field.type === 'file' ? (
-          <Input
-            id={field._id}
-            type="file"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                // Handle file upload here
-                onChange(field._id, file.name);
-              }
-            }}
-            required={field.isRequired}
-            className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-          />
+          <div className="rounded-md border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Create the SRD first, then upload files from the SRD editor.
+          </div>
         ) : field.type === 'image' ? (
-          <Input
-            id={field._id}
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                // Handle image upload here
-                onChange(field._id, file.name);
-              }
-            }}
-            required={field.isRequired}
-            className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-          />
+          <div className="rounded-md border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Create the SRD first, then upload images from the SRD editor.
+          </div>
         ) : (
           <Input
             id={field._id}

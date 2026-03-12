@@ -4,9 +4,12 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import Image from 'next/image';
+import { useToast } from '@/lib/use-toast';
+import { normalizeAssetEntries } from '@/lib/assetUtils';
 
-export default function UploadImage({ onUploaded }) {
-  const [files, setFiles] = useState([]); // { file, preview, uploadedUrl, progress }
+export default function UploadImage({ onUploaded, srdId, fieldId }) {
+  const { toast } = useToast();
+  const [files, setFiles] = useState([]); // { file, preview, uploadedAsset, progress }
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef(null);
 
@@ -20,11 +23,12 @@ export default function UploadImage({ onUploaded }) {
   }, []);
 
   const handleFiles = useCallback(async (selected) => {
+    if (!srdId || !fieldId) return;
     const list = Array.from(selected || []);
     if (!list.length) return;
-    const newFiles = await Promise.all(list.map(async (f) => ({ file: f, preview: await makePreview(f), uploadedUrl: null, progress: 0 })));
+    const newFiles = await Promise.all(list.map(async (f) => ({ file: f, preview: await makePreview(f), uploadedAsset: null, progress: 0 })));
     setFiles((prev) => [...prev, ...newFiles]);
-  }, [makePreview]);
+  }, [fieldId, makePreview, srdId]);
 
   const onDrop = useCallback((e) => {
     e.preventDefault();
@@ -70,13 +74,13 @@ export default function UploadImage({ onUploaded }) {
 
   const uploadAll = useCallback(async (e) => {
     e.stopPropagation();
-    if (!files.length) return;
+    if (!files.length || !srdId || !fieldId) return;
     setUploading(true);
     const uploaded = [];
 
     for (let i = 0; i < files.length; i++) {
-      if (files[i].uploadedUrl) {
-        uploaded.push(files[i].uploadedUrl);
+      if (files[i].uploadedAsset) {
+        uploaded.push(files[i].uploadedAsset);
         continue;
       }
 
@@ -95,31 +99,58 @@ export default function UploadImage({ onUploaded }) {
         xhr.onload = () => {
           try {
             const res = JSON.parse(xhr.responseText);
-            if (res && res.success && res.url) {
-              setFiles((prev) => prev.map((f, idx) => idx === i ? { ...f, uploadedUrl: res.url, progress: 100 } : f));
-              uploaded.push(res.url);
+            const uploadedAsset = normalizeAssetEntries(res?.asset || res?.url, { kind: 'image' })[0] || null;
+
+            if (res && res.success && uploadedAsset) {
+              setFiles((prev) => prev.map((f, idx) => idx === i ? { ...f, uploadedAsset, progress: 100 } : f));
+              uploaded.push(uploadedAsset);
             } else {
               console.error('Upload failed', res?.error);
+              toast({
+                title: 'Upload failed',
+                description: res?.error || 'Unknown error',
+                variant: 'destructive',
+              });
             }
           } catch (err) {
             console.error('Upload response parse error', err);
+            toast({
+              title: 'Upload failed',
+              description: 'Could not parse upload response',
+              variant: 'destructive',
+            });
           }
           resolve(null);
         };
 
         xhr.onerror = () => {
           console.error('Upload failed');
+          toast({
+            title: 'Upload failed',
+            description: 'Network error while uploading image',
+            variant: 'destructive',
+          });
           resolve(null);
         };
 
-        const payload = JSON.stringify({ fileName: files[i].file.name, fileData: files[i].preview });
+        const payload = JSON.stringify({
+          fileName: files[i].file.name,
+          fileData: files[i].preview,
+          srdId,
+          fieldId,
+          fieldType: 'image',
+          mimeType: files[i].file.type,
+          size: files[i].file.size,
+        });
         setTimeout(() => xhr.send(payload), 50);
       });
     }
 
     setUploading(false);
     if (onUploaded) onUploaded(uploaded.filter(Boolean));
-  }, [files, onUploaded]);
+  }, [fieldId, files, onUploaded, srdId, toast]);
+
+  const canUpload = Boolean(srdId && fieldId);
 
   const overallProgress = files.length ? Math.round(files.reduce((acc, f) => acc + (f.progress || 0), 0) / files.length) : 0;
 
@@ -129,7 +160,7 @@ export default function UploadImage({ onUploaded }) {
         onDrop={onDrop}
         onDragOver={onDragOver}
         className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer"
-        onClick={() => inputRef.current && inputRef.current.click()}
+        onClick={() => canUpload && inputRef.current && inputRef.current.click()}
         onPaste={handlePaste}
       >
         <input
@@ -139,9 +170,16 @@ export default function UploadImage({ onUploaded }) {
           multiple
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
+          disabled={!canUpload}
         />
 
-        {files.length === 0 && (
+        {!canUpload && (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Create the SRD first, then upload images from the SRD editor.
+          </div>
+        )}
+
+        {canUpload && files.length === 0 && (
           <div>
             <p className="text-gray-600">Drag & drop images here, or click to select files</p>
             <div className="mt-3">
@@ -152,7 +190,7 @@ export default function UploadImage({ onUploaded }) {
           </div>
         )}
 
-        {files.length > 0 && (
+        {canUpload && files.length > 0 && (
           <div className="space-y-3">
             <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
               {files.map((f, i) => (
@@ -161,7 +199,7 @@ export default function UploadImage({ onUploaded }) {
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center space-x-2">
                     <Button size="sm" onClick={(e) => removeFile(e, i)}>Remove</Button>
                   </div>
-                  {f.uploadedUrl && <div className="absolute right-1 top-1 text-xs text-green-700 bg-white/70 px-1 rounded">Done</div>}
+                  {f.uploadedAsset && <div className="absolute right-1 top-1 text-xs text-green-700 bg-white/70 px-1 rounded">Done</div>}
                 </div>
               ))}
             </div>

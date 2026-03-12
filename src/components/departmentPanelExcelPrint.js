@@ -1,3 +1,5 @@
+import { getAssetLabel, normalizeAssetEntries, normalizeAssetUrls } from '@/lib/assetUtils';
+
 function normalizeFieldId(fieldId) {
   if (!fieldId) return null;
   if (typeof fieldId === 'object') {
@@ -6,29 +8,6 @@ function normalizeFieldId(fieldId) {
     return null;
   }
   return fieldId.toString();
-}
-
-function normalizeAssetUrls(value) {
-  const items = Array.isArray(value) ? value : (value ? [value] : []);
-
-  return items.flatMap((item) => {
-    if (!item) return [];
-
-    if (typeof item === 'string') {
-      const trimmed = item.trim();
-      return trimmed ? [trimmed] : [];
-    }
-
-    if (typeof item === 'object') {
-      const candidates = [item.url, item.src, item.path, item.location];
-      return candidates
-        .filter((candidate) => typeof candidate === 'string')
-        .map((candidate) => candidate.trim())
-        .filter(Boolean);
-    }
-
-    return [];
-  });
 }
 
 function escapeHtmlAttribute(value) {
@@ -486,7 +465,7 @@ export async function printDepartmentPanelExcel({
           valueDisplay = '<span class="no-value">No table data</span>';
         }
       } else if (isFile) {
-        if (fieldValue) {
+        if (normalizeAssetEntries(fieldValue, { kind: 'file' }).length > 0) {
           valueDisplay = `
             <div style="display: flex; page-break-after:always; align-items: center; gap: 4px;">
               
@@ -498,8 +477,7 @@ export async function printDepartmentPanelExcel({
         }
       } else if (isImage) {
         const images = normalizeAssetUrls(fieldValue);
-        const globalImages = normalizeAssetUrls(srd.images);
-        const allImages = [...new Set([...globalImages, ...images])];
+        const allImages = [...new Set(images)];
 
         if (allImages.length > 0) {
           const imgGrid = allImages.map((img, index) =>
@@ -576,7 +554,13 @@ export async function printDepartmentPanelExcel({
         return result;
       }
 
-      result.push({ name: field.name, url: field.value });
+      const fileAssets = normalizeAssetEntries(field.value, { kind: 'file' });
+      fileAssets.forEach((asset) => {
+        result.push({
+          name: getAssetLabel(asset, field.name),
+          url: asset.url,
+        });
+      });
       return result;
     }, []);
 

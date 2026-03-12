@@ -1,37 +1,69 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import path from 'path';
+import {
+  buildAssetStorageInfo,
+  buildStoredAssetRecord,
+} from '@/lib/serverAssetUtils';
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { fileName, fileData } = body;
+    const {
+      fileName,
+      fileData,
+      srdId,
+      fieldId,
+      fieldType,
+      mimeType: providedMimeType,
+      size: providedSize,
+    } = body;
 
-    if (!fileName || !fileData) {
-      return NextResponse.json({ success: false, error: 'Missing fileName or fileData' }, { status: 400 });
+    if (!fileName || !fileData || !srdId || !fieldId || !fieldType) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Missing required upload fields',
+        },
+        { status: 400 }
+      );
     }
 
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    // handle data URL or raw base64
     const matches = fileData.match(/^data:(.+);base64,(.+)$/);
     let base64Data = fileData;
+    let detectedMimeType = '';
     if (matches) {
+      detectedMimeType = matches[1];
       base64Data = matches[2];
     }
 
-    const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '-');
-    const uniqueName = `${Date.now()}-${safeName}`;
-    const filePath = path.join(uploadsDir, uniqueName);
+    const storageInfo = buildAssetStorageInfo({
+      srdId,
+      fieldId,
+      fieldType,
+      fileName,
+    });
 
-    fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+    if (!fs.existsSync(storageInfo.absoluteDirectory)) {
+      fs.mkdirSync(storageInfo.absoluteDirectory, { recursive: true });
+    }
 
-    const url = `/uploads/${uniqueName}`;
+    const buffer = Buffer.from(base64Data, 'base64');
+    fs.writeFileSync(storageInfo.absolutePath, buffer);
 
-    return NextResponse.json({ success: true, url });
+    const uploadedAt = new Date().toISOString();
+    const asset = buildStoredAssetRecord({
+      fieldType,
+      srdId,
+      fieldId,
+      storedFileName: storageInfo.storedFileName,
+      originalName: fileName,
+      relativePath: storageInfo.relativePath,
+      mimeType: providedMimeType || detectedMimeType || '',
+      size: Number.isFinite(Number(providedSize)) ? Number(providedSize) : buffer.length,
+      uploadedAt,
+    });
+
+    return NextResponse.json({ success: true, asset, url: asset.url });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

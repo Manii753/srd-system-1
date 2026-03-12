@@ -14,6 +14,7 @@
     "seed:production": "node src/lib/seedProductionStages.js",
     "seed:production-users": "node src/lib/seedProductionUsers.js",
     "migrate:users": "node src/lib/migrateUsers.js",
+    "migrate:upload-assets": "node src/lib/migrateUploadAssets.js",
     "fix:srd-status": "node src/lib/fixSRDStatus.js",
     "backup:scheduler": "node src/lib/startBackupScheduler.js",
     "backup:create": "node src/lib/createBackup.js",

@@ -16,6 +16,12 @@ import UploadImage from './UploadImage';
 import UploadFile from './UploadFile';
 import { useToast } from '@/lib/use-toast';
 import { printDepartmentPanelExcel } from '@/components/departmentPanelExcelPrint';
+import {
+  getAssetKey,
+  getAssetLabel,
+  getAssetUrl,
+  normalizeAssetEntries,
+} from '@/lib/assetUtils';
 
 export default function DepartmentPanelExcel({
   srd,
@@ -151,9 +157,11 @@ export default function DepartmentPanelExcel({
   }, [srd.status, onUpdate, toast]);
 
   useEffect(() => {
+    const timeoutsRef = autoSaveTimeoutsRef;
     return () => {
       // Clear all timeouts on unmount
-      Object.values(autoSaveTimeoutsRef.current).forEach(timeout => clearTimeout(timeout));
+      const activeTimeouts = timeoutsRef.current;
+      Object.values(activeTimeouts).forEach(timeout => clearTimeout(timeout));
     };
   }, []);
 
@@ -406,10 +414,11 @@ export default function DepartmentPanelExcel({
   const handleRemoveImage = useCallback((fieldId, name, department, imageIndex, allImages) => {
     const imageToRemove = allImages[imageIndex];
     const fieldValue = getFieldValue(fieldId, { name, department });
-    const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+    const deptImages = normalizeAssetEntries(fieldValue, { kind: 'image' });
+    const imageKey = getAssetKey(imageToRemove);
+    const updatedImages = deptImages.filter((asset) => getAssetKey(asset) !== imageKey);
 
-    if (deptImages.includes(imageToRemove)) {
-      const updatedImages = deptImages.filter(img => img !== imageToRemove);
+    if (updatedImages.length !== deptImages.length) {
       handleFieldChange(fieldId, name, updatedImages, department);
       toast({
         title: 'Image removed',
@@ -418,7 +427,7 @@ export default function DepartmentPanelExcel({
     } else {
       toast({
         title: 'Cannot remove',
-        description: 'This is a global image. Only department images can be removed.',
+        description: 'The selected image could not be found in this field.',
         variant: 'destructive',
       });
     }
@@ -427,8 +436,9 @@ export default function DepartmentPanelExcel({
   const handleSetCoverImage = useCallback((fieldId, name, department, imageIndex, allImages) => {
     const coverImage = allImages[imageIndex];
     const fieldValue = getFieldValue(fieldId, { name, department });
-    const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-    const otherImages = deptImages.filter(img => img !== coverImage);
+    const deptImages = normalizeAssetEntries(fieldValue, { kind: 'image' });
+    const coverKey = getAssetKey(coverImage);
+    const otherImages = deptImages.filter((asset) => getAssetKey(asset) !== coverKey);
     const reorderedImages = [coverImage, ...otherImages];
     handleFieldChange(fieldId, name, reorderedImages, department);
     toast({
@@ -1053,14 +1063,19 @@ export default function DepartmentPanelExcel({
         );
 
       case 'file':
+        const fileAsset = normalizeAssetEntries(fieldValue, { kind: 'file' })[0] || null;
+        const fileUrl = getAssetUrl(fileAsset);
+        const fileLabel = getAssetLabel(fileAsset, 'Download Excel');
         return (
           <div className="space-y-1 p-1">
             {canEdit && (
               <UploadFile
-                onUploaded={(urls) => {
-                  const url = Array.isArray(urls) ? urls[0] : urls;
-                  if (url) {
-                    handleFieldChange(fieldId, name, url, department, fieldDef);
+                srdId={srd?._id}
+                fieldId={fieldId}
+                onUploaded={(assets) => {
+                  const asset = Array.isArray(assets) ? assets[0] : assets;
+                  if (asset) {
+                    handleFieldChange(fieldId, name, asset, department, fieldDef);
                     toast({
                       title: 'File uploaded',
                       description: 'File uploaded successfully',
@@ -1069,18 +1084,18 @@ export default function DepartmentPanelExcel({
                 }}
               />
             )}
-            {fieldValue && (
+            {fileUrl && (
               <div className="flex items-center p-1 bg-gray-50 border rounded text-xs">
                 <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
-                <a href={fieldValue} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate flex-1 block" title="Download">
-                  Download Excel
+                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate flex-1 block" title={fileLabel}>
+                  {fileLabel}
                 </a>
                 {canEdit && (
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0 ml-1 hover:bg-red-100"
-                    onClick={() => handleFieldChange(fieldId, name, '', department, fieldDef)}
+                    onClick={() => handleFieldChange(fieldId, name, null, department, fieldDef)}
                   >
                     <Trash2 className="h-3 w-3 text-red-500" />
                   </Button>
@@ -1091,18 +1106,19 @@ export default function DepartmentPanelExcel({
         );
 
       case 'image':
-        const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-        const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-        const allImages = Array.from(new Set([...globalImages, ...deptImages]));
+        const deptImages = normalizeAssetEntries(fieldValue, { kind: 'image' });
+        const allImages = deptImages;
 
         return (
           <div className="space-y-1 p-1">
             {canEdit && (
               <UploadImage
-                onUploaded={(urls) => {
-                  const imageArray = Array.isArray(urls) ? urls : (urls ? [urls] : []);
+                srdId={srd?._id}
+                fieldId={fieldId}
+                onUploaded={(assets) => {
+                  const imageArray = normalizeAssetEntries(assets, { kind: 'image' });
                   if (imageArray.length > 0) {
-                    const currentImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+                    const currentImages = normalizeAssetEntries(fieldValue, { kind: 'image' });
                     const updatedImages = [...currentImages, ...imageArray];
                     handleFieldChange(fieldId, name, updatedImages, department, fieldDef);
                     toast({
@@ -1116,14 +1132,14 @@ export default function DepartmentPanelExcel({
 
             {allImages.length > 0 ? (
               <div className="grid grid-cols-3 gap-1">
-                {allImages.slice(0, 6).map((src, idx) => {
-                  const isDeptImage = deptImages.includes(src);
+                {allImages.slice(0, 6).map((asset, idx) => {
                   const isCover = idx === 0;
+                  const imageUrl = getAssetUrl(asset);
 
                   return (
                     <div key={idx} className="relative group aspect-square">
                       <Image
-                        src={src}
+                        src={imageUrl}
                         alt={`${name}-${idx}`}
                         fill
                         className={cn(
@@ -1152,18 +1168,16 @@ export default function DepartmentPanelExcel({
                                 <Star className="h-2 w-2" />
                               </button>
                             )}
-                            {isDeptImage && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRemoveImage(fieldId, name, department, idx, allImages);
-                                }}
-                                className="bg-red-500 hover:bg-red-600 text-white p-1 rounded"
-                                title="Remove"
-                              >
-                                <Trash2 className="h-2 w-2" />
-                              </button>
-                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveImage(fieldId, name, department, idx, allImages);
+                              }}
+                              className="bg-red-500 hover:bg-red-600 text-white p-1 rounded"
+                              title="Remove"
+                            >
+                              <Trash2 className="h-2 w-2" />
+                            </button>
                           </div>
                         </div>
                       )}
@@ -1191,7 +1205,7 @@ export default function DepartmentPanelExcel({
           </div>
         );
     }
-  }, [getFieldValue, handleFieldChange, srd.images, toast]);
+  }, [getFieldValue, handleFieldChange, handleRemoveImage, handleSetCoverImage, srd?._id, srd?.createdAt, toast]);
 
   // Loading state
   if (isLoading) {
@@ -1559,7 +1573,7 @@ export default function DepartmentPanelExcel({
                   <p className="text-blue-700 font-medium mb-1">{entry.action}</p>
                   {relatedComment && (
                     <div className="mt-2 pl-2 border-l-2 border-blue-300">
-                      <p className="text-gray-600 italic">"{relatedComment.text}"</p>
+                      <p className="text-gray-600 italic">&ldquo;{relatedComment.text}&rdquo;</p>
                     </div>
                   )}
                 </div>

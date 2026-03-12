@@ -9,11 +9,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, X, ChevronLeft, ChevronRight, Trash2, Star, Edit } from 'lucide-react';
+import { AlertCircle, X, ChevronLeft, ChevronRight, Trash2, Star, Edit, FileSpreadsheet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import UploadImage from './UploadImage';
+import UploadFile from './UploadFile';
 import { useToast } from '@/lib/use-toast';
+import {
+  getAssetKey,
+  getAssetLabel,
+  getAssetUrl,
+  normalizeAssetEntries,
+} from '@/lib/assetUtils';
 
 export default function DepartmentPanel({
   srd,
@@ -84,7 +91,7 @@ export default function DepartmentPanel({
         }
       }
     }, 1500); // 1.5 second delay
-  }, [status, onUpdate, isSubmitting, department, toast]);
+  }, [status, onUpdate, isSubmitting, toast]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -237,10 +244,11 @@ export default function DepartmentPanel({
   const handleRemoveImage = (fieldName, imageIndex, allImages) => {
     const imageToRemove = allImages[imageIndex];
     const fieldValue = fields.find(f => f.name === fieldName)?.value ?? '';
-    const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+    const deptImages = normalizeAssetEntries(fieldValue, { kind: 'image' });
+    const imageKey = getAssetKey(imageToRemove);
+    const updatedImages = deptImages.filter((asset) => getAssetKey(asset) !== imageKey);
 
-    if (deptImages.includes(imageToRemove)) {
-      const updatedImages = deptImages.filter(img => img !== imageToRemove);
+    if (updatedImages.length !== deptImages.length) {
       handleFieldChange(fieldName, updatedImages);
       toast({
         title: 'Image removed',
@@ -249,7 +257,7 @@ export default function DepartmentPanel({
     } else {
       toast({
         title: 'Cannot remove',
-        description: 'This is a global image. Only department images can be removed.',
+        description: 'The selected image could not be found in this field.',
         variant: 'destructive',
       });
     }
@@ -258,8 +266,9 @@ export default function DepartmentPanel({
   const handleSetCoverImage = (fieldName, imageIndex, allImages) => {
     const coverImage = allImages[imageIndex];
     const fieldValue = fields.find(f => f.name === fieldName)?.value ?? '';
-    const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-    const otherImages = deptImages.filter(img => img !== coverImage);
+    const deptImages = normalizeAssetEntries(fieldValue, { kind: 'image' });
+    const coverKey = getAssetKey(coverImage);
+    const otherImages = deptImages.filter((asset) => getAssetKey(asset) !== coverKey);
     const reorderedImages = [coverImage, ...otherImages];
     handleFieldChange(fieldName, reorderedImages);
     toast({
@@ -527,20 +536,64 @@ export default function DepartmentPanel({
           </div>
         );
 
+      case 'file':
+        const fileAsset = normalizeAssetEntries(fieldValue, { kind: 'file' })[0] || null;
+        const fileUrl = getAssetUrl(fileAsset);
+        const fileLabel = getAssetLabel(fileAsset, 'Attached Excel');
+        return (
+          <div key={_id} className="md:col-span-3">
+            <Label>{name}</Label>
+            {canEdit && (
+              <div className="mt-2">
+                <UploadFile
+                  srdId={srd?._id}
+                  fieldId={_id}
+                  onUploaded={(assets) => {
+                    const asset = Array.isArray(assets) ? assets[0] : assets;
+                    if (asset) {
+                      handleFieldChange(name, asset);
+                      toast({
+                        title: 'File uploaded',
+                        description: 'File uploaded successfully. Changes will be saved automatically.',
+                      });
+                    }
+                  }}
+                />
+              </div>
+            )}
+            {fileUrl ? (
+              <div className="mt-2 flex items-center gap-2 rounded-md border bg-gray-50 p-3 text-sm">
+                <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="truncate text-blue-600 hover:underline" title={fileLabel}>
+                  {fileLabel}
+                </a>
+                {canEdit && (
+                  <Button variant="ghost" size="icon" onClick={() => handleFieldChange(name, null)} className="ml-auto h-8 w-8">
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 italic mt-1">No file uploaded yet.</p>
+            )}
+          </div>
+        );
+
       case 'image':
-        const deptImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
-        const globalImages = Array.isArray(srd.images) ? srd.images : (srd.images ? [srd.images] : []);
-        const allImages = Array.from(new Set([...globalImages, ...deptImages]));
+        const deptImages = normalizeAssetEntries(fieldValue, { kind: 'image' });
+        const allImages = deptImages;
         return (
           <div key={_id} className="md:col-span-3">
             <Label>{name}</Label>
             {canEdit && (
               <div className="mt-2">
                 <UploadImage
-                  onUploaded={(urls) => {
-                    const imageArray = Array.isArray(urls) ? urls : (urls ? [urls] : []);
+                  srdId={srd?._id}
+                  fieldId={_id}
+                  onUploaded={(assets) => {
+                    const imageArray = normalizeAssetEntries(assets, { kind: 'image' });
                     if (imageArray.length > 0) {
-                      const currentImages = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+                      const currentImages = normalizeAssetEntries(fieldValue, { kind: 'image' });
                       const updatedImages = [...currentImages, ...imageArray];
                       handleFieldChange(name, updatedImages);
                       toast({
@@ -554,13 +607,13 @@ export default function DepartmentPanel({
             )}
             {allImages.length > 0 ? (
               <div className="grid grid-cols-4 md:grid-cols-6 gap-2 mt-2">
-                {allImages.map((src, idx) => {
-                  const isDeptImage = deptImages.includes(src);
-                  const isCover = globalImages[0] === src || deptImages[0] === src;
+                {allImages.map((asset, idx) => {
+                  const isCover = idx === 0;
+                  const imageUrl = getAssetUrl(asset);
                   return (
                     <div key={idx} className="relative group aspect-square">
-                      <div className="cursor-pointer w-full h-full" onClick={() => { setImageModalIndex(idx); setModalImages(allImages); setIsImageModalOpen(true); }}>
-                        <Image src={src} alt={`${name}-${idx}`} fill className={cn("object-cover rounded border transition-all", isCover ? "border-yellow-400 border-2" : "border-gray-200 hover:border-blue-400")} />
+                      <div className="cursor-pointer w-full h-full" onClick={() => { setImageModalIndex(idx); setModalImages(allImages.map((entry) => getAssetUrl(entry))); setIsImageModalOpen(true); }}>
+                        <Image src={imageUrl} alt={`${name}-${idx}`} fill className={cn("object-cover rounded border transition-all", isCover ? "border-yellow-400 border-2" : "border-gray-200 hover:border-blue-400")} />
                         {isCover && (
                           <div className="absolute top-1 left-1 bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded text-xs font-semibold flex items-center gap-1">
                             <Star className="h-3 w-3 fill-current" />Cover
@@ -577,11 +630,9 @@ export default function DepartmentPanel({
                               <Star className="h-3 w-3" />
                             </button>
                           )}
-                          {isDeptImage && (
-                            <button onClick={(e) => { e.stopPropagation(); handleRemoveImage(name, idx, allImages); }} className="bg-red-500 hover:bg-red-600 text-white p-1 rounded shadow-lg" title="Remove image">
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          )}
+                          <button onClick={(e) => { e.stopPropagation(); handleRemoveImage(name, idx, allImages); }} className="bg-red-500 hover:bg-red-600 text-white p-1 rounded shadow-lg" title="Remove image">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
                         </div>
                       )}
                     </div>

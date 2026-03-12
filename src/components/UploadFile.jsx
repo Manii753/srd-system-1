@@ -5,14 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { FileSpreadsheet, X, Check, Upload } from 'lucide-react';
 import { useToast } from '@/lib/use-toast';
+import { normalizeAssetEntries } from '@/lib/assetUtils';
 
-export default function UploadFile({ onUploaded, accept = ".xlsx", maxFiles = 1 }) {
+export default function UploadFile({ onUploaded, srdId, fieldId, accept = ".xlsx", maxFiles = 1 }) {
   const { toast } = useToast();
-  const [files, setFiles] = useState([]); // { file, name, uploadedUrl, progress }
+  const [files, setFiles] = useState([]); // { file, name, uploadedAsset, progress }
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef(null);
 
   const handleFiles = useCallback(async (selected) => {
+    if (!srdId || !fieldId) return;
     const list = Array.from(selected || []);
     if (!list.length) return;
     
@@ -20,12 +22,12 @@ export default function UploadFile({ onUploaded, accept = ".xlsx", maxFiles = 1 
     const newFiles = list.map(f => ({ 
       file: f, 
       name: f.name, 
-      uploadedUrl: null, 
+      uploadedAsset: null, 
       progress: 0 
     }));
     
     setFiles((prev) => [...prev, ...newFiles]);
-  }, []);
+  }, [fieldId, srdId]);
 
   const onDrop = useCallback((e) => {
     e.preventDefault();
@@ -48,13 +50,13 @@ export default function UploadFile({ onUploaded, accept = ".xlsx", maxFiles = 1 
 
   const uploadAll = useCallback(async (e) => {
     e.stopPropagation();
-    if (!files.length) return;
+    if (!files.length || !srdId || !fieldId) return;
     setUploading(true);
     const uploaded = [];
 
     for (let i = 0; i < files.length; i++) {
-      if (files[i].uploadedUrl) {
-        uploaded.push(files[i].uploadedUrl);
+      if (files[i].uploadedAsset) {
+        uploaded.push(files[i].uploadedAsset);
         continue;
       }
 
@@ -79,9 +81,11 @@ export default function UploadFile({ onUploaded, accept = ".xlsx", maxFiles = 1 
               xhr.onload = () => {
                 try {
                   const res = JSON.parse(xhr.responseText);
-                  if (res && res.success && res.url) {
-                    setFiles((prev) => prev.map((f, idx) => idx === i ? { ...f, uploadedUrl: res.url, progress: 100 } : f));
-                    uploaded.push(res.url);
+                  const uploadedAsset = normalizeAssetEntries(res?.asset || res?.url, { kind: 'file' })[0] || null;
+
+                  if (res && res.success && uploadedAsset) {
+                    setFiles((prev) => prev.map((f, idx) => idx === i ? { ...f, uploadedAsset, progress: 100 } : f));
+                    uploaded.push(uploadedAsset);
                     resolve(res.url);
                   } else {
                     console.error('Upload failed', res?.error);
@@ -94,16 +98,34 @@ export default function UploadFile({ onUploaded, accept = ".xlsx", maxFiles = 1 
                   }
                 } catch (err) {
                   console.error('Upload response parse error', err);
+                  toast({
+                    title: 'Upload failed',
+                    description: 'Could not parse upload response',
+                    variant: 'destructive',
+                  });
                   resolve(null);
                 }
               };
 
               xhr.onerror = () => {
                 console.error('Upload failed');
+                toast({
+                  title: 'Upload failed',
+                  description: 'Network error while uploading file',
+                  variant: 'destructive',
+                });
                 resolve(null);
               };
 
-              const payload = JSON.stringify({ fileName: files[i].name, fileData: fileData });
+              const payload = JSON.stringify({
+                fileName: files[i].name,
+                fileData,
+                srdId,
+                fieldId,
+                fieldType: 'file',
+                mimeType: files[i].file.type,
+                size: files[i].file.size,
+              });
               xhr.send(payload);
             } catch (err) {
               reject(err);
@@ -118,11 +140,13 @@ export default function UploadFile({ onUploaded, accept = ".xlsx", maxFiles = 1 
 
     setUploading(false);
     if (onUploaded) onUploaded(uploaded.filter(Boolean));
-    
+
     // Clear successfully uploaded files after a delay or keep them to show status?
     // For now, let's clear the list if all successful, or let the parent handle the value
     setFiles([]); 
-  }, [files, onUploaded, toast]);
+  }, [fieldId, files, onUploaded, srdId, toast]);
+
+  const canUpload = Boolean(srdId && fieldId);
 
   const overallProgress = files.length ? Math.round(files.reduce((acc, f) => acc + (f.progress || 0), 0) / files.length) : 0;
 
@@ -132,7 +156,7 @@ export default function UploadFile({ onUploaded, accept = ".xlsx", maxFiles = 1 
         onDrop={onDrop}
         onDragOver={onDragOver}
         className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-        onClick={() => inputRef.current && inputRef.current.click()}
+        onClick={() => canUpload && inputRef.current && inputRef.current.click()}
       >
         <input
           ref={inputRef}
@@ -141,16 +165,23 @@ export default function UploadFile({ onUploaded, accept = ".xlsx", maxFiles = 1 
           multiple={maxFiles > 1}
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
+          disabled={!canUpload}
         />
 
-        {files.length === 0 && (
+        {!canUpload && (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Create the SRD first, then upload files from the SRD editor.
+          </div>
+        )}
+
+        {canUpload && files.length === 0 && (
           <div className="flex flex-col items-center justify-center py-2">
             <Upload className="h-6 w-6 text-gray-400 mb-2" />
             <p className="text-xs text-gray-600">Click to upload Excel file</p>
           </div>
         )}
 
-        {files.length > 0 && (
+        {canUpload && files.length > 0 && (
           <div className="space-y-2">
             {files.map((f, i) => (
               <div key={i} className="flex items-center justify-between bg-white p-2 rounded border border-gray-200 text-xs">
@@ -159,7 +190,7 @@ export default function UploadFile({ onUploaded, accept = ".xlsx", maxFiles = 1 
                   <span className="truncate max-w-[150px]" title={f.name}>{f.name}</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  {f.uploadedUrl ? (
+                  {f.uploadedAsset ? (
                      <Check className="h-4 w-4 text-green-600" />
                   ) : (
                     <span className="text-gray-500">{f.progress}%</span>
@@ -176,7 +207,7 @@ export default function UploadFile({ onUploaded, accept = ".xlsx", maxFiles = 1 
               </div>
             ))}
 
-            {!uploading && files.some(f => !f.uploadedUrl) && (
+            {!uploading && files.some(f => !f.uploadedAsset) && (
               <Button size="sm" onClick={uploadAll} className="w-full h-7 text-xs mt-2">
                 Upload Files
               </Button>

@@ -191,10 +191,8 @@ export async function POST(request) {
     console.log('POST /api/srd body:', body);
     console.log('POST /api/srd body:', JSON.stringify(body).slice(0, 1000));
 
-    // Normalize images array
-    if (body.images && Array.isArray(body.images)) {
-      body.images = body.images.flat().map((v) => String(v));
-    }
+    // `srd.images` is legacy-only. New assets live in dynamicFields.value.
+    delete body.images;
 
     // Ensure dynamicFields is properly formatted as an array of objects
     if (body.dynamicFields && typeof body.dynamicFields === 'string') {
