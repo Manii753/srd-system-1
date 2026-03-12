@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import {
   getAssetUrl,
   normalizeAssetEntries,
 } from '@/lib/assetUtils';
+import { getAttachedImageLabels } from '@/lib/fieldConnectionUtils';
 
 export default function DepartmentPanel({
   srd,
@@ -32,6 +33,7 @@ export default function DepartmentPanel({
   const [status, setStatus] = useState(srd.status?.[department] || 'pending');
   const [fields, setFields] = useState(srd.dynamicFields?.filter(f => f.department === department) || []);
   const [fieldDefs, setFieldDefs] = useState([]);
+  const [allFieldDefs, setAllFieldDefs] = useState({});
   const [editingFields, setEditingFields] = useState(new Set());
   const [updateComment, setUpdateComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -178,6 +180,35 @@ export default function DepartmentPanel({
       fetchFields();
     }
   }, [department, srd]);
+
+  useEffect(() => {
+    async function fetchAllFieldDefs() {
+      try {
+        const fieldDefsMap = {};
+        for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
+          const res = await fetch(`/api/newField?department=${dept}`);
+          const data = await res.json();
+          if (!Array.isArray(data)) {
+            continue;
+          }
+
+          data.forEach((fieldDef) => {
+            fieldDefsMap[fieldDef._id.toString()] = fieldDef;
+          });
+        }
+        setAllFieldDefs(fieldDefsMap);
+      } catch (err) {
+        console.error('Failed to fetch all field definitions', err);
+      }
+    }
+
+    fetchAllFieldDefs();
+  }, []);
+
+  const effectiveFields = useMemo(() => {
+    const otherDepartmentFields = (srd.dynamicFields || []).filter((field) => field.department !== department);
+    return [...otherDepartmentFields, ...fields];
+  }, [department, fields, srd.dynamicFields]);
 
   const handleFieldChange = (name, value, fieldDef = null) => {
     if (!editingFields.has(name)) {
@@ -337,6 +368,34 @@ export default function DepartmentPanel({
     return connectedSrdField?.value === true;
   };
 
+  const getAttachmentLabels = useCallback((fieldId) => {
+    return getAttachedImageLabels({
+      targetFieldId: fieldId,
+      fieldDefs: allFieldDefs,
+      dynamicFields: effectiveFields,
+    });
+  }, [allFieldDefs, effectiveFields]);
+
+  const renderAttachmentLabels = useCallback((fieldId) => {
+    const attachmentLabels = getAttachmentLabels(fieldId);
+    if (attachmentLabels.length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="mt-1 space-y-1">
+        {attachmentLabels.map((label, index) => (
+          <div
+            key={`${label}-${index}`}
+            className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700"
+          >
+            {label}
+          </div>
+        ))}
+      </div>
+    );
+  }, [getAttachmentLabels]);
+
   const renderDynamicFields = () => {
     if (!fieldDefs.length)
       return (
@@ -435,6 +494,7 @@ export default function DepartmentPanel({
         return (
           <div key={name}>
             <Label htmlFor={name}>{name}</Label>
+            {renderAttachmentLabels(_id)}
             <div className="relative mt-1">
               {hasValue && !isEditing ? (
                 <div className="relative">
@@ -473,6 +533,7 @@ export default function DepartmentPanel({
         return (
           <div key={_id}>
             <Label htmlFor={name}>{name}</Label>
+            {renderAttachmentLabels(_id)}
             <div className="relative mt-1">
               {hasTextValue && !isTextEditing ? (
                 <div className="relative">
@@ -510,6 +571,7 @@ export default function DepartmentPanel({
         return (
           <div key={_id} className="flex flex-col">
             <Label htmlFor={name} className="mb-2">{name}</Label>
+            {renderAttachmentLabels(_id)}
             <div className="flex items-center justify-between">
               {hasBoolValue && !isBoolEditing ? (
                 <div className="flex items-center gap-2">
@@ -543,6 +605,7 @@ export default function DepartmentPanel({
         return (
           <div key={_id} className="md:col-span-3">
             <Label>{name}</Label>
+            {renderAttachmentLabels(_id)}
             {canEdit && (
               <div className="mt-2">
                 <UploadFile
@@ -585,6 +648,7 @@ export default function DepartmentPanel({
         return (
           <div key={_id} className="md:col-span-3">
             <Label>{name}</Label>
+            {renderAttachmentLabels(_id)}
             {canEdit && (
               <div className="mt-2">
                 <UploadImage

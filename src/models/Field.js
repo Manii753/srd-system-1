@@ -66,9 +66,10 @@ const FieldSchema = new mongoose.Schema({
     // Connection type:
     // 'auto-true': When THIS field becomes true, the connected field also becomes true
     // 'toggle-active': This field is only active/visible when the connected field is false
+    // 'is-attached': This image field marks the connected field as having an attachment
     connectionType: {
         type: String,
-        enum: ['auto-true', 'toggle-active', null],
+        enum: ['auto-true', 'toggle-active', 'is-attached', null],
         default: null
     },
     // For boolean fields: 'yes-no' or 'instock-purchase'

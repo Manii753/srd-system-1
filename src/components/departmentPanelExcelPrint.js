@@ -1,4 +1,5 @@
 import { getAssetLabel, normalizeAssetEntries, normalizeAssetUrls } from '@/lib/assetUtils';
+import { getAttachedImageLabels } from '@/lib/fieldConnectionUtils';
 
 function normalizeFieldId(fieldId) {
   if (!fieldId) return null;
@@ -16,6 +17,18 @@ function escapeHtmlAttribute(value) {
     .replace(/"/g, '&quot;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+function buildAttachmentLabelsHtml(labels) {
+  if (!Array.isArray(labels) || labels.length === 0) {
+    return '';
+  }
+
+  return `
+    <div class="attachment-labels">
+      ${labels.map((label) => `<div class="attachment-label">${escapeHtmlAttribute(label)}</div>`).join('')}
+    </div>
+  `;
 }
 
 function hasMeaningfulFieldValue(value, type) {
@@ -266,6 +279,13 @@ export async function printDepartmentPanelExcel({
         return;
       }
 
+      const attachmentLabels = getAttachedImageLabels({
+        targetFieldId: fieldIdStr,
+        fieldDefs: allFieldDefsMap,
+        dynamicFields: fields,
+      });
+      const attachmentLabelsHtml = buildAttachmentLabelsHtml(attachmentLabels);
+
       if (fieldDef.isOptional && !isOptionalFieldEnabled(fields, fieldIdStr, fieldDef)) {
         fieldsHTML += `
             
@@ -509,18 +529,24 @@ export async function printDepartmentPanelExcel({
         <div class="field-cell ${isHeading ? 'cell-heading' : ''} ${isImage ? 'cell-image' : ''} ${isTable ? 'cell-table' : ''} ${colSpan === 1 ? 'is-small-cell' : ''}" style="grid-column: span ${colSpan}; grid-row: span ${rowSpan}; min-height: ${minHeight};">
           ${!isHeading && !isImage && !isTable ? `
               <div class="cell-content">
-                <span style="font-size: 11px;" class="cell-label">${fieldDef.name}</span>
+                <div class="cell-label-group">
+                  <span style="font-size: 11px;" class="cell-label">${fieldDef.name}</span>
+                  ${attachmentLabelsHtml}
+                </div>
                 <span style="font-size: 11px;" class="cell-underline">${valueDisplay}</span>
               </div>
           ` : isImage ? `
               <div class="cell-image-container">
                 <div class="image-label">${fieldDef.name}</div>
+                ${attachmentLabelsHtml}
                 ${valueDisplay}
               </div>
           ` : isTable ? `
               <div class="cell-table-container">
                 <div class="table-label">${fieldDef.name}</div>
+                
                 ${valueDisplay}
+                ${attachmentLabelsHtml}
               </div>
           ` : `
               <div class="heading-content">${valueDisplay}</div>
@@ -690,23 +716,50 @@ export async function printDepartmentPanelExcel({
       height: 100%;
     }
 
+    .cell-label-group {
+      width: 120px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
     .cell-label {
       font-size: 11px;
       font-weight: 700;
       color: #333;
       white-space: normal;
       text-transform: capitalize;
-      width: 120px; 
-      flex-shrink: 0;
       line-height: 10px;
     }
 
-    .is-small-cell .cell-label {
+    .is-small-cell .cell-label-group {
       width: auto !important;
       max-width: 50%;
-      
       min-width: 20px;
       margin-right: 4px;
+    }
+
+    .attachment-labels {
+      display: flex;
+      flex-direction: row;
+      gap: 2px;
+    }
+
+    .attachment-label {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      max-width: 100%;
+      padding: 1px 4px;
+      border: 0.4px solid #a7f3d0;
+      background: #ecfdf5;
+      color: #000;
+      font-size: 9px;
+      font-weight: 600;
+      line-height: 1.2;
+      border-radius: 999px;
+      text-transform: none;
     }
 
     .cell-underline {
@@ -752,6 +805,12 @@ export async function printDepartmentPanelExcel({
       background: #f9f9f9;
       border-bottom: 0.5px solid #ddd;
       flex-shrink: 0;
+    }
+
+    .cell-image-container .attachment-labels,
+    .cell-table-container .attachment-labels {
+      margin-top: 4px;
+      margin-bottom: 2px;
     }
 
     /* Image stack - fills remaining space after label */

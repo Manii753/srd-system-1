@@ -22,6 +22,7 @@ import {
   getAssetUrl,
   normalizeAssetEntries,
 } from '@/lib/assetUtils';
+import { getAttachedImageLabels } from '@/lib/fieldConnectionUtils';
 
 export default function DepartmentPanelExcel({
   srd,
@@ -239,6 +240,14 @@ export default function DepartmentPanelExcel({
 
     return hasMeaningfulValue(fieldState?.value, fieldDef.type);
   }, [fields, findFieldState, hasMeaningfulValue]);
+
+  const getAttachmentLabels = useCallback((fieldId) => {
+    return getAttachedImageLabels({
+      targetFieldId: fieldId,
+      fieldDefs: allFieldDefs,
+      dynamicFields: fields,
+    });
+  }, [allFieldDefs, fields]);
 
   const buildFieldState = useCallback((fieldId, fieldDef, department, overrides = {}) => {
     const normalizedFieldId = normalizeFieldId(fieldId);
@@ -1363,6 +1372,7 @@ export default function DepartmentPanelExcel({
             const isHeading = fieldDef.type === 'heading';
             const isHidden = isFieldHidden(fieldDef);
             const isOptionalEnabled = isOptionalFieldEnabled(fieldIdStr, fieldDef);
+            const attachmentLabels = getAttachmentLabels(fieldIdStr);
             const deptBgColor = {
               vmd: 'bg-purple-100',
               cad: 'bg-amber-100',
@@ -1413,10 +1423,24 @@ export default function DepartmentPanelExcel({
                 >
                   {/* Field header */}
                   {!isHeading && (
-                    <div className="bg-transparent border-b border-gray-200 px-2 py-1 flex items-center justify-between shrink-0">
-                      <span className="text-xs font-medium text-gray-700 truncate" title={fieldDef.name}>
-                        {fieldDef.name}
-                      </span>
+                    <div className="bg-transparent border-b border-gray-200 px-2 py-1 flex items-start justify-between gap-2 shrink-0">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs font-medium text-gray-700 truncate block" title={fieldDef.name}>
+                          {fieldDef.name}
+                        </span>
+                        {attachmentLabels.length > 0 && (
+                          <div className="mt-1 space-y-1">
+                            {attachmentLabels.map((label, index) => (
+                              <div
+                                key={`${label}-${index}`}
+                                className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"
+                              >
+                                {label}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 ml-1">
                         {fieldDef.isOptional && (
                           <div className="flex items-center gap-2 rounded-full bg-white/80 px-2 py-0.5">

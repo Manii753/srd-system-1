@@ -3,7 +3,7 @@ import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { useRouter } from 'next/navigation';
 import { PlusCircleIcon, GripVertical, Folder, FolderOpen, ChevronDown, ChevronRight, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -30,6 +30,34 @@ const DEPARTMENTS = [
   'commercial',
   'mmc'
 ];
+
+const DEFAULT_TABLE_HEADERS = ['Item Name', 'Code', 'Finish', 'Size'];
+
+function normalizeFieldTypeChange(previousValues, nextType) {
+  const nextValues = {
+    ...previousValues,
+    type: nextType,
+  };
+
+  if (nextType !== 'image' && previousValues.connectionType === 'is-attached') {
+    nextValues.isConnectedTo = false;
+    nextValues.connectedFieldId = null;
+    nextValues.connectionType = null;
+  }
+
+  if (nextType === 'heading') {
+    nextValues.parentHeading = null;
+    nextValues.isConnectedTo = false;
+    nextValues.connectedFieldId = null;
+    nextValues.connectionType = null;
+  }
+
+  if (!Array.isArray(nextValues.tableHeaders)) {
+    nextValues.tableHeaders = [...DEFAULT_TABLE_HEADERS];
+  }
+
+  return nextValues;
+}
 
 // Sortable Field Item Component
 function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level = 0, isExpanded, onToggleExpanded, onToggleQuickDetails, onToggleReport }) {
@@ -256,7 +284,7 @@ export default function Page() {
     connectedFieldId: null,
     connectionType: null,
     booleanDisplayType: null,
-    tableHeaders: ['Item Name', 'Code', 'Finish', 'Size']
+    tableHeaders: [...DEFAULT_TABLE_HEADERS]
   });
   const router = useRouter();
   const [fields, setFields] = useState([]);
@@ -275,17 +303,7 @@ export default function Page() {
     })
   );
 
-  useEffect(() => {
-    fetchFields();
-  }, [selectedDepartment]);
-
-  // Auto-expand all sections when fields are loaded
-  useEffect(() => {
-    const headingIds = fields.filter(f => f.type === 'heading').map(f => f._id);
-    setExpandedSections(new Set(headingIds));
-  }, [fields]);
-
-  async function fetchFields() {
+  const fetchFields = useCallback(async () => {
     try {
       const res = await fetch(`/api/newField?department=${selectedDepartment}`);
       const data = await res.json();
@@ -293,7 +311,17 @@ export default function Page() {
     } catch (err) {
       console.error('Failed to fetch fields', err);
     }
-  }
+  }, [selectedDepartment]);
+
+  useEffect(() => {
+    fetchFields();
+  }, [fetchFields]);
+
+  // Auto-expand all sections when fields are loaded
+  useEffect(() => {
+    const headingIds = fields.filter(f => f.type === 'heading').map(f => f._id);
+    setExpandedSections(new Set(headingIds));
+  }, [fields]);
 
   // Fetch all fields from all departments for connected field dropdown
   async function fetchAllFields() {
@@ -344,7 +372,7 @@ export default function Page() {
       connectedFieldId: null,
       connectionType: null,
       booleanDisplayType: null,
-      tableHeaders: ['Item Name', 'Code', 'Finish', 'Size']
+      tableHeaders: [...DEFAULT_TABLE_HEADERS]
     });
     setEditingId(null);
     setModalOpen(true);
@@ -373,7 +401,7 @@ export default function Page() {
       booleanDisplayType: field.booleanDisplayType || null,
       tableHeaders: Array.isArray(field.tableHeaders) && field.tableHeaders.length > 0
         ? field.tableHeaders
-        : ['Item Name', 'Code', 'Finish', 'Size']
+        : [...DEFAULT_TABLE_HEADERS]
     });
     setEditingId(field._id);
     setModalOpen(true);
@@ -440,6 +468,10 @@ export default function Page() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to update field.');
+        }
         const updated = await res.json();
         setFields((prev) => prev.map(f => f._id === updated._id ? updated : f));
       } else {
@@ -448,15 +480,20 @@ export default function Page() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to create field.');
+        }
         const created = await res.json();
         setFields((prev) => [...prev, created]);
       }
 
+      await fetchAllFields();
       setModalOpen(false);
       setEditingId(null);
     } catch (err) {
       console.error('Failed to save field', err);
-      alert('Failed to save field');
+      alert(err.message || 'Failed to save field');
     }
   }
 
@@ -687,7 +724,7 @@ export default function Page() {
                               className="text-blue-600 border-blue-200 hover:bg-blue-50"
                             >
                               <Plus className="h-4 w-4 mr-2" />
-                              Add Field to "{field.name}"
+                              Add Field to &quot;{field.name}&quot;
                             </Button>
                           </div>
                         )}
@@ -766,7 +803,7 @@ export default function Page() {
                   <select
                     className="w-full p-2 border border-gray-300 rounded"
                     value={values.type}
-                    onChange={(e) => setValues({ ...values, type: e.target.value })}
+                    onChange={(e) => setValues((prev) => normalizeFieldTypeChange(prev, e.target.value))}
                     required
                   >
                     <option value="">Select Type</option>
@@ -1115,7 +1152,15 @@ export default function Page() {
                             <option value="">Select connection type</option>
                             <option value="auto-true">Auto-True (When this field is true, connected field becomes true)</option>
                             <option value="toggle-active">Toggle-Active (This field is active only when connected field is false)</option>
+                            {values.type === 'image' && (
+                              <option value="is-attached">Is Attached (Show this image field as attached on the connected field)</option>
+                            )}
                           </select>
+                          {values.connectionType === 'is-attached' && (
+                            <p className="mt-1 text-xs text-blue-600">
+                              The connected field will show &quot;{values.name || 'This image field'} attached&quot; when images are uploaded.
+                            </p>
+                          )}
                         </div>
                       </div>
                     )}
