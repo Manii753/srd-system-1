@@ -143,6 +143,7 @@ export async function PATCH(request, { params }) {
         srd.productionProgress = 100;
         srd.productionEndDate = new Date();
         srd.currentProductionStage = null;
+        srd.isComplete = true;
 
         // Add audit entry
         srd.audit.push({

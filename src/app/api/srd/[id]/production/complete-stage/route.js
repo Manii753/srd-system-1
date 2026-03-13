@@ -121,6 +121,7 @@ export async function POST(request, context) {
       srd.productionEndDate = new Date();
       srd.productionProgress = 100;
       srd.currentProductionStage = null;
+      srd.isComplete = true;
     }
 
 

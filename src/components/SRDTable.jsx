@@ -405,7 +405,13 @@ export default function SRDTable({ srds, department }) {
                       </div>
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
-                      {srd.inProduction && currentStage ? (
+
+                      {srd.isComplete ? (
+                        <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                          <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-sm" />
+                          <span className="text-green-700 font-semibold text-sm">Production Completed</span>
+                        </div>
+                      ) : srd.inProduction && currentStage ? (
                         <div className="flex items-center bg-white rounded-lg px-3 py-2 border border-gray-200 shadow-sm">
                           <div
                             className="w-3 h-3 rounded-full mr-3 shadow-sm"
