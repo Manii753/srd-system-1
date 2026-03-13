@@ -4,9 +4,11 @@ import {
   ArrowLeft,
   CalendarClock,
   CheckCircle2,
+  AlertCircle,
   Factory,
   Package,
   TimerReset,
+  UserCheck
 } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import ProductionStage from '@/models/ProductionStage';
@@ -233,6 +235,19 @@ function buildProductionSummary(srd) {
   const currentStageStart = toDate(currentEntry?.startDate);
   const currentStageEnd = toDate(currentEntry?.endDate);
   const now = new Date();
+  
+  if (srd.isComplete) {
+    return {
+      state: 'completed',
+      label: 'Production completed',
+      helper: `Completed on ${formatDateTime(productionEnd)}`,
+      totalDuration: productionStart ? productionEnd - productionStart : null,
+      stageDuration: null,
+      badge: 'border-emerald-200 bg-emerald-100 text-emerald-700',
+      card: 'border-emerald-200 bg-emerald-50/80',
+    };
+  }
+
   const currentStageLabel =
     (srd.currentProductionStage &&
       typeof srd.currentProductionStage === 'object' &&
@@ -250,19 +265,6 @@ function buildProductionSummary(srd) {
       stageDuration: currentStageStart ? now - currentStageStart : null,
       badge: 'border-sky-200 bg-sky-100 text-sky-700',
       card: 'border-sky-200 bg-sky-50/80',
-    };
-  }
-
-  if (productionEnd) {
-    return {
-      state: 'completed',
-      label: 'Production completed',
-      helper: `Completed on ${formatDateTime(productionEnd)}`,
-      totalDuration: productionStart ? productionEnd - productionStart : null,
-      stageDuration:
-        currentStageStart && currentStageEnd ? currentStageEnd - currentStageStart : null,
-      badge: 'border-emerald-200 bg-emerald-100 text-emerald-700',
-      card: 'border-emerald-200 bg-emerald-50/80',
     };
   }
 
@@ -287,6 +289,40 @@ function buildProductionSummary(srd) {
     badge: 'border-slate-200 bg-slate-100 text-slate-700',
     card: 'border-slate-200 bg-white',
   };
+}
+
+function buildCustomerApprovalSummary(srd) {
+  const approval = srd.customerApproval;
+  
+  if (!approval || approval.status === 'pending') {
+    return {
+      label: 'Pending Approval',
+      helper: 'Waiting for customer review',
+      badge: 'border-orange-200 bg-orange-100 text-orange-800',
+      card: 'border-orange-200 bg-orange-50/80',
+      icon: TimerReset
+    };
+  }
+  
+  if (approval.status === 'approved') {
+    return {
+      label: 'Customer Approved',
+      helper: `Approved by ${approval.by} on ${formatDateTime(approval.date)}${approval.comments ? ` - "${approval.comments}"` : ''}`,
+      badge: 'border-emerald-200 bg-emerald-100 text-emerald-700',
+      card: 'border-emerald-200 bg-emerald-50/80',
+      icon: CheckCircle2
+    };
+  }
+
+  if (approval.status === 'rejected') {
+    return {
+      label: 'Customer Rejected',
+      helper: `Rejected by ${approval.by} on ${formatDateTime(approval.date)}${approval.comments ? ` - "${approval.comments}"` : ''}`,
+      badge: 'border-rose-200 bg-rose-100 text-rose-700',
+      card: 'border-rose-200 bg-rose-50/80',
+      icon: AlertCircle
+    };
+  }
 }
 
 function buildProductionStageSummaries(stages, srd) {
@@ -364,6 +400,7 @@ export default async function SRDDetailsPage({ params }) {
   const createdAt = toDate(srd.createdAt);
   const departmentSummaries = buildDepartmentSummaries(srd);
   const productionSummary = buildProductionSummary(srd);
+  const customerApprovalSummary = srd.isComplete ? buildCustomerApprovalSummary(srd) : null;
   const productionStageSummaries = buildProductionStageSummaries(productionStages, srd);
   const approvedCount = departmentSummaries.filter((item) => item.status === 'approved').length;
 
@@ -441,6 +478,15 @@ export default async function SRDDetailsPage({ params }) {
                 }
                 icon={TimerReset}
               />
+              {srd.isComplete && customerApprovalSummary && (
+                <SummaryCard
+                  title="Customer Review"
+                  value={customerApprovalSummary.label}
+                  description={customerApprovalSummary.helper}
+                  icon={customerApprovalSummary.icon}
+                  className={customerApprovalSummary.card}
+                />
+              )}
             </div>
           </CardHeader>
         </Card>

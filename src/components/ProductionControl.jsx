@@ -20,6 +20,12 @@ export default function ProductionControl({ srdId, initialData, onUpdate }) {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [completionNotes, setCompletionNotes] = useState('');
   const [completedBy, setCompletedBy] = useState('');
+  
+  // Customer Approval state
+  const [showCustomerApprovalModal, setShowCustomerApprovalModal] = useState(false);
+  const [customerApprovalStatus, setCustomerApprovalStatus] = useState('approved');
+  const [customerApprovalComments, setCustomerApprovalComments] = useState('');
+  const [customerApprovalBy, setCustomerApprovalBy] = useState('');
 
   useEffect(() => {
     if (initialData) {
@@ -116,11 +122,51 @@ export default function ProductionControl({ srdId, initialData, onUpdate }) {
     }
   };
 
+  const submitCustomerApproval = async () => {
+    if (!customerApprovalBy.trim()) {
+      toast.error('Please enter who is providing this approval/rejection');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/srd/${srdId}/customer-approval`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: customerApprovalStatus,
+          comments: customerApprovalComments,
+          completedBy: customerApprovalBy
+        })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success(data.message);
+        setProductionData({
+          ...productionData,
+          customerApproval: data.data.customerApproval 
+        });
+        setShowCustomerApprovalModal(false);
+        setCustomerApprovalComments('');
+        setCustomerApprovalBy('');
+        if (onUpdate) onUpdate(data.data);
+      } else {
+        toast.error(data.error);
+      }
+    } catch (error) {
+      console.error('Error submitting customer approval:', error);
+      toast.error('Failed to submit customer approval');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!productionData) {
     return null;
   }
 
-  const { readyForProduction, inProduction, productionProgress, currentProductionStage, productionHistory } = productionData;
+  const { readyForProduction, inProduction, productionProgress, currentProductionStage, productionHistory, isComplete, customerApproval } = productionData;
 
   // Not ready for production
   if (!readyForProduction) {
@@ -321,6 +367,93 @@ export default function ProductionControl({ srdId, initialData, onUpdate }) {
         </Card>
       )}
 
+      {/* Customer Approval Section */}
+      {isComplete && (
+        <Card className={
+          customerApproval?.status === 'approved' ? 'border-green-200 bg-green-50' : 
+          customerApproval?.status === 'rejected' ? 'border-red-200 bg-red-50' : 
+          'border-orange-200 bg-orange-50'
+        }>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center space-x-2">
+                <User className="h-5 w-5" />
+                <span>Customer Approval</span>
+              </CardTitle>
+              {customerApproval?.status === 'pending' || !customerApproval ? (
+                 <Badge className="bg-orange-100 text-orange-800">Pending</Badge>
+              ) : (
+                <Badge className={customerApproval?.status === 'approved' ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                  {customerApproval?.status.charAt(0).toUpperCase() + customerApproval?.status.slice(1)}
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {(!customerApproval || customerApproval.status === 'pending') ? (
+               <div className="text-center py-4">
+                 <p className="text-gray-600 mb-4">Production is complete. Waiting for customer feedback.</p>
+                 <div className="flex justify-center space-x-3">
+                   <Button 
+                     onClick={() => {
+                        setCustomerApprovalStatus('approved');
+                        setShowCustomerApprovalModal(true);
+                     }}
+                     className="bg-green-600 hover:bg-green-700"
+                   >
+                     <CheckCircle className="h-4 w-4 mr-2" />
+                     Approve Production
+                   </Button>
+                   <Button 
+                     onClick={() => {
+                        setCustomerApprovalStatus('rejected');
+                        setShowCustomerApprovalModal(true);
+                     }}
+                     variant="destructive"
+                   >
+                     <AlertCircle className="h-4 w-4 mr-2" />
+                     Reject Production
+                   </Button>
+                 </div>
+               </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 mt-1">
+                     {customerApproval.status === 'approved' ? (
+                       <CheckCircle className="h-6 w-6 text-green-600" />
+                     ) : (
+                       <AlertCircle className="h-6 w-6 text-red-600" />
+                     )}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">
+                      Production was {customerApproval.status}
+                    </p>
+                    <div className="text-sm text-gray-600 mt-1 space-y-1">
+                      <p>
+                        <User className="h-3 w-3 inline mr-1" />
+                        By: {customerApproval.by}
+                      </p>
+                      <p>
+                        <Calendar className="h-3 w-3 inline mr-1" />
+                        Date: {new Date(customerApproval.date).toLocaleString()}
+                      </p>
+                      {customerApproval.comments && (
+                        <div className="mt-3 p-3 bg-white/60 rounded-md border text-gray-800">
+                          <p className="font-medium text-xs text-gray-500 uppercase mb-1">Comments</p>
+                          <p>{customerApproval.comments}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Complete Stage Modal */}
       {showCompleteModal && (
         <>
@@ -359,6 +492,62 @@ export default function ProductionControl({ srdId, initialData, onUpdate }) {
                   <Button onClick={completeStage} disabled={loading}>
                     <CheckCircle className="h-4 w-4 mr-2" />
                     Complete Stage
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Customer Approval Modal */}
+      {showCustomerApprovalModal && (
+        <>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" onClick={() => setShowCustomerApprovalModal(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+              <div className="flex items-center justify-between px-6 py-4 border-b">
+                <h2 className="text-lg font-semibold flex items-center">
+                   {customerApprovalStatus === 'approved' ? (
+                      <><CheckCircle className="h-5 w-5 text-green-600 mr-2"/> Approve Production</>
+                   ) : (
+                      <><AlertCircle className="h-5 w-5 text-red-600 mr-2"/> Reject Production</>
+                   )}
+                </h2>
+                <button className="text-gray-500 hover:text-gray-800 text-2xl" onClick={() => setShowCustomerApprovalModal(false)}>×</button>
+              </div>
+              <div className="px-6 py-4 space-y-4">
+                <div>
+                  <Label htmlFor="customerBy">Performed By *</Label>
+                  <Input
+                    id="customerBy"
+                    value={customerApprovalBy}
+                    onChange={(e) => setCustomerApprovalBy(e.target.value)}
+                    placeholder="Enter who is making this decision"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="customerNotes">Comments (Optional)</Label>
+                  <Textarea
+                    id="customerNotes"
+                    value={customerApprovalComments}
+                    onChange={(e) => setCustomerApprovalComments(e.target.value)}
+                    placeholder={customerApprovalStatus === 'approved' ? "Add any approval notes..." : "Add reasons for rejection..."}
+                    rows={4}
+                  />
+                </div>
+                <div className="flex justify-end space-x-3 pt-4 border-t">
+                  <Button variant="outline" onClick={() => setShowCustomerApprovalModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={submitCustomerApproval} 
+                    disabled={loading}
+                    variant={customerApprovalStatus === 'approved' ? "default" : "destructive"}
+                    className={customerApprovalStatus === 'approved' ? "bg-green-600 hover:bg-green-700" : ""}
+                  >
+                    {customerApprovalStatus === 'approved' ? "Submit Approval" : "Submit Rejection"}
                   </Button>
                 </div>
               </div>

@@ -88,7 +88,18 @@ const srdSchema = new mongoose.Schema({
   }],
 
   comments: [commentSchema],
-  audit: [auditSchema]
+  audit: [auditSchema],
+
+  customerApproval: {
+    status: { 
+      type: String, 
+      enum: ['pending', 'approved', 'rejected'], 
+      default: 'pending' 
+    },
+    comments: { type: String, default: '' },
+    by: { type: String, default: '' },
+    date: { type: Date }
+  }
 });
 
 const REQUIRED_DEPTS = ['vmd', 'cad', 'commercial', 'mmc'];
