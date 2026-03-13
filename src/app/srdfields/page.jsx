@@ -239,7 +239,7 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
               <label className="flex items-center space-x-1 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={field.isShownInReport || false}
+                  checked={field.inReport || false}
                   onChange={() => onToggleReport(field)}
                   className="form-checkbox h-4 w-4 text-green-600 rounded"
                 />
@@ -276,8 +276,8 @@ export default function Page() {
     isOptional: false,
     parentHeading: null,
     isShownInQuickDetails: false,
-    isShownInReport: false,
-    reportColumnOrder: 0,
+    inReport: false,
+    inReportOrder: 0,
     isConnectedTo: false,
     connectedFieldId: null,
     isConnectedTo: false,
@@ -366,8 +366,8 @@ export default function Page() {
       isOptional: false,
       parentHeading: parentHeading,
       isShownInQuickDetails: false,
-      isShownInReport: false,
-      reportColumnOrder: 0,
+      inReport: false,
+      inReportOrder: 0,
       isConnectedTo: false,
       connectedFieldId: null,
       connectionType: null,
@@ -393,8 +393,8 @@ export default function Page() {
       isOptional: !!field.isOptional,
       parentHeading: field.parentHeading || null,
       isShownInQuickDetails: !!field.isShownInQuickDetails,
-      isShownInReport: !!field.isShownInReport,
-      reportColumnOrder: field.reportColumnOrder || 0,
+      inReport: !!field.inReport,
+      inReportOrder: field.inReportOrder || 0,
       isConnectedTo: !!field.isConnectedTo,
       connectedFieldId: connectedId,
       connectionType: field.connectionType || null,
@@ -438,11 +438,11 @@ export default function Page() {
 
   async function handleToggleReport(field) {
     try {
-      const newValue = !field.isShownInReport;
+      const newValue = !field.inReport;
       const res = await fetch(`/api/newField?id=${field._id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isShownInReport: newValue })
+        body: JSON.stringify({ inReport: newValue })
       });
       const updated = await res.json();
       setFields((prev) => prev.map(f => f._id === updated._id ? updated : f));
@@ -781,44 +781,44 @@ export default function Page() {
 
               <form className="overflow-y-auto px-4 py-4 space-y-4 sm:px-6" onSubmit={handleSubmit}>
                 <div className="grid gap-4 md:grid-cols-2">
-                {/* Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Field Name
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border border-gray-300 rounded"
-                    value={values.name}
-                    onChange={(e) => setValues({ ...values, name: e.target.value })}
-                    required
-                  />
-                </div>
+                  {/* Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Field Name
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full p-2 border border-gray-300 rounded"
+                      value={values.name}
+                      onChange={(e) => setValues({ ...values, name: e.target.value })}
+                      required
+                    />
+                  </div>
 
-                {/* Type */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Field Type
-                  </label>
-                  <select
-                    className="w-full p-2 border border-gray-300 rounded"
-                    value={values.type}
-                    onChange={(e) => setValues((prev) => normalizeFieldTypeChange(prev, e.target.value))}
-                    required
-                  >
-                    <option value="">Select Type</option>
-                    <option value="heading">📁 Heading (Section Separator)</option>
-                    <option value="text">📝 Text</option>
-                    <option value="number">🔢 Number</option>
-                    <option value="date">📅 Date</option>
-                    <option value="boolean">☑️ Boolean (Yes/No)</option>
-                    <option value="textarea">📄 Textarea</option>
-                    <option value="table">📊 Table (Excel-like)</option>
-                    <option value="file">📎 File Upload</option>
-                    <option value="image">🖼️ Image Upload</option>
-                    <option value="createdAt">📅 Created At</option>
-                  </select>
-                </div>
+                  {/* Type */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Field Type
+                    </label>
+                    <select
+                      className="w-full p-2 border border-gray-300 rounded"
+                      value={values.type}
+                      onChange={(e) => setValues((prev) => normalizeFieldTypeChange(prev, e.target.value))}
+                      required
+                    >
+                      <option value="">Select Type</option>
+                      <option value="heading">📁 Heading (Section Separator)</option>
+                      <option value="text">📝 Text</option>
+                      <option value="number">🔢 Number</option>
+                      <option value="date">📅 Date</option>
+                      <option value="boolean">☑️ Boolean (Yes/No)</option>
+                      <option value="textarea">📄 Textarea</option>
+                      <option value="table">📊 Table (Excel-like)</option>
+                      <option value="file">📎 File Upload</option>
+                      <option value="image">🖼️ Image Upload</option>
+                      <option value="createdAt">📅 Created At</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Boolean Display Type */}
@@ -1018,12 +1018,12 @@ export default function Page() {
                       <input
                         type="checkbox"
                         className="form-checkbox h-4 w-4"
-                        checked={values.isShownInReport}
-                        onChange={(e) => setValues({ ...values, isShownInReport: e.target.checked })}
+                        checked={values.inReport}
+                        onChange={(e) => setValues({ ...values, inReport: e.target.checked })}
                       />
                       <span className="text-sm text-gray-700">Show in Report</span>
                     </div>
-                    {values.isShownInReport && (
+                    {values.inReport && (
                       <div className="ml-0 sm:ml-6">
                         <label className="block text-xs font-medium text-gray-600 mb-1">
                           Report Column Order
@@ -1032,8 +1032,8 @@ export default function Page() {
                           type="number"
                           min="0"
                           className="w-24 p-1.5 text-sm border border-gray-300 rounded"
-                          value={values.reportColumnOrder || 0}
-                          onChange={(e) => setValues({ ...values, reportColumnOrder: parseInt(e.target.value) || 0 })}
+                          value={values.inReportOrder || 0}
+                          onChange={(e) => setValues({ ...values, inReportOrder: parseInt(e.target.value) || 0 })}
                           placeholder="0"
                         />
                         <p className="text-xs text-gray-500 mt-1">Lower numbers appear first</p>

@@ -75,11 +75,21 @@ export async function GET(request) {
         // return only active fields by default
         filter.active = true;
 
-        // Sort by order field, then by creation date
+        // If inReport filter is requested, only return fields marked for reports
+        const inReport = searchParams.get('inReport');
+        if (inReport === 'true') {
+            filter.inReport = true;
+        }
+
+        // Sort by inReportOrder when filtering by inReport, otherwise by order
+        const sortOrder = inReport === 'true'
+            ? { inReportOrder: 1, order: 1, createdAt: 1 }
+            : { order: 1, createdAt: 1 };
+
         const fields = await Field.find(filter)
             .populate('parentHeading', 'name type')
             .populate('connectedFieldId', 'name type department')
-            .sort({ order: 1, createdAt: 1 });
+            .sort(sortOrder);
 
         return NextResponse.json(fields);
     } catch (error) {

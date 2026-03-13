@@ -48,6 +48,16 @@ const FieldSchema = new mongoose.Schema({
         default: null
     },
 
+    inReport: {
+        type: Boolean,
+        default: false
+    },
+
+    inReportOrder: {
+        type: Number,
+        default: 0
+    },
+
     isShownInQuickDetails: {
         type: Boolean,
         default: false

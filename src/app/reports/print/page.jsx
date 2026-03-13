@@ -12,6 +12,7 @@ function ReportPrintContent() {
   const [srds, setSRDs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reportType, setReportType] = useState('detailed');
+  const [reportFields, setReportFields] = useState([]);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -25,6 +26,15 @@ function ReportPrintContent() {
       try {
         const type = searchParams.get('reportType') || 'detailed';
         setReportType(type);
+
+        // If dynamic report, fetch the report template fields
+        if (type === 'dynamic') {
+          const fieldsRes = await fetch('/api/newField?inReport=true');
+          const fieldsData = await fieldsRes.json();
+          if (Array.isArray(fieldsData)) {
+            setReportFields(fieldsData.sort((a, b) => (a.inReportOrder || 0) - (b.inReportOrder || 0)));
+          }
+        }
 
         // Build query with filters
         const query = new URLSearchParams(searchParams);
@@ -47,12 +57,12 @@ function ReportPrintContent() {
 
   const getDynamicFieldValue = (srd, fieldName) => {
     if (!srd.dynamicFields) return '';
-    
-    const field = srd.dynamicFields.find(df => 
+
+    const field = srd.dynamicFields.find(df =>
       df.name?.toLowerCase() === fieldName.toLowerCase() ||
       df.field?.name?.toLowerCase() === fieldName.toLowerCase()
     );
-    
+
     if (!field || field.value === null || field.value === undefined) return '';
 
     return formatFieldValueForDisplay(field.value, field.type || field.field?.type);
@@ -71,6 +81,18 @@ function ReportPrintContent() {
 
   const getImage = (srd) => {
     return getFirstImageUrlFromDynamicFields(srd.dynamicFields);
+  };
+
+  const renderDynamicCellValue = (srd, field) => {
+    // Special handling for image fields
+    if (field.type === 'image') {
+      const imgUrl = getDynamicFieldValue(srd, field.name);
+      if (imgUrl) {
+        return <img src={imgUrl} alt={field.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+      }
+      return '';
+    }
+    return getDynamicFieldValue(srd, field.name);
   };
 
   if (loading) return <div className="p-8 text-center">Loading report data...</div>;
@@ -134,7 +156,7 @@ function ReportPrintContent() {
 
       <div className="flex justify-between items-center mb-4 no-print">
         <h1 className="text-2xl font-bold">
-          {reportType === 'detailed' ? 'Detailed SRD Report' : 'Summary SRD Report'}
+          {reportType === 'detailed' ? 'Detailed SRD Report' : reportType === 'summary' ? 'Summary SRD Report' : 'Dynamic SRD Report'}
         </h1>
         <button
           onClick={() => window.print()}
@@ -153,7 +175,35 @@ function ReportPrintContent() {
         </div>
       </div>
 
-      {reportType === 'detailed' ? (
+      {reportType === 'dynamic' ? (
+        // DYNAMIC REPORT FORMAT — columns from inReport fields
+        reportFields.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            No fields are configured for the report template. Go to Reports page and configure the template.
+          </div>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                {reportFields.map(field => (
+                  <th key={field._id}>{field.name}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {srds.map((srd) => (
+                <tr key={srd._id}>
+                  {reportFields.map(field => (
+                    <td key={field._id} className={field.type === 'image' ? 'img-cell' : ''}>
+                      {renderDynamicCellValue(srd, field)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )
+      ) : reportType === 'detailed' ? (
         // DETAILED REPORT FORMAT
         <table>
           <thead>
