@@ -42,7 +42,7 @@ export default function DepartmentPanelExcel({
 
   // Status update state
   const [selectedDepartment, setSelectedDepartment] = useState(userRole === 'admin' || userRole === 'vmd' ? 'vmd' : userRole);
-  const [statusToUpdate, setStatusToUpdate] = useState('pending');
+  const [statusToUpdate, setStatusToUpdate] = useState('approved');
   const [updateComment, setUpdateComment] = useState('');
 
   // Auto-save functionality
@@ -647,6 +647,16 @@ export default function DepartmentPanelExcel({
           if (key === 'purchaseType' && val === 'instock') {
             newPredefined[rowIdx].opd = '';
             newPredefined[rowIdx].etd = '';
+          }
+          // If switching to purchase, pre-fill dates with today's date
+          if (key === 'purchaseType' && val === 'purchase') {
+            const today = new Date().toISOString().split('T')[0];
+            if (!newPredefined[rowIdx].opd) {
+              newPredefined[rowIdx].opd = today;
+            }
+            if (!newPredefined[rowIdx].etd) {
+              newPredefined[rowIdx].etd = today;
+            }
           }
           handleFieldChange(fieldId, name, { ...tableData, predefinedData: newPredefined }, department, fieldDef);
         };

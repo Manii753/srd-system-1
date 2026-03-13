@@ -420,25 +420,21 @@ export default function SRDTable({ srds, department }) {
                           <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.vmd)} rounded-lg text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
                             <div className="text-center">
                               <div className="uppercase font-bold text-xs">VMD</div>
-                              <div className="text-white/80 text-xs capitalize">{srd.status.vmd}</div>
                             </div>
                           </div>
                           <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.cad)} rounded-lg text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
                             <div className="text-center">
                               <div className="uppercase font-bold text-xs">CAD</div>
-                              <div className="text-white/80 text-xs capitalize">{srd.status.cad}</div>
                             </div>
                           </div>
                           <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.mmc)} rounded-lg text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
                             <div className="text-center">
                               <div className="uppercase font-bold text-xs">MMC</div>
-                              <div className="text-white/80 text-xs capitalize">{srd.status.mmc}</div>
                             </div>
                           </div>
                           <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.commercial)} rounded-lg text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
                             <div className="text-center">
                               <div className="uppercase font-bold text-xs">COM</div>
-                              <div className="text-white/80 text-xs capitalize">{srd.status.commercial}</div>
                             </div>
                           </div>
                         </div>
