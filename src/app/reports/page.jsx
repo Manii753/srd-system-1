@@ -5,7 +5,14 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { FileSpreadsheet, Calendar, Filter, LayoutList, Save, GripVertical } from 'lucide-react';
+import {
+  Calendar,
+  ExternalLink,
+  FileSpreadsheet,
+  Filter,
+  LayoutList,
+  Settings2,
+} from 'lucide-react';
 
 export default function ReportsPage() {
   const { data: session, status } = useSession();
@@ -16,12 +23,10 @@ export default function ReportsPage() {
     department: '',
     status: '',
     brand: '',
-    sampleType: ''
+    sampleType: '',
   });
-  const [reportFields, setReportFields] = useState([]);
-  const [loadingFields, setLoadingFields] = useState(true);
-  const [savingOrder, setSavingOrder] = useState(false);
-  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [activeTemplate, setActiveTemplate] = useState(null);
+  const [loadingTemplate, setLoadingTemplate] = useState(true);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -31,76 +36,38 @@ export default function ReportsPage() {
     }
   }, [session, status, router]);
 
-  // Fetch fields marked inReport
   useEffect(() => {
-    async function fetchReportFields() {
+    if (status === 'loading' || !session) {
+      return;
+    }
+
+    async function fetchActiveTemplate() {
       try {
-        setLoadingFields(true);
-        const res = await fetch('/api/newField?inReport=true');
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setReportFields(data.sort((a, b) => (a.inReportOrder || 0) - (b.inReportOrder || 0)));
+        setLoadingTemplate(true);
+        const response = await fetch('/api/reportTemplate/active');
+
+        if (response.status === 404) {
+          setActiveTemplate(null);
+          return;
         }
-      } catch (err) {
-        console.error('Failed to fetch report fields', err);
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load active report template');
+        }
+
+        setActiveTemplate(data);
+      } catch (error) {
+        console.error('Failed to fetch active report template', error);
+        setActiveTemplate(null);
       } finally {
-        setLoadingFields(false);
+        setLoadingTemplate(false);
       }
     }
-    fetchReportFields();
-  }, []);
 
-  const handleOrderChange = (fieldId, newOrder) => {
-    setReportFields(prev =>
-      prev.map(f => f._id === fieldId ? { ...f, inReportOrder: parseInt(newOrder) || 0 } : f)
-    );
-  };
-
-  const handleSaveOrder = async () => {
-    setSavingOrder(true);
-    try {
-      await Promise.all(
-        reportFields.map(f =>
-          fetch(`/api/newField?id=${f._id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ inReportOrder: f.inReportOrder || 0 })
-          })
-        )
-      );
-      // Re-sort after saving
-      setReportFields(prev => [...prev].sort((a, b) => (a.inReportOrder || 0) - (b.inReportOrder || 0)));
-      alert('Report order saved successfully!');
-    } catch (err) {
-      console.error('Failed to save order', err);
-      alert('Failed to save report order');
-    } finally {
-      setSavingOrder(false);
-    }
-  };
-
-  // Drag-and-drop reordering
-  const handleDragStart = (index) => {
-    setDraggedIndex(index);
-  };
-
-  const handleDragOver = (e, index) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-
-    const newFields = [...reportFields];
-    const dragged = newFields.splice(draggedIndex, 1)[0];
-    newFields.splice(index, 0, dragged);
-
-    // Update inReportOrder based on new positions
-    const updated = newFields.map((f, i) => ({ ...f, inReportOrder: i }));
-    setReportFields(updated);
-    setDraggedIndex(index);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
-  };
+    fetchActiveTemplate();
+  }, [session, status]);
 
   const generateReport = (reportType) => {
     const params = new URLSearchParams();
@@ -118,6 +85,10 @@ export default function ReportsPage() {
     return <Layout><div className="p-8">Loading...</div></Layout>;
   }
 
+  const dynamicColumnCount = activeTemplate?.columns?.length || 0;
+  const dynamicReportDisabled = dynamicColumnCount === 0;
+  const activeLabelsPreview = activeTemplate?.columns?.slice(0, 8).map((column) => column.label).join(', ');
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -126,7 +97,6 @@ export default function ReportsPage() {
           <p className="text-gray-600 mt-1">Generate detailed reports with filters</p>
         </div>
 
-        {/* Filters Section */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center mb-4">
             <Filter className="h-5 w-5 mr-2 text-gray-600" />
@@ -134,7 +104,6 @@ export default function ReportsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Date Range */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Start Date
@@ -143,7 +112,7 @@ export default function ReportsPage() {
                 type="date"
                 className="w-full p-2 border border-gray-300 rounded"
                 value={filters.startDate}
-                onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                onChange={(event) => setFilters({ ...filters, startDate: event.target.value })}
               />
             </div>
 
@@ -155,11 +124,10 @@ export default function ReportsPage() {
                 type="date"
                 className="w-full p-2 border border-gray-300 rounded"
                 value={filters.endDate}
-                onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                onChange={(event) => setFilters({ ...filters, endDate: event.target.value })}
               />
             </div>
 
-            {/* Department */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Department
@@ -167,7 +135,7 @@ export default function ReportsPage() {
               <select
                 className="w-full p-2 border border-gray-300 rounded"
                 value={filters.department}
-                onChange={(e) => setFilters({ ...filters, department: e.target.value })}
+                onChange={(event) => setFilters({ ...filters, department: event.target.value })}
               >
                 <option value="">All Departments</option>
                 <option value="vmd">VMD</option>
@@ -177,7 +145,6 @@ export default function ReportsPage() {
               </select>
             </div>
 
-            {/* Status */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Status
@@ -185,7 +152,7 @@ export default function ReportsPage() {
               <select
                 className="w-full p-2 border border-gray-300 rounded"
                 value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                onChange={(event) => setFilters({ ...filters, status: event.target.value })}
               >
                 <option value="">All Status</option>
                 <option value="pre-production">Pre-Production</option>
@@ -194,7 +161,6 @@ export default function ReportsPage() {
               </select>
             </div>
 
-            {/* Brand */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Brand
@@ -204,11 +170,10 @@ export default function ReportsPage() {
                 className="w-full p-2 border border-gray-300 rounded"
                 placeholder="Filter by brand..."
                 value={filters.brand}
-                onChange={(e) => setFilters({ ...filters, brand: e.target.value })}
+                onChange={(event) => setFilters({ ...filters, brand: event.target.value })}
               />
             </div>
 
-            {/* Sample Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Sample Type
@@ -218,7 +183,7 @@ export default function ReportsPage() {
                 className="w-full p-2 border border-gray-300 rounded"
                 placeholder="Filter by sample type..."
                 value={filters.sampleType}
-                onChange={(e) => setFilters({ ...filters, sampleType: e.target.value })}
+                onChange={(event) => setFilters({ ...filters, sampleType: event.target.value })}
               />
             </div>
           </div>
@@ -232,7 +197,7 @@ export default function ReportsPage() {
                 department: '',
                 status: '',
                 brand: '',
-                sampleType: ''
+                sampleType: '',
               })}
             >
               Clear Filters
@@ -240,90 +205,65 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* Report Template Section */}
         <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-              <LayoutList className="h-5 w-5 mr-2 text-purple-600" />
-              <h2 className="text-lg font-semibold">Report Template</h2>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <div className="flex items-center">
+                <LayoutList className="h-5 w-5 mr-2 text-purple-600" />
+                <h2 className="text-lg font-semibold">Dynamic Report Template</h2>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                Manage the ordered columns for the dynamic report in the dedicated template designer.
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">
-                {reportFields.length} field{reportFields.length !== 1 ? 's' : ''} in report
-              </span>
-              <Button
-                size="sm"
-                onClick={handleSaveOrder}
-                disabled={savingOrder || reportFields.length === 0}
-                className="flex items-center bg-purple-600 hover:bg-purple-700"
-              >
-                <Save className="h-4 w-4 mr-1" />
-                {savingOrder ? 'Saving...' : 'Save Order'}
+
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => router.push('/srdfields')}>
+                <Settings2 className="h-4 w-4 mr-2" />
+                Manage Fields
+              </Button>
+              <Button onClick={() => router.push('/reports/templates')}>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Template Designer
               </Button>
             </div>
           </div>
 
-          <p className="text-sm text-gray-500 mb-4">
-            Drag to reorder or edit the order numbers. Fields marked &quot;In Report&quot; from the field editor appear here.
-            Go to <button onClick={() => router.push('/srdfields')} className="text-purple-600 hover:underline font-medium">Manage Fields</button> to add/remove fields from the report.
-          </p>
-
-          {loadingFields ? (
-            <div className="text-center py-8 text-gray-500">Loading report fields...</div>
-          ) : reportFields.length === 0 ? (
-            <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-              <LayoutList className="mx-auto h-10 w-10 text-gray-300 mb-2" />
-              <p className="text-gray-500 text-sm">No fields are marked for reports yet.</p>
-              <p className="text-gray-400 text-xs mt-1">
-                Go to <button onClick={() => router.push('/srdfields')} className="text-purple-500 hover:underline">Manage Fields</button> and toggle &quot;Report&quot; on the fields you want.
-              </p>
-            </div>
-          ) : (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="grid grid-cols-[auto_1fr_auto_auto] gap-0 text-xs font-semibold text-gray-500 uppercase bg-gray-50 px-4 py-2 border-b">
-                <div className="w-8"></div>
-                <div>Field Name</div>
-                <div className="w-20 text-center">Order</div>
-                <div className="w-24 text-center">Department</div>
-              </div>
-              {reportFields.map((field, index) => (
-                <div
-                  key={field._id}
-                  draggable
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
-                  className={`grid grid-cols-[auto_1fr_auto_auto] gap-0 items-center px-4 py-2.5 border-b last:border-b-0 transition-colors
-                    ${draggedIndex === index ? 'bg-purple-50 shadow-inner' : 'hover:bg-gray-50'}
-                  `}
-                >
-                  <div className="w-8 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600">
-                    <GripVertical className="h-4 w-4" />
+          <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
+            {loadingTemplate ? (
+              <div className="text-sm text-gray-500">Loading active template...</div>
+            ) : activeTemplate ? (
+              <div className="space-y-2">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="font-semibold text-gray-900">{activeTemplate.name}</div>
+                    <div className="text-sm text-gray-500">
+                      {dynamicColumnCount} column{dynamicColumnCount === 1 ? '' : 's'} in the active template
+                    </div>
                   </div>
-                  <div className="font-medium text-gray-800 text-sm">{field.name}</div>
-                  <div className="w-20 flex justify-center">
-                    <input
-                      type="number"
-                      min="0"
-                      className="w-14 p-1 text-sm text-center border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 focus:outline-none"
-                      value={field.inReportOrder || 0}
-                      onChange={(e) => handleOrderChange(field._id, e.target.value)}
-                    />
-                  </div>
-                  <div className="w-24 text-center">
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                      {field.department?.toUpperCase() || 'GLOBAL'}
-                    </span>
-                  </div>
+                  <span className="inline-flex w-fit rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                    Active Template
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
+
+                <div className="text-sm text-gray-600">
+                  {dynamicColumnCount > 0
+                    ? `Columns: ${activeLabelsPreview}${dynamicColumnCount > 8 ? ' ...' : ''}`
+                    : 'This template has no columns yet.'}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="font-medium text-gray-800">No active dynamic report template</div>
+                <div className="text-sm text-gray-500">
+                  Open the template designer to create or activate a report template.
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Report Types */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Detailed Report */}
           <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-center mb-4">
               <FileSpreadsheet className="h-8 w-8 text-blue-600 mr-3" />
@@ -335,15 +275,11 @@ export default function ReportsPage() {
             <div className="mb-4 text-sm text-gray-600">
               Includes: Date, Brand, Sample Type, Style, Description, Size, Qty, Color/Wash, Fabric, Sample Raised, Inquiry #, Status, Inquiry Status, Picture, ETD
             </div>
-            <Button
-              className="w-full"
-              onClick={() => generateReport('detailed')}
-            >
+            <Button className="w-full" onClick={() => generateReport('detailed')}>
               Generate Detailed Report
             </Button>
           </div>
 
-          {/* Summary Report */}
           <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-center mb-4">
               <Calendar className="h-8 w-8 text-green-600 mr-3" />
@@ -363,24 +299,25 @@ export default function ReportsPage() {
             </Button>
           </div>
 
-          {/* Dynamic Report */}
           <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow border-2 border-purple-100">
             <div className="flex items-center mb-4">
               <LayoutList className="h-8 w-8 text-purple-600 mr-3" />
               <div>
                 <h3 className="text-lg font-semibold">Dynamic Report</h3>
-                <p className="text-sm text-gray-600">Uses your report template above</p>
+                <p className="text-sm text-gray-600">Uses the active dynamic report template</p>
               </div>
             </div>
             <div className="mb-4 text-sm text-gray-600">
-              {reportFields.length > 0
-                ? `Includes: ${reportFields.map(f => f.name).join(', ')}`
-                : 'No fields configured yet. Add fields from the template section above.'}
+              {loadingTemplate
+                ? 'Loading active template...'
+                : activeTemplate && dynamicColumnCount > 0
+                  ? `Template: ${activeTemplate.name}. Columns: ${activeLabelsPreview}${dynamicColumnCount > 8 ? ' ...' : ''}`
+                  : 'No active template with columns is available yet. Configure it in the template designer.'}
             </div>
             <Button
               className="w-full bg-purple-600 hover:bg-purple-700"
               onClick={() => generateReport('dynamic')}
-              disabled={reportFields.length === 0}
+              disabled={dynamicReportDisabled || loadingTemplate}
             >
               Generate Dynamic Report
             </Button>

@@ -159,8 +159,11 @@ export async function GET(request) {
     let queryExec = SRD.find(query).sort({ createdAt: -1 });
 
     if (shouldPopulate) {
-      // populate dynamicFields.field for detailed info if needed, and currentProductionStage
-      queryExec = queryExec.populate('dynamicFields.field').populate('currentProductionStage');
+      // Populate field and production-stage references used by dynamic report templates.
+      queryExec = queryExec
+        .populate('dynamicFields.field')
+        .populate('currentProductionStage')
+        .populate('productionHistory.stage');
     }
 
     const srds = await queryExec;
