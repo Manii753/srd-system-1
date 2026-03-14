@@ -457,14 +457,19 @@ export function resolveReportColumnValue(srd, column) {
   if (!column) return '';
 
   if (column.kind === 'field') {
+    const field = getFieldFromColumn(column);
+    if (field?.type === 'createdAt') {
+      return formatReportDate(srd?.createdAt);
+    }
+
     const dynamicField = findDynamicFieldForColumn(srd, column);
     if (!dynamicField) return '';
 
-    if ((dynamicField.type || dynamicField.field?.type) === 'table') {
+    if ((dynamicField.type || dynamicField.field?.type || field?.type) === 'table') {
       return resolveReportTableColumnValue(dynamicField, column);
     }
 
-    return formatFieldValueForDisplay(dynamicField.value, dynamicField.type || dynamicField.field?.type);
+    return formatFieldValueForDisplay(dynamicField.value, dynamicField.type || dynamicField.field?.type || field?.type);
   }
 
   if (column.kind !== 'computed') {
