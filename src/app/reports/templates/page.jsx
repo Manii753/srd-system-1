@@ -24,6 +24,7 @@ import {
   getFieldTableHeaders,
   getIdString,
   normalizeReportTemplateTableSelection,
+  REPORT_TEMPLATE_COMPUTED_KEYS,
   REPORT_TEMPLATE_TABLE_PREDEFINED_COLUMNS,
   REPORT_TEMPLATE_TABLE_ROW_MODES,
 } from '@/lib/reportTemplateUtils';
@@ -355,12 +356,20 @@ export default function ReportTemplatesPage() {
     }
 
     const stage = stageMap.get(column.stageId);
-    const currentStageColumn = column.computedKey === 'currentProductionStage' || column.computedKey === 'currentProductionStageStartDate';
+    const currentStageColumn =
+      column.computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.CURRENT_PRODUCTION_STAGE ||
+      column.computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.CURRENT_PRODUCTION_STAGE_START_DATE ||
+      column.computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.CURRENT_PRODUCTION_STAGE_END_DATE;
+    const stageSpecificColumn =
+      column.computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.PRODUCTION_STAGE_START_DATE ||
+      column.computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.PRODUCTION_STAGE_END_DATE;
 
     return {
       title: column.label || 'Computed Column',
-      badge: currentStageColumn ? 'CURRENT' : (stage?.displayName || stage?.name || 'STAGE'),
-      description: currentStageColumn ? 'Calculated from SRD production status' : 'Calculated from production history',
+      badge: currentStageColumn ? 'CURRENT' : (stageSpecificColumn ? (stage?.displayName || stage?.name || 'STAGE') : 'GLOBAL'),
+      description: currentStageColumn
+        ? 'Calculated from the active SRD production stage'
+        : (stageSpecificColumn ? 'Calculated from production history' : 'Calculated from top-level SRD workflow data'),
     };
   };
 

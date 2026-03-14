@@ -3,8 +3,17 @@ import { formatFieldValueForDisplay, normalizeAssetEntries } from '@/lib/assetUt
 export const REPORT_TEMPLATE_COMPUTED_KEYS = {
   CURRENT_PRODUCTION_STAGE: 'currentProductionStage',
   CURRENT_PRODUCTION_STAGE_START_DATE: 'currentProductionStageStartDate',
+  CURRENT_PRODUCTION_STAGE_END_DATE: 'currentProductionStageEndDate',
   PRODUCTION_STAGE_START_DATE: 'productionStageStartDate',
   PRODUCTION_STAGE_END_DATE: 'productionStageEndDate',
+  CUSTOMER_APPROVAL_STATUS: 'customerApprovalStatus',
+  CUSTOMER_APPROVAL_DATE: 'customerApprovalDate',
+  CUSTOMER_APPROVAL_BY: 'customerApprovalBy',
+  SRD_LIFECYCLE_STATUS: 'srdLifecycleStatus',
+  READY_FOR_PRODUCTION: 'readyForProduction',
+  PRODUCTION_START_DATE: 'productionStartDate',
+  PRODUCTION_END_DATE: 'productionEndDate',
+  PRODUCTION_PROGRESS: 'productionProgress',
 };
 
 export const REPORT_TEMPLATE_COMPUTED_KEY_VALUES = Object.values(REPORT_TEMPLATE_COMPUTED_KEYS);
@@ -161,6 +170,42 @@ export function buildComputedColumnLabel(computedKey, stage) {
     return 'Current Stage Start Date';
   }
 
+  if (computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.CURRENT_PRODUCTION_STAGE_END_DATE) {
+    return 'Current Stage End Date';
+  }
+
+  if (computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.CUSTOMER_APPROVAL_STATUS) {
+    return 'Customer Approval Status';
+  }
+
+  if (computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.CUSTOMER_APPROVAL_DATE) {
+    return 'Customer Approval Date';
+  }
+
+  if (computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.CUSTOMER_APPROVAL_BY) {
+    return 'Customer Approval By';
+  }
+
+  if (computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.SRD_LIFECYCLE_STATUS) {
+    return 'SRD Status';
+  }
+
+  if (computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.READY_FOR_PRODUCTION) {
+    return 'Ready for Production';
+  }
+
+  if (computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.PRODUCTION_START_DATE) {
+    return 'Production Start Date';
+  }
+
+  if (computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.PRODUCTION_END_DATE) {
+    return 'Production End Date';
+  }
+
+  if (computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.PRODUCTION_PROGRESS) {
+    return 'Production Progress';
+  }
+
   const stageLabel = getStageDisplayName(stage) || 'Stage';
 
   if (computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.PRODUCTION_STAGE_START_DATE) {
@@ -189,6 +234,63 @@ export function buildAvailableComputedColumns(stages) {
       label: buildComputedColumnLabel(REPORT_TEMPLATE_COMPUTED_KEYS.CURRENT_PRODUCTION_STAGE_START_DATE),
       description: 'Show the start date for the current production stage',
     },
+    {
+      kind: 'computed',
+      computedKey: REPORT_TEMPLATE_COMPUTED_KEYS.CURRENT_PRODUCTION_STAGE_END_DATE,
+      label: buildComputedColumnLabel(REPORT_TEMPLATE_COMPUTED_KEYS.CURRENT_PRODUCTION_STAGE_END_DATE),
+      description: 'Show the end date for the current production stage when it is completed',
+    },
+  ];
+
+  const globalColumns = [
+    {
+      kind: 'computed',
+      computedKey: REPORT_TEMPLATE_COMPUTED_KEYS.CUSTOMER_APPROVAL_STATUS,
+      label: buildComputedColumnLabel(REPORT_TEMPLATE_COMPUTED_KEYS.CUSTOMER_APPROVAL_STATUS),
+      description: 'Show whether customer approval is pending, approved, or rejected',
+    },
+    {
+      kind: 'computed',
+      computedKey: REPORT_TEMPLATE_COMPUTED_KEYS.CUSTOMER_APPROVAL_DATE,
+      label: buildComputedColumnLabel(REPORT_TEMPLATE_COMPUTED_KEYS.CUSTOMER_APPROVAL_DATE),
+      description: 'Show when the customer approval decision was recorded',
+    },
+    {
+      kind: 'computed',
+      computedKey: REPORT_TEMPLATE_COMPUTED_KEYS.CUSTOMER_APPROVAL_BY,
+      label: buildComputedColumnLabel(REPORT_TEMPLATE_COMPUTED_KEYS.CUSTOMER_APPROVAL_BY),
+      description: 'Show who recorded the customer approval decision',
+    },
+    {
+      kind: 'computed',
+      computedKey: REPORT_TEMPLATE_COMPUTED_KEYS.SRD_LIFECYCLE_STATUS,
+      label: buildComputedColumnLabel(REPORT_TEMPLATE_COMPUTED_KEYS.SRD_LIFECYCLE_STATUS),
+      description: 'Show whether the SRD is pre-production, ready, in production, or completed',
+    },
+    {
+      kind: 'computed',
+      computedKey: REPORT_TEMPLATE_COMPUTED_KEYS.READY_FOR_PRODUCTION,
+      label: buildComputedColumnLabel(REPORT_TEMPLATE_COMPUTED_KEYS.READY_FOR_PRODUCTION),
+      description: 'Show whether all approvals are complete and the SRD is ready for production',
+    },
+    {
+      kind: 'computed',
+      computedKey: REPORT_TEMPLATE_COMPUTED_KEYS.PRODUCTION_START_DATE,
+      label: buildComputedColumnLabel(REPORT_TEMPLATE_COMPUTED_KEYS.PRODUCTION_START_DATE),
+      description: 'Show when production started',
+    },
+    {
+      kind: 'computed',
+      computedKey: REPORT_TEMPLATE_COMPUTED_KEYS.PRODUCTION_END_DATE,
+      label: buildComputedColumnLabel(REPORT_TEMPLATE_COMPUTED_KEYS.PRODUCTION_END_DATE),
+      description: 'Show when production ended',
+    },
+    {
+      kind: 'computed',
+      computedKey: REPORT_TEMPLATE_COMPUTED_KEYS.PRODUCTION_PROGRESS,
+      label: buildComputedColumnLabel(REPORT_TEMPLATE_COMPUTED_KEYS.PRODUCTION_PROGRESS),
+      description: 'Show the current production progress percentage',
+    },
   ];
 
   const stageColumns = activeStages.flatMap((stage) => [
@@ -210,7 +312,7 @@ export function buildAvailableComputedColumns(stages) {
     },
   ]);
 
-  return [...currentStageColumns, ...stageColumns];
+  return [...currentStageColumns, ...globalColumns, ...stageColumns];
 }
 
 export function formatReportDate(value) {
@@ -220,6 +322,42 @@ export function formatReportDate(value) {
   if (Number.isNaN(date.getTime())) return '';
 
   return date.toLocaleDateString();
+}
+
+function titleCaseLabel(value) {
+  const normalized = normalizeText(value);
+  if (!normalized) return '';
+
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function getCustomerApprovalStatusLabel(srd) {
+  return titleCaseLabel(srd?.customerApproval?.status) || 'Pending';
+}
+
+function getSrdLifecycleStatusLabel(srd) {
+  if (srd?.isComplete) {
+    return 'Completed';
+  }
+
+  if (srd?.inProduction) {
+    return 'In Production';
+  }
+
+  if (srd?.readyForProduction) {
+    return 'Ready for Production';
+  }
+
+  return 'Pre-Production';
+}
+
+function formatBooleanAsYesNo(value) {
+  return value ? 'Yes' : 'No';
+}
+
+function formatReportPercentage(value) {
+  const parsedValue = Number(value);
+  return Number.isFinite(parsedValue) ? `${parsedValue}%` : '';
 }
 
 function getDynamicFieldName(dynamicField) {
@@ -484,6 +622,13 @@ export function resolveReportColumnValue(srd, column) {
     return formatReportDate(getCurrentStageHistoryEntry(srd)?.startDate);
   }
 
+  if (column.computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.CURRENT_PRODUCTION_STAGE_END_DATE) {
+    const currentEntry = getCurrentStageHistoryEntry(srd);
+    return currentEntry?.status === 'completed' && currentEntry?.endDate
+      ? formatReportDate(currentEntry.endDate)
+      : '';
+  }
+
   if (column.computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.PRODUCTION_STAGE_START_DATE) {
     return formatReportDate(getStageHistoryEntry(srd, getStageIdFromColumn(column))?.startDate);
   }
@@ -493,6 +638,38 @@ export function resolveReportColumnValue(srd, column) {
     return stageEntry?.status === 'completed' && stageEntry?.endDate
       ? formatReportDate(stageEntry.endDate)
       : '';
+  }
+
+  if (column.computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.CUSTOMER_APPROVAL_STATUS) {
+    return getCustomerApprovalStatusLabel(srd);
+  }
+
+  if (column.computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.CUSTOMER_APPROVAL_DATE) {
+    return formatReportDate(srd?.customerApproval?.date);
+  }
+
+  if (column.computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.CUSTOMER_APPROVAL_BY) {
+    return srd?.customerApproval?.by || '';
+  }
+
+  if (column.computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.SRD_LIFECYCLE_STATUS) {
+    return getSrdLifecycleStatusLabel(srd);
+  }
+
+  if (column.computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.READY_FOR_PRODUCTION) {
+    return formatBooleanAsYesNo(srd?.readyForProduction);
+  }
+
+  if (column.computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.PRODUCTION_START_DATE) {
+    return formatReportDate(srd?.productionStartDate);
+  }
+
+  if (column.computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.PRODUCTION_END_DATE) {
+    return formatReportDate(srd?.productionEndDate);
+  }
+
+  if (column.computedKey === REPORT_TEMPLATE_COMPUTED_KEYS.PRODUCTION_PROGRESS) {
+    return formatReportPercentage(srd?.productionProgress);
   }
 
   return '';
