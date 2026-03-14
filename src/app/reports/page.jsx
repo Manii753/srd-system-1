@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import {
   Calendar,
   ExternalLink,
-  FileSpreadsheet,
   Filter,
   LayoutList,
   Settings2,
@@ -27,6 +26,8 @@ export default function ReportsPage() {
   });
   const [activeTemplate, setActiveTemplate] = useState(null);
   const [loadingTemplate, setLoadingTemplate] = useState(true);
+  const [reportTemplates, setReportTemplates] = useState([]);
+  const [selectedSummaryTemplateId, setSelectedSummaryTemplateId] = useState('');
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -41,35 +42,40 @@ export default function ReportsPage() {
       return;
     }
 
-    async function fetchActiveTemplate() {
+    async function fetchReportTemplates() {
       try {
         setLoadingTemplate(true);
-        const response = await fetch('/api/reportTemplate/active');
-
-        if (response.status === 404) {
-          setActiveTemplate(null);
-          return;
-        }
-
+        const response = await fetch('/api/reportTemplate');
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to load active report template');
+          throw new Error(data.error || 'Failed to load report templates');
         }
 
-        setActiveTemplate(data);
+        const templates = Array.isArray(data) ? data : [];
+        const active = templates.find((template) => template.isActive) || null;
+        const preferredSummaryTemplate =
+          templates.find((template) => !template.isActive) ||
+          templates[0] ||
+          null;
+
+        setReportTemplates(templates);
+        setActiveTemplate(active);
+        setSelectedSummaryTemplateId(preferredSummaryTemplate?._id || '');
       } catch (error) {
-        console.error('Failed to fetch active report template', error);
+        console.error('Failed to fetch report templates', error);
+        setReportTemplates([]);
         setActiveTemplate(null);
+        setSelectedSummaryTemplateId('');
       } finally {
         setLoadingTemplate(false);
       }
     }
 
-    fetchActiveTemplate();
+    fetchReportTemplates();
   }, [session, status]);
 
-  const generateReport = (reportType) => {
+  const generateReport = (reportType, templateId = '') => {
     const params = new URLSearchParams();
 
     Object.entries(filters).forEach(([key, value]) => {
@@ -77,6 +83,9 @@ export default function ReportsPage() {
     });
 
     params.set('reportType', reportType);
+    if (templateId) {
+      params.set('templateId', templateId);
+    }
 
     window.open(`/reports/print?${params.toString()}`, '_blank');
   };
@@ -88,6 +97,10 @@ export default function ReportsPage() {
   const dynamicColumnCount = activeTemplate?.columns?.length || 0;
   const dynamicReportDisabled = dynamicColumnCount === 0;
   const activeLabelsPreview = activeTemplate?.columns?.slice(0, 8).map((column) => column.label).join(', ');
+  const selectedSummaryTemplate = reportTemplates.find((template) => template._id === selectedSummaryTemplateId) || null;
+  const summaryTemplateColumnCount = selectedSummaryTemplate?.columns?.length || 0;
+  const summaryTemplateDisabled = !selectedSummaryTemplateId || summaryTemplateColumnCount === 0;
+  const summaryLabelsPreview = selectedSummaryTemplate?.columns?.slice(0, 8).map((column) => column.label).join(', ');
 
   return (
     <Layout>
@@ -263,37 +276,49 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center mb-4">
-              <FileSpreadsheet className="h-8 w-8 text-blue-600 mr-3" />
-              <div>
-                <h3 className="text-lg font-semibold">Detailed Report</h3>
-                <p className="text-sm text-gray-600">Complete information with all fields</p>
-              </div>
-            </div>
-            <div className="mb-4 text-sm text-gray-600">
-              Includes: Date, Brand, Sample Type, Style, Description, Size, Qty, Color/Wash, Fabric, Sample Raised, Inquiry #, Status, Inquiry Status, Picture, ETD
-            </div>
-            <Button className="w-full" onClick={() => generateReport('detailed')}>
-              Generate Detailed Report
-            </Button>
-          </div>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-center mb-4">
               <Calendar className="h-8 w-8 text-green-600 mr-3" />
               <div>
                 <h3 className="text-lg font-semibold">Summary Report</h3>
-                <p className="text-sm text-gray-600">Condensed view with key information</p>
+                <p className="text-sm text-gray-600">Choose any saved template without changing the active one</p>
               </div>
             </div>
-            <div className="mb-4 text-sm text-gray-600">
-              Includes: SR Date, Inquiry #, Priority, Brand, Style, Description, Size, Qty/PCS, Fabric, Color/Wash, Sample Type, ETD, All Trims, B/Wash Embellish, Pattern, Cutting, Sewing, Wash, A/Wash Embellish, Shipped, Reject, Picture, Status
+            <div className="mb-4 space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Template
+                </label>
+                <select
+                  className="w-full p-2 border border-gray-300 rounded"
+                  value={selectedSummaryTemplateId}
+                  onChange={(event) => setSelectedSummaryTemplateId(event.target.value)}
+                  disabled={loadingTemplate || reportTemplates.length === 0}
+                >
+                  {reportTemplates.length === 0 ? (
+                    <option value="">No templates available</option>
+                  ) : (
+                    reportTemplates.map((template) => (
+                      <option key={template._id} value={template._id}>
+                        {template.name}{template.isActive ? ' (Active)' : ''}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+              <div className="text-sm text-gray-600">
+                {loadingTemplate
+                  ? 'Loading templates...'
+                  : selectedSummaryTemplate && summaryTemplateColumnCount > 0
+                    ? `Template: ${selectedSummaryTemplate.name}. Columns: ${summaryLabelsPreview}${summaryTemplateColumnCount > 8 ? ' ...' : ''}`
+                    : 'Select a saved template to print this report.'}
+              </div>
             </div>
             <Button
               className="w-full bg-green-600 hover:bg-green-700"
-              onClick={() => generateReport('summary')}
+              onClick={() => generateReport('summary', selectedSummaryTemplateId)}
+              disabled={summaryTemplateDisabled || loadingTemplate}
             >
               Generate Summary Report
             </Button>

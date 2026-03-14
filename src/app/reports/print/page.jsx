@@ -32,10 +32,14 @@ function ReportPrintContent() {
 
       try {
         const type = searchParams.get('reportType') || 'detailed';
+        const templateId = searchParams.get('templateId');
         setReportType(type);
 
-        if (type === 'dynamic') {
-          const templateResponse = await fetch('/api/reportTemplate/active');
+        if (type === 'dynamic' || (type === 'summary' && templateId)) {
+          const templateUrl = templateId
+            ? `/api/reportTemplate?id=${encodeURIComponent(templateId)}`
+            : '/api/reportTemplate/active';
+          const templateResponse = await fetch(templateUrl);
 
           if (templateResponse.status === 404) {
             setReportTemplate(null);
@@ -116,6 +120,7 @@ function ReportPrintContent() {
   if (loading) return <div className="p-8 text-center">Loading report data...</div>;
 
   const dynamicColumns = reportTemplate?.columns || [];
+  const usesTemplateColumns = reportType === 'dynamic' || (reportType === 'summary' && !!searchParams.get('templateId'));
 
   return (
     <div className="p-4 max-w-full mx-auto bg-white">
@@ -193,17 +198,17 @@ function ReportPrintContent() {
         <div className="text-sm text-gray-600">
           Total Records: {srds.length}
         </div>
-        {reportType === 'dynamic' && reportTemplate?.name && (
+        {usesTemplateColumns && reportTemplate?.name && (
           <div className="text-sm text-gray-600">
             Template: {reportTemplate.name}
           </div>
         )}
       </div>
 
-      {reportType === 'dynamic' ? (
+      {usesTemplateColumns ? (
         dynamicColumns.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
-            No columns are configured for the active dynamic report template. Open the template designer from the Reports page.
+            No columns are configured for the selected report template. Open the template designer from the Reports page.
           </div>
         ) : (
           <table>
