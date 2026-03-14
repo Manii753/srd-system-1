@@ -725,6 +725,7 @@ export async function printDepartmentPanelExcel({
     }
 
     .cell-label {
+      width:120px;
       font-size: 11px;
       font-weight: 700;
       color: #333;
