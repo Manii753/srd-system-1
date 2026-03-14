@@ -8,6 +8,36 @@ export const REPORT_TEMPLATE_COMPUTED_KEYS = {
 };
 
 export const REPORT_TEMPLATE_COMPUTED_KEY_VALUES = Object.values(REPORT_TEMPLATE_COMPUTED_KEYS);
+export const DEFAULT_REPORT_TABLE_HEADERS = ['Item Name', 'Code', 'Finish', 'Size'];
+export const REPORT_TEMPLATE_TABLE_ROW_MODES = [
+  { value: 'fixed', label: 'Fixed row' },
+  { value: 'first', label: 'First filled row' },
+  { value: 'last', label: 'Last filled row' },
+  { value: 'all', label: 'All filled rows' },
+];
+export const REPORT_TEMPLATE_TABLE_PREDEFINED_COLUMNS = [
+  { value: 'purchaseType', label: 'Purchase / Stock' },
+  { value: 'opd', label: 'OPD' },
+  { value: 'etd', label: 'IHD' },
+];
+
+function normalizeText(value) {
+  return String(value || '').trim();
+}
+
+function matchesText(left, right) {
+  return normalizeText(left).toLowerCase() === normalizeText(right).toLowerCase();
+}
+
+function isMeaningfulValue(value) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (typeof value === 'number') return !Number.isNaN(value);
+  if (typeof value === 'boolean') return true;
+  if (Array.isArray(value)) return value.some((item) => isMeaningfulValue(item));
+  if (typeof value === 'object') return Object.values(value).some((item) => isMeaningfulValue(item));
+  return false;
+}
 
 export function getIdString(value) {
   if (!value) return '';
@@ -39,6 +69,87 @@ export function getStageIdFromColumn(column) {
 export function getStageDisplayName(stage) {
   if (!stage) return '';
   return stage.displayName || stage.name || '';
+}
+
+export function getFieldTableHeaders(field) {
+  const headers = Array.isArray(field?.tableHeaders)
+    ? field.tableHeaders.map((header) => normalizeText(header)).filter(Boolean)
+    : [];
+
+  return headers.length > 0 ? headers : [...DEFAULT_REPORT_TABLE_HEADERS];
+}
+
+export function buildDefaultTableSelection(field) {
+  const headers = getFieldTableHeaders(field);
+
+  return {
+    rowMode: 'fixed',
+    rowIndex: 0,
+    columnSource: 'header',
+    columnKey: headers[0] || DEFAULT_REPORT_TABLE_HEADERS[0],
+    columnIndex: 0,
+  };
+}
+
+export function normalizeReportTemplateTableSelection(selection, field) {
+  if (field?.type !== 'table') {
+    return null;
+  }
+
+  const headers = getFieldTableHeaders(field);
+  const rowMode = REPORT_TEMPLATE_TABLE_ROW_MODES.some((mode) => mode.value === selection?.rowMode)
+    ? selection.rowMode
+    : 'fixed';
+  const parsedRowIndex = Number.parseInt(selection?.rowIndex, 10);
+  const rowIndex = Number.isNaN(parsedRowIndex) ? 0 : Math.max(0, parsedRowIndex);
+  const columnSource = selection?.columnSource === 'predefined' ? 'predefined' : 'header';
+  const parsedColumnIndex = Number.parseInt(selection?.columnIndex, 10);
+  const fallbackColumnIndex = Number.isNaN(parsedColumnIndex) ? 0 : Math.max(0, parsedColumnIndex);
+
+  if (columnSource === 'predefined') {
+    const columnKey = REPORT_TEMPLATE_TABLE_PREDEFINED_COLUMNS.some((item) => item.value === selection?.columnKey)
+      ? selection.columnKey
+      : REPORT_TEMPLATE_TABLE_PREDEFINED_COLUMNS[0].value;
+
+    return {
+      rowMode,
+      rowIndex,
+      columnSource,
+      columnKey,
+      columnIndex: null,
+    };
+  }
+
+  const matchedHeaderIndex = headers.findIndex((header) => matchesText(header, selection?.columnKey));
+  const resolvedColumnIndex = matchedHeaderIndex >= 0
+    ? matchedHeaderIndex
+    : Math.min(fallbackColumnIndex, Math.max(headers.length - 1, 0));
+  const columnKey = normalizeText(selection?.columnKey) || headers[resolvedColumnIndex] || headers[0] || '';
+
+  return {
+    rowMode,
+    rowIndex,
+    columnSource,
+    columnKey,
+    columnIndex: resolvedColumnIndex,
+  };
+}
+
+export function describeReportTableSelection(selection, field) {
+  const normalizedSelection = normalizeReportTemplateTableSelection(selection, field);
+
+  if (!normalizedSelection) {
+    return '';
+  }
+
+  const rowLabel = normalizedSelection.rowMode === 'fixed'
+    ? `Row ${normalizedSelection.rowIndex + 1}`
+    : REPORT_TEMPLATE_TABLE_ROW_MODES.find((mode) => mode.value === normalizedSelection.rowMode)?.label || 'Fixed row';
+  const columnLabel = normalizedSelection.columnSource === 'predefined'
+    ? REPORT_TEMPLATE_TABLE_PREDEFINED_COLUMNS.find((item) => item.value === normalizedSelection.columnKey)?.label || 'Predefined'
+    : normalizeText(normalizedSelection.columnKey) || `Column ${normalizedSelection.columnIndex + 1}`;
+
+  return `${rowLabel} • ${columnLabel}`;
 }
 
 export function buildComputedColumnLabel(computedKey, stage) {
@@ -187,12 +298,171 @@ export function getImageUrlForColumn(srd, column) {
   return firstAsset?.url || '';
 }
 
+function normalizeReportTableData(dynamicField, field) {
+  const defaultHeaders = getFieldTableHeaders(field);
+  const rawTableData = dynamicField?.value && typeof dynamicField.value === 'object' && !Array.isArray(dynamicField.value)
+    ? dynamicField.value
+    : {};
+  const headers = Array.isArray(rawTableData.headers) && rawTableData.headers.length > 0
+    ? rawTableData.headers.map((header) => normalizeText(header))
+    : defaultHeaders;
+  const rows = Array.isArray(rawTableData.rows)
+    ? rawTableData.rows.map((row) => {
+      if (!Array.isArray(row)) {
+        return new Array(headers.length).fill('');
+      }
+
+      if (row.length >= headers.length) {
+        return row;
+      }
+
+      return [...row, ...new Array(headers.length - row.length).fill('')];
+    })
+    : [];
+  const predefinedData = (Array.isArray(rawTableData.predefinedData) ? rawTableData.predefinedData : [])
+    .slice(0, rows.length)
+    .map((item) => ({
+      purchaseType: item?.purchaseType === 'instock' ? 'instock' : 'purchase',
+      opd: normalizeText(item?.opd),
+      etd: normalizeText(item?.etd),
+    }));
+
+  while (predefinedData.length < rows.length) {
+    predefinedData.push({ purchaseType: 'purchase', opd: '', etd: '' });
+  }
+
+  return { headers, rows, predefinedData };
+}
+
+function getTableSelectionColumnIndex(headers, tableSelection) {
+  const matchedHeaderIndex = headers.findIndex((header) => matchesText(header, tableSelection?.columnKey));
+  if (matchedHeaderIndex >= 0) {
+    return matchedHeaderIndex;
+  }
+
+  const parsedColumnIndex = Number.parseInt(tableSelection?.columnIndex, 10);
+  if (Number.isNaN(parsedColumnIndex) || parsedColumnIndex < 0) {
+    return -1;
+  }
+
+  return parsedColumnIndex < headers.length ? parsedColumnIndex : -1;
+}
+
+function getPredefinedTableValue(predefinedRow, columnKey) {
+  if (columnKey === 'purchaseType') {
+    return predefinedRow?.purchaseType === 'instock' ? 'In Stock' : 'Purchase';
+  }
+
+  if (columnKey === 'opd') {
+    return normalizeText(predefinedRow?.opd);
+  }
+
+  if (columnKey === 'etd') {
+    return normalizeText(predefinedRow?.etd);
+  }
+
+  return '';
+}
+
+function rowHasMeaningfulTableContent(row, predefinedRow) {
+  return (
+    (Array.isArray(row) && row.some((cell) => isMeaningfulValue(cell))) ||
+    normalizeText(predefinedRow?.opd) !== '' ||
+    normalizeText(predefinedRow?.etd) !== '' ||
+    predefinedRow?.purchaseType === 'instock'
+  );
+}
+
+function getSelectedTableRowValue(tableData, tableSelection, rowIndex) {
+  if (rowIndex < 0 || rowIndex >= tableData.rows.length) {
+    return '';
+  }
+
+  if (tableSelection.columnSource === 'predefined') {
+    return getPredefinedTableValue(tableData.predefinedData[rowIndex], tableSelection.columnKey);
+  }
+
+  const columnIndex = getTableSelectionColumnIndex(tableData.headers, tableSelection);
+  if (columnIndex < 0) {
+    return '';
+  }
+
+  return tableData.rows[rowIndex]?.[columnIndex] ?? '';
+}
+
+function getAutoSelectedTableRows(tableData, tableSelection) {
+  return tableData.rows
+    .map((row, rowIndex) => ({ row, rowIndex }))
+    .filter(({ row, rowIndex }) => {
+      const value = getSelectedTableRowValue(tableData, tableSelection, rowIndex);
+
+      if (!isMeaningfulValue(value)) {
+        return false;
+      }
+
+      if (tableSelection.columnSource === 'predefined' && tableSelection.columnKey === 'purchaseType') {
+        return rowHasMeaningfulTableContent(row, tableData.predefinedData[rowIndex]);
+      }
+
+      return true;
+    })
+    .map(({ rowIndex }) => rowIndex);
+}
+
+function resolveReportTableColumnValue(dynamicField, column) {
+  const field = getFieldFromColumn(column);
+  const tableSelection = normalizeReportTemplateTableSelection(column?.tableSelection, field);
+
+  if (!field || !tableSelection) {
+    return formatFieldValueForDisplay(dynamicField?.value, dynamicField?.type || dynamicField?.field?.type);
+  }
+
+  const tableData = normalizeReportTableData(dynamicField, field);
+
+  if (tableData.rows.length === 0) {
+    return '';
+  }
+
+  if (tableSelection.rowMode === 'fixed') {
+    const fixedValue = getSelectedTableRowValue(tableData, tableSelection, tableSelection.rowIndex);
+    return isMeaningfulValue(fixedValue) ? String(fixedValue) : '';
+  }
+
+  const rowIndexes = getAutoSelectedTableRows(tableData, tableSelection);
+
+  if (rowIndexes.length === 0) {
+    return '';
+  }
+
+  if (tableSelection.rowMode === 'first') {
+    return String(getSelectedTableRowValue(tableData, tableSelection, rowIndexes[0]));
+  }
+
+  if (tableSelection.rowMode === 'last') {
+    return String(getSelectedTableRowValue(tableData, tableSelection, rowIndexes[rowIndexes.length - 1]));
+  }
+
+  if (tableSelection.rowMode === 'all') {
+    return rowIndexes
+      .map((rowIndex) => getSelectedTableRowValue(tableData, tableSelection, rowIndex))
+      .filter((value) => isMeaningfulValue(value))
+      .map((value) => String(value))
+      .join(', ');
+  }
+
+  return '';
+}
+
 export function resolveReportColumnValue(srd, column) {
   if (!column) return '';
 
   if (column.kind === 'field') {
     const dynamicField = findDynamicFieldForColumn(srd, column);
     if (!dynamicField) return '';
+
+    if ((dynamicField.type || dynamicField.field?.type) === 'table') {
+      return resolveReportTableColumnValue(dynamicField, column);
+    }
 
     return formatFieldValueForDisplay(dynamicField.value, dynamicField.type || dynamicField.field?.type);
   }

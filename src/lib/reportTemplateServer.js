@@ -7,11 +7,12 @@ import {
   REPORT_TEMPLATE_COMPUTED_KEY_VALUES,
   buildComputedColumnLabel,
   getIdString,
+  normalizeReportTemplateTableSelection,
 } from '@/lib/reportTemplateUtils';
 
 function populateTemplateQuery(query) {
   return query
-    .populate('columns.fieldId', 'name type department inReport active')
+    .populate('columns.fieldId', 'name type department inReport active tableHeaders')
     .populate('columns.stageId', 'name displayName order isActive');
 }
 
@@ -110,7 +111,7 @@ export async function sanitizeReportTemplateColumns(columns) {
   )];
 
   const fields = fieldIds.length > 0
-    ? await Field.find({ _id: { $in: fieldIds }, active: true, inReport: true }).select('name')
+    ? await Field.find({ _id: { $in: fieldIds }, active: true, inReport: true }).select('name type tableHeaders')
     : [];
   const stages = stageIds.length > 0
     ? await ProductionStage.find({ _id: { $in: stageIds }, isActive: true }).select('name displayName')
@@ -135,6 +136,7 @@ export async function sanitizeReportTemplateColumns(columns) {
           computedKey: null,
           stageId: null,
           label: String(column.label || field.name || '').trim() || field.name,
+          tableSelection: normalizeReportTemplateTableSelection(column.tableSelection, field),
         };
       }
 
@@ -164,6 +166,7 @@ export async function sanitizeReportTemplateColumns(columns) {
           computedKey,
           stageId,
           label: String(column.label || buildComputedColumnLabel(computedKey, stage)).trim() || buildComputedColumnLabel(computedKey, stage),
+          tableSelection: null,
         };
       }
 
@@ -173,6 +176,7 @@ export async function sanitizeReportTemplateColumns(columns) {
         computedKey,
         stageId: null,
         label: String(column.label || buildComputedColumnLabel(computedKey)).trim() || buildComputedColumnLabel(computedKey),
+        tableSelection: null,
       };
     })
     .filter(Boolean);

@@ -17,16 +17,43 @@ import {
   Save,
   Trash2,
 } from 'lucide-react';
-import { buildAvailableComputedColumns, getIdString } from '@/lib/reportTemplateUtils';
+import {
+  buildAvailableComputedColumns,
+  buildDefaultTableSelection,
+  describeReportTableSelection,
+  getFieldTableHeaders,
+  getIdString,
+  normalizeReportTemplateTableSelection,
+  REPORT_TEMPLATE_TABLE_PREDEFINED_COLUMNS,
+  REPORT_TEMPLATE_TABLE_ROW_MODES,
+} from '@/lib/reportTemplateUtils';
+
+function buildFieldColumnLabel(field, tableSelection) {
+  if (!field) {
+    return '';
+  }
+
+  if (field.type !== 'table') {
+    return field.name || '';
+  }
+
+  return `${field.name} - ${describeReportTableSelection(tableSelection, field)}`;
+}
 
 function createClientColumn(column = {}) {
+  const field = column.fieldId && typeof column.fieldId === 'object' ? column.fieldId : null;
+  const tableSelection = field
+    ? normalizeReportTemplateTableSelection(column.tableSelection, field)
+    : (column.tableSelection || null);
+
   return {
     clientId: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
     kind: column.kind || 'field',
     fieldId: column.fieldId ? getIdString(column.fieldId) : null,
     computedKey: column.computedKey || null,
     stageId: column.stageId ? getIdString(column.stageId) : null,
-    label: column.label || '',
+    label: column.label || buildFieldColumnLabel(field, tableSelection),
+    tableSelection,
   };
 }
 
@@ -36,6 +63,19 @@ function getColumnSelectionKey(column) {
   }
 
   return `computed:${column.computedKey || ''}:${column.stageId || ''}`;
+}
+
+function createFieldColumn(field) {
+  const tableSelection = field.type === 'table'
+    ? buildDefaultTableSelection(field)
+    : null;
+
+  return {
+    kind: 'field',
+    fieldId: String(field._id),
+    label: buildFieldColumnLabel(field, tableSelection),
+    tableSelection,
+  };
 }
 
 export default function ReportTemplatesPage() {
@@ -127,7 +167,16 @@ export default function ReportTemplatesPage() {
   const fieldMap = new Map(availableFields.map((field) => [String(field._id), field]));
   const stageMap = new Map(productionStages.map((stage) => [String(stage._id), stage]));
   const availableComputedColumns = buildAvailableComputedColumns(productionStages);
-  const selectedColumnKeys = new Set(columns.map((column) => getColumnSelectionKey(column)));
+  const selectedColumnKeys = new Set(columns.flatMap((column) => {
+    if (column.kind === 'field') {
+      const field = fieldMap.get(column.fieldId);
+      if (field?.type === 'table') {
+        return [];
+      }
+    }
+
+    return [getColumnSelectionKey(column)];
+  }));
 
   const createNewTemplate = () => {
     setCurrentTemplateId(null);
@@ -152,6 +201,34 @@ export default function ReportTemplatesPage() {
     )));
   };
 
+  const updateTableSelection = (clientId, patch) => {
+    setColumns((prev) => prev.map((column) => {
+      if (column.clientId !== clientId) {
+        return column;
+      }
+
+      const field = fieldMap.get(column.fieldId);
+      if (!field || field.type !== 'table') {
+        return column;
+      }
+
+      const previousSelection = normalizeReportTemplateTableSelection(column.tableSelection, field);
+      const nextSelection = normalizeReportTemplateTableSelection(
+        { ...column.tableSelection, ...patch },
+        field
+      );
+      const previousAutoLabel = buildFieldColumnLabel(field, previousSelection);
+      const nextAutoLabel = buildFieldColumnLabel(field, nextSelection);
+      const shouldUpdateLabel = !column.label || column.label === field.name || column.label === previousAutoLabel;
+
+      return {
+        ...column,
+        label: shouldUpdateLabel ? nextAutoLabel : column.label,
+        tableSelection: nextSelection,
+      };
+    }));
+  };
+
   const removeColumn = (clientId) => {
     setColumns((prev) => prev.filter((column) => column.clientId !== clientId));
   };
@@ -173,6 +250,7 @@ export default function ReportTemplatesPage() {
           computedKey: column.computedKey || null,
           stageId: column.stageId || null,
           label: column.label?.trim() || '',
+          tableSelection: column.tableSelection || null,
         })),
       };
 
@@ -265,11 +343,14 @@ export default function ReportTemplatesPage() {
   const getColumnMeta = (column) => {
     if (column.kind === 'field') {
       const field = fieldMap.get(column.fieldId);
+      const isTableField = field?.type === 'table';
 
       return {
         title: field?.name || column.label || 'Field Column',
-        badge: field?.department?.toUpperCase() || 'FIELD',
-        description: field?.type ? `${field.type} field` : 'SRD field',
+        badge: isTableField ? 'TABLE' : (field?.department?.toUpperCase() || 'FIELD'),
+        description: isTableField
+          ? `Table field • ${describeReportTableSelection(column.tableSelection, field)}`
+          : (field?.type ? `${field.type} field` : 'SRD field'),
       };
     }
 
@@ -383,7 +464,8 @@ export default function ReportTemplatesPage() {
                     No fields are marked for reports. Add them from SRD Fields first.
                   </div>
                 ) : availableFields.map((field) => {
-                  const alreadySelected = selectedColumnKeys.has(`field:${field._id}`);
+                  const allowsMultipleColumns = field.type === 'table';
+                  const alreadySelected = !allowsMultipleColumns && selectedColumnKeys.has(`field:${field._id}`);
 
                   return (
                     <div key={field._id} className="border rounded-lg p-3 bg-gray-50">
@@ -391,18 +473,19 @@ export default function ReportTemplatesPage() {
                       <div className="text-xs text-gray-500 mt-1">
                         {field.type} • {field.department?.toUpperCase() || 'GLOBAL'}
                       </div>
+                      {field.type === 'table' && (
+                        <div className="text-[11px] text-gray-500 mt-2">
+                          Table fields can be added multiple times with different row and column selections.
+                        </div>
+                      )}
                       <Button
                         size="sm"
                         className="mt-3 w-full"
                         variant={alreadySelected ? 'outline' : 'default'}
-                        onClick={() => addColumn({
-                          kind: 'field',
-                          fieldId: String(field._id),
-                          label: field.name,
-                        })}
+                        onClick={() => addColumn(createFieldColumn(field))}
                         disabled={alreadySelected}
                       >
-                        {alreadySelected ? 'Added' : 'Add Column'}
+                        {alreadySelected ? 'Added' : (field.type === 'table' ? 'Add Table Column' : 'Add Column')}
                       </Button>
                     </div>
                   );
@@ -481,6 +564,19 @@ export default function ReportTemplatesPage() {
 
                 {columns.map((column, index) => {
                   const meta = getColumnMeta(column);
+                  const columnField = column.kind === 'field' ? fieldMap.get(column.fieldId) : null;
+                  const isTableField = columnField?.type === 'table';
+                  const tableSelection = isTableField
+                    ? normalizeReportTemplateTableSelection(column.tableSelection, columnField)
+                    : null;
+                  const tableHeaderOptions = isTableField ? getFieldTableHeaders(columnField) : [];
+                  const tableColumnOptions = tableSelection?.columnSource === 'predefined'
+                    ? REPORT_TEMPLATE_TABLE_PREDEFINED_COLUMNS
+                    : tableHeaderOptions.map((header, headerIndex) => ({
+                      value: header,
+                      label: header,
+                      columnIndex: headerIndex,
+                    }));
 
                   return (
                     <div
@@ -489,35 +585,123 @@ export default function ReportTemplatesPage() {
                       onDragStart={() => handleDragStart(index)}
                       onDragOver={(event) => handleDragOver(event, index)}
                       onDragEnd={handleDragEnd}
-                      className={`grid grid-cols-[auto_minmax(0,1fr)_220px_auto] gap-3 items-center px-4 py-3 border-b last:border-b-0 ${draggedIndex === index ? 'bg-purple-50' : 'hover:bg-gray-50'}`}
+                      className={`px-4 py-3 border-b last:border-b-0 ${draggedIndex === index ? 'bg-purple-50' : 'hover:bg-gray-50'}`}
                     >
-                      <div className="w-8 text-gray-400 cursor-grab active:cursor-grabbing">
-                        <GripVertical className="h-4 w-4" />
-                      </div>
+                      <div className="grid grid-cols-[auto_minmax(0,1fr)_220px_auto] gap-3 items-center">
+                        <div className="w-8 text-gray-400 cursor-grab active:cursor-grabbing">
+                          <GripVertical className="h-4 w-4" />
+                        </div>
 
-                      <div className="min-w-0">
-                        <div className="font-medium text-gray-900 truncate">{meta.title}</div>
-                        <div className="text-xs text-gray-500 mt-1">{meta.description}</div>
-                        <div className="text-xs inline-flex mt-2 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                          {meta.badge}
+                        <div className="min-w-0">
+                          <div className="font-medium text-gray-900 truncate">{meta.title}</div>
+                          <div className="text-xs text-gray-500 mt-1">{meta.description}</div>
+                          <div className="text-xs inline-flex mt-2 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                            {meta.badge}
+                          </div>
+                        </div>
+
+                        <div>
+                          <input
+                            type="text"
+                            className="w-full p-2 text-sm border border-gray-300 rounded"
+                            value={column.label}
+                            onChange={(event) => updateColumnLabel(column.clientId, event.target.value)}
+                          />
+                        </div>
+
+                        <div className="flex justify-end">
+                          <Button size="sm" variant="outline" onClick={() => removeColumn(column.clientId)}>
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Remove
+                          </Button>
                         </div>
                       </div>
 
-                      <div>
-                        <input
-                          type="text"
-                          className="w-full p-2 text-sm border border-gray-300 rounded"
-                          value={column.label}
-                          onChange={(event) => updateColumnLabel(column.clientId, event.target.value)}
-                        />
-                      </div>
+                      {isTableField && tableSelection && (
+                        <div className="mt-4 ml-11 rounded-lg border border-blue-100 bg-blue-50/60 p-3">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-blue-700 mb-3">
+                            Table Value Selection
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Row Mode
+                              </label>
+                              <select
+                                className="w-full p-2 text-sm border border-gray-300 rounded bg-white"
+                                value={tableSelection.rowMode}
+                                onChange={(event) => updateTableSelection(column.clientId, { rowMode: event.target.value })}
+                              >
+                                {REPORT_TEMPLATE_TABLE_ROW_MODES.map((mode) => (
+                                  <option key={mode.value} value={mode.value}>
+                                    {mode.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
 
-                      <div className="flex justify-end">
-                        <Button size="sm" variant="outline" onClick={() => removeColumn(column.clientId)}>
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Remove
-                        </Button>
-                      </div>
+                            {tableSelection.rowMode === 'fixed' && (
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Row Number
+                                </label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  className="w-full p-2 text-sm border border-gray-300 rounded bg-white"
+                                  value={tableSelection.rowIndex + 1}
+                                  onChange={(event) => updateTableSelection(column.clientId, {
+                                    rowIndex: Math.max(0, (parseInt(event.target.value, 10) || 1) - 1),
+                                  })}
+                                />
+                              </div>
+                            )}
+
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Column Type
+                              </label>
+                              <select
+                                className="w-full p-2 text-sm border border-gray-300 rounded bg-white"
+                                value={tableSelection.columnSource}
+                                onChange={(event) => updateTableSelection(column.clientId, {
+                                  columnSource: event.target.value,
+                                })}
+                              >
+                                <option value="header">Table Header</option>
+                                <option value="predefined">Predefined Column</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Column
+                              </label>
+                              <select
+                                className="w-full p-2 text-sm border border-gray-300 rounded bg-white"
+                                value={tableSelection.columnKey}
+                                onChange={(event) => {
+                                  const selectedOption = tableColumnOptions.find((option) => option.value === event.target.value);
+                                  updateTableSelection(column.clientId, {
+                                    columnKey: event.target.value,
+                                    columnIndex: selectedOption?.columnIndex ?? tableSelection.columnIndex,
+                                  });
+                                }}
+                              >
+                                {tableColumnOptions.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="text-xs text-blue-700 mt-3">
+                            Current selection: {describeReportTableSelection(tableSelection, columnField)}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

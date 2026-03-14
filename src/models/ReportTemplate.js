@@ -1,5 +1,33 @@
 import mongoose from 'mongoose';
 
+const ReportTemplateTableSelectionSchema = new mongoose.Schema({
+  rowMode: {
+    type: String,
+    enum: ['fixed', 'first', 'last', 'all'],
+    default: 'fixed',
+  },
+  rowIndex: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  columnSource: {
+    type: String,
+    enum: ['header', 'predefined'],
+    default: 'header',
+  },
+  columnKey: {
+    type: String,
+    default: '',
+    trim: true,
+  },
+  columnIndex: {
+    type: Number,
+    default: null,
+    min: 0,
+  },
+}, { _id: false });
+
 const ReportTemplateColumnSchema = new mongoose.Schema({
   kind: {
     type: String,
@@ -31,6 +59,10 @@ const ReportTemplateColumnSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
+  },
+  tableSelection: {
+    type: ReportTemplateTableSelectionSchema,
+    default: null,
   },
 }, { _id: false });
 
