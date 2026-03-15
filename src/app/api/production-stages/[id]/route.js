@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import ProductionStage from '@/models/ProductionStage';
+import { normalizeProductionStagePayload } from '@/lib/productionStageUtils';
 
 export async function GET(request, { params }) {
   await dbConnect();
@@ -23,7 +24,7 @@ export async function PATCH(request, { params }) {
   const { id } = await params;
   
   try {
-    const body = await request.json();
+    const body = normalizeProductionStagePayload(await request.json(), { isPatch: true });
 
     const updatedStage = await ProductionStage.findByIdAndUpdate(
       id,

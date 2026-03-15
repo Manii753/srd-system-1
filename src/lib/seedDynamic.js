@@ -172,6 +172,7 @@ async function seedDynamic() {
     const productionStages = await ProductionStage.insertMany([
       {
         name: 'Fabric Sourcing',
+        displayName: 'Fabric Sourcing',
         slug: 'fabric-sourcing',
         description: 'Sourcing and procurement of required fabrics',
         color: '#3B82F6',
@@ -182,6 +183,7 @@ async function seedDynamic() {
       },
       {
         name: 'Cutting',
+        displayName: 'Cutting',
         slug: 'cutting',
         description: 'Fabric cutting according to patterns',
         color: '#8B5CF6',
@@ -192,6 +194,7 @@ async function seedDynamic() {
       },
       {
         name: 'Sewing',
+        displayName: 'Sewing',
         slug: 'sewing',
         description: 'Sewing and assembly of garment pieces',
         color: '#10B981',
@@ -202,6 +205,7 @@ async function seedDynamic() {
       },
       {
         name: 'Quality Check',
+        displayName: 'Quality Check',
         slug: 'quality-check',
         description: 'Quality inspection and testing',
         color: '#F59E0B',
@@ -212,6 +216,7 @@ async function seedDynamic() {
       },
       {
         name: 'Finishing',
+        displayName: 'Finishing',
         slug: 'finishing',
         description: 'Final touches and packaging',
         color: '#EF4444',
@@ -222,6 +227,7 @@ async function seedDynamic() {
       },
       {
         name: 'Shipping',
+        displayName: 'Shipping',
         slug: 'shipping',
         description: 'Ready for shipment',
         color: '#06B6D4',

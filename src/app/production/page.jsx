@@ -70,7 +70,7 @@ export default function ProductionTrackingPage() {
 
   const getStageName = (stageId) => {
     const stage = productionStages.find(s => s._id === stageId);
-    return stage?.name || 'Unknown Stage';
+    return stage?.displayName || stage?.name || 'Unknown Stage';
   };
 
   const getStats = () => {
@@ -183,7 +183,7 @@ export default function ProductionTrackingPage() {
                           className="w-3 h-3 rounded-full mr-2" 
                           style={{ backgroundColor: stage.color }}
                         />
-                        <span className="font-medium text-sm">{stage.name}</span>
+                        <span className="font-medium text-sm">{stage.displayName || stage.name}</span>
                       </div>
                       <Badge variant="outline">{stats.byStage[stage._id] || 0}</Badge>
                     </div>

@@ -6,23 +6,28 @@ import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { PlusCircleIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { slugifyProductionStageValue } from "@/lib/productionStageUtils";
 import { toast } from "sonner";
+
+function createEmptyStageValues(order = 0) {
+    return {
+        displayName: "",
+        slug: "",
+        description: "",
+        color: "#6B7280",
+        icon: "Package",
+        order,
+        isActive: true,
+        estimatedDuration: 0,
+        requirements: []
+    };
+}
 
 export default function ProductionStagesPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
     const [modalOpen, setModalOpen] = useState(false);
-    const [values, setValues] = useState({ 
-        name: "", 
-        slug: "",
-        description: "", 
-        color: "#6B7280", 
-        icon: "Package",
-        order: 0,
-        isActive: true,
-        estimatedDuration: 0,
-        requirements: []
-    });
+    const [values, setValues] = useState(createEmptyStageValues());
     const [stages, setStages] = useState([]);
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -58,24 +63,14 @@ export default function ProductionStagesPage() {
     }
 
     function openNew() {
-        setValues({ 
-            name: "", 
-            slug: "",
-            description: "", 
-            color: "#6B7280", 
-            icon: "Package",
-            order: stages.length,
-            isActive: true,
-            estimatedDuration: 0,
-            requirements: []
-        });
+        setValues(createEmptyStageValues(stages.length));
         setEditingId(null);
         setModalOpen(true);
     }
 
     function openEdit(stage) {
         setValues({ 
-            name: stage.name || '', 
+            displayName: stage.displayName || stage.name || '',
             slug: stage.slug || '',
             description: stage.description || '', 
             color: stage.color || '#6B7280', 
@@ -90,7 +85,8 @@ export default function ProductionStagesPage() {
     }
 
     async function handleDelete(stage) {
-        if (!confirm(`Delete production stage "${stage.name}"?`)) return;
+        const stageLabel = stage.displayName || stage.name || 'this production stage';
+        if (!confirm(`Delete production stage "${stageLabel}"?`)) return;
         try {
             const res = await fetch(`/api/production-stages/${stage._id}`, { method: 'DELETE' });
             const data = await res.json();
@@ -108,19 +104,27 @@ export default function ProductionStagesPage() {
 
     async function handleSubmit(e) {
         e.preventDefault();
-        if (!values.name.trim()) {
+        const displayName = values.displayName.trim();
+
+        if (!displayName) {
             toast.error('Please provide a stage name');
             return;
         }
 
-        const slug = values.slug || values.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        const slug = slugifyProductionStageValue(values.slug || displayName);
+        const payload = {
+            ...values,
+            name: displayName,
+            displayName,
+            slug
+        };
 
         try {
             if (editingId) {
                 const res = await fetch(`/api/production-stages/${editingId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...values, slug })
+                    body: JSON.stringify(payload)
                 });
                 const data = await res.json();
                 if (!data.success) {
@@ -132,7 +136,7 @@ export default function ProductionStagesPage() {
                 const res = await fetch('/api/production-stages', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...values, slug })
+                    body: JSON.stringify(payload)
                 });
                 const data = await res.json();
                 if (!data.success) {
@@ -206,7 +210,12 @@ export default function ProductionStagesPage() {
                                                     className="w-3 h-3 rounded-full mr-2" 
                                                     style={{ backgroundColor: stage.color }}
                                                 />
-                                                <span className="text-sm text-gray-900">{stage.name}</span>
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm text-gray-900">{stage.displayName || stage.name}</span>
+                                                    {stage.slug && (
+                                                        <span className="text-xs text-gray-500">{stage.slug}</span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stage.color}</td>
@@ -256,8 +265,8 @@ export default function ProductionStagesPage() {
                                     <input
                                         type="text"
                                         className="w-full p-2 border border-gray-300 rounded"
-                                        value={values.name}
-                                        onChange={(e) => setValues({ ...values, name: e.target.value })}
+                                        value={values.displayName}
+                                        onChange={(e) => setValues({ ...values, displayName: e.target.value })}
                                         required
                                     />
                                 </div>

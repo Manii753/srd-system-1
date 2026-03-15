@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import ProductionStage from '@/models/ProductionStage';
+import { normalizeProductionStagePayload } from '@/lib/productionStageUtils';
 
 export async function GET() {
   await dbConnect();
@@ -16,10 +17,13 @@ export async function GET() {
 export async function POST(request) {
   await dbConnect();
   try {
-    const body = await request.json();
-    
-    if (!body.slug) {
-      body.slug = body.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const body = normalizeProductionStagePayload(await request.json());
+
+    if (!body.displayName) {
+      return NextResponse.json(
+        { success: false, error: 'Production stage name is required' },
+        { status: 400 }
+      );
     }
 
     const newStage = await ProductionStage.create(body);

@@ -39,7 +39,7 @@ export default function ProductionStageDashboard({ stageName }) {
     }
 
     // Allow stage role, production-manager, and admin
-    const allowedRoles = [stageName, 'admin', stageName];
+    const allowedRoles = [stageName, 'production-manager', 'admin'];
     if (!allowedRoles.includes(session.user.role)) {
       router.push(`/dashboard/${session.user.role}`);
       return;
@@ -65,6 +65,7 @@ export default function ProductionStageDashboard({ stageName }) {
       if (stagesData.success && stagesData.data && stagesData.data.length > 0) {
         // Try to find stage by name (case-insensitive)
         const currentStage = stagesData.data.find(s =>
+          s.slug?.toLowerCase() === stageName.toLowerCase() ||
           s.name?.toLowerCase() === stageName.toLowerCase() ||
           s.displayName?.toLowerCase() === stageName.toLowerCase()
         );
@@ -84,7 +85,10 @@ export default function ProductionStageDashboard({ stageName }) {
             setSRDs([]);
           }
         } else {
-          console.error(`Stage "${stageName}" not found. Available stages:`, stagesData.data.map(s => s.name));
+          console.error(
+            `Stage "${stageName}" not found. Available stages:`,
+            stagesData.data.map(s => s.slug || s.displayName || s.name)
+          );
           setSRDs([]);
         }
       } else {
@@ -270,7 +274,7 @@ export default function ProductionStageDashboard({ stageName }) {
                   Production Stage Not Found
                 </h3>
                 <p className="text-sm text-gray-600 max-w-md mx-auto mb-4">
-                  The "{stageName}" production stage is not configured. Production stages need to be set up first.
+                  The &quot;{stageName}&quot; production stage is not configured. Production stages need to be set up first.
                 </p>
                 <Button
                   onClick={async () => {
@@ -356,7 +360,7 @@ export default function ProductionStageDashboard({ stageName }) {
                         </Button>
                       </div>
                       <p className="text-xs text-gray-500 text-center">
-                        Click "Complete" to approve and move to next production stage
+                        Click &quot;Complete&quot; to approve and move to next production stage
                       </p>
                     </div>
                   </CardContent>

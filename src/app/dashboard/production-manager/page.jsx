@@ -92,7 +92,7 @@ export default function ProductionManagerDashboard() {
 
       const result = await response.json();
       if (result.success) {
-        alert(`Production started! SRD moved to ${firstStage.displayName} stage.`);
+        alert(`Production started! SRD moved to ${firstStage.displayName || firstStage.name} stage.`);
         fetchData(); // Refresh data after starting production
       } else {
         console.error('Failed to start production:', result.error);
@@ -270,7 +270,7 @@ export default function ProductionManagerDashboard() {
                               className="w-3 h-3 rounded-full mr-2"
                               style={{ backgroundColor: currentStage.color }}
                             />
-                            <span className="font-medium">{currentStage.name}</span>
+                            <span className="font-medium">{currentStage.displayName || currentStage.name}</span>
                           </div>
                         </div>
                       )}
@@ -328,7 +328,7 @@ export default function ProductionManagerDashboard() {
 
                         {/* Stage name */}
                         <div className="mt-3 text-center">
-                          <p className="font-semibold text-sm capitalize">{stage.displayName}</p>
+                          <p className="font-semibold text-sm capitalize">{stage.displayName || stage.name}</p>
                           <p className="text-xs text-gray-500 mt-1">
                             {count} {count === 1 ? 'SRD' : 'SRDs'}
                           </p>

@@ -15,23 +15,24 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import ProductionStageDashboard from '@/components/ProductionStageDashboard';
+import { slugifyProductionStageValue } from '@/lib/productionStageUtils';
 
 export default function DynamicDepartmentDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
-  const departmentSlug = params.department;
+  const departmentSlug = Array.isArray(params.department) ? params.department[0] : params.department;
+  const normalizedDepartmentSlug = slugifyProductionStageValue(departmentSlug || '');
 
   const [department, setDepartment] = useState(null);
   const [srds, setSRDs] = useState([]);
   const [stages, setStages] = useState([]);
   const [fields, setFields] = useState([]);
+  const [productionStageSlugs, setProductionStageSlugs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('cards');
 
-  // List of production stages that should use ProductionStageDashboard
-  const productionStages = ['cutting', 'sewing', 'washing', 'finishing', 'dispatch'];
-  const isProductionStage = productionStages.includes(departmentSlug);
+  const isProductionStage = productionStageSlugs.includes(normalizedDepartmentSlug);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -46,6 +47,23 @@ export default function DynamicDepartmentDashboard() {
 
   const fetchDashboardData = async () => {
     try {
+      const productionStagesResponse = await fetch('/api/production-stages');
+      const productionStagesData = await productionStagesResponse.json();
+      const nextProductionStageSlugs = productionStagesData.success
+        ? productionStagesData.data
+            .filter((stage) => stage.isActive)
+            .map((stage) =>
+              slugifyProductionStageValue(stage.slug || stage.name || stage.displayName || '')
+            )
+            .filter(Boolean)
+        : [];
+
+      setProductionStageSlugs(nextProductionStageSlugs);
+
+      if (nextProductionStageSlugs.includes(normalizedDepartmentSlug)) {
+        return;
+      }
+
       // Fetch department info
       const deptResponse = await fetch('/api/departments');
       const deptData = await deptResponse.json();
