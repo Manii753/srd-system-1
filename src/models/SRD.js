@@ -61,6 +61,11 @@ const srdSchema = new mongoose.Schema({
     }
   }],
 
+  inDispatch: { type: Boolean, default: false },
+  dispatchDate: { type: Date },
+  dispatchBy: { type: String },
+  dispatchNotes: { type: String },
+
   status: {
     type: Object,
     of: String,
@@ -91,10 +96,10 @@ const srdSchema = new mongoose.Schema({
   audit: [auditSchema],
 
   customerApproval: {
-    status: { 
-      type: String, 
-      enum: ['pending', 'approved', 'rejected'], 
-      default: 'pending' 
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending'
     },
     comments: { type: String, default: '' },
     by: { type: String, default: '' },

@@ -60,7 +60,7 @@ function normalizeFieldTypeChange(previousValues, nextType) {
 }
 
 // Sortable Field Item Component
-function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level = 0, isExpanded, onToggleExpanded, onToggleQuickDetails, onToggleReport }) {
+function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level = 0, isExpanded, onToggleExpanded, onToggleQuickDetails, onToggleReport, onToggleDispatchCard }) {
   const {
     attributes,
     listeners,
@@ -245,6 +245,15 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
                 />
                 <span className="text-xs text-gray-600">Report</span>
               </label>
+              <label className="flex items-center space-x-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={field.inDispatchCard || false}
+                  onChange={() => onToggleDispatchCard(field)}
+                  className="form-checkbox h-4 w-4 text-purple-600 rounded"
+                />
+                <span className="text-xs text-gray-600">Dispatch Card</span>
+              </label>
             </>
           )}
           <button
@@ -278,6 +287,7 @@ export default function Page() {
     isShownInQuickDetails: false,
     inReport: false,
     inReportOrder: 0,
+    inDispatchCard: false,
     isConnectedTo: false,
     connectedFieldId: null,
     isConnectedTo: false,
@@ -368,6 +378,7 @@ export default function Page() {
       isShownInQuickDetails: false,
       inReport: false,
       inReportOrder: 0,
+      inDispatchCard: false,
       isConnectedTo: false,
       connectedFieldId: null,
       connectionType: null,
@@ -395,6 +406,7 @@ export default function Page() {
       isShownInQuickDetails: !!field.isShownInQuickDetails,
       inReport: !!field.inReport,
       inReportOrder: field.inReportOrder || 0,
+      inDispatchCard: !!field.inDispatchCard,
       isConnectedTo: !!field.isConnectedTo,
       connectedFieldId: connectedId,
       connectionType: field.connectionType || null,
@@ -448,6 +460,22 @@ export default function Page() {
       setFields((prev) => prev.map(f => f._id === updated._id ? updated : f));
     } catch (err) {
       console.error('Failed to toggle report', err);
+      alert('Failed to update field');
+    }
+  }
+
+  async function handleToggleDispatchCard(field) {
+    try {
+      const newValue = !field.inDispatchCard;
+      const res = await fetch(`/api/newField?id=${field._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inDispatchCard: newValue })
+      });
+      const updated = await res.json();
+      setFields((prev) => prev.map(f => f._id === updated._id ? updated : f));
+    } catch (err) {
+      console.error('Failed to toggle dispatch card', err);
       alert('Failed to update field');
     }
   }
@@ -708,6 +736,7 @@ export default function Page() {
                                   level={1}
                                   onToggleQuickDetails={handleToggleQuickDetails}
                                   onToggleReport={handleToggleReport}
+                                  onToggleDispatchCard={handleToggleDispatchCard}
                                 />
                               ))}
                             </div>
@@ -742,6 +771,7 @@ export default function Page() {
                           isHeading={false}
                           onToggleQuickDetails={handleToggleQuickDetails}
                           onToggleReport={handleToggleReport}
+                          onToggleDispatchCard={handleToggleDispatchCard}
                         />
                       );
                     }
@@ -1039,6 +1069,19 @@ export default function Page() {
                         <p className="text-xs text-gray-500 mt-1">Lower numbers appear first</p>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Show in Dispatch Card */}
+                {values.type !== 'heading' && (
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      className="form-checkbox h-4 w-4"
+                      checked={values.inDispatchCard}
+                      onChange={(e) => setValues({ ...values, inDispatchCard: e.target.checked })}
+                    />
+                    <span className="text-sm text-gray-700">Show in Dispatch Card</span>
                   </div>
                 )}
 

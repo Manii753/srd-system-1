@@ -57,6 +57,10 @@ const FieldSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    inDispatchCard: {
+        type: Boolean,
+        default: false
+    },
 
     isShownInQuickDetails: {
         type: Boolean,
