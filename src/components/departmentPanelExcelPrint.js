@@ -1237,7 +1237,15 @@ export async function printDepartmentPanelExcel({
     <div class="header-main">
       <h1>Sample Request Form</h1>
     </div>
-    ${srdQrUrl ? `
+  </div>
+  
+  <div class="template-grid">
+    ${fieldsHTML}
+  </div>
+
+  <div id="excel-sections"></div>
+
+     ${srdQrUrl ? `
       <div class="header-qr">
         <div class="header-qr-frame">
           <img
@@ -1251,13 +1259,6 @@ export async function printDepartmentPanelExcel({
         </div>
       </div>
     ` : ''}
-  </div>
-  
-  <div class="template-grid">
-    ${fieldsHTML}
-  </div>
-
-  <div id="excel-sections"></div>
 
   <script>
     async function waitForImages(selector, timeoutMs = 5000) {
