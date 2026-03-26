@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Trash2, Star, Upload, Printer, FileSpreadsheet, Loader2, Plus, X, Columns, Rows } from 'lucide-react';
+import { AlertCircle, Trash2, Star, Upload, Printer, FileSpreadsheet, Loader2, Plus, X, Columns, Rows, DiscIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import UploadImage from './UploadImage';
@@ -23,6 +23,7 @@ import {
   normalizeAssetEntries,
 } from '@/lib/assetUtils';
 import { getAttachedImageLabels } from '@/lib/fieldConnectionUtils';
+import DispatchCardPrint from '@/app/dispatch/components/DispatchCardPrint';
 
 export default function DepartmentPanelExcel({
   srd,
@@ -58,7 +59,7 @@ export default function DepartmentPanelExcel({
   // Fetch active template and all field definitions
   useEffect(() => {
     async function fetchData() {
-      
+
       setIsLoading(true);
       try {
         // Fetch active template
@@ -603,8 +604,8 @@ export default function DepartmentPanelExcel({
         );
 
       case 'table':
-        const defaultHeaders = Array.isArray(fieldDef.tableHeaders) && fieldDef.tableHeaders.length > 0 
-          ? fieldDef.tableHeaders 
+        const defaultHeaders = Array.isArray(fieldDef.tableHeaders) && fieldDef.tableHeaders.length > 0
+          ? fieldDef.tableHeaders
           : ['Item Name', 'Code', 'Finish', 'Size'];
 
         const rawTableData = fieldValue && typeof fieldValue === 'object' && !Array.isArray(fieldValue)
@@ -615,10 +616,10 @@ export default function DepartmentPanelExcel({
           : defaultHeaders;
         const normalizedRows = Array.isArray(rawTableData.rows) && rawTableData.rows.length > 0
           ? rawTableData.rows.map((row) => {
-              if (!Array.isArray(row)) return new Array(safeHeaders.length).fill('');
-              if (row.length >= safeHeaders.length) return row;
-              return [...row, ...new Array(safeHeaders.length - row.length).fill('')];
-            })
+            if (!Array.isArray(row)) return new Array(safeHeaders.length).fill('');
+            if (row.length >= safeHeaders.length) return row;
+            return [...row, ...new Array(safeHeaders.length - row.length).fill('')];
+          })
           : [new Array(safeHeaders.length).fill('')];
         const tableData = {
           ...rawTableData,
@@ -667,7 +668,7 @@ export default function DepartmentPanelExcel({
         if (totalCols >= 10) {
           return (
             <div className="space-y-4 p-2 overflow-auto max-h-96 bg-gray-50/50 rounded-md">
-              
+
               {/* Card Headers Controls */}
               <div className="flex flex-wrap items-center gap-2 mb-4 p-2 bg-white border border-gray-200 rounded-md shadow-sm">
                 <span className="text-xs font-semibold text-gray-700 mr-2">Columns:</span>
@@ -721,13 +722,13 @@ export default function DepartmentPanelExcel({
                   // Group items for 3-column layout
                   const col1Indexes = [];
                   for (let i = 0; i < Math.min(4, tableData.headers.length); i++) col1Indexes.push(i);
-                  
+
                   const col2Indexes = [];
                   for (let i = 4; i < tableData.headers.length; i++) col2Indexes.push(i);
 
                   return (
                     <div key={rowIdx} className="bg-white border border-gray-200 shadow-sm rounded-md p-3 relative group">
-                      
+
                       {/* Add delete row button if user can edit and there's more than 1 row */}
                       {/* {canEdit && (
                         <button
@@ -752,7 +753,7 @@ export default function DepartmentPanelExcel({
                         <div className="flex flex-col gap-2">
                           {col1Indexes.map(idx => (
                             <div key={idx} className="flex items-center text-xs">
-                              <span className="w-20 flex-shrink-0 font-semibold text-gray-700 whitespace-nowrap capitalize break-words pr-2">{tableData.headers[idx] || `Col ${idx+1}`}:</span>
+                              <span className="w-20 flex-shrink-0 font-semibold text-gray-700 whitespace-nowrap capitalize break-words pr-2">{tableData.headers[idx] || `Col ${idx + 1}`}:</span>
                               <input
                                 type="text"
                                 value={row[idx] || ''}
@@ -773,7 +774,7 @@ export default function DepartmentPanelExcel({
                           {col2Indexes.length > 0 ? (
                             col2Indexes.map(idx => (
                               <div key={idx} className="flex items-center text-xs">
-                                <span className="w-20 flex-shrink-0 font-semibold text-gray-700 capitalize break-words whitespace-nowrap pr-2">{tableData.headers[idx] || `Col ${idx+1}`}:</span>
+                                <span className="w-20 flex-shrink-0 font-semibold text-gray-700 capitalize break-words whitespace-nowrap pr-2">{tableData.headers[idx] || `Col ${idx + 1}`}:</span>
                                 <input
                                   type="text"
                                   value={row[idx] || ''}
@@ -788,7 +789,7 @@ export default function DepartmentPanelExcel({
                               </div>
                             ))
                           ) : (
-                             <div className="text-gray-400 italic text-xs h-full flex items-center justify-center">-</div>
+                            <div className="text-gray-400 italic text-xs h-full flex items-center justify-center">-</div>
                           )}
                         </div>
 
@@ -800,7 +801,7 @@ export default function DepartmentPanelExcel({
                             <div className="text-xs font-semibold text-indigo-600">OPD</div>
                             <div className="text-xs font-semibold text-indigo-600">IHD</div>
                           </div>
-                          
+
                           {/* Values Row */}
                           <div className="grid grid-cols-3 gap-6 items-start">
                             <div className="flex items-center gap-1">
@@ -948,117 +949,117 @@ export default function DepartmentPanelExcel({
                     const isInStock = rowPredefined.purchaseType === 'instock';
 
                     return (
-                    <tr key={rowIdx} className="group/row hover:bg-blue-50/30 transition-colors duration-100">
-                      {row.map((cell, colIdx) => (
-                        <td key={colIdx} className="border border-gray-200 p-0">
-                          {canEdit ? (
-                            <input
-                              type="text"
-                              value={cell}
-                              onChange={(e) => {
-                                const newRows = [...tableData.rows];
-                                newRows[rowIdx][colIdx] = e.target.value;
-                                handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
+                      <tr key={rowIdx} className="group/row hover:bg-blue-50/30 transition-colors duration-100">
+                        {row.map((cell, colIdx) => (
+                          <td key={colIdx} className="border border-gray-200 p-0">
+                            {canEdit ? (
+                              <input
+                                type="text"
+                                value={cell}
+                                onChange={(e) => {
                                   const newRows = [...tableData.rows];
-                                  newRows.splice(rowIdx + 1, 0, new Array(tableData.headers.length).fill(''));
-                                  const newPredefined = [...predefinedData];
-                                  newPredefined.splice(rowIdx + 1, 0, { purchaseType: 'purchase', opd: '', etd: '' });
-                                  handleFieldChange(fieldId, name, { ...tableData, rows: newRows, predefinedData: newPredefined }, department, fieldDef);
-                                  setTimeout(() => {
-                                    const nextInput = e.target.closest('tr')?.nextElementSibling?.querySelector('input');
-                                    if (nextInput) nextInput.focus();
-                                  }, 50);
-                                }
+                                  newRows[rowIdx][colIdx] = e.target.value;
+                                  handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const newRows = [...tableData.rows];
+                                    newRows.splice(rowIdx + 1, 0, new Array(tableData.headers.length).fill(''));
+                                    const newPredefined = [...predefinedData];
+                                    newPredefined.splice(rowIdx + 1, 0, { purchaseType: 'purchase', opd: '', etd: '' });
+                                    handleFieldChange(fieldId, name, { ...tableData, rows: newRows, predefinedData: newPredefined }, department, fieldDef);
+                                    setTimeout(() => {
+                                      const nextInput = e.target.closest('tr')?.nextElementSibling?.querySelector('input');
+                                      if (nextInput) nextInput.focus();
+                                    }, 50);
+                                  }
+                                }}
+                                className="w-full h-full px-2 py-1.5 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 bg-transparent transition-colors duration-100"
+                                disabled={!canEdit}
+                              />
+                            ) : (
+                              <span className="px-2 py-1.5 block">{cell}</span>
+                            )}
+                          </td>
+                        ))}
+                        {canEdit && (
+                          <td className="border border-gray-200 p-0 w-9 bg-gray-50/50 text-center">
+                            <button
+                              onClick={() => {
+                                const newRows = tableData.rows.filter((_, idx) => idx !== rowIdx);
+                                const newPredefined = predefinedData.filter((_, idx) => idx !== rowIdx);
+                                handleFieldChange(fieldId, name, {
+                                  ...tableData,
+                                  rows: newRows.length > 0 ? newRows : [new Array(tableData.headers.length).fill('')],
+                                  predefinedData: newPredefined.length > 0 ? newPredefined : [{ purchaseType: 'purchase', opd: '', etd: '' }]
+                                }, department, fieldDef);
                               }}
-                              className="w-full h-full px-2 py-1.5 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 bg-transparent transition-colors duration-100"
+                              className="w-full h-full flex items-center justify-center py-1.5 opacity-0 group-hover/row:opacity-100 transition-opacity duration-150 text-red-400 hover:text-red-600 hover:bg-red-50"
+                              title="Delete row"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </td>
+                        )}
+                        {/* Predefined Purchase/Stock toggle */}
+                        <td className="border border-gray-200 p-0 bg-indigo-50/30">
+                          <div className="flex items-center justify-center gap-1 px-1 py-1">
+                            <button
+                              onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
                               disabled={!canEdit}
-                            />
-                          ) : (
-                            <span className="px-2 py-1.5 block">{cell}</span>
-                          )}
+                              className={cn(
+                                "px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-150 border",
+                                !isInStock
+                                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                  : "bg-white text-gray-500 border-gray-300 hover:border-blue-400 hover:text-blue-600",
+                                !canEdit && "opacity-50 cursor-not-allowed"
+                              )}
+                            >
+                              Purchase
+                            </button>
+                            <button
+                              onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'instock')}
+                              disabled={!canEdit}
+                              className={cn(
+                                "px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-150 border",
+                                isInStock
+                                  ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                                  : "bg-white text-gray-500 border-gray-300 hover:border-emerald-400 hover:text-emerald-600",
+                                !canEdit && "opacity-50 cursor-not-allowed"
+                              )}
+                            >
+                              InStock
+                            </button>
+                          </div>
                         </td>
-                      ))}
-                      {canEdit && (
-                        <td className="border border-gray-200 p-0 w-9 bg-gray-50/50 text-center">
-                          <button
-                            onClick={() => {
-                              const newRows = tableData.rows.filter((_, idx) => idx !== rowIdx);
-                              const newPredefined = predefinedData.filter((_, idx) => idx !== rowIdx);
-                              handleFieldChange(fieldId, name, {
-                                ...tableData,
-                                rows: newRows.length > 0 ? newRows : [new Array(tableData.headers.length).fill('')],
-                                predefinedData: newPredefined.length > 0 ? newPredefined : [{ purchaseType: 'purchase', opd: '', etd: '' }]
-                              }, department, fieldDef);
-                            }}
-                            className="w-full h-full flex items-center justify-center py-1.5 opacity-0 group-hover/row:opacity-100 transition-opacity duration-150 text-red-400 hover:text-red-600 hover:bg-red-50"
-                            title="Delete row"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
+                        {/* Predefined OPD date */}
+                        <td className={cn("border border-gray-200 p-0", isInStock ? "bg-gray-100" : "bg-indigo-50/30")}>
+                          <input
+                            type="date"
+                            value={rowPredefined.opd || ''}
+                            onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
+                            disabled={!canEdit || isInStock}
+                            className={cn(
+                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 bg-transparent text-xs transition-colors duration-100",
+                              isInStock && "opacity-40 cursor-not-allowed"
+                            )}
+                          />
                         </td>
-                      )}
-                      {/* Predefined Purchase/Stock toggle */}
-                      <td className="border border-gray-200 p-0 bg-indigo-50/30">
-                        <div className="flex items-center justify-center gap-1 px-1 py-1">
-                          <button
-                            onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
-                            disabled={!canEdit}
+                        {/* Predefined ETD date */}
+                        <td className={cn("border border-gray-200 p-0", isInStock ? "bg-gray-100" : "bg-indigo-50/30")}>
+                          <input
+                            type="date"
+                            value={rowPredefined.etd || ''}
+                            onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
+                            disabled={!canEdit || isInStock}
                             className={cn(
-                              "px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-150 border",
-                              !isInStock
-                                ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                                : "bg-white text-gray-500 border-gray-300 hover:border-blue-400 hover:text-blue-600",
-                              !canEdit && "opacity-50 cursor-not-allowed"
+                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 bg-transparent text-xs transition-colors duration-100",
+                              isInStock && "opacity-40 cursor-not-allowed"
                             )}
-                          >
-                            Purchase
-                          </button>
-                          <button
-                            onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'instock')}
-                            disabled={!canEdit}
-                            className={cn(
-                              "px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-150 border",
-                              isInStock
-                                ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                                : "bg-white text-gray-500 border-gray-300 hover:border-emerald-400 hover:text-emerald-600",
-                              !canEdit && "opacity-50 cursor-not-allowed"
-                            )}
-                          >
-                            InStock
-                          </button>
-                        </div>
-                      </td>
-                      {/* Predefined OPD date */}
-                      <td className={cn("border border-gray-200 p-0", isInStock ? "bg-gray-100" : "bg-indigo-50/30")}>
-                        <input
-                          type="date"
-                          value={rowPredefined.opd || ''}
-                          onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
-                          disabled={!canEdit || isInStock}
-                          className={cn(
-                            "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 bg-transparent text-xs transition-colors duration-100",
-                            isInStock && "opacity-40 cursor-not-allowed"
-                          )}
-                        />
-                      </td>
-                      {/* Predefined ETD date */}
-                      <td className={cn("border border-gray-200 p-0", isInStock ? "bg-gray-100" : "bg-indigo-50/30")}>
-                        <input
-                          type="date"
-                          value={rowPredefined.etd || ''}
-                          onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
-                          disabled={!canEdit || isInStock}
-                          className={cn(
-                            "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 bg-transparent text-xs transition-colors duration-100",
-                            isInStock && "opacity-40 cursor-not-allowed"
-                          )}
-                        />
-                      </td>
-                    </tr>
+                          />
+                        </td>
+                      </tr>
                     );
                   })}
                 </tbody>
@@ -1259,6 +1260,7 @@ export default function DepartmentPanelExcel({
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-3 py-2 flex items-center justify-between">
         <h3 className="font-semibold text-sm">SRD - Excel View (All Departments)</h3>
         <div className="flex items-center space-x-2">
+          <DispatchCardPrint srd={srd} />
           <Button
             onClick={handlePrint}
             size="sm"
@@ -1274,7 +1276,7 @@ export default function DepartmentPanelExcel({
             ) : (
               <>
                 <Printer className="h-3 w-3 mr-1" />
-                Print
+                Print SRD
               </>
             )}
           </Button>
@@ -1438,7 +1440,7 @@ export default function DepartmentPanelExcel({
                         <span className="text-xs font-medium text-gray-700 truncate block" title={fieldDef.name}>
                           {fieldDef.name}
                         </span>
-                        
+
                       </div>
                       <div className="flex items-center gap-2 ml-1">
                         {fieldDef.isOptional && (
@@ -1473,21 +1475,21 @@ export default function DepartmentPanelExcel({
                     )}
                   </div>
                   {attachmentLabels.length > 0 && (
-                          <div className="mt-1 space-x-1 flex flex-row flex-wrap justify-start">
-                            {attachmentLabels.map((label, index) => (
-                              <div
-                                key={`${label}-${index}`}
-                                className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"
-                              >
-                                {label}
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                    <div className="mt-1 space-x-1 flex flex-row flex-wrap justify-start">
+                      {attachmentLabels.map((label, index) => (
+                        <div
+                          key={`${label}-${index}`}
+                          className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"
+                        >
+                          {label}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                
+
               </div>
-              
+
             );
           })}
         </div>
