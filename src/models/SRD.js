@@ -86,6 +86,8 @@ const srdSchema = new mongoose.Schema({
     isOptional: { type: Boolean, default: false },
     isOptionalEnabled: { type: Boolean, default: true },
     placeholder: { type: String },
+
+    inDispatchCard: { type: Boolean, default: false },
     order: { type: Number, default: 0 },
     parentHeading: { type: String }, // Store heading name, not ID for immutability
     fieldVersion: { type: Date, default: Date.now }, // Track when field was captured
