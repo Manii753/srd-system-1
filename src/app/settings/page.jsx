@@ -1,7 +1,7 @@
 'use client'
 import Layout from "@/components/layout/Layout";
 import { Card } from "@/components/ui/card";
-import { Settings, Building2, Workflow, FileText, Database } from "lucide-react";
+import { Settings, Building2, Workflow, FileText, Database, Landmark } from "lucide-react";
 import Link from "next/link";
 
 export default function SettingsPage() {
@@ -54,6 +54,13 @@ export default function SettingsPage() {
             icon: Database,
             href: "/settings/backup",
             color: "bg-indigo-500"
+        },
+        {
+            title: "Company",
+            description: "Set company name and logo used in print cards",
+            icon: Landmark,
+            href: "/settings/company",
+            color: "bg-yellow-500"
         }
     ];
 

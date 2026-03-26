@@ -1,201 +1,110 @@
+'use client';
 import { Loader2, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 const DispatchCardPrint = ({ srd }) => {
-  const [isPrinting, setIsPrinting] = useState(false)
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const handlePrint = async () => {
-    setIsPrinting(true)
+    setIsPrinting(true);
     try {
-      const res = await fetch('/api/dispatchCardFields')
-      const { dispatchCardFields } = await res.json()
-      // Build a set of Field _ids that are marked inDispatchCard
-      const dispatchFieldIds = new Set(dispatchCardFields.map(f => f._id.toString()))
-      // Match them against the SRD's dynamicFields
-      const filteredFields = srd.dynamicFields.filter(df => {
-        const fieldId = typeof df.field === 'object' ? df.field?._id?.toString() : df.field?.toString()
-        return fieldId && dispatchFieldIds.has(fieldId)
-      })
+      const [fieldsRes, companyRes] = await Promise.all([
+        fetch('/api/dispatchCardFields'),
+        fetch('/api/company'),
+      ]);
+      const { dispatchCardFields } = await fieldsRes.json();
+      const company = await companyRes.json();
 
-      if (filteredFields.length === 0) {
-        alert('No dispatch card fields found for this SRD.')
-        setIsPrinting(false)
-        return
+      const dispatchFieldIds = new Set(dispatchCardFields.map(f => f._id.toString()));
+      const filteredFields = (srd.dynamicFields || []).filter(df => {
+        const id = typeof df.field === 'object' ? df.field?._id?.toString() : df.field?.toString();
+        return id && dispatchFieldIds.has(id);
+      });
+
+      if (!filteredFields.length) {
+        alert('No dispatch card fields found for this SRD.');
+        return;
       }
 
-      // Build value display for each field
       const renderValue = (field) => {
-        const val = field.value
-        if (val === null || val === undefined || val === '') return '-'
-
-        if (field.type === 'boolean') {
-          return val ? 'Yes' : 'No'
-        }
+        const val = field.value;
+        if (val === null || val === undefined || val === '') return '-';
+        if (field.type === 'boolean') return val ? 'Yes' : 'No';
         if (field.type === 'image') {
-          if (Array.isArray(val)) {
-            return val.map(img => `<img src="${img}" class="field-image" />`).join('')
-          }
-          if (typeof val === 'string' && val) {
-            return `<img src="${val}" class="field-image" />`
-          }
-          return '-'
+          const imgs = Array.isArray(val) ? val : [val];
+          return imgs.map(img => {
+            const src = typeof img === 'object' ? (img.url || img.path || '') : img;
+            return `<img src="${src}" style="max-height:40px;max-width:80px;object-fit:contain;" />`;
+          }).join('');
         }
-        if (field.type === 'table') {
-          if (typeof val === 'object' && !Array.isArray(val)) {
-            const headers = Array.isArray(val.headers) ? val.headers : []
-            const rows = Array.isArray(val.rows) ? val.rows : []
-            if (headers.length === 0) return '-'
-            return `
-              <table class="field-table">
-                <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-                <tbody>${rows.map(row =>
-                  `<tr>${(Array.isArray(row) ? row : []).map(cell => `<td>${cell || ''}</td>`).join('')}</tr>`
-                ).join('')}</tbody>
-              </table>
-            `
-          }
-          return '-'
+        if (field.type === 'table' && typeof val === 'object' && !Array.isArray(val)) {
+          const headers = val.headers || [];
+          const rows = val.rows || [];
+          if (!headers.length) return '-';
+          return `<table style="width:100%;border-collapse:collapse;font-size:9px;">
+            <thead><tr>${headers.map(h => `<th style="border:1px solid #000;padding:2px 4px;">${h}</th>`).join('')}</tr></thead>
+            <tbody>${rows.map(row => `<tr>${(Array.isArray(row) ? row : []).map(cell => `<td style="border:1px solid #000;padding:2px 4px;">${cell || ''}</td>`).join('')}</tr>`).join('')}</tbody>
+          </table>`;
         }
+        return String(val);
+      };
 
-        return String(val)
-      }
-
-      // Build rows HTML
-      const rowsHTML = filteredFields.map(field => `
+      const rowsHTML = filteredFields.map(f => `
         <tr>
-          <td class="label-cell">${field.name || 'Unnamed'}</td>
-          <td class="value-cell">${renderValue(field)}</td>
-        </tr>
-      `).join('')
+          <td style="border:1.5px solid #000;padding:4px 8px;font-weight:bold;white-space:nowrap;width:40%;">${f.name || ''}</td>
+          <td style="border:1.5px solid #000;padding:4px 8px;text-align:center;">${renderValue(f)}</td>
+        </tr>`).join('');
 
-      const printWindow = window.open('', '_blank')
-      if (!printWindow) {
-        alert('Please allow popups to print the dispatch card.')
-        setIsPrinting(false)
-        return
-      }
+      const logoHTML = company.logo
+        ? `<img src="${company.logo}" alt="logo" style="max-height:55px;max-width:110px;object-fit:contain;" />`
+        : '<span style="font-size:20px;font-weight:bold;">LOGO</span>';
 
-      const printContent = `<!DOCTYPE html>
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) { alert('Please allow popups to print.'); return; }
+
+      printWindow.document.write(`<!DOCTYPE html>
 <html>
 <head>
-  <title>Dispatch Card - ${srd.refNo || ''}</title>
+  <title>Dispatch Card</title>
   <style>
-    @page {
-      size: A4;
-      margin: 0.4in;
-    }
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      font-size: 12px;
-      margin: 0;
-      padding: 20px;
-      color: #1a1a1a;
+    @page { size: 5in 3in; margin: 0.2in; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 5in;
+      font-family: Arial, sans-serif;
+      font-size: 10px;
       -webkit-print-color-adjust: exact;
-      color-adjust: exact;
-    }
-    .header {
-      text-align: center;
-      margin-bottom: 20px;
-      border-bottom: 2px solid #1a1a1a;
-      padding-bottom: 10px;
-    }
-    .header h1 {
-      font-size: 18px;
-      margin: 0 0 4px 0;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .header .ref-no {
-      font-size: 14px;
-      font-weight: 600;
-      color: #333;
-    }
-    .dispatch-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    .dispatch-table th {
-      background: #f3f4f6;
-      text-align: left;
-      padding: 8px 10px;
-      font-size: 12px;
-      font-weight: 700;
-      border: 1px solid #d1d5db;
-      text-transform: uppercase;
-    }
-    .dispatch-table .label-cell {
-      width: 35%;
-      font-weight: 600;
-      padding: 6px 10px;
-      border: 1px solid #d1d5db;
-      background: #fafafa;
-      vertical-align: top;
-      text-transform: capitalize;
-    }
-    .dispatch-table .value-cell {
-      padding: 6px 10px;
-      border: 1px solid #d1d5db;
-      vertical-align: top;
-      text-transform: capitalize;
-    }
-    .field-image {
-      max-width: 200px;
-      max-height: 150px;
-      object-fit: contain;
-      margin: 4px 2px;
-    }
-    .field-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 11px;
-    }
-    .field-table th {
-      background: #e5e7eb;
-      padding: 4px 6px;
-      border: 1px solid #d1d5db;
-      font-weight: 600;
-      text-align: left;
-    }
-    .field-table td {
-      padding: 4px 6px;
-      border: 1px solid #d1d5db;
-    }
-    @media print {
-      body { padding: 0; }
+      print-color-adjust: exact;
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>Dispatch Card</h1>
-    <div class="ref-no">SRD Ref: ${srd.refNo || 'N/A'}</div>
-    ${srd.title ? `<div style="font-size: 13px; margin-top: 4px;">${srd.title}</div>` : ''}
-  </div>
-  <table class="dispatch-table">
-    <thead>
-      <tr>
-        <th>Field</th>
-        <th>Value</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${rowsHTML}
-    </tbody>
+  <table style="width:100%;border-collapse:collapse;">
+    <tr>
+      <td style="border:1.5px solid #000;border-bottom:none;padding:5px 8px;">
+        <div style="font-size:12px;font-weight:bold;">${company.name || 'Company Name'}</div>
+      </td>
+      <td rowspan="2" style="border:1.5px solid #000;background:yellow;text-align:center;vertical-align:middle;width:1.2in;">${logoHTML}</td>
+    </tr>
+    <tr>
+      <td style="border:1.5px solid #000;border-top:none;padding:5px 8px;">
+        <div style="font-size:12px;font-weight:bold;">SAMPLE DISPATCH CARD</div>
+      </td>
+    </tr>
+    ${rowsHTML}
   </table>
+  <script>window.onload = () => window.print();</script>
 </body>
-</html>`
-
-      printWindow.document.write(printContent)
-      printWindow.document.close()
+</html>`);
+      printWindow.document.close();
     } catch (err) {
-      console.error('Failed to print dispatch card', err)
-      alert('Failed to print dispatch card')
+      console.error('Print failed', err);
+      alert('Failed to print dispatch card');
     } finally {
-      setIsPrinting(false)
+      setIsPrinting(false);
     }
-  }
+  };
 
   return (
     <Button
@@ -205,19 +114,9 @@ const DispatchCardPrint = ({ srd }) => {
       className="h-6 px-2 py-0 text-xs bg-white text-blue-700 border-white hover:bg-blue-50"
       disabled={isPrinting}
     >
-      {isPrinting ? (
-        <>
-          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-          Wait...
-        </>
-      ) : (
-        <>
-          <Printer className="h-3 w-3 mr-1" />
-          Print Dispatch Card
-        </>
-      )}
+      {isPrinting ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Wait...</> : <><Printer className="h-3 w-3 mr-1" />Print Dispatch Card</>}
     </Button>
   );
-}
+};
 
 export default DispatchCardPrint;
