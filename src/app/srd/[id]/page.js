@@ -9,6 +9,7 @@ import DepartmentPanelExcel from '@/components/DepartmentPanelExcel';
 import ProductionControl from '@/components/ProductionControl';
 import SRDTracker from '@/components/SRDTracker';
 import SRDReports from '@/components/SRDReports';
+import DispatchPanel from '@/components/DispatchPanel';
 import {
   Dialog,
   DialogContent,
@@ -31,7 +32,8 @@ import {
   Clock,
   Table,
   Grid3X3,
-  BarChart3
+  BarChart3,
+  Send
 } from 'lucide-react';
 import { set } from 'mongoose';
 
@@ -334,17 +336,24 @@ export default function SRDDetailPage() {
               srd={srd}
               userRole={userRole}
               onUpdate={(department, data, shouldRefresh) => handleDepartmentUpdate(department, data, shouldRefresh)}
+              onSrdUpdate={setSrd}
             />
           ) : (
             /* Form View - Tabs for each department */
             <Tabs defaultValue={userRole === 'admin' || userRole === 'vmd' ? 'vmd' : userRole} className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="flex flex-wrap w-full p-1 bg-muted rounded-xl justify-start">
                 {allowedDepartments.filter(dept => (canViewAll ? true : dept === userRole)).map((dept) => (
-                  <TabsTrigger key={dept} value={dept}>
+                  <TabsTrigger key={dept} value={dept} className="flex-1 min-w-[120px]">
                     {dept.toUpperCase()}
                   </TabsTrigger>
                 ))}
-                <TabsTrigger value="reports" className="flex items-center gap-2">
+                {(srd?.inDispatch || userRole === 'dispatch' || userRole === 'admin') && (
+                  <TabsTrigger value="dispatch" className="flex-1 text-blue-600 data-[state=active]:text-blue-700 min-w-[120px] flex items-center justify-center gap-2">
+                    <Send className="h-4 w-4" />
+                    DISPATCH
+                  </TabsTrigger>
+                )}
+                <TabsTrigger value="reports" className="flex-1 min-w-[120px] flex items-center justify-center gap-2">
                   <BarChart3 className="h-4 w-4" />
                   REPORTS
                 </TabsTrigger>
@@ -368,6 +377,15 @@ export default function SRDDetailPage() {
               <TabsContent value="reports">
                 <SRDReports srd={srd} />
               </TabsContent>
+              {(srd?.inDispatch || userRole === 'dispatch' || userRole === 'admin') && (
+                <TabsContent value="dispatch">
+                  <DispatchPanel
+                    srd={srd}
+                    onUpdate={(data) => setSrd(data)}
+                    canEdit={userRole === 'dispatch' || userRole === 'admin'}
+                  />
+                </TabsContent>
+              )}
             </Tabs>
           )}
         </div>

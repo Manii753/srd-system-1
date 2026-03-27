@@ -60,7 +60,9 @@ export async function GET(request) {
     let query = {};
 
     // Filter by department status (handle both uppercase and lowercase keys)
-    if (department && department !== 'all') {
+    if (department === 'dispatch') {
+      query['inDispatch'] = true;
+    } else if (department && department !== 'all') {
       const deptUpper = department.toUpperCase();
       const deptLower = department.toLowerCase();
       query['$or'] = [
@@ -71,7 +73,9 @@ export async function GET(request) {
 
     // Filter by status (handle both uppercase and lowercase keys)
     if (status && status !== 'all') {
-      if (department && department !== 'all') {
+      if (department === 'dispatch') {
+        // Advanced dispatch status filtering if needed later
+      } else if (department && department !== 'all') {
         const deptUpper = department.toUpperCase();
         const deptLower = department.toLowerCase();
         query['$or'] = [

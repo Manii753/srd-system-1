@@ -122,6 +122,7 @@ export async function POST(request, context) {
       srd.productionProgress = 100;
       srd.currentProductionStage = null;
       srd.isComplete = true;
+      srd.inDispatch = true;
     }
 
 

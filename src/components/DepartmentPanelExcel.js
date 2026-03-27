@@ -24,11 +24,14 @@ import {
 } from '@/lib/assetUtils';
 import { getAttachedImageLabels } from '@/lib/fieldConnectionUtils';
 import DispatchCardPrint from '@/app/dispatch/components/DispatchCardPrint';
+import DispatchPanel from './DispatchPanel';
+import { Send } from 'lucide-react';
 
 export default function DepartmentPanelExcel({
   srd,
   userRole,
   onUpdate,
+  onSrdUpdate,
 }) {
   const { toast } = useToast();
   const [activeTemplate, setActiveTemplate] = useState(null);
@@ -1494,6 +1497,23 @@ export default function DepartmentPanelExcel({
           })}
         </div>
       </div>
+
+      {/* Render Dispatch Panel if applicable */}
+      {(srd?.inDispatch || userRole === 'dispatch' || userRole === 'admin') && (
+        <div className="border-t border-gray-200">
+          <div className="p-6 bg-white">
+            <h3 className="text-lg font-bold mb-4 text-blue-800 flex items-center gap-2">
+              <Send className="h-5 w-5" />
+              Dispatch Module
+            </h3>
+            <DispatchPanel 
+              srd={srd} 
+              onUpdate={onSrdUpdate}
+              canEdit={userRole === 'dispatch' || userRole === 'admin'}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Department status legend */}
       <div className="bg-gray-50 border-t px-3 py-2">
