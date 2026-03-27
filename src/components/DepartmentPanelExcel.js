@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,10 @@ import {
 } from '@/lib/assetUtils';
 import { getAttachedImageLabels } from '@/lib/fieldConnectionUtils';
 import DispatchCardPrint from '@/app/dispatch/components/DispatchCardPrint';
-import DispatchPanel from './DispatchPanel';
+// Dynamically import DispatchPanel to avoid circular dependency
+const DispatchPanel = dynamic(() => import('./DispatchPanel'), {
+  loading: () => <div className="p-4 text-center">Loading Dispatch Panel...</div>
+});
 import { Send } from 'lucide-react';
 
 export default function DepartmentPanelExcel({
@@ -32,6 +36,7 @@ export default function DepartmentPanelExcel({
   userRole,
   onUpdate,
   onSrdUpdate,
+  readOnly = false,
 }) {
   const { toast } = useToast();
   const [activeTemplate, setActiveTemplate] = useState(null);
@@ -1382,8 +1387,8 @@ export default function DepartmentPanelExcel({
             }
 
             const isFieldActive = fieldDef.active !== false; // Active by default if property missing
-            // Allow all roles to edit table-type fields
-            const canEdit = fieldDef.type === 'table' ? isFieldActive : (canEditField(fieldDef.department) && isFieldActive);
+            // Allow all roles to edit table-type fields, unless in readOnly mode
+            const canEdit = readOnly ? false : (fieldDef.type === 'table' ? isFieldActive : (canEditField(fieldDef.department) && isFieldActive));
             const isHeading = fieldDef.type === 'heading';
             const isHidden = isFieldHidden(fieldDef);
             const isOptionalEnabled = isOptionalFieldEnabled(fieldIdStr, fieldDef);
@@ -1498,8 +1503,8 @@ export default function DepartmentPanelExcel({
         </div>
       </div>
 
-      {/* Render Dispatch Panel if applicable */}
-      {(srd?.inDispatch || userRole === 'dispatch' || userRole === 'admin') && (
+      {/* Render Dispatch Panel if applicable - Hidden in readOnly mode to avoid circular display */}
+      {!readOnly && (srd?.inDispatch || userRole === 'dispatch' || userRole === 'admin') && (
         <div className="border-t border-gray-200">
           <div className="p-6 bg-white">
             <h3 className="text-lg font-bold mb-4 text-blue-800 flex items-center gap-2">
@@ -1538,8 +1543,9 @@ export default function DepartmentPanelExcel({
         </div>
       </div>
 
-      {/* Status Update Section */}
-      <div className="bg-gray-50 border-t border-gray-200 p-3">
+      {/* Status Update Section - Hidden in readOnly mode */}
+      {!readOnly && (
+        <div className="bg-gray-50 border-t border-gray-200 p-3">
         <div className="grid grid-cols-6 gap-2 items-end">
           {/* Department display/selector */}
           <div>
@@ -1603,6 +1609,7 @@ export default function DepartmentPanelExcel({
           Field changes auto-save. Use button for status/comments only.
         </p>
       </div>
+      )}
 
       {srd.audit && srd.audit.length > 0 && (
         <div className="border-t border-gray-200 p-3">

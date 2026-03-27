@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp, Table } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,11 +10,14 @@ import { useToast } from '@/lib/use-toast';
 import { useSession } from 'next-auth/react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import DispatchCardPrint from '@/app/dispatch/components/DispatchCardPrint';
+import DepartmentPanelExcel from './DepartmentPanelExcel';
 
 export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   const { data: session } = useSession();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showExcel, setShowExcel] = useState(false);
 
   // Form states
   const [internalComments, setInternalComments] = useState(srd.internalComments || '');
@@ -120,10 +124,38 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
   return (
     <div className="space-y-6 mt-6">
+      <div className="flex flex-col space-y-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setShowExcel(!showExcel)}
+          className="w-fit flex items-center gap-2 text-blue-700 border-blue-200 hover:bg-blue-50"
+        >
+          <Table className="h-4 w-4" />
+          {showExcel ? 'Hide SRD Data Grid' : 'Show SRD Data Grid'}
+          {showExcel ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </Button>
+
+        {showExcel && (
+          <div className="border rounded-lg shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            <DepartmentPanelExcel
+              srd={srd}
+              userRole="viewer"
+              readOnly={true}
+              onUpdate={() => {}} // No-op for read-only
+              onSrdUpdate={onUpdate}
+            />
+          </div>
+        )}
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex justify-between items-center text-lg font-bold">
-            <span>1. Internal Verification</span>
+            <div className="flex items-center gap-4">
+              <span>1. Internal Verification</span>
+              <DispatchCardPrint srd={srd} />
+            </div>
             {srd.internalApproved ? (
               <Badge className="bg-green-100 text-green-800">Approved by {srd.internalApprovedBy}</Badge>
             ) : srd.internalApprovedDate ? (
@@ -190,7 +222,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Internal Comments</label>
+            <label className="text-sm font-medium">Comments</label>
             <Textarea 
               placeholder="Enter internal verification comments..." 
               value={internalComments}
@@ -228,7 +260,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Buyer Comments</label>
+            <label className="text-sm font-medium">Comments</label>
             <Textarea 
               placeholder="Enter buyer comments..." 
               value={buyerComments}
