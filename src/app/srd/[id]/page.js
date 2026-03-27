@@ -191,6 +191,26 @@ export default function SRDDetailPage() {
   const userRole = session.user.role;
   const canViewAll = true
 
+  if (userRole === 'dispatch') {
+    return (
+      <Layout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Dispatch Verification: {srd.refNo}</h1>
+              <p className="text-gray-600 mt-2">{srd.description || 'No description provided.'}</p>
+            </div>
+          </div>
+          <DispatchPanel
+            srd={srd}
+            onUpdate={(data) => setSrd(data)}
+            canEdit={true}
+          />
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className={cn("space-y-6", viewMode === 'excel' && "space-y-3")}>
