@@ -163,7 +163,7 @@ export async function PATCH(request, { params }) {
         data: srd,
         message: nextStage 
           ? `Stage completed. Moved to: ${nextStage.displayName || nextStage.name}` 
-          : 'Production completed!'
+          : 'Sample completed!'
       });
     } else if (action === 'update_stage') {
       // Update current stage status

@@ -18,7 +18,6 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   // Form states
   const [internalComments, setInternalComments] = useState(srd.internalComments || '');
   const [buyerComments, setBuyerComments] = useState(srd.BuyerComments || '');
-  const [dispatchNotes, setDispatchNotes] = useState(srd.dispatchNotes || '');
 
   // Buyer selection states
   const [buyers, setBuyers] = useState([]);
@@ -52,7 +51,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         body: JSON.stringify({
           name: newBuyer.name,
           email: newBuyer.email.split(',').map(e => e.trim()).filter(e => e),
-          phone: newBuyer.phone.split(',').map(p => p.trim()).filter(p => p),
+          phone: newBuyer.phone.split(',').map(p => p.trim()).filter(p => p),Customer Approval
           address: newBuyer.address
         })
       });
@@ -116,13 +115,6 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       BuyerApproved: approved,
       BuyerApprovedBy: session?.user?.name,
       BuyerComments: buyerComments,
-    });
-  };
-
-  const handleFinalDispatch = () => {
-    handleAction('final_dispatch', {
-      dispatchBy: session?.user?.name,
-      dispatchNotes,
     });
   };
 
@@ -255,42 +247,6 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
              </div>
           )}
         </CardContent>
-      </Card>
-
-      <Card className={!srd.BuyerApproved ? 'opacity-50 pointer-events-none' : ''}>
-         <CardHeader>
-           <CardTitle className="flex justify-between items-center text-lg font-bold">
-             <span>3. Final Dispatch</span>
-             {srd.dispatchDate ? (
-               <Badge className="bg-green-100 text-green-800">Finalized</Badge>
-             ) : (
-               <Badge className="bg-yellow-100 text-yellow-800">Pending Final Dispatch</Badge>
-             )}
-           </CardTitle>
-         </CardHeader>
-         <CardContent className="space-y-4">
-           <div className="space-y-2">
-             <label className="text-sm font-medium">Final Dispatch Notes</label>
-             <Textarea 
-               placeholder="Enter final dispatch tracking numbers, notes, etc." 
-               value={dispatchNotes}
-               onChange={(e) => setDispatchNotes(e.target.value)}
-               disabled={!canEdit || !!srd.dispatchDate}
-             />
-           </div>
-           {canEdit && srd.BuyerApproved && !srd.dispatchDate && (
-              <Button onClick={() => handleFinalDispatch()} disabled={loading} className="w-full">
-                Complete Final Dispatch
-              </Button>
-           )}
-           {srd.dispatchDate && (
-             <div className="mt-4 p-4 border rounded-md bg-green-50">
-                <p className="text-sm font-medium text-green-800">
-                   Dispatched by: {srd.dispatchBy} on {new Date(srd.dispatchDate).toLocaleString()}
-                </p>
-             </div>
-           )}
-         </CardContent>
       </Card>
     </div>
   );

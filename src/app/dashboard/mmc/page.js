@@ -138,7 +138,7 @@ export default function MMCDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.approved}</div>
-              <p className="text-xs text-muted-foreground">Production complete</p>
+              <p className="text-xs text-muted-foreground">Sample complete</p>
             </CardContent>
           </Card>
           

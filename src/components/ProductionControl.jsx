@@ -20,7 +20,7 @@ export default function ProductionControl({ srdId, initialData, onUpdate }) {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [completionNotes, setCompletionNotes] = useState('');
   const [completedBy, setCompletedBy] = useState('');
-  
+
   // Customer Approval state
   const [showCustomerApprovalModal, setShowCustomerApprovalModal] = useState(false);
   const [customerApprovalStatus, setCustomerApprovalStatus] = useState('approved');
@@ -145,7 +145,7 @@ export default function ProductionControl({ srdId, initialData, onUpdate }) {
         toast.success(data.message);
         setProductionData({
           ...productionData,
-          customerApproval: data.data.customerApproval 
+          customerApproval: data.data.customerApproval
         });
         setShowCustomerApprovalModal(false);
         setCustomerApprovalComments('');
@@ -294,7 +294,7 @@ export default function ProductionControl({ srdId, initialData, onUpdate }) {
               <div className="flex items-center space-x-3">
                 <CheckCircle className="h-8 w-8 text-green-600" />
                 <div>
-                  <p className="text-lg font-semibold text-green-900">Production Complete!</p>
+                  <p className="text-lg font-semibold text-green-900">Sample Complete!</p>
                   <p className="text-sm text-green-700">
                     All production stages have been completed successfully.
                   </p>
@@ -368,91 +368,6 @@ export default function ProductionControl({ srdId, initialData, onUpdate }) {
       )}
 
       {/* Customer Approval Section */}
-      {isComplete && (
-        <Card className={
-          customerApproval?.status === 'approved' ? 'border-green-200 bg-green-50' : 
-          customerApproval?.status === 'rejected' ? 'border-red-200 bg-red-50' : 
-          'border-orange-200 bg-orange-50'
-        }>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center space-x-2">
-                <User className="h-5 w-5" />
-                <span>Customer Approval</span>
-              </CardTitle>
-              {customerApproval?.status === 'pending' || !customerApproval ? (
-                 <Badge className="bg-orange-100 text-orange-800">Pending</Badge>
-              ) : (
-                <Badge className={customerApproval?.status === 'approved' ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
-                  {customerApproval?.status.charAt(0).toUpperCase() + customerApproval?.status.slice(1)}
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {(!customerApproval || customerApproval.status === 'pending') ? (
-               <div className="text-center py-4">
-                 <p className="text-gray-600 mb-4">Production is complete. Waiting for customer feedback.</p>
-                 <div className="flex justify-center space-x-3">
-                   <Button 
-                     onClick={() => {
-                        setCustomerApprovalStatus('approved');
-                        setShowCustomerApprovalModal(true);
-                     }}
-                     className="bg-green-600 hover:bg-green-700"
-                   >
-                     <CheckCircle className="h-4 w-4 mr-2" />
-                     Approve Production
-                   </Button>
-                   <Button 
-                     onClick={() => {
-                        setCustomerApprovalStatus('rejected');
-                        setShowCustomerApprovalModal(true);
-                     }}
-                     variant="destructive"
-                   >
-                     <AlertCircle className="h-4 w-4 mr-2" />
-                     Reject Production
-                   </Button>
-                 </div>
-               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 mt-1">
-                     {customerApproval.status === 'approved' ? (
-                       <CheckCircle className="h-6 w-6 text-green-600" />
-                     ) : (
-                       <AlertCircle className="h-6 w-6 text-red-600" />
-                     )}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      Production was {customerApproval.status}
-                    </p>
-                    <div className="text-sm text-gray-600 mt-1 space-y-1">
-                      <p>
-                        <User className="h-3 w-3 inline mr-1" />
-                        By: {customerApproval.by}
-                      </p>
-                      <p>
-                        <Calendar className="h-3 w-3 inline mr-1" />
-                        Date: {new Date(customerApproval.date).toLocaleString()}
-                      </p>
-                      {customerApproval.comments && (
-                        <div className="mt-3 p-3 bg-white/60 rounded-md border text-gray-800">
-                          <p className="font-medium text-xs text-gray-500 uppercase mb-1">Comments</p>
-                          <p>{customerApproval.comments}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Complete Stage Modal */}
       {showCompleteModal && (
@@ -508,11 +423,11 @@ export default function ProductionControl({ srdId, initialData, onUpdate }) {
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
               <div className="flex items-center justify-between px-6 py-4 border-b">
                 <h2 className="text-lg font-semibold flex items-center">
-                   {customerApprovalStatus === 'approved' ? (
-                      <><CheckCircle className="h-5 w-5 text-green-600 mr-2"/> Approve Production</>
-                   ) : (
-                      <><AlertCircle className="h-5 w-5 text-red-600 mr-2"/> Reject Production</>
-                   )}
+                  {customerApprovalStatus === 'approved' ? (
+                    <><CheckCircle className="h-5 w-5 text-green-600 mr-2" /> Approve Production</>
+                  ) : (
+                    <><AlertCircle className="h-5 w-5 text-red-600 mr-2" /> Reject Production</>
+                  )}
                 </h2>
                 <button className="text-gray-500 hover:text-gray-800 text-2xl" onClick={() => setShowCustomerApprovalModal(false)}>×</button>
               </div>
@@ -541,8 +456,8 @@ export default function ProductionControl({ srdId, initialData, onUpdate }) {
                   <Button variant="outline" onClick={() => setShowCustomerApprovalModal(false)}>
                     Cancel
                   </Button>
-                  <Button 
-                    onClick={submitCustomerApproval} 
+                  <Button
+                    onClick={submitCustomerApproval}
                     disabled={loading}
                     variant={customerApprovalStatus === 'approved' ? "default" : "destructive"}
                     className={customerApprovalStatus === 'approved' ? "bg-green-600 hover:bg-green-700" : ""}
