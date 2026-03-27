@@ -51,7 +51,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         body: JSON.stringify({
           name: newBuyer.name,
           email: newBuyer.email.split(',').map(e => e.trim()).filter(e => e),
-          phone: newBuyer.phone.split(',').map(p => p.trim()).filter(p => p),Customer Approval
+          phone: newBuyer.phone.split(',').map(p => p.trim()).filter(p => p),
           address: newBuyer.address
         })
       });
