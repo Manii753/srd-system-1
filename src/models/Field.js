@@ -105,7 +105,4 @@ const FieldSchema = new mongoose.Schema({
 FieldSchema.index({ department: 1, order: 1 });
 FieldSchema.index({ parentHeading: 1, order: 1 });
 
-// Force recompilation to pick up new schema changes (especially in dev)
-delete mongoose.models.Field;
-
-export default mongoose.model("Field", FieldSchema);
+export default mongoose.models.Field || mongoose.model("Field", FieldSchema);

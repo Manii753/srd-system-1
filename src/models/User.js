@@ -40,9 +40,4 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
-// Delete the model if it exists to ensure schema updates are applied
-if (mongoose.models.User) {
-  delete mongoose.models.User;
-}
-
-export default mongoose.model('User', userSchema);
+export default mongoose.models.User || mongoose.model('User', userSchema);

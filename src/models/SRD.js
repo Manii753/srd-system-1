@@ -76,9 +76,8 @@ const srdSchema = new mongoose.Schema({
   BuyerComments: { type: String },
   BuyerApprovedDate: { type: Date },
   BuyerDetails: { type: mongoose.Schema.Types.ObjectId, ref: 'Buyer' },
-
-  dispatchBy: { type: String },
-  dispatchNotes: { type: String },
+  DispatchDetails: { type: mongoose.Schema.Types.ObjectId, ref: 'Dispatch' },
+ 
 
   status: {
     type: Object,
@@ -126,7 +125,4 @@ srdSchema.pre('save', function (next) {
   next();
 });
 
-// Force recompilation so newly added dynamic field properties are not dropped in dev.
-delete mongoose.models.SRD;
-
-export default mongoose.model('SRD', srdSchema);
+export default mongoose.models.SRD || mongoose.model('SRD', srdSchema);

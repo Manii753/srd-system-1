@@ -7,7 +7,7 @@ export async function GET(request, { params }) {
     await dbConnect();
     const resolvedParams = await params;
     
-    const srd = await SRD.findById(resolvedParams.id);
+    const srd = await SRD.findById(resolvedParams.id).populate('BuyerDetails DispatchDetails');
     
     if (!srd) {
       return NextResponse.json({

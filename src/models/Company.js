@@ -5,5 +5,5 @@ const CompanySchema = new mongoose.Schema({
   logo: { type: String, default: '' }, // URL to uploaded logo image
 }, { timestamps: true });
 
-delete mongoose.models.Company;
-export default mongoose.model("Company", CompanySchema);
+
+export default mongoose.models.Company || mongoose.model("Company", CompanySchema);

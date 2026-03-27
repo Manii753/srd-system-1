@@ -35,9 +35,4 @@ const productionStageSchema = new mongoose.Schema({
   }
 });
 
-// Delete existing model if it exists
-if (mongoose.models.ProductionStage) {
-  delete mongoose.models.ProductionStage;
-}
-
-export default mongoose.model('ProductionStage', productionStageSchema);
+export default mongoose.models.ProductionStage || mongoose.model('ProductionStage', productionStageSchema);

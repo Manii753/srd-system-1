@@ -4,6 +4,8 @@ import SRD from '@/models/SRD';
 import User from '@/models/User';
 import Notification from '@/models/Notification';
 import pusher from '@/lib/pusher-server';
+import Dispatch from '@/models/Dispatch';
+import Buyer from '@/models/Buyer';
 
 export async function PATCH(request, context) {
   try {
@@ -32,14 +34,51 @@ export async function PATCH(request, context) {
           srd.internalApprovedBy = payload.internalApprovedBy;
           srd.internalApprovedDate = new Date();
           srd.internalComments = payload.internalComments;
+          
+          actionDescription = payload.internalApproved ? 'Internal Verification Approved' : 'Internal Verification Rejected';
+        } else if (action === 'save_dispatch_details') {
+          // Find or create dispatch details
+          let dispatch;
+          if (srd.DispatchDetails) {
+            dispatch = await Dispatch.findById(srd.DispatchDetails);
+          }
+          
+          if (!dispatch) {
+            dispatch = new Dispatch({});
+          }
+          
+          // Update dispatch fields
+          if (payload.awb !== undefined) dispatch.awb = payload.awb;
+          if (payload.dispatchQuantity !== undefined) dispatch.dispatchQuantity = payload.dispatchQuantity;
+          if (payload.address !== undefined) dispatch.address = payload.address;
+          if (payload.sampleDispatchDate !== undefined) dispatch.sampleDispatchDate = payload.sampleDispatchDate;
+          if (payload.images !== undefined) dispatch.images = payload.images;
+          
+          await dispatch.save();
+          
+          srd.DispatchDetails = dispatch._id;
           if (payload.BuyerDetails) {
             srd.BuyerDetails = payload.BuyerDetails;
           }
           
-          if (payload.internalApproved) {
-            srd.sampleDispatchedToBuyer = true;
+          actionDescription = 'Dispatch Details Updated';
+        } else if (action === 'dispatch_to_buyer') {
+          srd.sampleDispatchedToBuyer = true;
+          
+          // Use existing date from Dispatch model if available, otherwise use now
+          let dDate = new Date();
+          if (srd.DispatchDetails) {
+            const disp = await Dispatch.findById(srd.DispatchDetails);
+            if (disp && disp.sampleDispatchDate) {
+              dDate = disp.sampleDispatchDate;
+            } else if (disp) {
+              disp.sampleDispatchDate = dDate;
+              await disp.save();
+            }
           }
-          actionDescription = payload.internalApproved ? 'Internal Verification Approved' : 'Internal Verification Rejected';
+          srd.sampleDispatchDate = dDate;
+          
+          actionDescription = 'Sample Dispatched to Buyer';
         } else if (action === 'buyer_approval') {
           srd.BuyerApproved = payload.BuyerApproved;
           srd.BuyerApprovedBy = payload.BuyerApprovedBy;
@@ -67,7 +106,7 @@ export async function PATCH(request, context) {
         });
 
         await srd.save();
-        freshSRD = await SRD.findById(id).lean();
+        freshSRD = await SRD.findById(id).populate('BuyerDetails DispatchDetails').lean();
         break; // Success
       } catch (err) {
         if (err.name === 'VersionError' && retries > 1) {
