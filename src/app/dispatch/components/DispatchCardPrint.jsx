@@ -82,8 +82,14 @@ const DispatchCardPrint = ({ srd }) => {
 <body>
       <div style="border:1.5px solid #000;border-bottom:none;border-left:none;border-left:none;display:flex; justify-content: space-between;">
       <div style="width:70%;display:flex;flex-direction:column;justify-content: center;">
-        <div style="font-size:11px;font-weight:bold;border:1.5px solid #000;padding:5px 8px; text-transform: uppercase;">${company.name || 'Company Name'}</div>
-        <div style="font-size:11px;font-weight:bold;border:1.5px solid #000;padding:5px 8px">SAMPLE DISPATCH CARD</div>
+       <div style="border-right: 1.5px solid #000;border-left: 1.5px solid #000;">
+          <div style="font-size:11px;font-weight:bold;padding:5px 8px;text-transform:uppercase;border-bottom:1.5px solid #000;">
+            ${company.name || 'Company Name'}
+          </div>
+          <div style="font-size:11px;font-weight:bold;padding:5px 8px;">
+            SAMPLE DISPATCH CARD
+          </div>
+        </div>
       </div>
       <div style=";display:flex;flex-direction:column;justify-content: center; padding:5px 8px; width:30%;">${logoHTML}</div>
       </div>

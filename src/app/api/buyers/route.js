@@ -21,6 +21,7 @@ export async function POST(request) {
       email: body.email || [],
       phone: body.phone || [],
       address: body.address || '',
+      contactPerson: body.contactPerson || [],
     });
     return NextResponse.json({ success: true, data: buyer });
   } catch (error) {

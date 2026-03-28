@@ -64,6 +64,10 @@ const srdSchema = new mongoose.Schema({
   inDispatch: { type: Boolean, default: false },
   dispatchDate: { type: Date },
   internalApproved: { type: Boolean, default: false },
+  internalRejectedReasons: [{
+    department: String,
+    reason: String,
+  }],
   internalApprovedBy: { type: String },
   internalApprovedDate: { type: Date },
   internalComments: { type: String },
@@ -72,12 +76,16 @@ const srdSchema = new mongoose.Schema({
   sampleDipatchedtoBuyerDate: { type: Date }, // Kept original name as instruction had both 'sampleDispatchedToBuyer' and 'sampleDipatchedtoBuyerDate'
 
   BuyerApproved: { type: Boolean, default: false },
+  BuyerRejectedReasons: [{
+    department: String,
+    reason: String,
+  }],
   BuyerApprovedBy: { type: String },
   BuyerComments: { type: String },
   BuyerApprovedDate: { type: Date },
   BuyerDetails: { type: mongoose.Schema.Types.ObjectId, ref: 'Buyer' },
   DispatchDetails: { type: mongoose.Schema.Types.ObjectId, ref: 'Dispatch' },
- 
+
 
   status: {
     type: Object,

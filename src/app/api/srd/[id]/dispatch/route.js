@@ -34,6 +34,9 @@ export async function PATCH(request, context) {
           srd.internalApprovedBy = payload.internalApprovedBy;
           srd.internalApprovedDate = new Date();
           srd.internalComments = payload.internalComments;
+          if (!payload.internalApproved && payload.internalRejectedReasons) {
+            srd.internalRejectedReasons = payload.internalRejectedReasons;
+          }
           
           actionDescription = payload.internalApproved ? 'Internal Verification Approved' : 'Internal Verification Rejected';
         } else if (action === 'save_dispatch_details') {
@@ -84,6 +87,9 @@ export async function PATCH(request, context) {
           srd.BuyerApprovedBy = payload.BuyerApprovedBy;
           srd.BuyerApprovedDate = new Date();
           srd.BuyerComments = payload.BuyerComments;
+          if (!payload.BuyerApproved && payload.BuyerRejectedReasons) {
+            srd.BuyerRejectedReasons = payload.BuyerRejectedReasons;
+          }
           actionDescription = payload.BuyerApproved ? 'Buyer Approved' : 'Buyer Rejected';
         } else if (action === 'final_dispatch') {
           srd.dispatchBy = payload.dispatchBy;
