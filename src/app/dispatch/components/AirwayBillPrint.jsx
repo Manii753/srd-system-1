@@ -59,17 +59,17 @@ const AirwayBillPrint = ({ srd }) => {
       const departments = srd.status ? Object.keys(srd.status) : [];
 
       // Build email rows
-      const emailRows = buyerEmails.map((e, i) => 
+      const emailRows = buyerEmails.map((e, i) =>
         `<tr><td style="border:1px solid #000;padding:4px 8px;font-weight:bold;">${i === 0 ? 'Email' : ''}</td><td style="border:1px solid #000;padding:4px 8px;text-align:center;">${i + 1}</td><td style="border:1px solid #000;padding:4px 8px;" colspan="2"><a href="mailto:${e}">${e}</a></td></tr>`
       ).join('');
 
       // Build contact person rows
-      const contactRows = contactPersons.map((cp, i) => 
+      const contactRows = contactPersons.map((cp, i) =>
         `<tr><td style="border:1px solid #000;padding:4px 8px;font-weight:bold;">${i === 0 ? 'Contact Person' : ''}</td><td style="border:1px solid #000;padding:4px 8px;" colspan="3">${cp.name || ''} ${cp.phone ? '(' + cp.phone + ')' : ''}</td></tr>`
       ).join('');
 
       // Build phone rows
-      const phoneRows = buyerPhones.map((p, i) => 
+      const phoneRows = buyerPhones.map((p, i) =>
         `<tr><td style="border:1px solid #000;padding:4px 8px;font-weight:bold;">${i === 0 ? 'Contact No.' : ''}</td><td style="border:1px solid #000;padding:4px 8px;" colspan="3">${p}</td></tr>`
       ).join('');
 
@@ -83,7 +83,7 @@ const AirwayBillPrint = ({ srd }) => {
         const isInProgress = status === 'in-progress';
         const bgColor = isCompleted ? '#22c55e' : isInProgress ? '#eab308' : '#e5e7eb';
         const textColor = isCompleted || isInProgress ? '#fff' : '#000';
-        
+
         // Left column: stage completed label
         const leftLabel = `${stageName} ${isCompleted ? 'Completed' : isInProgress ? 'In Progress' : status}`;
         // Right column: received by next stage
@@ -108,17 +108,17 @@ const AirwayBillPrint = ({ srd }) => {
       // Internal Rejected reasons from srd model
       const internalRejectReasons = srd.internalRejectedReasons || [];
       const rejectRows = (!srd.internalApproved && internalRejectReasons.length > 0)
-        ? internalRejectReasons.map((r, i) => 
-            `<tr><td style="border:1px solid #000;padding:3px 8px;font-weight:${i === 0 ? 'bold' : 'normal'};color:${i === 0 ? '#dc2626' : '#000'};font-size:10px;">${i === 0 ? 'Internal Rejected' : ''}</td><td style="border:1px solid #000;padding:3px 8px;font-size:10px;">Reasons</td><td style="border:1px solid #000;padding:3px 8px;font-weight:bold;font-size:10px;">${i + 1}</td><td style="border:1px solid #000;padding:3px 8px;text-transform:capitalize;font-size:10px;">${r.department || ''} — ${r.reason || ''}</td></tr>`
-          ).join('')
+        ? internalRejectReasons.map((r, i) =>
+          `<tr><td style="border:1px solid #000;padding:3px 8px;font-weight:${i === 0 ? 'bold' : 'normal'};color:${i === 0 ? '#dc2626' : '#000'};font-size:10px;">${i === 0 ? 'Internal Rejected' : ''}</td><td style="border:1px solid #000;padding:3px 8px;font-size:10px;">Reason</td><td style="border:1px solid #000;padding:3px 8px;font-weight:bold;font-size:10px;">${i + 1}</td><td style="border:1px solid #000;padding:3px 8px;text-transform:capitalize;font-size:10px;">${r.department || ''} — ${r.reason || ''}</td></tr>`
+        ).join('')
         : '';
 
       // Buyer Rejected reasons from srd model
       const buyerRejectReasons = srd.BuyerRejectedReasons || [];
       const buyerRejectRows = (!srd.BuyerApproved && buyerRejectReasons.length > 0)
-        ? buyerRejectReasons.map((r, i) => 
-            `<tr><td style="border:1px solid #000;padding:3px 8px;font-weight:${i === 0 ? 'bold' : 'normal'};color:${i === 0 ? '#dc2626' : '#000'};font-size:10px;">${i === 0 ? 'Rejected' : ''}</td><td style="border:1px solid #000;padding:3px 8px;font-size:10px;">Reasons</td><td style="border:1px solid #000;padding:3px 8px;font-weight:bold;font-size:10px;">${i + 1}</td><td style="border:1px solid #000;padding:3px 8px;text-transform:capitalize;font-size:10px;">${r.department || ''} — ${r.reason || ''}</td></tr>`
-          ).join('')
+        ? buyerRejectReasons.map((r, i) =>
+          `<tr><td style="border:1px solid #000;padding:3px 8px;font-weight:${i === 0 ? 'bold' : 'normal'};color:${i === 0 ? '#dc2626' : '#000'};font-size:10px;">${i === 0 ? 'Rejected' : ''}</td><td style="border:1px solid #000;padding:3px 8px;font-size:10px;">Reason</td><td style="border:1px solid #000;padding:3px 8px;font-weight:bold;font-size:10px;">${i + 1}</td><td style="border:1px solid #000;padding:3px 8px;text-transform:capitalize;font-size:10px;">${r.department || ''} — ${r.reason || ''}</td></tr>`
+        ).join('')
         : '';
 
       const printWindow = window.open('', '_blank');
@@ -179,9 +179,6 @@ const AirwayBillPrint = ({ srd }) => {
   <!-- Conditions Section -->
   <table>
     <tr>
-      <td class="section-header" colspan="4">Conditions</td>
-    </tr>
-    <tr>
       <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;">Approved For Dispatch</td>
       <td style="border:1px solid #000;padding:4px 8px;">${srd.internalApproved ? '✅ Yes' : '❌ No'}</td>
       <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;">Approved By</td>
@@ -201,17 +198,14 @@ const AirwayBillPrint = ({ srd }) => {
     </tr>
     <tr>
       <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;background:${srd.BuyerApproved ? '#22c55e' : '#f1f5f9'};color:${srd.BuyerApproved ? '#fff' : '#000'};">Approved</td>
-      <td style="border:1px solid #000;padding:4px 8px;background:${srd.BuyerApproved ? '#dcfce7' : 'transparent'};" colspan="3">${srd.BuyerApproved ? '✅ Yes' : 'Pending'}</td>
+      <td style="border:1px solid #000;padding:4px 8px;background:${srd.BuyerApproved ? '#dcfce7' : 'transparent'};" colspan="3">${srd.BuyerApproved ? 'Yes' : 'NO'}</td>
     </tr>
     ${srd.BuyerComments ? `<tr>
       <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;background:#fef9c3;">Approved With Comments</td>
       <td style="border:1px solid #000;padding:4px 8px;" colspan="2">${srd.BuyerComments}</td>
       <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;">Attach Comments</td>
     </tr>` : ''}
-    ${srd.BuyerApprovedDate && !srd.BuyerApproved ? `<tr>
-      <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;color:#dc2626;">Rejected</td>
-      <td style="border:1px solid #000;padding:4px 8px;" colspan="3">${srd.BuyerComments || ''}</td>
-    </tr>` : ''}
+    
     ${buyerRejectRows}
   </table>
 
@@ -236,7 +230,6 @@ const AirwayBillPrint = ({ srd }) => {
       <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;">Dispatch Qty</td>
       <td style="border:1px solid #000;padding:4px 8px;">${dispatchQty}</td>
       <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;">Buyer</td>
-      <td style="border:1px solid #000;padding:4px 8px;">${buyerName}</td>
     </tr>
 
     ${contactRows || `<tr>
@@ -246,7 +239,7 @@ const AirwayBillPrint = ({ srd }) => {
 
     <tr>
       <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;">Department</td>
-      <td style="border:1px solid #000;padding:4px 8px;" colspan="3">${departments.map(d => d.toUpperCase()).join(', ') || '-'}</td>
+      <td style="border:1px solid #000;padding:4px 8px;" colspan="3">${srd.internalApprovedBy}</td>
     </tr>
     <tr>
       <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;">Address</td>
@@ -257,11 +250,6 @@ const AirwayBillPrint = ({ srd }) => {
       <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;">Email</td>
       <td style="border:1px solid #000;padding:4px 8px;" colspan="3">-</td>
     </tr>`}
-
-    ${phoneRows || `<tr>
-      <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;">Contact No.</td>
-      <td style="border:1px solid #000;padding:4px 8px;" colspan="3">-</td>
-    </tr>`}
   </table>
 
   <!-- Stages Section -->
@@ -270,11 +258,7 @@ const AirwayBillPrint = ({ srd }) => {
     <tr>
       <td class="section-header" colspan="4">Stages</td>
     </tr>
-    <tr>
-      <td style="border:1px solid #000;padding:3px 8px;font-size:9px;color:#666;" colspan="4">
-        For Status Need to fill below stages against each Inquiry
-      </td>
-    </tr>
+    
     ${stageRows}
   </table>
   ` : ''}

@@ -27,6 +27,11 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   const [internalComments, setInternalComments] = useState(srd.internalComments || '');
   const [buyerComments, setBuyerComments] = useState(srd.BuyerComments || '');
 
+  // Rejected reasons states
+  const [internalRejectedReasons, setInternalRejectedReasons] = useState(srd.internalRejectedReasons || []);
+  const [buyerRejectedReasons, setBuyerRejectedReasons] = useState(srd.BuyerRejectedReasons || []);
+  const [newReason, setNewReason] = useState({ department: '', reason: '' });
+
   // Buyer selection states
   const [buyers, setBuyers] = useState([]);
   const [selectedBuyer, setSelectedBuyer] = useState(
@@ -53,6 +58,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   useEffect(() => {
     setInternalComments(srd.internalComments || '');
     setBuyerComments(srd.BuyerComments || '');
+    setInternalRejectedReasons(srd.internalRejectedReasons || []);
+    setBuyerRejectedReasons(srd.BuyerRejectedReasons || []);
 
     const bId = typeof srd.BuyerDetails === 'object' ? srd.BuyerDetails?._id : srd.BuyerDetails;
     setSelectedBuyer(bId || '');
@@ -195,8 +202,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   const handleInternalVerify = (approved) => {
     handleAction('internal_approval', {
       internalApproved: approved,
-      internalApprovedBy: session?.user?.name,
       internalComments,
+      internalRejectedReasons: !approved ? internalRejectedReasons : [],
     });
   };
 
@@ -224,6 +231,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       BuyerApproved: approved,
       BuyerApprovedBy: session?.user?.name,
       BuyerComments: buyerComments,
+      BuyerRejectedReasons: !approved ? buyerRejectedReasons : [],
     });
   };
 
@@ -280,6 +288,76 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               disabled={!canEdit || !!srd.internalApprovedDate}
             />
           </div>
+
+          {!srd.internalApproved && (
+            <div className="space-y-4 border p-4 rounded-md bg-red-50/50">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                Internal Rejection Reasons
+                <Badge variant="outline" className="bg-white">{internalRejectedReasons.length}</Badge>
+              </h3>
+              
+              <div className="space-y-2">
+                {internalRejectedReasons.map((r, i) => (
+                  <div key={i} className="flex justify-between items-start bg-white p-2 rounded border text-sm">
+                    <div>
+                      <span className="font-bold uppercase text-[10px] bg-slate-100 px-1 rounded mr-2">{r.department}</span>
+                      <span>{r.reason}</span>
+                    </div>
+                    {canEdit && !srd.internalApprovedDate && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 w-6 p-0 text-red-500"
+                        onClick={() => setInternalRejectedReasons(prev => prev.filter((_, idx) => idx !== i))}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {canEdit && !srd.internalApprovedDate && (
+                <div className="flex gap-2 items-end mt-2">
+                  <div className="flex-1 space-y-1">
+                    <Label className="text-[10px]">Dept</Label>
+                    <select 
+                      className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs"
+                      value={newReason.department}
+                      onChange={e => setNewReason({ ...newReason, department: e.target.value })}
+                    >
+                      <option value="">Select Dept</option>
+                      {['vmd', 'cad', 'commercial', 'mmc', 'sewing','cutting','pattern','washing','finishing'].map(d => (
+                        <option key={d} value={d}>{d.toUpperCase()}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-[3] space-y-1">
+                    <Label className="text-[10px]">Reason</Label>
+                    <Input 
+                      className="h-8 text-xs" 
+                      value={newReason.reason} 
+                      onChange={e => setNewReason({ ...newReason, reason: e.target.value })}
+                      placeholder="Why is it rejected?"
+                    />
+                  </div>
+                  <Button 
+                    size="sm" 
+                    className="h-8"
+                    onClick={() => {
+                      if (newReason.department && newReason.reason) {
+                        setInternalRejectedReasons([...internalRejectedReasons, newReason]);
+                        setNewReason({ department: '', reason: '' });
+                      }
+                    }}
+                  >
+                    Add
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
           {canEdit && !srd.internalApprovedDate && (
             <div className="flex gap-2">
               <Button onClick={() => handleInternalVerify(true)} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white flex-1">
@@ -625,6 +703,72 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               disabled={!canEdit || !!srd.BuyerApprovedDate}
             />
           </div>
+
+          {!srd.BuyerApproved && srd.sampleDispatchedToBuyer && (
+            <div className="space-y-4 border p-4 rounded-md bg-red-50/50">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                Buyer Rejection Reasons
+                <Badge variant="outline" className="bg-white">{buyerRejectedReasons.length}</Badge>
+              </h3>
+              
+              <div className="space-y-2">
+                {buyerRejectedReasons.map((r, i) => (
+                  <div key={i} className="flex justify-between items-start bg-white p-2 rounded border text-sm">
+                    <div>
+                      <span className="font-bold uppercase text-[10px] bg-slate-100 px-1 rounded mr-2 text-slate-500">{r.department}</span>
+                      <span>{r.reason}</span>
+                    </div>
+                    {canEdit && !srd.BuyerApprovedDate && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 w-6 p-0 text-red-500"
+                        onClick={() => setBuyerRejectedReasons(prev => prev.filter((_, idx) => idx !== i))}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {canEdit && !srd.BuyerApprovedDate && (
+                <div className="flex gap-2 items-end mt-2">
+                  <div className="flex-1 space-y-1">
+                    <Label className="text-[10px]">Dept (Optional)</Label>
+                    <Input 
+                      className="h-8 text-xs font-uppercase" 
+                      value={newReason.department} 
+                      onChange={e => setNewReason({ ...newReason, department: e.target.value.toUpperCase() })}
+                      placeholder="QA/Prod..."
+                    />
+                  </div>
+                  <div className="flex-[3] space-y-1">
+                    <Label className="text-[10px]">Reason</Label>
+                    <Input 
+                      className="h-8 text-xs" 
+                      value={newReason.reason} 
+                      onChange={e => setNewReason({ ...newReason, reason: e.target.value })}
+                      placeholder="Buyer's feedback..."
+                    />
+                  </div>
+                  <Button 
+                    size="sm" 
+                    className="h-8"
+                    onClick={() => {
+                      if (newReason.reason) {
+                        setBuyerRejectedReasons([...buyerRejectedReasons, { ...newReason, department: newReason.department || 'GENERAL' }]);
+                        setNewReason({ department: '', reason: '' });
+                      }
+                    }}
+                  >
+                    Add
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
           {canEdit && srd.sampleDispatchedToBuyer && !srd.BuyerApprovedDate && (
             <div className="flex gap-2">
               <Button onClick={() => handleBuyerApproval(true)} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white flex-1">
