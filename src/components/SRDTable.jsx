@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { ChevronUp, ChevronDown, Search, Filter, X, ChevronLeft, ChevronRight, Star, Copy, Repeat } from 'lucide-react';
+import { ChevronUp, ChevronDown, Search, Filter, X, ChevronLeft, ChevronRight, Star, Copy, Repeat, Eye } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -451,9 +451,11 @@ export default function SRDTable({ srds, department }) {
                         <Link href={`/srd/${srd._id}`}>
                           <Button
                             size="sm"
-                            className="bg-blue-600 hover:bg-blue-700 t~ext-white shadow-sm hover:shadow-md transition-all duration-200"
+                            variant="outline"
+                            title="View Details"
+                            className="border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-colors duration-200"
                           >
-                            View Details
+                            <Eye className="h-4 w-4" />
                           </Button>
                         </Link>
                         <Button
