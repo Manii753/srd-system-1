@@ -304,7 +304,7 @@ export default function SRDDetailPage() {
         )}
 
         {/* Efficiency Reports Button - Visible to all who can access the SRD */}
-        <div className="flex justify-center">
+        {/* <div className="flex justify-center">
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" className="w-full max-w-md flex items-center justify-center gap-2 border-blue-200 hover:bg-blue-50 text-blue-700 bg-white shadow-sm">
@@ -321,11 +321,10 @@ export default function SRDDetailPage() {
               </div>
             </DialogContent>
           </Dialog>
-        </div>
+        </div> */}
 
         {/* View Mode Toggle */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Department Details</h2>
+        <div className="flex items-center fixed top-[10] right-20 z-[50]">
           <div className="flex items-center space-x-2">
             <Button
               variant={viewMode === 'form' ? 'default' : 'outline'}

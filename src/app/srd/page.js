@@ -74,15 +74,7 @@ function SRDListPageContent() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {departmentFilter !== 'all' ? `${departmentFilter.toUpperCase()} SRDs` : 'All SRDs'}
-            </h1>
-            <p className="text-gray-600 mt-1">
-              {statusFilter !== 'all' ? `Filtered by status: ${statusFilter}` : 'View and manage all Sample Request Documents'}
-            </p>
-          </div>
+        <div className="flex items-center fixed top-2 right-20 z-50">
           <div className="flex items-center space-x-2">
             <SRDPrintDialog />
             <Button
