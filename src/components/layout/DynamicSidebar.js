@@ -132,7 +132,7 @@ export default function DynamicSidebar() {
 
         setMenuItems([
           {
-            name: `${stageNames[userRole]} Dashboard`,
+            name: `${stageNames[userRole]}`,
             href: `/dashboard/${userRole}`,
             icon: LayoutDashboard,
             gradient: 'from-blue-500 to-cyan-500'

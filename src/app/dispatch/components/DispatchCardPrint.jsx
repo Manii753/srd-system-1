@@ -57,7 +57,7 @@ const DispatchCardPrint = ({ srd }) => {
         </tr>`).join('');
 
       const logoHTML = company.logo
-        ? `<img src="${company.logo}" alt="logo" style="max-height:55px;max-width:110px;object-fit:contain;" />`
+        ? `<img src="${company.logo}" alt="logo" style="max-height:35px;max-width:70px;object-fit:contain;" />`
         : '<span style="font-size:20px;font-weight:bold;">LOGO</span>';
 
       const printWindow = window.open('', '_blank');
@@ -68,10 +68,10 @@ const DispatchCardPrint = ({ srd }) => {
 <head>
   <title>Dispatch Card</title>
   <style>
-    @page { size: 5in 3in; margin: 0.2in; }
+    @page { size: 7.4cm 7.4cm; margin: 0.2cm; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      width: 5in;
+      width: 7.4cm;
       font-family: Arial, sans-serif;
       font-size: 10px;
       -webkit-print-color-adjust: exact;
@@ -80,18 +80,14 @@ const DispatchCardPrint = ({ srd }) => {
   </style>
 </head>
 <body>
+      <div style="border:1.5px solid #000;border-bottom:none;border-left:none;border-left:none;display:flex; justify-content: space-between;">
+      <div style="width:70%;display:flex;flex-direction:column;justify-content: center;">
+        <div style="font-size:11px;font-weight:bold;border:1.5px solid #000;padding:5px 8px; text-transform: uppercase;">${company.name || 'Company Name'}</div>
+        <div style="font-size:11px;font-weight:bold;border:1.5px solid #000;padding:5px 8px">SAMPLE DISPATCH CARD</div>
+      </div>
+      <div style=";display:flex;flex-direction:column;justify-content: center; padding:5px 8px; width:30%;">${logoHTML}</div>
+      </div>
   <table style="width:100%;border-collapse:collapse;">
-    <tr>
-      <td style="border:1.5px solid #000;border-bottom:none;padding:5px 8px;">
-        <div style="font-size:12px;font-weight:bold;">${company.name || 'Company Name'}</div>
-      </td>
-      <td rowspan="2" style="border:1.5px solid #000;background:yellow;text-align:center;vertical-align:middle;width:1.2in;">${logoHTML}</td>
-    </tr>
-    <tr>
-      <td style="border:1.5px solid #000;border-top:none;padding:5px 8px;">
-        <div style="font-size:12px;font-weight:bold;">SAMPLE DISPATCH CARD</div>
-      </td>
-    </tr>
     ${rowsHTML}
   </table>
   <script>window.onload = () => window.print();</script>

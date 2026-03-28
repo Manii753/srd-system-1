@@ -67,6 +67,7 @@
 /* Video call styles */
 .mirror {
   transform: scaleX(-1);
+
 }
 
 .animation-delay-100 {
