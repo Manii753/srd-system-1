@@ -110,15 +110,15 @@ export default function DynamicSidebar() {
         // Admin gets all config pages
         setMenuItems([
           { name: 'Home', href: '/dashboard/admin', icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
-          { name: 'Inbox', href: '/inbox', icon: Inbox, gradient: 'from-pink-500 to-rose-500', showBadge: true },
+          // { name: 'Inbox', href: '/inbox', icon: Inbox, gradient: 'from-pink-500 to-rose-500', showBadge: true },
           { name: 'All SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
-          { name: 'Production', href: '/production', icon: Package, gradient: 'from-red-500 to-orange-500' },
+          // { name: 'Production', href: '/production', icon: Package, gradient: 'from-red-500 to-orange-500' },
           { name: 'Reports', href: '/reports', icon: BarChart3, gradient: 'from-indigo-500 to-purple-500' },
-          { name: 'Settings', href: '/settings', icon: Settings, gradient: 'from-gray-500 to-slate-600' },
-          { name: 'Departments', href: '/departments', icon: Edit, gradient: 'from-blue-500 to-indigo-500' },
-          { name: 'Stages', href: '/stages', icon: GitBranch, gradient: 'from-teal-500 to-cyan-500' },
+          // { name: 'Departments', href: '/departments', icon: Edit, gradient: 'from-blue-500 to-indigo-500' },
+          // { name: 'Stages', href: '/stages', icon: GitBranch, gradient: 'from-teal-500 to-cyan-500' },
           { name: 'SRD Fields', href: '/srdfields', icon: FileSpreadsheet, gradient: 'from-green-500 to-emerald-500' },
           { name: 'Users', href: '/users', icon: Users, gradient: 'from-orange-500 to-red-500' },
+          { name: 'Settings', href: '/settings', icon: Settings, gradient: 'from-gray-500 to-slate-600' },
         ]);
       } else if (['cutting', 'sewing', 'washing', 'finishing', 'dispatch'].includes(userRole)) {
         // Production stage roles
@@ -136,13 +136,6 @@ export default function DynamicSidebar() {
             href: `/dashboard/${userRole}`,
             icon: LayoutDashboard,
             gradient: 'from-blue-500 to-cyan-500'
-          },
-          {
-            name: 'Inbox',
-            href: '/inbox',
-            icon: Inbox,
-            gradient: 'from-pink-500 to-rose-500',
-            showBadge: true
           },
         ]);
       } else {
@@ -167,13 +160,6 @@ export default function DynamicSidebar() {
                 icon: LayoutDashboard,
                 gradient: 'from-blue-500 to-cyan-500'
               },
-              {
-                name: 'Inbox',
-                href: '/inbox',
-                icon: Inbox,
-                gradient: 'from-pink-500 to-rose-500',
-                showBadge: true
-              }
             ];
 
             // Add Create SRD only for VMD
@@ -188,24 +174,6 @@ export default function DynamicSidebar() {
 
             menuItems.push(
               {
-                name: 'My SRDs',
-                href: `/srd?department=${userRole}`,
-                icon: FileText,
-                gradient: 'from-purple-500 to-pink-500'
-              },
-              {
-                name: 'In Progress',
-                href: `/srd?department=${userRole}&status=in-progress`,
-                icon: Package,
-                gradient: 'from-yellow-500 to-orange-500'
-              },
-              {
-                name: 'Completed',
-                href: `/srd?department=${userRole}&status=approved`,
-                icon: CheckCircle,
-                gradient: 'from-green-500 to-emerald-500'
-              },
-              {
                 name: 'Reports',
                 href: '/reports',
                 icon: BarChart3,
@@ -213,24 +181,11 @@ export default function DynamicSidebar() {
               }
             );
 
-            // Add Production and Ready For Production tabs for VMD
-            if (userRole === 'vmd' || userRole === 'VMD') {
-              menuItems.push(
-                {
-                  name: 'Production',
-                  href: '/dashboard/vmd/production',
-                  icon: Factory,
-                  gradient: 'from-orange-500 to-red-500'
-                }
-              );
-            }
-
             setMenuItems(menuItems);
           } else {
             // Fallback menu if department not found
             setMenuItems([
               { name: 'Home', href: `/dashboard/${userRole}`, icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
-              { name: 'Inbox', href: '/inbox', icon: Inbox, gradient: 'from-pink-500 to-rose-500', showBadge: true },
               { name: 'SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
             ]);
           }
@@ -238,7 +193,6 @@ export default function DynamicSidebar() {
           // Fallback menu if API fails
           setMenuItems([
             { name: 'Home', href: `/dashboard/${userRole}`, icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
-            { name: 'Inbox', href: '/inbox', icon: Inbox, gradient: 'from-pink-500 to-rose-500', showBadge: true },
             { name: 'SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
           ]);
         }
@@ -248,7 +202,6 @@ export default function DynamicSidebar() {
       // Fallback to basic menu
       setMenuItems([
         { name: 'Home', href: `/dashboard/${userRole}`, icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
-        { name: 'Inbox', href: '/inbox', icon: Inbox, gradient: 'from-pink-500 to-rose-500', showBadge: true },
         { name: 'SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
       ]);
     } finally {

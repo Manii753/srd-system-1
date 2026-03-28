@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { ChevronUp, ChevronDown, Search, Filter, X, ChevronLeft, ChevronRight, Star, Copy, Repeat } from 'lucide-react';
+import { ChevronUp, ChevronDown, Search, Filter, X, ChevronLeft, ChevronRight, Star, Copy, Repeat, Eye } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -271,20 +271,20 @@ export default function SRDTable({ srds, department }) {
   return (
     <div className="flex flex-col w-full bg-white rounded-xl shadow-lg border border-gray-100">
       {/* Search and Filter */}
-      <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-        <div className="flex items-center space-x-4">
+      <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white fixed top-1 z-[50]">
+        <div className="flex items-center gap-2">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+            <Search className="absolute left-3 top-2 h-4 w-5 text-gray-400" />
             <input
               type="text"
               placeholder="Search SRDs by reference or title..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white shadow-sm"
+              className="w-full pl-10 pr-4 py-1 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white shadow-sm"
             />
           </div>
-          <div className="flex items-center space-x-3 bg-white rounded-xl px-4 py-3 border border-gray-200 shadow-sm">
-            <Filter className="h-5 w-5 text-gray-500" />
+          <div className="flex items-center space-x-3 bg-white rounded-xl px-4 py-1.5 border border-gray-200 shadow-sm">
+            <Filter className="h-4 w-5 text-gray-500" />
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
@@ -305,7 +305,7 @@ export default function SRDTable({ srds, department }) {
         <table className="w-full">
           <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <tr>
-              <th className="px-3 py-4 w-12"></th>
+              <th className="px-3 w-12"></th>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 <button
                   onClick={() => handleSort('createdAt')}
@@ -451,9 +451,11 @@ export default function SRDTable({ srds, department }) {
                         <Link href={`/srd/${srd._id}`}>
                           <Button
                             size="sm"
-                            className="bg-blue-600 hover:bg-blue-700 t~ext-white shadow-sm hover:shadow-md transition-all duration-200"
+                            variant="outline"
+                            title="View Details"
+                            className="border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-colors duration-200"
                           >
-                            View Details
+                            <Eye className="h-4 w-4" />
                           </Button>
                         </Link>
                         <Button

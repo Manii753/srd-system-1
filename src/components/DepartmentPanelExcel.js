@@ -1265,8 +1265,7 @@ export default function DepartmentPanelExcel({
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-3 py-2 flex items-center justify-between">
-        <h3 className="font-semibold text-sm">SRD - Excel View (All Departments)</h3>
+      <div className="text-white px-3 py-2 flex items-center fixed top-1 z-[50]">
         <div className="flex items-center space-x-2">
           <DispatchCardPrint srd={srd} />
           <Button
@@ -1298,13 +1297,13 @@ export default function DepartmentPanelExcel({
       </div>
 
       {/* Permission indicator */}
-      <div className="bg-gray-50 border-b px-3 py-1.5 text-xs text-gray-600">
+      {/* <div className="bg-gray-50 border-b px-3 py-1.5 text-xs text-gray-600">
         <span className="font-medium">Your role:</span> {userRole?.toUpperCase()} •
         {userRole === 'admin' || userRole === 'vmd'
           ? ' You can edit all fields'
           : ` You can edit ${userRole?.toUpperCase()} fields only`
         }
-      </div>
+      </div> */}
 
       {/* Grid based on template */}
       <div className="p-0">

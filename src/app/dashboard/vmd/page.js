@@ -23,7 +23,7 @@ export default function VMDDashboard() {
 
   useEffect(() => {
     if (status === 'loading') return;
-    
+
     if (!session) {
       router.push('/login');
       return;
@@ -99,16 +99,16 @@ export default function VMDDashboard() {
 
   const getStats = () => {
     const total = srds.length;
-    const pending = srds.filter(srd => 
+    const pending = srds.filter(srd =>
       (srd.status?.vmd === 'pending' || srd.status?.VMD === 'pending')
     ).length;
-    const approved = srds.filter(srd => 
+    const approved = srds.filter(srd =>
       (srd.status?.vmd === 'approved' || srd.status?.VMD === 'approved')
     ).length;
-    const flagged = srds.filter(srd => 
+    const flagged = srds.filter(srd =>
       (srd.status?.vmd === 'flagged' || srd.status?.VMD === 'flagged')
     ).length;
-    
+
     return { total, pending, approved, flagged };
   };
 
@@ -126,81 +126,37 @@ export default function VMDDashboard() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">VMD</h1>
-            <p className="text-gray-600 mt-1">Manage sample requests and track development progress</p>
+        <div className="flex items-center justify-end gap-2 fixed top-1 right-20 z-[50]">
+          {/* View Toggle */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Button
+                variant={viewMode === 'cards' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('cards')}
+              >
+                Cards
+              </Button>
+              <Button
+                variant={viewMode === 'table' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('table')}
+              >
+                Table
+              </Button>
+            </div>
           </div>
-          <Button 
-            className="flex items-center space-x-2"
+          <Button
+            className=""
             onClick={handleRaiseSrd}
+            size='sm'
             disabled={isCreating}
           >
             <Plus className="h-5 w-5" />
-            <span>{isCreating ? 'Raising SRD...' : 'Raise SRD'}</span>
+            <span>{isCreating ? 'Raising SRD...' : 'New SRD'}</span>
           </Button>
-        </div>
-
-        {/* Stats Cards */}
-        {/* <div className="w-[7vw] bg-white shadow-lg rounded-lg">
-          <div>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm ">Total SRDs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="font-bold">{stats.total}</div>
-            </CardContent>
-          </div>
-          
-          <div>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm">Pending Review</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="font-bold">{stats.pending}</div>
-            </CardContent>
-          </div>
-          
-          <div>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm">Approved</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="font-bold">{stats.approved}</div>
-            </CardContent>
-          </div>
-          
-          <div>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm">Flagged</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="font-bold">{stats.flagged}</div>
-            </CardContent>
-          </div>
-        </div> */}
-
-        {/* View Toggle */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Your SRDs</h2>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant={viewMode === 'cards' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('cards')}
-            >
-              Cards
-            </Button>
-            <Button
-              variant={viewMode === 'table' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('table')}
-            >
-              Table
-            </Button>
-          </div>
         </div>
 
         {/* SRDs List */}
@@ -215,7 +171,7 @@ export default function VMDDashboard() {
         )}
 
         {srds.length === 0 && (
-          <div className="text-center py-12">
+          <div className="text-center">
             <FileText className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No SRDs found</h3>
             <p className="mt-1 text-sm text-gray-500">Get started by creating a new SRD.</p>
@@ -224,7 +180,7 @@ export default function VMDDashboard() {
                 onClick={handleRaiseSrd}
                 disabled={isCreating}
               >
-                {isCreating ? 'Raising SRD...' : 'Raise SRD'}
+                {isCreating ? 'Raising SRD...' : 'SRD'}
               </Button>
             </div>
           </div>
