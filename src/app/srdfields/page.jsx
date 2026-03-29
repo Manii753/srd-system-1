@@ -31,7 +31,12 @@ const DEPARTMENTS = [
   'mmc'
 ];
 
-const DEFAULT_TABLE_HEADERS = ['Item Name', 'Code', 'Finish', 'Size'];
+const DEFAULT_TABLE_HEADERS = [
+  { name: 'Item Name', owner: 'global' },
+  { name: 'Code', owner: 'global' },
+  { name: 'Finish', owner: 'global' },
+  { name: 'Size', owner: 'global' }
+];
 
 function normalizeFieldTypeChange(previousValues, nextType) {
   const nextValues = {
@@ -294,6 +299,7 @@ export default function Page() {
     connectedFieldId: null,
     connectionType: null,
     booleanDisplayType: null,
+    predefinedFieldsOwner: 'global',
     tableHeaders: [...DEFAULT_TABLE_HEADERS]
   });
   const router = useRouter();
@@ -383,6 +389,7 @@ export default function Page() {
       connectedFieldId: null,
       connectionType: null,
       booleanDisplayType: null,
+      predefinedFieldsOwner: 'global',
       tableHeaders: [...DEFAULT_TABLE_HEADERS]
     });
     setEditingId(null);
@@ -411,8 +418,9 @@ export default function Page() {
       connectedFieldId: connectedId,
       connectionType: field.connectionType || null,
       booleanDisplayType: field.booleanDisplayType || null,
+      predefinedFieldsOwner: field.predefinedFieldsOwner || 'global',
       tableHeaders: Array.isArray(field.tableHeaders) && field.tableHeaders.length > 0
-        ? field.tableHeaders
+        ? field.tableHeaders.map(h => typeof h === 'string' ? { name: h, owner: 'global' } : h)
         : [...DEFAULT_TABLE_HEADERS]
     });
     setEditingId(field._id);
@@ -886,15 +894,36 @@ export default function Page() {
                           <input
                             type="text"
                             className="flex-1 p-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                            value={header}
+                            value={header?.name || header || ''}
                             onChange={(e) => {
                               const newHeaders = [...values.tableHeaders];
-                              newHeaders[idx] = e.target.value;
+                              const currentHeader = newHeaders[idx];
+                              newHeaders[idx] = typeof currentHeader === 'string' 
+                                ? { name: e.target.value, owner: 'global' }
+                                : { ...currentHeader, name: e.target.value };
                               setValues({ ...values, tableHeaders: newHeaders });
                             }}
                             placeholder={`Column ${idx + 1}`}
                             required
                           />
+                          <select
+                            className="p-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 bg-white"
+                            value={header?.owner || 'global'}
+                            onChange={(e) => {
+                              const newHeaders = [...values.tableHeaders];
+                              const currentHeader = newHeaders[idx];
+                              newHeaders[idx] = typeof currentHeader === 'string'
+                                ? { name: currentHeader, owner: e.target.value }
+                                : { ...currentHeader, owner: e.target.value };
+                              setValues({ ...values, tableHeaders: newHeaders });
+                            }}
+                          >
+                            <option value="global">Global</option>
+                            <option value="vmd">VMD</option>
+                            <option value="cad">CAD</option>
+                            <option value="commercial">Commercial</option>
+                            <option value="mmc">MMC</option>
+                          </select>
                           <button
                             type="button"
                             onClick={() => {
@@ -925,13 +954,33 @@ export default function Page() {
                       onClick={() => {
                         setValues({
                           ...values,
-                          tableHeaders: [...(values.tableHeaders || []), `Column ${(values.tableHeaders?.length || 0) + 1}`]
+                          tableHeaders: [...(values.tableHeaders || []), { name: `Column ${(values.tableHeaders?.length || 0) + 1}`, owner: 'global' }]
                         });
                       }}
                       className="w-full py-1.5 border-2 border-dashed border-gray-300 text-gray-500 rounded text-xs font-semibold hover:border-blue-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-1"
                     >
                       <Plus className="h-3.5 w-3.5" /> Add Column
                     </button>
+                    
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Predefined Data Owner
+                      </label>
+                      <p className="text-xs text-gray-500 mb-2">
+                        Which department can edit the Predefined Data (OPD, ETD, Purchase Type) in this table?
+                      </p>
+                      <select
+                        className="w-full p-2 border border-gray-300 rounded"
+                        value={values.predefinedFieldsOwner || 'global'}
+                        onChange={(e) => setValues({ ...values, predefinedFieldsOwner: e.target.value })}
+                      >
+                        <option value="global">Global (All Users)</option>
+                        <option value="vmd">VMD</option>
+                        <option value="cad">CAD</option>
+                        <option value="commercial">Commercial</option>
+                        <option value="mmc">MMC</option>
+                      </select>
+                    </div>
                   </div>
                 )}
 

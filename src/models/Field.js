@@ -94,8 +94,13 @@ const FieldSchema = new mongoose.Schema({
     },
     // For table fields: custom column headers
     tableHeaders: {
-        type: [String],
+        type: mongoose.Schema.Types.Mixed,
         default: []
+    },
+    // For table fields: owner of the predefined data (opd, etd, purchaseType)
+    predefinedFieldsOwner: {
+        type: String,
+        default: 'global'
     }
 }, {
     timestamps: true
