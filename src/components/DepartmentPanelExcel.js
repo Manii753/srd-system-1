@@ -1503,7 +1503,7 @@ export default function DepartmentPanelExcel({
       </div>
 
       {/* Render Dispatch Panel if applicable - Hidden in readOnly mode to avoid circular display */}
-      {!readOnly && (srd?.inDispatch || userRole === 'dispatch' || userRole === 'admin') && (
+      {!readOnly && (srd?.inDispatch) && (
         <div className="border-t border-gray-200">
           <div className="p-6 bg-white">
             <h3 className="text-lg font-bold mb-4 text-blue-800 flex items-center gap-2">

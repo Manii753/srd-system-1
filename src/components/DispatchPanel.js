@@ -237,7 +237,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
   return (
     <div className="space-y-6 mt-6">
-      <div className="flex flex-col space-y-2">
+      {/* uncomment this if u want to see sr data in dipatch module */}
+      {/* <div className="flex flex-col space-y-2">
         <Button
           variant="outline"
           size="sm"
@@ -260,7 +261,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             />
           </div>
         )}
-      </div>
+      </div> */}
 
       <Card>
         <CardHeader>
