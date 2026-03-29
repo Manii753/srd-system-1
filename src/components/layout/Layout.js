@@ -6,7 +6,7 @@ import DynamicSidebar from './DynamicSidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
-export default function Layout({ children }) {
+export default function Layout({ children, headerContent }) {
   const { status } = useSession();
 
   if (status === 'loading') {
@@ -21,8 +21,8 @@ export default function Layout({ children }) {
     <SidebarProvider>
       <DynamicSidebar />
       <SidebarInset>
-        <div className="min-h-screen bg-gray-50">
-          <Header />
+        <div className="min-h-screen bg-gray-50 flex flex-col">
+          <Header headerContent={headerContent} />
           <main className="flex-1">
             {children}
           </main>

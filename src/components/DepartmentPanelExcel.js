@@ -37,6 +37,7 @@ export default function DepartmentPanelExcel({
   onUpdate,
   onSrdUpdate,
   readOnly = false,
+  onHeaderContent,
 }) {
   const { toast } = useToast();
   const [activeTemplate, setActiveTemplate] = useState(null);
@@ -169,7 +170,6 @@ export default function DepartmentPanelExcel({
   useEffect(() => {
     const timeoutsRef = autoSaveTimeoutsRef;
     return () => {
-      // Clear all timeouts on unmount
       const activeTimeouts = timeoutsRef.current;
       Object.values(activeTimeouts).forEach(timeout => clearTimeout(timeout));
     };
@@ -533,6 +533,30 @@ export default function DepartmentPanelExcel({
       toast,
     });
   }, [fields, hasUnsavedChanges, isAutoSaving, isFieldHidden, srd, toast]);
+
+  useEffect(() => {
+    if (!onHeaderContent) return;
+    onHeaderContent(
+      <div className="flex items-center gap-2">
+        <DispatchCardPrint srd={srd} />
+        <Button
+          onClick={handlePrint}
+          size="sm"
+          variant="outline"
+          className="h-7 px-2 text-xs"
+          disabled={isPrinting}
+        >
+          {isPrinting ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Wait...</> : <><Printer className="h-3 w-3 mr-1" />Print SRD</>}
+        </Button>
+        {hasUnsavedChanges && (
+          <div className="flex items-center text-xs text-amber-600">
+            <div className="animate-pulse w-1.5 h-1.5 bg-amber-400 rounded-full mr-1" />
+            Saving...
+          </div>
+        )}
+      </div>
+    );
+  }, [onHeaderContent, srd, isPrinting, hasUnsavedChanges, handlePrint]);
 
   // Render input cell based on field type
   const renderCellInput = useCallback((fieldDef, fieldId, canEdit) => {
@@ -1264,37 +1288,6 @@ export default function DepartmentPanelExcel({
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-      {/* Header */}
-      <div className="text-white px-3 py-2 flex items-center fixed top-1 z-[50]">
-        <div className="flex items-center space-x-2">
-          <DispatchCardPrint srd={srd} />
-          <Button
-            onClick={handlePrint}
-            size="sm"
-            variant="outline"
-            className="h-6 px-2 py-0 text-xs bg-white text-blue-700 border-white hover:bg-blue-50"
-            disabled={isPrinting}
-          >
-            {isPrinting ? (
-              <>
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                Wait...
-              </>
-            ) : (
-              <>
-                <Printer className="h-3 w-3 mr-1" />
-                Print SRD
-              </>
-            )}
-          </Button>
-          {hasUnsavedChanges && (
-            <div className="flex items-center text-xs text-yellow-200">
-              <div className="animate-pulse w-1.5 h-1.5 bg-yellow-300 rounded-full mr-1"></div>
-              Saving...
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Permission indicator */}
       {/* <div className="bg-gray-50 border-b px-3 py-1.5 text-xs text-gray-600">

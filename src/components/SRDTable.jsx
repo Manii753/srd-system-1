@@ -13,12 +13,16 @@ import {
 } from '@/lib/assetUtils';
 
 
-export default function SRDTable({ srds, department }) {
+export default function SRDTable({ srds, department, searchTerm: searchTermProp, filterStatus: filterStatusProp }) {
   const router = useRouter();
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+
+  // Use controlled props if provided
+  const effectiveSearch = searchTermProp !== undefined ? searchTermProp : searchTerm;
+  const effectiveFilter = filterStatusProp !== undefined ? filterStatusProp : filterStatus;
   const [selectedImages, setSelectedImages] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [productionStages, setProductionStages] = useState([]);
@@ -206,9 +210,9 @@ export default function SRDTable({ srds, department }) {
 
   const filteredAndSortedSRDs = srds
     .filter(srd => {
-      const matchesSearch = (srd.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (srd.refNo || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = filterStatus === 'all' || (srd.status && srd.status[department] === filterStatus);
+      const matchesSearch = (srd.title || '').toLowerCase().includes(effectiveSearch.toLowerCase()) ||
+        (srd.refNo || '').toLowerCase().includes(effectiveSearch.toLowerCase());
+      const matchesStatus = effectiveFilter === 'all' || (srd.status && srd.status[department] === effectiveFilter);
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -270,36 +274,6 @@ export default function SRDTable({ srds, department }) {
 
   return (
     <div className="flex flex-col w-full bg-white rounded-xl shadow-lg border border-gray-100">
-      {/* Search and Filter */}
-      <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white fixed top-1 z-[50]">
-        <div className="flex items-center gap-2">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-2 h-4 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search SRDs by reference or title..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-1 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white shadow-sm"
-            />
-          </div>
-          <div className="flex items-center space-x-3 bg-white rounded-xl px-4 py-1.5 border border-gray-200 shadow-sm">
-            <Filter className="h-4 w-5 text-gray-500" />
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="border-0 focus:ring-0 focus:outline-none bg-transparent text-gray-700 font-medium"
-            >
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="in-progress">In Progress</option>
-              <option value="approved">Approved</option>
-              <option value="flagged">Flagged</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
       {/* Table */}
       <div className="w-full">
         <table className="w-full">

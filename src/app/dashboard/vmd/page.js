@@ -8,7 +8,7 @@ import SRDCard from '@/components/SRDCard';
 import SRDTable from '@/components/SRDTable';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, FileText, Clock, CheckCircle, AlertCircle, Search, Filter } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/lib/use-toast';
 
@@ -18,6 +18,8 @@ export default function VMDDashboard() {
   const { toast } = useToast();
   const [srds, setSRDs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [viewMode, setViewMode] = useState('table'); // cards or table
   const [isCreating, setIsCreating] = useState(false);
 
@@ -125,40 +127,43 @@ export default function VMDDashboard() {
   }
 
   return (
-    <Layout>
-      <div className="">
-        {/* Header */}
-        <div className="flex items-center justify-end gap-2 fixed top-1 right-20 z-[50]">
-          {/* View Toggle */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Button
-                variant={viewMode === 'cards' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('cards')}
-              >
-                Cards
-              </Button>
-              <Button
-                variant={viewMode === 'table' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('table')}
-              >
-                Table
-              </Button>
-            </div>
-          </div>
-          <Button
-            className=""
-            onClick={handleRaiseSrd}
-            size='sm'
-            disabled={isCreating}
+    <Layout headerContent={
+      <div className="flex items-center gap-2 w-full">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search SRDs by reference or title..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-4 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+          />
+        </div>
+        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
+          <Filter className="h-4 w-4 text-gray-500" />
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="border-0 focus:ring-0 focus:outline-none bg-transparent text-sm text-gray-700 font-medium"
           >
-            <Plus className="h-5 w-5" />
-            <span>{isCreating ? 'Raising SRD...' : 'New SRD'}</span>
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="in-progress">In Progress</option>
+            <option value="approved">Approved</option>
+            <option value="flagged">Flagged</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-1 ml-auto">
+          <Button variant={viewMode === 'cards' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('cards')}>Cards</Button>
+          <Button variant={viewMode === 'table' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('table')}>Table</Button>
+          <Button size="sm" onClick={handleRaiseSrd} disabled={isCreating}>
+            <Plus className="h-4 w-4 mr-1" />
+            {isCreating ? 'Raising SRD...' : 'New SRD'}
           </Button>
         </div>
-
+      </div>
+    }>
+      <div className="">
         {/* SRDs List */}
         {viewMode === 'cards' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -167,7 +172,7 @@ export default function VMDDashboard() {
             ))}
           </div>
         ) : (
-          <SRDTable srds={srds} department="vmd" />
+          <SRDTable srds={srds} department="vmd" searchTerm={searchTerm} filterStatus={filterStatus} />
         )}
 
         {srds.length === 0 && (

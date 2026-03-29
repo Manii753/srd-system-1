@@ -45,8 +45,9 @@ export default function SRDDetailPage() {
   const [srd, setSrd] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeline, setTimeline] = useState([]);
-  const [viewMode, setViewMode] = useState(); // 'form' or 'excel'
-  const [mode, setMode] = useState()
+  const [viewMode, setViewMode] = useState();
+  const [mode, setMode] = useState();
+  const [excelHeaderContent, setExcelHeaderContent] = useState(null);
   const allowedDepartments = ['vmd', 'cad', 'mmc', 'commercial'];
   useEffect(() => {
     const view = Cookies.get('mode')
@@ -212,7 +213,19 @@ export default function SRDDetailPage() {
   }
 
   return (
-    <Layout>
+    <Layout headerContent={
+      <div className="flex items-center gap-2 ml-auto">
+        {viewMode === 'excel' && excelHeaderContent}
+        <Button variant={viewMode === 'form' ? 'default' : 'outline'} size="sm" onClick={() => toogleView('form')} className="flex items-center gap-2">
+          <Grid3X3 className="h-4 w-4" />
+          Form View
+        </Button>
+        <Button variant={viewMode === 'excel' ? 'default' : 'outline'} size="sm" onClick={() => toogleView('excel')} className="flex items-center gap-2">
+          <Table className="h-4 w-4" />
+          Excel View
+        </Button>
+      </div>
+    }>
       <div className={cn("space-y-6", viewMode === 'excel' && "space-y-3")}>
         {/* Header */}
         {/* <div className="flex items-start justify-between">
@@ -323,30 +336,6 @@ export default function SRDDetailPage() {
           </Dialog>
         </div> */}
 
-        {/* View Mode Toggle */}
-        <div className="flex items-center fixed top-[10] right-20 z-[50]">
-          <div className="flex items-center space-x-2">
-            <Button
-              variant={viewMode === 'form' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => toogleView('form')}
-              className="flex items-center gap-2"
-            >
-              <Grid3X3 className="h-4 w-4" />
-              Form View
-            </Button>
-            <Button
-              variant={viewMode === 'excel' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => toogleView('excel')}
-              className="flex items-center gap-2"
-            >
-              <Table className="h-4 w-4" />
-              Excel View
-            </Button>
-          </div>
-        </div>
-
         {/* Department Views */}
         <div className={cn("w-full", viewMode === 'excel' && "space-y-2")}>
           {viewMode === 'excel' ? (
@@ -356,6 +345,7 @@ export default function SRDDetailPage() {
               userRole={userRole}
               onUpdate={(department, data, shouldRefresh) => handleDepartmentUpdate(department, data, shouldRefresh)}
               onSrdUpdate={setSrd}
+              onHeaderContent={setExcelHeaderContent}
             />
           ) : (
             /* Form View - Tabs for each department */

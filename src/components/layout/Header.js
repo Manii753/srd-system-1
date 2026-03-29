@@ -1,17 +1,16 @@
 'use client';
 
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { useSession, signOut } from 'next-auth/react';
-import { Bell, User, LogOut } from 'lucide-react';
+import { Bell, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/lib/use-toast';
 import { initializePusher, bindPusherEvents } from '@/lib/pusher';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
-export default function Header() {
+export default function Header({ headerContent }) {
   const { data: session } = useSession();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState([]);
@@ -21,157 +20,134 @@ export default function Header() {
     try {
       const res = await fetch('/api/notifications');
       const data = await res.json();
-      if (data.success) {
-        setNotifications(data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      if (data.success) setNotifications(data.data);
+    } catch (e) {
+      console.error('Failed to fetch notifications:', e);
     }
   }, []);
 
   useEffect(() => {
-    if (session?.user) {
-      fetchNotifications();
-
-      initializePusher();
-      
-      const cleanup = bindPusherEvents({
-        'srd:new': (data) => {
-          console.log('Pusher event received: srd:new', data);
-          toast({
-            title: 'New SRD Created',
-            description: `SRD ${data.refNo} has been created`,
-          });
-          fetchNotifications();
-        },
-        'srd:update': (data) => {
-          toast({
-            title: 'SRD Updated',
-            description: `SRD ${data.id} has been updated`,
-          });
-          fetchNotifications();
-        },
-        'srd:flag': (data) => {
-          toast({
-            title: 'SRD Flagged',
-            description: `SRD ${data.id} flagged: ${data.comment?.text}`,
-            variant: 'destructive'
-          });
-          fetchNotifications();
-        }
-      });
-      
-      return () => {
-        cleanup();
-      };
-    }
+    if (!session?.user) return;
+    fetchNotifications();
+    initializePusher();
+    const cleanup = bindPusherEvents({
+      'srd:new': (data) => { toast({ title: 'New SRD', description: `${data.refNo} created` }); fetchNotifications(); },
+      'srd:update': (data) => { toast({ title: 'SRD Updated', description: `SRD ${data.id} updated` }); fetchNotifications(); },
+      'srd:flag': (data) => { toast({ title: 'SRD Flagged', description: data.comment?.text, variant: 'destructive' }); fetchNotifications(); },
+    });
+    return cleanup;
   }, [session, toast, fetchNotifications]);
 
   useEffect(() => {
     setUnreadCount(notifications.filter(n => !n.read).length);
   }, [notifications]);
 
-  const handleLogout = () => {
-    signOut({ callbackUrl: '/login' });
-  };
-
   const markOneAsRead = async (id) => {
-    const originalNotifications = notifications;
-    setNotifications(prev => 
-      prev.map(notif => notif._id === id ? { ...notif, read: true } : notif)
-    );
-    try {
-      await fetch(`/api/notifications/${id}`, {
-        method: 'PUT',
-      });
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
-      setNotifications(originalNotifications);
-    }
+    setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
+    await fetch(`/api/notifications/${id}`, { method: 'PUT' }).catch(console.error);
   };
 
   const markAllAsRead = async () => {
-    const originalNotifications = notifications;
-    try {
-      const unreadIds = notifications.filter(n => !n.read).map(n => n._id);
-      if (unreadIds.length === 0) return;
-
-      setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
-      
-      await fetch('/api/notifications', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: unreadIds }),
-      });
-    } catch (error) {
-      console.error('Failed to mark notifications as read:', error);
-      setNotifications(originalNotifications);
-    }
+    const unreadIds = notifications.filter(n => !n.read).map(n => n._id);
+    if (!unreadIds.length) return;
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    await fetch('/api/notifications', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: unreadIds }),
+    }).catch(console.error);
   };
 
+  const userInitial = session?.user?.name?.[0]?.toUpperCase() || 'U';
+  const userRole = session?.user?.role?.toUpperCase() || '';
+
   return (
-    <header className="sticky top-2 z-50 bg-white border-b border-gray-200 px-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          {/* Notifications */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                {unreadCount > 0 && (
-                  <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center text-xs">
-                    {unreadCount}
-                  </Badge>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-96">
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <h4 className="font-medium leading-none">Notifications</h4>
-                  <p className="text-sm text-muted-foreground">
-                    You have {unreadCount} unread messages.
-                  </p>
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 h-14 flex items-center px-4 gap-3 shrink-0">
+      <SidebarTrigger className="text-gray-500 hover:text-gray-800 shrink-0" />
+
+      {/* Page-specific content injected here */}
+      <div className="flex-1 flex items-center gap-2 min-w-0">
+        {headerContent ?? null}
+      </div>
+
+      {/* Right side */}
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Notifications */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
+              <Bell className="h-4 w-4 text-gray-600" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-80 p-0 shadow-lg">
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <span className="font-semibold text-sm text-gray-800">Notifications</span>
+              {unreadCount > 0 && (
+                <button onClick={markAllAsRead} className="text-xs text-blue-600 hover:underline">
+                  Mark all read
+                </button>
+              )}
+            </div>
+            <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
+              {notifications.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-6">No notifications</p>
+              ) : notifications.map((n) => (
+                <div key={n._id} className={`px-4 py-3 hover:bg-gray-50 transition-colors ${!n.read ? 'bg-blue-50/50' : ''}`}>
+                  <div className="flex-1 min-w-0">
+                    {!n.read && <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500 mr-1.5 mb-0.5 align-middle" />}
+                    <span className="text-sm text-gray-800">{n.message}</span>
+                    <p className="text-xs text-gray-400 mt-0.5">{new Date(n.timestamp).toLocaleString()}</p>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    {n.srd && (
+                      <Link href={`/srd/${n.srd}`}>
+                        <button className="text-xs text-blue-600 hover:underline">View SRD</button>
+                      </Link>
+                    )}
+                    {!n.read && (
+                      <button onClick={() => markOneAsRead(n._id)} className="text-xs text-gray-500 hover:text-gray-700">
+                        Mark read
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="grid gap-2 max-h-96 overflow-y-auto">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification._id}
-                      className={`flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent ${notification.read ? 'opacity-50' : ''}`}
-                    >
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium leading-none">
-                          {notification.message}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(notification.timestamp).toLocaleString()}
-                        </p>
-                        <div className="flex space-x-2 mt-2">
-                          {notification.srd && (
-                            <Link href={`/srd/${notification.srd}`} passHref>
-                              <Button variant="outline" size="sm">View SRD</Button>
-                            </Link>
-                          )}
-                          {!notification.read && (
-                            <Button variant="secondary" size="sm" onClick={() => markOneAsRead(notification._id)}>
-                              Mark as Read
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Button onClick={markAllAsRead} disabled={unreadCount === 0}>
-                  Mark all as read
-                </Button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* User menu */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="flex items-center gap-2 rounded-full pl-1 pr-3 py-1 hover:bg-gray-100 transition-colors">
+              <span className="h-8 w-8 rounded-full bg-blue-600 text-white text-sm font-semibold flex items-center justify-center shrink-0">
+                {userInitial}
+              </span>
+              <div className="hidden sm:block text-left">
+                <p className="text-xs font-semibold text-gray-800 leading-tight">{session?.user?.name}</p>
+                <p className="text-[10px] text-gray-400 leading-tight">{userRole}</p>
               </div>
-            </PopoverContent>
-          </Popover>
-        </div>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-48 p-1 shadow-lg">
+            <div className="px-3 py-2 border-b mb-1">
+              <p className="text-sm font-semibold text-gray-800">{session?.user?.name}</p>
+              <p className="text-xs text-gray-400">{userRole}</p>
+            </div>
+            <button
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+          </PopoverContent>
+        </Popover>
       </div>
     </header>
   );
