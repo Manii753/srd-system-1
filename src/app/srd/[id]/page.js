@@ -48,6 +48,7 @@ export default function SRDDetailPage() {
   const [viewMode, setViewMode] = useState();
   const [mode, setMode] = useState();
   const [excelHeaderContent, setExcelHeaderContent] = useState(null);
+  const [productionHeaderContent, setProductionHeaderContent] = useState(null);
   const allowedDepartments = ['vmd', 'cad', 'mmc', 'commercial'];
   useEffect(() => {
     const view = Cookies.get('mode')
@@ -216,6 +217,7 @@ export default function SRDDetailPage() {
     <Layout headerContent={
       <div className="flex items-center gap-2 ml-auto">
         {viewMode === 'excel' && excelHeaderContent}
+        {productionHeaderContent}
         <Button variant={viewMode === 'form' ? 'default' : 'outline'} size="sm" onClick={() => toogleView('form')} className="flex items-center gap-2">
           <Grid3X3 className="h-4 w-4" />
           Form View
@@ -313,6 +315,7 @@ export default function SRDDetailPage() {
             srdId={srd._id}
             initialData={srd}
             onUpdate={(updatedSrd) => setSrd(updatedSrd)}
+            onHeaderContent={setProductionHeaderContent}
           />
         )}
 

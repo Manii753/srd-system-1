@@ -236,7 +236,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   };
 
   return (
-    <div className="space-y-6 mt-6">
+    <div className="space-y-2 mt-2">
       {/* uncomment this if u want to see sr data in dipatch module */}
       {/* <div className="flex flex-col space-y-2">
         <Button
@@ -263,11 +263,11 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         )}
       </div> */}
 
-      <Card>
+      <Card className={'rounded-none'}>
         <CardHeader>
           <CardTitle className="flex justify-between items-center text-lg font-bold">
             <div className="flex items-center gap-4">
-              <span>1. Internal Verification</span>
+              <span>Dispatch Aproval</span>
               <DispatchCardPrint srd={srd} />
             </div>
             {srd.internalApproved ? (
@@ -293,7 +293,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           {!srd.internalApproved && (
             <div className="space-y-4 border p-4 rounded-md bg-red-50/50">
               <h3 className="text-sm font-semibold flex items-center gap-2">
-                Internal Rejection Reasons
+                Dispatch Rejection Reasons
                 <Badge variant="outline" className="bg-white">{internalRejectedReasons.length}</Badge>
               </h3>
               
@@ -373,7 +373,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       </Card>
 
       {srd.internalApproved && (
-        <Card className={!canEdit ? 'opacity-70 pointer-events-none' : ''}>
+        <Card className={`${!canEdit ? 'opacity-70 pointer-events-none' : ''} rounded-none`}>
           <CardHeader>
             <CardTitle className="flex justify-between items-center text-lg font-bold">
               <div className="flex items-center gap-3">
@@ -658,7 +658,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       )}
 
       {srd.DispatchDetails && (
-        <Card className={!canEdit ? 'opacity-70 pointer-events-none' : ''}>
+        <Card className={`${!canEdit ? 'opacity-70 pointer-events-none' : ''} rounded-none`}>
           <CardHeader>
             <CardTitle className="text-lg font-bold">3. Dispatch Sample</CardTitle>
           </CardHeader>
@@ -679,7 +679,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         </Card>
       )}
 
-      <Card className={!srd.sampleDispatchedToBuyer ? 'opacity-50 pointer-events-none' : ''}>
+      <Card className={`${!srd.sampleDispatchedToBuyer ? 'opacity-50 pointer-events-none' : ''} rounded-none`}>
         <CardHeader>
           <CardTitle className="flex justify-between items-center text-lg font-bold">
             <span>4. Buyer Approval</span>

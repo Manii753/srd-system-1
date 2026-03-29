@@ -586,7 +586,7 @@ export default function DepartmentPanelExcel({
             required={isRequired}
             disabled={!canEdit || type === 'createdAt'}
             className={cn(
-              "h-8 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 w-full bg-transparent",
+              "h-8 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 w-full",
               !canEdit && "bg-gray-100 cursor-not-allowed"
             )}
           />
@@ -601,7 +601,7 @@ export default function DepartmentPanelExcel({
             required={isRequired}
             disabled={!canEdit}
             className={cn(
-              "min-h-[60px] px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 resize-none w-full bg-transparent",
+              "min-h-[60px] px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 resize-none w-full",
               !canEdit && "bg-gray-100 cursor-not-allowed"
             )}
           />
@@ -794,7 +794,7 @@ export default function DepartmentPanelExcel({
                                   newRows[rowIdx][idx] = e.target.value;
                                   handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
                                 }}
-                                className="flex-1 ml-5 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent px-1 py-0.5"
+                                className="flex-1 ml-5 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-0.5"
                                 disabled={!canEdit}
                               />
                             </div>
@@ -815,7 +815,7 @@ export default function DepartmentPanelExcel({
                                     newRows[rowIdx][idx] = e.target.value;
                                     handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
                                   }}
-                                  className="flex-1 ml-5 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent px-1 py-0.5"
+                                  className="flex-1 ml-5 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-0.5"
                                   disabled={!canEdit}
                                 />
                               </div>
@@ -925,7 +925,7 @@ export default function DepartmentPanelExcel({
                                 newHeaders[colIdx] = e.target.value;
                                 handleFieldChange(fieldId, name, { ...tableData, headers: newHeaders }, department, fieldDef);
                               }}
-                              className="w-full bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-2 py-1.5 font-semibold text-center text-gray-700 flex-1"
+                              className="w-full border-none focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-2 py-1.5 font-semibold text-center text-gray-700 flex-1"
                               placeholder={`Column ${colIdx + 1}`}
                               disabled={!canEdit}
                             />
@@ -1007,7 +1007,7 @@ export default function DepartmentPanelExcel({
                                     }, 50);
                                   }
                                 }}
-                                className="w-full h-full px-2 py-1.5 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 bg-transparent transition-colors duration-100"
+                                className="w-full h-full px-2 py-1.5 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 transition-colors duration-100"
                                 disabled={!canEdit}
                               />
                             ) : (
@@ -1073,7 +1073,7 @@ export default function DepartmentPanelExcel({
                             onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
                             disabled={!canEdit || isInStock}
                             className={cn(
-                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 bg-transparent text-xs transition-colors duration-100",
+                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 text-xs transition-colors duration-100",
                               isInStock && "opacity-40 cursor-not-allowed"
                             )}
                           />
@@ -1086,7 +1086,7 @@ export default function DepartmentPanelExcel({
                             onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
                             disabled={!canEdit || isInStock}
                             className={cn(
-                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 bg-transparent text-xs transition-colors duration-100",
+                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400  text-xs transition-colors duration-100",
                               isInStock && "opacity-40 cursor-not-allowed"
                             )}
                           />
@@ -1386,7 +1386,7 @@ export default function DepartmentPanelExcel({
             const isOptionalEnabled = isOptionalFieldEnabled(fieldIdStr, fieldDef);
             const attachmentLabels = getAttachmentLabels(fieldIdStr);
             const deptBgColor = {
-              vmd: 'bg-purple-100',
+              vmd: 'bg-gray-100',
               cad: 'bg-amber-100',
               commercial: 'bg-emerald-100',
               mmc: 'bg-sky-200',
@@ -1428,14 +1428,14 @@ export default function DepartmentPanelExcel({
                 <div
                   className={cn(
                     "border rounded h-full flex flex-col",
-                    isHeading ? "bg-blue-50 border-blue-200" : "bg-transparent border-gray-300",
+                    isHeading ? "bg-blue-50 border-blue-200" : " border-gray-300",
                     fieldDef.isOptional && !isOptionalEnabled && "bg-gray-50/70 border-dashed border-gray-300",
                     !canEdit && !isHeading && "opacity-75"
                   )}
                 >
                   {/* Field header */}
                   {!isHeading && (
-                    <div className="bg-transparent border-b border-gray-200 px-2 py-1 flex items-start justify-between gap-2 shrink-0">
+                    <div className=" border-b border-gray-200 px-2 py-1 flex items-start justify-between gap-2 shrink-0">
                       <div className="min-w-0 flex-1">
                         <span className="text-xs font-medium text-gray-700 truncate block" title={fieldDef.name}>
                           {fieldDef.name}
@@ -1497,18 +1497,13 @@ export default function DepartmentPanelExcel({
 
       {/* Render Dispatch Panel if applicable - Hidden in readOnly mode to avoid circular display */}
       {!readOnly && (srd?.inDispatch) && (
-        <div className="border-t border-gray-200">
-          <div className="p-6 bg-white">
-            <h3 className="text-lg font-bold mb-4 text-blue-800 flex items-center gap-2">
-              <Send className="h-5 w-5" />
-              Dispatch Module
-            </h3>
-            <DispatchPanel 
-              srd={srd} 
-              onUpdate={onSrdUpdate}
-              canEdit={userRole === 'dispatch' || userRole === 'admin'}
-            />
-          </div>
+        <div className="border-gray-200">
+
+          <DispatchPanel
+            srd={srd}
+            onUpdate={onSrdUpdate}
+            canEdit={userRole === 'dispatch' || userRole === 'vmd' || userRole === 'admin'}
+          />
         </div>
       )}
 
@@ -1538,69 +1533,69 @@ export default function DepartmentPanelExcel({
       {/* Status Update Section - Hidden in readOnly mode */}
       {!readOnly && (
         <div className="bg-gray-50 border-t border-gray-200 p-3">
-        <div className="grid grid-cols-6 gap-2 items-end">
-          {/* Department display/selector */}
-          <div>
-            <Label className="text-xs font-medium text-gray-700">Department</Label>
-            {userRole === 'admin' ? (
+          <div className="grid grid-cols-6 gap-2 items-end">
+            {/* Department display/selector */}
+            <div>
+              <Label className="text-xs font-medium text-gray-700">Department</Label>
+              {userRole === 'admin' || userRole === 'vmd' ? (
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => setSelectedDepartment(e.target.value)}
+                  className="mt-1 px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
+                  disabled={isSubmitting}
+                >
+                  {['vmd', 'cad', 'commercial', 'mmc'].map(dept => (
+                    <option key={dept} value={dept}>{dept.toUpperCase()}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded bg-gray-100 h-7 flex items-center font-medium text-gray-700">
+                  {userRole?.toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs font-medium text-gray-700">Status</Label>
               <select
-                value={selectedDepartment}
-                onChange={(e) => setSelectedDepartment(e.target.value)}
+                value={statusToUpdate}
+                onChange={(e) => setStatusToUpdate(e.target.value)}
                 className="mt-1 px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
                 disabled={isSubmitting}
               >
-                {['vmd', 'cad', 'commercial', 'mmc'].map(dept => (
-                  <option key={dept} value={dept}>{dept.toUpperCase()}</option>
-                ))}
+                <option value="pending">Pending</option>
+                <option value="in-progress">In Progress</option>
+                <option value="approved">Approved</option>
+                <option value="flagged">Flag Issue</option>
               </select>
-            ) : (
-              <div className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded bg-gray-100 h-7 flex items-center font-medium text-gray-700">
-                {userRole?.toUpperCase()}
-              </div>
-            )}
+            </div>
+            <div className="col-span-3">
+              <Label htmlFor="updateComment" className="text-xs font-medium text-gray-700">
+                Comment {statusToUpdate !== 'flagged' && <span className="text-gray-500">(Optional)</span>}
+              </Label>
+              <Input
+                id="updateComment"
+                value={updateComment}
+                onChange={(e) => setUpdateComment(e.target.value)}
+                placeholder={statusToUpdate === 'flagged' ? 'Describe issue...' : 'Add comment...'}
+                required={statusToUpdate === 'flagged'}
+                className="mt-1 text-xs h-7 border border-gray-300 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <Button
+                onClick={handleStatusUpdate}
+                disabled={isSubmitting || (statusToUpdate === 'flagged' && !updateComment.trim())}
+                size="sm"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs h-7"
+              >
+                {isSubmitting ? 'Updating...' : 'Update Status'}
+              </Button>
+            </div>
           </div>
-          <div>
-            <Label className="text-xs font-medium text-gray-700">Status</Label>
-            <select
-              value={statusToUpdate}
-              onChange={(e) => setStatusToUpdate(e.target.value)}
-              className="mt-1 px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
-              disabled={isSubmitting}
-            >
-              <option value="pending">Pending</option>
-              <option value="in-progress">In Progress</option>
-              <option value="approved">Approved</option>
-              <option value="flagged">Flag Issue</option>
-            </select>
-          </div>
-          <div className="col-span-3">
-            <Label htmlFor="updateComment" className="text-xs font-medium text-gray-700">
-              Comment {statusToUpdate !== 'flagged' && <span className="text-gray-500">(Optional)</span>}
-            </Label>
-            <Input
-              id="updateComment"
-              value={updateComment}
-              onChange={(e) => setUpdateComment(e.target.value)}
-              placeholder={statusToUpdate === 'flagged' ? 'Describe issue...' : 'Add comment...'}
-              required={statusToUpdate === 'flagged'}
-              className="mt-1 text-xs h-7 border border-gray-300 focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <Button
-              onClick={handleStatusUpdate}
-              disabled={isSubmitting || (statusToUpdate === 'flagged' && !updateComment.trim())}
-              size="sm"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs h-7"
-            >
-              {isSubmitting ? 'Updating...' : 'Update Status'}
-            </Button>
-          </div>
+          <p className="text-xs text-gray-500 text-center mt-1">
+            Field changes auto-save. Use button for status/comments only.
+          </p>
         </div>
-        <p className="text-xs text-gray-500 text-center mt-1">
-          Field changes auto-save. Use button for status/comments only.
-        </p>
-      </div>
       )}
 
       {srd.audit && srd.audit.length > 0 && (
