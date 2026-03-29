@@ -637,14 +637,19 @@ export default function DepartmentPanelExcel({
 
       case 'table':
         const defaultHeaders = Array.isArray(fieldDef.tableHeaders) && fieldDef.tableHeaders.length > 0
-          ? fieldDef.tableHeaders
-          : ['Item Name', 'Code', 'Finish', 'Size'];
+          ? fieldDef.tableHeaders.map((h) => typeof h === 'string' ? { name: h, owner: 'global' } : h)
+          : [
+              { name: 'Item Name', owner: 'global' },
+              { name: 'Code', owner: 'global' },
+              { name: 'Finish', owner: 'global' },
+              { name: 'Size', owner: 'global' }
+            ];
 
         const rawTableData = fieldValue && typeof fieldValue === 'object' && !Array.isArray(fieldValue)
           ? fieldValue
           : {};
         const safeHeaders = Array.isArray(rawTableData.headers) && rawTableData.headers.length > 0
-          ? rawTableData.headers
+          ? rawTableData.headers.map((h) => typeof h === 'string' ? { name: h, owner: 'global' } : h)
           : defaultHeaders;
         const normalizedRows = Array.isArray(rawTableData.rows) && rawTableData.rows.length > 0
           ? rawTableData.rows.map((row) => {
@@ -708,16 +713,16 @@ export default function DepartmentPanelExcel({
                   <div key={colIdx} className="flex items-center group relative">
                     <input
                       type="text"
-                      value={header}
+                      value={typeof header === 'object' ? header.name : header}
                       onChange={(e) => {
                         const newHeaders = [...tableData.headers];
-                        newHeaders[colIdx] = e.target.value;
+                        newHeaders[colIdx] = typeof header === 'object' ? { ...header, name: e.target.value } : { name: e.target.value, owner: 'global' };
                         handleFieldChange(fieldId, name, { ...tableData, headers: newHeaders }, department, fieldDef);
                       }}
                       className="w-24 text-xs bg-gray-100 border-none focus:ring-1 focus:ring-blue-400 rounded px-2 py-1"
-                      disabled={!canEdit}
+                      disabled={!canEditField(typeof header === 'object' ? header.owner : 'global')}
                     />
-                    {canEdit && tableData.headers.length > 1 && (
+                    {canEditField(typeof header === 'object' ? header.owner : 'global') && tableData.headers.length > 1 && (
                       <button
                         onClick={() => {
                           const newHeaders = tableData.headers.filter((_, idx) => idx !== colIdx);
@@ -734,7 +739,8 @@ export default function DepartmentPanelExcel({
                 {canEdit && (
                   <button
                     onClick={() => {
-                      const newHeaders = [...tableData.headers, `Column ${tableData.headers.length + 1}`];
+                      const newOwner = userRole === 'admin' || userRole === 'vmd' ? 'global' : userRole;
+                      const newHeaders = [...tableData.headers, { name: `Column ${tableData.headers.length + 1}`, owner: newOwner }];
                       const newRows = tableData.rows.map(row => [...row, '']);
                       handleFieldChange(fieldId, name, { headers: newHeaders, rows: newRows }, department, fieldDef);
                     }}
@@ -785,7 +791,7 @@ export default function DepartmentPanelExcel({
                         <div className="flex flex-col gap-2">
                           {col1Indexes.map(idx => (
                             <div key={idx} className="flex items-center text-xs">
-                              <span className="w-20 flex-shrink-0 font-semibold text-gray-700 whitespace-nowrap capitalize break-words pr-2">{tableData.headers[idx] || `Col ${idx + 1}`}:</span>
+                              <span className="w-20 flex-shrink-0 font-semibold text-gray-700 whitespace-nowrap capitalize break-words pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
                               <input
                                 type="text"
                                 value={row[idx] || ''}
@@ -794,8 +800,8 @@ export default function DepartmentPanelExcel({
                                   newRows[rowIdx][idx] = e.target.value;
                                   handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
                                 }}
-                                className="flex-1 ml-5 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-0.5"
-                                disabled={!canEdit}
+                                className="flex-1 ml-5 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent px-1 py-0.5"
+                                disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
                               />
                             </div>
                           ))}
@@ -806,7 +812,7 @@ export default function DepartmentPanelExcel({
                           {col2Indexes.length > 0 ? (
                             col2Indexes.map(idx => (
                               <div key={idx} className="flex items-center text-xs">
-                                <span className="w-20 flex-shrink-0 font-semibold text-gray-700 capitalize break-words whitespace-nowrap pr-2">{tableData.headers[idx] || `Col ${idx + 1}`}:</span>
+                                <span className="w-20 flex-shrink-0 font-semibold text-gray-700 capitalize break-words whitespace-nowrap pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
                                 <input
                                   type="text"
                                   value={row[idx] || ''}
@@ -815,8 +821,8 @@ export default function DepartmentPanelExcel({
                                     newRows[rowIdx][idx] = e.target.value;
                                     handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
                                   }}
-                                  className="flex-1 ml-5 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-0.5"
-                                  disabled={!canEdit}
+                                  className="flex-1 ml-5 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent px-1 py-0.5"
+                                  disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
                                 />
                               </div>
                             ))
@@ -838,8 +844,8 @@ export default function DepartmentPanelExcel({
                           <div className="grid grid-cols-3 gap-6 items-start">
                             <div className="flex items-center gap-1">
                               <button
-                                onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
-                                disabled={!canEdit}
+                                onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
+                                disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                                 className={cn(
                                   "px-3 py-1 rounded text-xs font-medium border",
                                   !isInStock ? "bg-blue-600 text-white border-blue-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-blue-400"
@@ -848,8 +854,8 @@ export default function DepartmentPanelExcel({
                                 Purchase
                               </button>
                               <button
-                                onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'instock')}
-                                disabled={!canEdit}
+                                onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'instock')}
+                                disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                                 className={cn(
                                   "px-3 py-1 rounded text-xs font-medium border",
                                   isInStock ? "bg-emerald-600 text-white border-emerald-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-emerald-400"
@@ -863,7 +869,7 @@ export default function DepartmentPanelExcel({
                                 type="date"
                                 value={rowPredefined.opd || ''}
                                 onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
-                                disabled={!canEdit || isInStock}
+                                disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                                 className={cn(
                                   "w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white text-gray-700",
                                   isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
@@ -875,7 +881,7 @@ export default function DepartmentPanelExcel({
                                 type="date"
                                 value={rowPredefined.etd || ''}
                                 onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
-                                disabled={!canEdit || isInStock}
+                                disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                                 className={cn(
                                   "w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white text-gray-700",
                                   isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
@@ -910,29 +916,33 @@ export default function DepartmentPanelExcel({
         return (
           <div className="space-y-1 p-0 overflow-auto max-h-96">
             <div className="border border-gray-200 overflow-hidden">
-              <table className="w-full text-xs border-collapse">
+              <table className="w-full text-xs border-collapse table-fixed">
                 <thead>
                   <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
-                    {tableData.headers?.map((header, colIdx) => (
-                      <th key={colIdx} className="border border-gray-200 p-0 min-w-[80px] relative group/col">
+                    {tableData.headers?.map((header, colIdx) => {
+                      const headerName = typeof header === 'object' ? header.name : header;
+                      const headerOwner = typeof header === 'object' ? header.owner : 'global';
+                      const canEditColumn = canEditField(headerOwner);
+                      return (
+                      <th key={colIdx} className="border border-gray-200 p-0 relative group/col">
                         <div className="flex items-center">
-                          {canEdit ? (
+                          {canEditColumn ? (
                             <input
                               type="text"
-                              value={header}
+                              value={headerName}
                               onChange={(e) => {
                                 const newHeaders = [...tableData.headers];
-                                newHeaders[colIdx] = e.target.value;
+                                newHeaders[colIdx] = typeof header === 'object' ? { ...header, name: e.target.value } : { name: e.target.value, owner: 'global' };
                                 handleFieldChange(fieldId, name, { ...tableData, headers: newHeaders }, department, fieldDef);
                               }}
                               className="w-full border-none focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-2 py-1.5 font-semibold text-center text-gray-700 flex-1"
                               placeholder={`Column ${colIdx + 1}`}
-                              disabled={!canEdit}
+                              disabled={!canEditColumn}
                             />
                           ) : (
-                            <span className="font-semibold flex-1 text-center text-gray-700 px-2 py-1.5">{header}</span>
+                            <span className="font-semibold flex-1 text-center text-gray-700 px-2 py-1.5">{headerName}</span>
                           )}
-                          {canEdit && tableData.headers.length > 1 && (
+                          {canEditColumn && tableData.headers.length > 1 && (
                             <button
                               onClick={() => {
                                 const newHeaders = tableData.headers.filter((_, idx) => idx !== colIdx);
@@ -947,12 +957,13 @@ export default function DepartmentPanelExcel({
                           )}
                         </div>
                       </th>
-                    ))}
+                    )})}
                     {canEdit && (
                       <th className="border border-gray-200 p-0 w-9 bg-gray-50">
                         <button
                           onClick={() => {
-                            const newHeaders = [...tableData.headers, `Column ${tableData.headers.length + 1}`];
+                            const newOwner = userRole === 'admin' || userRole === 'vmd' ? 'global' : userRole;
+                            const newHeaders = [...tableData.headers, { name: `Column ${tableData.headers.length + 1}`, owner: newOwner }];
                             const newRows = tableData.rows.map(row => [...row, '']);
                             handleFieldChange(fieldId, name, { headers: newHeaders, rows: newRows }, department, fieldDef);
                           }}
@@ -964,13 +975,13 @@ export default function DepartmentPanelExcel({
                       </th>
                     )}
                     {/* Predefined locked headers */}
-                    <th className="border border-gray-200 p-0 min-w-[110px] bg-indigo-50">
+                    <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
                       <span className="font-semibold text-center text-indigo-700 px-2 py-1.5 block text-[11px]">Purchase/Stock</span>
                     </th>
-                    <th className="border border-gray-200 p-0 min-w-[120px] bg-indigo-50">
+                    <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
                       <span className="font-semibold text-center text-indigo-700 px-2 py-1.5 block text-[11px]">OPD</span>
                     </th>
-                    <th className="border border-gray-200 p-0 min-w-[120px] bg-indigo-50">
+                    <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
                       <span className="font-semibold text-center text-indigo-700 px-2 py-1.5 block text-[11px]">ETD</span>
                     </th>
                   </tr>
@@ -982,9 +993,12 @@ export default function DepartmentPanelExcel({
 
                     return (
                       <tr key={rowIdx} className="group/row hover:bg-blue-50/30 transition-colors duration-100">
-                        {row.map((cell, colIdx) => (
+                        {row.map((cell, colIdx) => {
+                          const colOwner = typeof tableData.headers[colIdx] === 'object' ? tableData.headers[colIdx].owner : 'global';
+                          const canEditColumn = canEditField(colOwner);
+                          return (
                           <td key={colIdx} className="border border-gray-200 p-0">
-                            {canEdit ? (
+                            {canEditColumn ? (
                               <input
                                 type="text"
                                 value={cell}
@@ -1007,14 +1021,14 @@ export default function DepartmentPanelExcel({
                                     }, 50);
                                   }
                                 }}
-                                className="w-full h-full px-2 py-1.5 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 transition-colors duration-100"
-                                disabled={!canEdit}
+                                className="w-full h-full px-2 py-1.5 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 bg-transparent transition-colors duration-100"
+                                disabled={!canEditColumn}
                               />
                             ) : (
-                              <span className="px-2 py-1.5 block">{cell}</span>
+                              <span className="px-2 py-1.5 block text-xs">{cell}</span>
                             )}
                           </td>
-                        ))}
+                        )})}
                         {canEdit && (
                           <td className="border border-gray-200 p-0 w-9 bg-gray-50/50 text-center">
                             <button
@@ -1038,27 +1052,27 @@ export default function DepartmentPanelExcel({
                         <td className="border border-gray-200 p-0 bg-indigo-50/30">
                           <div className="flex items-center justify-center gap-1 px-1 py-1">
                             <button
-                              onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
-                              disabled={!canEdit}
+                              onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
+                              disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                               className={cn(
                                 "px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-150 border",
                                 !isInStock
                                   ? "bg-blue-600 text-white border-blue-600 shadow-sm"
                                   : "bg-white text-gray-500 border-gray-300 hover:border-blue-400 hover:text-blue-600",
-                                !canEdit && "opacity-50 cursor-not-allowed"
+                                !canEditField(fieldDef.predefinedFieldsOwner || 'global') && "opacity-50 cursor-not-allowed"
                               )}
                             >
                               Purchase
                             </button>
                             <button
-                              onClick={() => canEdit && updatePredefined(rowIdx, 'purchaseType', 'instock')}
-                              disabled={!canEdit}
+                              onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'instock')}
+                              disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                               className={cn(
                                 "px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-150 border",
                                 isInStock
                                   ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
                                   : "bg-white text-gray-500 border-gray-300 hover:border-emerald-400 hover:text-emerald-600",
-                                !canEdit && "opacity-50 cursor-not-allowed"
+                                !canEditField(fieldDef.predefinedFieldsOwner || 'global') && "opacity-50 cursor-not-allowed"
                               )}
                             >
                               InStock
@@ -1071,7 +1085,7 @@ export default function DepartmentPanelExcel({
                             type="date"
                             value={rowPredefined.opd || ''}
                             onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
-                            disabled={!canEdit || isInStock}
+                            disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                             className={cn(
                               "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 text-xs transition-colors duration-100",
                               isInStock && "opacity-40 cursor-not-allowed"
@@ -1084,7 +1098,7 @@ export default function DepartmentPanelExcel({
                             type="date"
                             value={rowPredefined.etd || ''}
                             onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
-                            disabled={!canEdit || isInStock}
+                            disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                             className={cn(
                               "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400  text-xs transition-colors duration-100",
                               isInStock && "opacity-40 cursor-not-allowed"
