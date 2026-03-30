@@ -351,7 +351,7 @@ export async function printDepartmentPanelExcel({
           ? fieldValue
           : {};
         const safeHeaders = Array.isArray(rawTableData.headers) && rawTableData.headers.length > 0
-          ? rawTableData.headers
+          ? rawTableData.headers.map(h => typeof h === 'object' ? (h.name || '') : h)
           : defaultHeaders;
         const safeRows = Array.isArray(rawTableData.rows) && rawTableData.rows.length > 0
           ? rawTableData.rows.map((row) => {
