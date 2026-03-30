@@ -43,7 +43,7 @@ const DispatchCardPrint = ({ srd }) => {
           const rows = val.rows || [];
           if (!headers.length) return '-';
           return `<table style="width:100%;border-collapse:collapse;font-size:9px;">
-            <thead><tr>${headers.map(h => `<th style="border:1px solid #000;padding:2px 4px;">${h}</th>`).join('')}</tr></thead>
+            <thead><tr>${headers.map(h => `<th style="border:1px solid #000;padding:2px 4px;">${typeof h === 'object' ? (h.name || '') : h}</th>`).join('')}</tr></thead>
             <tbody>${rows.map(row => `<tr>${(Array.isArray(row) ? row : []).map(cell => `<td style="border:1px solid #000;padding:2px 4px;">${cell || ''}</td>`).join('')}</tr>`).join('')}</tbody>
           </table>`;
         }

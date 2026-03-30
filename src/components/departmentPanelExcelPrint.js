@@ -344,7 +344,7 @@ export async function printDepartmentPanelExcel({
         }
       } else if (isTable) {
         const defaultHeaders = Array.isArray(fieldDef.tableHeaders) && fieldDef.tableHeaders.length > 0
-          ? fieldDef.tableHeaders
+          ? fieldDef.tableHeaders.map(h => typeof h === 'object' ? (h.name || h) : h)
           : ['Item Name', 'Code', 'Finish', 'Size'];
 
         const rawTableData = fieldValue && typeof fieldValue === 'object' && !Array.isArray(fieldValue)

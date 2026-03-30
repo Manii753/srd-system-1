@@ -639,11 +639,11 @@ export default function DepartmentPanelExcel({
         const defaultHeaders = Array.isArray(fieldDef.tableHeaders) && fieldDef.tableHeaders.length > 0
           ? fieldDef.tableHeaders.map((h) => typeof h === 'string' ? { name: h, owner: 'global' } : h)
           : [
-              { name: 'Item Name', owner: 'global' },
-              { name: 'Code', owner: 'global' },
-              { name: 'Finish', owner: 'global' },
-              { name: 'Size', owner: 'global' }
-            ];
+            { name: 'Item Name', owner: 'global' },
+            { name: 'Code', owner: 'global' },
+            { name: 'Finish', owner: 'global' },
+            { name: 'Size', owner: 'global' }
+          ];
 
         const rawTableData = fieldValue && typeof fieldValue === 'object' && !Array.isArray(fieldValue)
           ? fieldValue
@@ -706,8 +706,8 @@ export default function DepartmentPanelExcel({
           return (
             <div className="space-y-4 p-2 overflow-auto max-h-96 bg-gray-50/50 rounded-md">
 
-              {/* Card Headers Controls */}
-              <div className="flex flex-wrap items-center gap-2 mb-4 p-2 bg-white border border-gray-200 rounded-md shadow-sm">
+              {/*ENABLE Card Headers Controls to add more columns to table */}
+              {/* <div className="flex flex-wrap items-center gap-2 mb-4 p-2 bg-white border border-gray-200 rounded-md shadow-sm">
                 <span className="text-xs font-semibold text-gray-700 mr-2">Columns:</span>
                 {tableData.headers?.map((header, colIdx) => (
                   <div key={colIdx} className="flex items-center group relative">
@@ -749,7 +749,7 @@ export default function DepartmentPanelExcel({
                     <Plus className="h-4 w-4" />
                   </button>
                 )}
-              </div>
+              </div> */}
 
               {/* Data Cards */}
               <div className="flex flex-col gap-4">
@@ -924,43 +924,44 @@ export default function DepartmentPanelExcel({
                       const headerOwner = typeof header === 'object' ? header.owner : 'global';
                       const canEditColumn = canEditField(headerOwner);
                       return (
-                      <th key={colIdx} className="border border-gray-200 p-0 relative group/col">
-                        <div className="flex items-center">
-                          {canEditColumn ? (
-                            <input
-                              type="text"
-                              value={headerName}
-                              onChange={(e) => {
-                                const newHeaders = [...tableData.headers];
-                                newHeaders[colIdx] = typeof header === 'object' ? { ...header, name: e.target.value } : { name: e.target.value, owner: 'global' };
-                                handleFieldChange(fieldId, name, { ...tableData, headers: newHeaders }, department, fieldDef);
-                              }}
-                              className="w-full border-none focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-2 py-1.5 font-semibold text-center text-gray-700 flex-1"
-                              placeholder={`Column ${colIdx + 1}`}
-                              disabled={!canEditColumn}
-                            />
-                          ) : (
-                            <span className="font-semibold flex-1 text-center text-gray-700 px-2 py-1.5">{headerName}</span>
-                          )}
-                          {canEditColumn && tableData.headers.length > 1 && (
-                            <button
-                              onClick={() => {
-                                const newHeaders = tableData.headers.filter((_, idx) => idx !== colIdx);
-                                const newRows = tableData.rows.map(row => row.filter((_, idx) => idx !== colIdx));
-                                handleFieldChange(fieldId, name, { headers: newHeaders, rows: newRows }, department, fieldDef);
-                              }}
-                              className="opacity-0 group-hover/col:opacity-100 transition-opacity duration-150 p-0.5 mr-1 rounded hover:bg-red-100 text-red-400 hover:text-red-600 flex-shrink-0"
-                              title="Delete column"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
-                      </th>
-                    )})}
+                        <th key={colIdx} className="border border-gray-200 p-0 relative group/col">
+                          <div className="flex items-center">
+                            {canEditColumn ? (
+                              <input
+                                type="text"
+                                value={headerName}
+                                onChange={(e) => {
+                                  const newHeaders = [...tableData.headers];
+                                  newHeaders[colIdx] = typeof header === 'object' ? { ...header, name: e.target.value } : { name: e.target.value, owner: 'global' };
+                                  handleFieldChange(fieldId, name, { ...tableData, headers: newHeaders }, department, fieldDef);
+                                }}
+                                className="w-full border-none focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-2 py-1.5 font-semibold text-center text-gray-700 flex-1"
+                                placeholder={`Column ${colIdx + 1}`}
+                                disabled={!canEditColumn}
+                              />
+                            ) : (
+                              <span className="font-semibold flex-1 text-center text-gray-700 px-2 py-1.5">{headerName}</span>
+                            )}
+                            {/* {canEditColumn && tableData.headers.length > 1 && (
+                              <button
+                                onClick={() => {
+                                  const newHeaders = tableData.headers.filter((_, idx) => idx !== colIdx);
+                                  const newRows = tableData.rows.map(row => row.filter((_, idx) => idx !== colIdx));
+                                  handleFieldChange(fieldId, name, { headers: newHeaders, rows: newRows }, department, fieldDef);
+                                }}
+                                className="opacity-0 group-hover/col:opacity-100 transition-opacity duration-150 p-0.5 mr-1 rounded hover:bg-red-100 text-red-400 hover:text-red-600 flex-shrink-0"
+                                title="Delete column"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            )} */}
+                          </div>
+                        </th>
+                      )
+                    })}
                     {canEdit && (
                       <th className="border border-gray-200 p-0 w-9 bg-gray-50">
-                        <button
+                        {/* <button
                           onClick={() => {
                             const newOwner = userRole === 'admin' || userRole === 'vmd' ? 'global' : userRole;
                             const newHeaders = [...tableData.headers, { name: `Column ${tableData.headers.length + 1}`, owner: newOwner }];
@@ -971,7 +972,7 @@ export default function DepartmentPanelExcel({
                           title="Add column"
                         >
                           <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-                        </button>
+                        </button> */}
                       </th>
                     )}
                     {/* Predefined locked headers */}
@@ -997,38 +998,39 @@ export default function DepartmentPanelExcel({
                           const colOwner = typeof tableData.headers[colIdx] === 'object' ? tableData.headers[colIdx].owner : 'global';
                           const canEditColumn = canEditField(colOwner);
                           return (
-                          <td key={colIdx} className="border border-gray-200 p-0">
-                            {canEditColumn ? (
-                              <input
-                                type="text"
-                                value={cell}
-                                onChange={(e) => {
-                                  const newRows = [...tableData.rows];
-                                  newRows[rowIdx][colIdx] = e.target.value;
-                                  handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
+                            <td key={colIdx} className="border border-gray-200 p-0">
+                              {canEditColumn ? (
+                                <input
+                                  type="text"
+                                  value={cell}
+                                  onChange={(e) => {
                                     const newRows = [...tableData.rows];
-                                    newRows.splice(rowIdx + 1, 0, new Array(tableData.headers.length).fill(''));
-                                    const newPredefined = [...predefinedData];
-                                    newPredefined.splice(rowIdx + 1, 0, { purchaseType: 'purchase', opd: '', etd: '' });
-                                    handleFieldChange(fieldId, name, { ...tableData, rows: newRows, predefinedData: newPredefined }, department, fieldDef);
-                                    setTimeout(() => {
-                                      const nextInput = e.target.closest('tr')?.nextElementSibling?.querySelector('input');
-                                      if (nextInput) nextInput.focus();
-                                    }, 50);
-                                  }
-                                }}
-                                className="w-full h-full px-2 py-1.5 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 bg-transparent transition-colors duration-100"
-                                disabled={!canEditColumn}
-                              />
-                            ) : (
-                              <span className="px-2 py-1.5 block text-xs">{cell}</span>
-                            )}
-                          </td>
-                        )})}
+                                    newRows[rowIdx][colIdx] = e.target.value;
+                                    handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      const newRows = [...tableData.rows];
+                                      newRows.splice(rowIdx + 1, 0, new Array(tableData.headers.length).fill(''));
+                                      const newPredefined = [...predefinedData];
+                                      newPredefined.splice(rowIdx + 1, 0, { purchaseType: 'purchase', opd: '', etd: '' });
+                                      handleFieldChange(fieldId, name, { ...tableData, rows: newRows, predefinedData: newPredefined }, department, fieldDef);
+                                      setTimeout(() => {
+                                        const nextInput = e.target.closest('tr')?.nextElementSibling?.querySelector('input');
+                                        if (nextInput) nextInput.focus();
+                                      }, 50);
+                                    }
+                                  }}
+                                  className="w-full h-full px-2 py-1.5 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 bg-transparent transition-colors duration-100"
+                                  disabled={!canEditColumn}
+                                />
+                              ) : (
+                                <span className="px-2 py-1.5 block text-xs">{cell}</span>
+                              )}
+                            </td>
+                          )
+                        })}
                         {canEdit && (
                           <td className="border border-gray-200 p-0 w-9 bg-gray-50/50 text-center">
                             <button
