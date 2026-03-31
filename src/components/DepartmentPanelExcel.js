@@ -682,28 +682,29 @@ export default function DepartmentPanelExcel({
               "flex items-center gap-3 p-1 rounded transition-all",
               isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
             )}>
-              <label className="flex items-center gap-1 cursor-pointer">
-                <input
-                  type="radio"
-                  name={`field-${fieldId}`}
-                  checked={fieldValue === true}
-                  onChange={() => handleFieldChange(fieldId, name, true, department, fieldDef)}
-                  disabled={!canEdit}
-                 className=" border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none"
-                />
-                <span className="text-[11px] text-gray-700">Yes</span>
-              </label>
-              <label className="flex items-center gap-1 cursor-pointer">
-                <input
-                  type="radio"
-                  name={`field-${fieldId}`}
-                  checked={fieldValue === false}
-                  onChange={() => handleFieldChange(fieldId, name, false, department, fieldDef)}
-                  disabled={!canEdit}
-                 className="border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none"
-                />
-                <span className="text-[11px] text-gray-700">No</span>
-              </label>
+              
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    name={`field-${fieldId}`}
+                    checked={fieldValue === true}
+                    onChange={() => handleFieldChange(fieldId, name, true, department, fieldDef)}
+                    disabled={!canEdit}
+                  className="border-b border-gray-400 focus:border-blue-500 focus:outline-none"
+                  />
+                  <span className="text-[11px] text-gray-700">Yes</span>
+                </label>
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    name={`field-${fieldId}`}
+                    checked={fieldValue === false}
+                    onChange={() => handleFieldChange(fieldId, name, false, department, fieldDef)}
+                    disabled={!canEdit}
+                  className="border-b border-gray-400 focus:border-blue-500 focus:outline-none"
+                  />
+                  <span className="text-[11px] text-gray-700">No</span>
+                </label>
             </div>
           </div>
         );
@@ -794,7 +795,7 @@ export default function DepartmentPanelExcel({
 
                   return (
                     <div key={rowIdx} className="relative">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
+                      <div className="pl-1 grid grid-cols-1 md:grid-cols-3 gap-1">
                         {/* Col 1: First 4 fields */}
                         <div className="flex flex-col gap-0">
                           {col1Indexes.map(idx => (
