@@ -657,7 +657,7 @@ export default function DepartmentPanelExcel({
       case 'textarea':
         return (
           <div className="flex items-start gap-2 w-full px-1 py-0">
-            <span className="text-[11px] text-gray-700 font-semibold shrink-0 min-w-[140px]">{name}</span>
+            <span className="text-[12px] text-gray-700 font-semibold shrink-0 min-w-[140px]">{name}</span>
             <textarea
               placeholder={placeholder || ''}
               value={fieldValue}
@@ -677,7 +677,7 @@ export default function DepartmentPanelExcel({
       case 'boolean':
         return (
           <div className="flex items-center gap-2 w-full px-1 py-0">
-            <span className="text-[11px] font-semibold text-gray-700 shrink-0 min-w-[140px]">{name}</span>
+            <span className="text-[12px] text-gray-700 font-semibold shrink-0 min-w-[140px]">{name}</span>
             <div className={cn(
               "flex items-center gap-3 p-1 rounded transition-all",
               isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
@@ -689,7 +689,7 @@ export default function DepartmentPanelExcel({
                   checked={fieldValue === true}
                   onChange={() => handleFieldChange(fieldId, name, true, department, fieldDef)}
                   disabled={!canEdit}
-                  className="h-3 w-3 text-blue-600 border-gray-300"
+                 className=" border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none"
                 />
                 <span className="text-[11px] text-gray-700">Yes</span>
               </label>
@@ -700,7 +700,7 @@ export default function DepartmentPanelExcel({
                   checked={fieldValue === false}
                   onChange={() => handleFieldChange(fieldId, name, false, department, fieldDef)}
                   disabled={!canEdit}
-                  className="flex-1 min-w-0 bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-6"
+                 className="border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none"
                 />
                 <span className="text-[11px] text-gray-700">No</span>
               </label>
@@ -809,7 +809,7 @@ export default function DepartmentPanelExcel({
                                   handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
                                 }}
                                 className={cn(
-                                  "flex-1 ml-2 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent px-1 py-0 transition-all duration-300",
+                                  "flex-1 min-w-0 bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-6",
                                   isFieldHighlighted(fieldId, { ...fieldDef, department: typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global' }, row[idx]) && "highlight-empty-field"
                                 )}
                                 disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
@@ -833,7 +833,7 @@ export default function DepartmentPanelExcel({
                                     handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
                                   }}
                                   className={cn(
-                                    "flex-1 ml-2 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent px-1 py-0 transition-all duration-300",
+                                    "flex-1 min-w-0 bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-6",
                                     isFieldHighlighted(fieldId, { ...fieldDef, department: typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global' }, row[idx]) && "highlight-empty-field"
                                   )}
                                   disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
