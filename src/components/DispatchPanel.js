@@ -203,6 +203,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     handleAction('internal_approval', {
       internalApproved: approved,
       internalComments,
+      internalApprovedBy: session?.user?.name+' | '+session.user?.role,
       internalRejectedReasons: !approved ? internalRejectedReasons : [],
     });
   };
@@ -229,7 +230,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   const handleBuyerApproval = (approved) => {
     handleAction('buyer_approval', {
       BuyerApproved: approved,
-      BuyerApprovedBy: session?.user?.name,
+      BuyerApprovedBy: session?.user?.name+' | '+session.user?.role,
       BuyerComments: buyerComments,
       BuyerRejectedReasons: !approved ? buyerRejectedReasons : [],
     });
@@ -273,7 +274,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             {srd.internalApproved ? (
               <Badge className="bg-green-100 text-green-800">Approved by {srd.internalApprovedBy}</Badge>
             ) : srd.internalApprovedDate ? (
-              <Badge className="bg-red-100 text-red-800">Rejected by {srd.internalApprovedBy}</Badge>
+              <Badge className="bg-red-100 text-red-800">Rejected by {srd.internalApprovedBy.name+" | "+srd.internalApprovedBy.role}</Badge>
             ) : (
               <Badge className="bg-blue-100 text-blue-800">Pending Verification</Badge>
             )}
