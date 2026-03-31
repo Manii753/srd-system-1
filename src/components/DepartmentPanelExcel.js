@@ -621,7 +621,7 @@ export default function DepartmentPanelExcel({
         const displayValue = type === 'createdAt' ? (srd.createdAt ? new Date(srd.createdAt).toISOString().split('T')[0] : '') : fieldValue;
         return (
           <div className="flex items-baseline gap-2 w-full px-1 py-0">
-            <span className="text-[11px] text-gray-700 font-semibold shrink-0 min-w-[140px]">{name}</span>
+            <span className="text-[12px] text-gray-700 font-semibold shrink-0 min-w-[140px]">{name}</span>
             <input
               type={type === 'createdAt' ? 'date' : type}
               placeholder={placeholder || ''}
