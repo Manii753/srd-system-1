@@ -314,13 +314,13 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
               return (
                 <Fragment key={srd._id}>
                   <tr className="hover:bg-blue-50 transition-colors duration-200 group">
-                    <td className="px-6 py-5 whitespace-nowrap">
+                    <td className="px-6 py-0 whitespace-nowrap">
                       <div className="text-sm font-semibold text-gray-900">
                         {new Date(srd.createdAt).toLocaleDateString()}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      {/* <div className="text-xs text-gray-500">
                         {new Date(srd.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
+                      </div> */}
                     </td>
                     {/* <td className="px-6 py-5 whitespace-nowrap">
                       {(() => {
@@ -356,19 +356,19 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                         );
                       })()}
                     </td> */}
-                    <td className="px-6 py-5 whitespace-nowrap">
+                    <td className="px-6 py-0 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
                           {srd.refNo}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-5 whitespace-nowrap">
+                    <td className="px-6 py-0 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         {getDynamicFieldValue(srd, 'style')}
                       </div>
                     </td>
-                    <td className="px-6 py-5 whitespace-nowrap">
+                    <td className="px-6 py-0 whitespace-nowrap">
 
                       {srd.isComplete ? (
                         <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
@@ -376,7 +376,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                           <span className="text-green-700 font-semibold text-sm">Sample Completed</span>
                         </div>
                       ) : srd.inProduction && currentStage ? (
-                        <div className="flex items-center bg-white rounded-lg px-3 py-2 border border-gray-200 shadow-sm">
+                        <div className="flex items-center bg-white rounded-lg px-3 py-0 border border-gray-200 shadow-sm">
                           <div
                             className="w-3 h-3 rounded-full mr-3 shadow-sm"
                             style={{ backgroundColor: currentStage.color }}
@@ -410,7 +410,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                         </div>
                       )}
                     </td>
-                    <td className="justify-center align-middle px-6 py-5 whitespace-nowrap text-sm font-medium">
+                    <td className="justify-center align-middle px-6 py-0 whitespace-nowrap text-sm font-medium">
                       <div className="flex gap-2 justify-center">
                         <Link href={`/srd/${srd._id}`}>
                           <Button
@@ -484,11 +484,10 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                   <button
                     key={p}
                     onClick={() => setCurrentPage(p)}
-                    className={`w-7 h-7 rounded text-xs font-medium transition-colors ${
-                      currentPage === p
-                        ? 'bg-blue-600 text-white'
-                        : 'hover:bg-gray-200 text-gray-700'
-                    }`}
+                    className={`w-7 h-7 rounded text-xs font-medium transition-colors ${currentPage === p
+                      ? 'bg-blue-600 text-white'
+                      : 'hover:bg-gray-200 text-gray-700'
+                      }`}
                   >
                     {p}
                   </button>
