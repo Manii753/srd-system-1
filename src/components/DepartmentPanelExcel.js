@@ -820,63 +820,69 @@ export default function DepartmentPanelExcel({
 
                         {/* Col 3: Predefined Fields - Purchase/Stock, OPD, ETD */}
                         <table className='h-10'>
-                          <tr className='bg-gradient-to-r from-gray-50 to-gray-100'>
-                            <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
-                              <span className="font-semibold text-center text-indigo-700 px-2 py-0.5 block text-[11px]">Purchase/Stock</span>
-                            </th>
-                            <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
-                              <span className="font-semibold text-center text-indigo-700 px-2 py-0.5 block text-[11px]">OPD</span>
-                            </th>
-                            <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
-                              <span className="font-semibold text-center text-indigo-700 px-2 py-0.5 block text-[11px]">ETD</span>
-                            </th>
-                          </tr>
-                          <tr className='group/row hover:bg-blue-50/30 transition-colors duration-100'>
-                            <td className='border border-gray-200 p-0'>
-                              <div className="flex items-center justify-center gap-1 py-0.5">
-                                <button
-                                  onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
-                                  disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
+                          <thead>
+                            <tr className='bg-gradient-to-r from-gray-50 to-gray-100'>
+                              <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
+                                <span className="font-semibold text-center text-indigo-700 px-2 py-0.5 block text-[11px]">Purchase/Stock</span>
+                              </th>
+                              <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
+                                <span className="font-semibold text-center text-indigo-700 px-2 py-0.5 block text-[11px]">OPD</span>
+                              </th>
+                              <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
+                                <span className="font-semibold text-center text-indigo-700 px-2 py-0.5 block text-[11px]">ETD</span>
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className='group/row hover:bg-blue-50/30 transition-colors duration-100'>
+                              <td className='border border-gray-200 p-0'>
+                                <div className="flex items-center justify-center gap-1 py-0.5">
+                                  <button
+                                    onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
+                                    disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
+                                    className={cn(
+                                      "px-1.5 py-0.5 rounded text-[10px] font-medium border",
+                                      !isInStock ? "bg-blue-600 text-white border-blue-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-blue-400"
+                                    )}
+                                  >Purchase</button>
+                                  <button
+                                    onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'instock')}
+                                    disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
+                                    className={cn(
+                                      "px-1.5 py-0.5 rounded text-[10px] font-medium border",
+                                      isInStock ? "bg-emerald-600 text-white border-emerald-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-emerald-400"
+                                    )}
+                                  >InStock</button>
+                                </div>
+                              </td>
+                              <td className='border border-gray-200 p-0'>
+                                <input
+                                  type="date"
+                                  value={rowPredefined.opd || ''}
+                                  onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
+                                  disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                                   className={cn(
-                                    "px-1.5 py-0.5 rounded text-[10px] font-medium border",
-                                    !isInStock ? "bg-blue-600 text-white border-blue-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-blue-400"
+                                    "w-full px-1 py-0 text-xs bg-white text-gray-700 border-none focus:outline-none",
+                                    isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
                                   )}
-                                >Purchase</button>
-                                <button
-                                  onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'instock')}
-                                  disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
+                                />
+                              </td>
+                              <td className='border border-gray-200 p-0'>
+                                <input
+                                  type="date"
+                                  value={rowPredefined.etd || ''}
+                                  onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
+                                  disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                                   className={cn(
-                                    "px-1.5 py-0.5 rounded text-[10px] font-medium border",
-                                    isInStock ? "bg-emerald-600 text-white border-emerald-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-emerald-400"
+                                    "w-full px-1 py-0 text-xs bg-white text-gray-700 border-none focus:outline-none",
+                                    isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
                                   )}
-                                >InStock</button>
-                              </div>
-                            </td>
-                            <td className='border border-gray-200 p-0'>
-                              <input
-                                type="date"
-                                value={rowPredefined.opd || ''}
-                                onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
-                                disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
-                                className={cn(
-                                  "w-full px-1 py-0 text-xs bg-white text-gray-700 border-none focus:outline-none",
-                                  isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
-                                )}
-                              />
-                            </td>
-                            <td className='border border-gray-200 p-0'>
-                              <input
-                                type="date"
-                                value={rowPredefined.etd || ''}
-                                onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
-                                disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
-                                className={cn(
-                                  "w-full px-1 py-0 text-xs bg-white text-gray-700 border-none focus:outline-none",
-                                  isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
-                                )}
-                              />
-                            </td>
-                          </tr>
+                                />
+                              </td>
+                            </tr>
+                          </tbody>
+
+
                         </table>
                       </div>
                     </div>
@@ -1513,7 +1519,7 @@ export default function DepartmentPanelExcel({
             disabled={isFirstPage}
             className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-20 disabled:cursor-not-allowed transition-all rotate-180"
           >
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z" /></svg>
           </button>
 
           <div className="flex items-center gap-1.5">
@@ -1524,7 +1530,7 @@ export default function DepartmentPanelExcel({
                   className={`transition-all duration-200 ${i === currentPage ? 'w-2.5 h-2.5 text-gray-800' : 'w-1.5 h-1.5 text-gray-300 hover:text-gray-500'}`}
                   fill="currentColor"
                 >
-                  <polygon points="5,0 10,5 5,10 0,5"/>
+                  <polygon points="5,0 10,5 5,10 0,5" />
                 </svg>
               </button>
             ))}
@@ -1535,7 +1541,7 @@ export default function DepartmentPanelExcel({
             disabled={isLastPage}
             className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
           >
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z" /></svg>
           </button>
         </div>
       )}
