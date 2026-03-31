@@ -1466,27 +1466,21 @@ export default function DepartmentPanelExcel({
                 >
                   {/* Optional toggle */}
                   {!isHeading && fieldDef.isOptional && (
-                    <div className="flex justify-end px-2 pt-0.5">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-gray-400">Optional</span>
-                        <Switch
-                          checked={isOptionalEnabled}
-                          onCheckedChange={(checked) => handleOptionalFieldToggle(fieldIdStr, fieldDef, checked)}
-                          disabled={!canEdit}
-                          aria-label={`Toggle ${fieldDef.name}`}
-                          className="scale-75"
-                        />
-                      </div>
+                    <div className="flex items-center justify-between px-1 py-0">
+                      <span className="text-[11px] text-gray-600 shrink-0 min-w-[90px]">{fieldDef.name}</span>
+                      <Switch
+                        checked={isOptionalEnabled}
+                        onCheckedChange={(checked) => handleOptionalFieldToggle(fieldIdStr, fieldDef, checked)}
+                        disabled={!canEdit}
+                        aria-label={`Toggle ${fieldDef.name}`}
+                        className="scale-75"
+                      />
                     </div>
                   )}
 
-                  {/* Field input */}
+                  {/* Field input — only shown when optional is enabled (or field is not optional) */}
                   <div className="flex-1">
-                    {fieldDef.isOptional && !isOptionalEnabled ? (
-                      <div className="flex h-full min-h-[32px] items-center px-2 text-xs text-gray-400 italic">
-                        {canEdit ? 'Turn on to fill.' : 'Optional — off.'}
-                      </div>
-                    ) : (
+                    {fieldDef.isOptional && !isOptionalEnabled ? null : (
                       renderCellInput(fieldDef, fieldIdStr, canEdit)
                     )}
                   </div>
