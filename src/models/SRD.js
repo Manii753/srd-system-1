@@ -20,6 +20,7 @@ const auditSchema = new mongoose.Schema({
 const srdSchema = new mongoose.Schema({
   refNo: { type: String, required: true, unique: true },
   title: { type: String },
+  templateId: { type: mongoose.Schema.Types.ObjectId, ref: 'PrintTemplate' },
   description: String,
   isComplete: { type: Boolean, default: false },
 
