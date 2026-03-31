@@ -1504,42 +1504,39 @@ export default function DepartmentPanelExcel({
           })}
         </div>
       </div>
-            {/* Pagination Controls at Bottom */}
-      {sections.length > 1 && (
-        <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
-          <div className="flex items-center justify-center space-x-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-              disabled={isFirstPage}
-              className="h-9 px-4"
-            >
-              ← Previous
-            </Button>
-            
-            <div className="flex items-center space-x-2">
-              <div className="text-sm font-medium text-gray-700">
-                Page {currentPage + 1} of {sections.length}
-              </div>
-              <div className="w-32 bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${((currentPage + 1) / sections.length) * 100}%` }}
-                />
-              </div>
-            </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.min(sections.length - 1, currentPage + 1))}
-              disabled={isLastPage}
-              className="h-9 px-4"
-            >
-              Next →
-            </Button>
+      {/* Pagination Controls */}
+      {sections.length > 1 && (
+        <div className="flex items-center justify-center gap-3 py-2 border-t border-gray-100">
+          <button
+            onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+            disabled={isFirstPage}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-20 disabled:cursor-not-allowed transition-all rotate-180"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+
+          <div className="flex items-center gap-1.5">
+            {sections.map((_, i) => (
+              <button key={i} onClick={() => setCurrentPage(i)} className="transition-all duration-200 focus:outline-none">
+                <svg
+                  viewBox="0 0 10 10"
+                  className={`transition-all duration-200 ${i === currentPage ? 'w-2.5 h-2.5 text-gray-800' : 'w-1.5 h-1.5 text-gray-300 hover:text-gray-500'}`}
+                  fill="currentColor"
+                >
+                  <polygon points="5,0 10,5 5,10 0,5"/>
+                </svg>
+              </button>
+            ))}
           </div>
+
+          <button
+            onClick={() => setCurrentPage(Math.min(sections.length - 1, currentPage + 1))}
+            disabled={isLastPage}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z"/></svg>
+          </button>
         </div>
       )}
 
