@@ -778,7 +778,7 @@ export default function DepartmentPanelExcel({
                         <div className="flex flex-col gap-0">
                           {col1Indexes.map(idx => (
                             <div key={idx} className="flex items-center text-xs border-b border-gray-100">
-                              <span className="w-20 flex-shrink-0 font-semibold text-gray-700 whitespace-nowrap capitalize break-words pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
+                              <span className="w-20 flex-shrink-0 font-semibold min-w-[140px] text-gray-700 whitespace-nowrap capitalize break-words pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
                               <input
                                 type="text"
                                 value={row[idx] || ''}
@@ -799,7 +799,7 @@ export default function DepartmentPanelExcel({
                           {col2Indexes.length > 0 ? (
                             col2Indexes.map(idx => (
                               <div key={idx} className="flex items-center text-xs border-b border-gray-100">
-                                <span className="w-20 flex-shrink-0 font-semibold text-gray-700 capitalize break-words whitespace-nowrap pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
+                                <span className="w-20 flex-shrink-0  min-w-[140px] font-semibold text-gray-700 capitalize break-words whitespace-nowrap pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
                                 <input
                                   type="text"
                                   value={row[idx] || ''}
