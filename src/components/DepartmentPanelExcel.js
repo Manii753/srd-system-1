@@ -30,6 +30,7 @@ const DispatchPanel = dynamic(() => import('./DispatchPanel'), {
   loading: () => <div className="p-4 text-center">Loading Dispatch Panel...</div>
 });
 import { Send } from 'lucide-react';
+import { checkCustomRoutes } from 'next/dist/lib/load-custom-routes';
 
 export default function DepartmentPanelExcel({
   srd,
@@ -1105,7 +1106,7 @@ export default function DepartmentPanelExcel({
                   }}
                   className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1.5 px-3 py-1.5 border border-blue-200 rounded-md hover:bg-blue-50 hover:border-blue-300 transition-all duration-150 shadow-sm"
                 >
-                  <Plus className="h-3 w-3" /> Add Row
+                  <Plus className="h-3 w-3" />
                 </button>
               </div>
             )}
@@ -1474,7 +1475,7 @@ export default function DepartmentPanelExcel({
                   {/* Optional toggle */}
                   {!isHeading && fieldDef.isOptional && (
                     <div className="flex items-center justify-between px-1 py-0">
-                      <span className="text-[11px] text-gray-600 shrink-0 min-w-[90px]">{fieldDef.name}</span>
+                      { <span className="text-[11px] text-gray-600 shrink-0 min-w-[90px]">{(fieldDef.isOptional && !isOptionalEnabled)&& fieldDef.name}</span>}
                       <Switch
                         checked={isOptionalEnabled}
                         onCheckedChange={(checked) => handleOptionalFieldToggle(fieldIdStr, fieldDef, checked)}
