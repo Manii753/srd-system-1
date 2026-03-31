@@ -48,6 +48,8 @@ export default function DepartmentPanelExcel({
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [sections, setSections] = useState([]);
   const [pendingUpdates, setPendingUpdates] = useState({}); // Track updates per department
 
   // Status update state
@@ -114,6 +116,87 @@ export default function DepartmentPanelExcel({
     setFields(srd.dynamicFields || []);
     lastSavedFieldsRef.current = JSON.stringify(srd.dynamicFields || []);
   }, [srd?.dynamicFields]);
+
+  // Process template cells into sections - Split into 2 pages at a specific point
+  useEffect(() => {
+    if (!activeTemplate || !activeTemplate.cells) {
+      setSections([]);
+      return;
+    }
+
+    const allCells = activeTemplate.cells;
+    
+    // Find the split point - look for VMD heading or first VMD field
+    let splitIndex = 0; // Default: start from beginning
+    
+    // Find where VMD section starts
+    for (let i = 0; i < allCells.length; i++) {
+      const cell = allCells[i];
+      
+      // Check if this is VMD heading
+      const isHeading = cell.isCustom && cell.customType === 'custom-heading';
+      const headingName = isHeading ? cell.customValue?.toLowerCase() : '';
+      
+      // Check if this is a VMD field
+      const fieldDept = !cell.isCustom && cell.fieldId ? 
+        (typeof cell.fieldId === 'object' ? cell.fieldId.department : 
+         allFieldDefs[cell.fieldId?.toString()]?.department) : '';
+      
+      const fieldName = !cell.isCustom && cell.fieldId ? 
+        (typeof cell.fieldId === 'object' ? cell.fieldId.name?.toLowerCase() : 
+         allFieldDefs[cell.fieldId?.toString()]?.name?.toLowerCase()) : '';
+      
+      // Split at VMD heading or first VMD field
+      if (headingName?.includes('vmd') || 
+          fieldDept === 'vmd' ||
+          fieldName?.includes('fabric code') ||
+          fieldName?.includes('fabric type')) {
+        splitIndex = i;
+        console.log('Found VMD section at index:', i);
+        break;
+      }
+    }
+    
+    // Now find where to end page 1 (after COMMERCIAL section)
+    let endIndex = allCells.length;
+    for (let i = splitIndex; i < allCells.length; i++) {
+      const cell = allCells[i];
+      
+      // Check if this is a table field or something after COMMERCIAL
+      let fieldType = null;
+      let fieldDept = null;
+      if (cell.fieldId && !cell.isCustom) {
+        if (typeof cell.fieldId === 'object') {
+          fieldType = cell.fieldId.type;
+          fieldDept = cell.fieldId.department;
+        } else {
+          const fieldDef = allFieldDefs[cell.fieldId.toString()];
+          fieldType = fieldDef?.type;
+          fieldDept = fieldDef?.department;
+        }
+      }
+      
+      // End page 1 at first table field or after commercial section
+      if (fieldType === 'table' || 
+          (fieldDept && fieldDept !== 'vmd' && fieldDept !== 'cad' && fieldDept !== 'commercial')) {
+        endIndex = i;
+        console.log('Ending page 1 at index:', i);
+        break;
+      }
+    }
+
+    // Split cells into 2 pages
+    const sectionsArray = [
+      { name: 'Page 1', cells: allCells.slice(splitIndex, endIndex) },
+      { name: 'Page 2', cells: [...allCells.slice(0, splitIndex), ...allCells.slice(endIndex)] }
+    ];
+
+    setSections(sectionsArray);
+    console.log('Pages created:', sectionsArray.map(s => ({ 
+      name: s.name, 
+      cellCount: s.cells.length
+    })));
+  }, [activeTemplate, allFieldDefs]);
 
   // Auto-save function with debouncing - saves per department
   const debouncedAutoSave = useCallback(async (fieldsToSave, department) => {
@@ -578,18 +661,25 @@ export default function DepartmentPanelExcel({
         // For createdAt type, use srd.createdAt as the value
         const displayValue = type === 'createdAt' ? (srd.createdAt ? new Date(srd.createdAt).toISOString().split('T')[0] : '') : fieldValue;
         return (
-          <Input
-            type={type === 'createdAt' ? 'date' : type}
-            placeholder={placeholder || ''}
-            value={displayValue}
-            onChange={(e) => handleFieldChange(fieldId, name, e.target.value, department, fieldDef)}
-            required={isRequired}
-            disabled={!canEdit || type === 'createdAt'}
-            className={cn(
-              "h-8 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 w-full",
-              !canEdit && "bg-gray-100 cursor-not-allowed"
-            )}
-          />
+          <>
+            <div className='flex justify-between align-end me-10'>
+              <label className='text-[12px]'>{name}</label>
+              <Input
+                type={type === 'createdAt' ? 'date' : type}
+                placeholder={placeholder || ''}
+                value={displayValue}
+                onChange={(e) => handleFieldChange(fieldId, name, e.target.value, department, fieldDef)}
+                required={isRequired}
+                disabled={!canEdit || type === 'createdAt'}
+                className={cn(
+                  "h-8 px-2 py-1 text-sm rounded-none focus:ring-1 focus:ring-blue-500 w-[50%] border-0 shadow-none border-b border-black",
+                  !canEdit && "bg-gray-100 cursor-not-allowed"
+                )}
+              />
+            </div>
+
+          </>
+
         );
 
       case 'textarea':
@@ -765,7 +855,7 @@ export default function DepartmentPanelExcel({
                   for (let i = 4; i < tableData.headers.length; i++) col2Indexes.push(i);
 
                   return (
-                    <div key={rowIdx} className="bg-white border border-gray-200 shadow-sm rounded-md p-3 relative group">
+                    <div key={rowIdx} className="bg-white shadow-sm rounded-md p-3 relative group">
 
                       {/* Add delete row button if user can edit and there's more than 1 row */}
                       {/* {canEdit && (
@@ -832,64 +922,74 @@ export default function DepartmentPanelExcel({
                         </div>
 
                         {/* Col 3: Predefined Fields - Purchase/Stock, OPD, IHD */}
-                        <div className="flex flex-col rounded-md bg-gray-100 p-3 border border-gray-300 gap-3">
-                          {/* Headers Row */}
-                          <div className="grid grid-cols-3 gap-6">
-                            <div className="text-xs font-semibold text-indigo-600">Purchase/Stock</div>
-                            <div className="text-xs font-semibold text-indigo-600">OPD</div>
-                            <div className="text-xs font-semibold text-indigo-600">IHD</div>
-                          </div>
+                        <table className='h-10'>
+                          <tr className='bg-gradient-to-r from-gray-50 to-gray-100'>
+                            <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
+                              <span className="font-semibold text-center text-indigo-700 px-2 py-1.5 block text-[11px]">Purchase/Stock</span>
+                            </th>
+                            <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
+                              <span className="font-semibold text-center text-indigo-700 px-2 py-1.5 block text-[11px]">OPD</span>
+                            </th>
+                            <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
+                              <span className="font-semibold text-center text-indigo-700 px-2 py-1.5 block text-[11px]">ETD</span>
+                            </th>
+                          </tr>
+                          <tr className='group/row hover:bg-blue-50/30 transition-colors duration-100'>
+                            <td className='border border-gray-200 p-0 '>
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
+                                  disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
+                                  className={cn(
+                                    " p-1 rounded text-[10px] font-medium border",
+                                    !isInStock ? "bg-blue-600 text-white border-blue-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-blue-400"
+                                  )}
+                                >
+                                  Purchase
+                                </button>
+                                <button
+                                  onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'instock')}
+                                  disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
+                                  className={cn(
+                                    " p-1 rounded text-[10px] font-medium border",
+                                    isInStock ? "bg-emerald-600 text-white border-emerald-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-emerald-400"
+                                  )}
+                                >
+                                  InStock
+                                </button>
+                              </div>
+                            </td>
+                            <td className='border border-gray-200 p-0'>
+                              <div>
+                                <input
+                                  type="date"
+                                  value={rowPredefined.opd || ''}
+                                  onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
+                                  disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
+                                  className={cn(
+                                    "w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white text-gray-700",
+                                    isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
+                                  )}
+                                />
+                              </div>
+                            </td>
+                            <td className='border border-gray-200 p-0'>
+                              <div>
+                                <input
+                                  type="date"
+                                  value={rowPredefined.etd || ''}
+                                  onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
+                                  disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
+                                  className={cn(
+                                    "w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white text-gray-700",
+                                    isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
+                                  )}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        </table>
 
-                          {/* Values Row */}
-                          <div className="grid grid-cols-3 gap-6 items-start">
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
-                                disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
-                                className={cn(
-                                  "px-3 py-1 rounded text-xs font-medium border",
-                                  !isInStock ? "bg-blue-600 text-white border-blue-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-blue-400"
-                                )}
-                              >
-                                Purchase
-                              </button>
-                              <button
-                                onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'instock')}
-                                disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
-                                className={cn(
-                                  "px-3 py-1 rounded text-xs font-medium border",
-                                  isInStock ? "bg-emerald-600 text-white border-emerald-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-emerald-400"
-                                )}
-                              >
-                                InStock
-                              </button>
-                            </div>
-                            <div>
-                              <input
-                                type="date"
-                                value={rowPredefined.opd || ''}
-                                onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
-                                disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
-                                className={cn(
-                                  "w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white text-gray-700",
-                                  isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
-                                )}
-                              />
-                            </div>
-                            <div>
-                              <input
-                                type="date"
-                                value={rowPredefined.etd || ''}
-                                onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
-                                disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
-                                className={cn(
-                                  "w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white text-gray-700",
-                                  isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
-                                )}
-                              />
-                            </div>
-                          </div>
-                        </div>
                       </div>
                     </div>
                   );
@@ -1032,7 +1132,7 @@ export default function DepartmentPanelExcel({
                           )
                         })}
                         {canEdit && (
-                          <td className="border border-gray-200 p-0 w-9 bg-gray-50/50 text-center">
+                          <td className="border border-gray-200 p-0 w-9 text-center">
                             <button
                               onClick={() => {
                                 const newRows = tableData.rows.filter((_, idx) => idx !== rowIdx);
@@ -1259,9 +1359,7 @@ export default function DepartmentPanelExcel({
                 )}
               </div>
             ) : (
-              <div className="text-xs text-gray-400 text-center py-2 border border-dashed border-gray-300 rounded">
-                No images
-              </div>
+              <></>
             )}
           </div>
         );
@@ -1301,18 +1399,12 @@ export default function DepartmentPanelExcel({
   }
 
   const gridColumns = activeTemplate.gridColumns || 6;
+  const currentSection = sections[currentPage] || { name: 'Page 1', cells: activeTemplate?.cells || [] };
+  const isFirstPage = currentPage === 0;
+  const isLastPage = currentPage === sections.length - 1;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-
-      {/* Permission indicator */}
-      {/* <div className="bg-gray-50 border-b px-3 py-1.5 text-xs text-gray-600">
-        <span className="font-medium">Your role:</span> {userRole?.toUpperCase()} •
-        {userRole === 'admin' || userRole === 'vmd'
-          ? ' You can edit all fields'
-          : ` You can edit ${userRole?.toUpperCase()} fields only`
-        }
-      </div> */}
+    <div className="bg-white rounded-lg overflow-hidden">
 
       {/* Grid based on template */}
       <div className="p-0">
@@ -1320,7 +1412,7 @@ export default function DepartmentPanelExcel({
           className="grid gap-0"
           style={{ gridTemplateColumns: `repeat(${gridColumns * 2}, minmax(0, 1fr))` }}
         >
-          {activeTemplate.cells.map((cell, cellIndex) => {
+          {currentSection.cells.map((cell, cellIndex) => {
             const colSpan = (cell.position?.colSpan || 1) * 2;
             const rowSpan = cell.position?.rowSpan || 1;
 
@@ -1443,22 +1535,25 @@ export default function DepartmentPanelExcel({
               >
                 <div
                   className={cn(
-                    "border rounded h-full flex flex-col",
-                    isHeading ? "bg-blue-50 border-blue-200" : " border-gray-300",
-                    fieldDef.isOptional && !isOptionalEnabled && "bg-gray-50/70 border-dashed border-gray-300",
+                    " rounded h-full flex flex-col gap-0",
+                    isHeading ? "bg-blue-50 border-blue-200" : " ",
+                    fieldDef.isOptional && !isOptionalEnabled && "bg-gray-50/70 border-dashed",
                     !canEdit && !isHeading && "opacity-75"
                   )}
                 >
                   {/* Field header */}
                   {!isHeading && (
-                    <div className=" border-b border-gray-200 px-2 py-1 flex items-start justify-between gap-2 shrink-0">
-                      <div className="min-w-0 flex-1">
-                        <span className="text-xs font-medium text-gray-700 truncate block" title={fieldDef.name}>
-                          {fieldDef.name}
-                        </span>
+                    <div className=" px-2 flex items-start justify-between shrink-0">
+                      {fieldDef.type === 'boolean' &&
+                        <div className="min-w-0 flex-1">
+                          <span className="text-xs font-medium text-gray-700 truncate block" title={fieldDef.name}>
+                            {fieldDef.name}
+                          </span>
 
-                      </div>
-                      <div className="flex items-center gap-2 ml-1">
+                        </div>
+
+                      }
+                      <div className="flex items-center ml-1">
                         {fieldDef.isOptional && (
                           <div className="flex items-center gap-2 rounded-full bg-white/80 px-2 py-0.5">
                             <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
@@ -1473,9 +1568,9 @@ export default function DepartmentPanelExcel({
                             />
                           </div>
                         )}
-                        {fieldDef.isRequired && (
+                        {/* {fieldDef.isRequired && (
                           <span className="text-red-500 text-xs font-bold">*</span>
-                        )}
+                        )} */}
                       </div>
                     </div>
                   )}
@@ -1483,7 +1578,7 @@ export default function DepartmentPanelExcel({
                   {/* Field input */}
                   <div className={cn(!isHeading && "p-1", "flex-1")}>
                     {fieldDef.isOptional && !isOptionalEnabled ? (
-                      <div className="flex h-full min-h-[64px] items-center justify-center rounded border border-dashed border-gray-300 bg-white/70 px-3 text-center text-xs text-gray-500">
+                      <div className="flex h-full min-h-[64px] items-center justify-center rounded border border-dashed bg-white/70 px-3 text-center text-xs text-gray-500">
                         {canEdit ? 'Turn on to fill this field.' : 'This optional field is turned off.'}
                       </div>
                     ) : (
@@ -1510,6 +1605,44 @@ export default function DepartmentPanelExcel({
           })}
         </div>
       </div>
+            {/* Pagination Controls at Bottom */}
+      {sections.length > 1 && (
+        <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
+          <div className="flex items-center justify-center space-x-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+              disabled={isFirstPage}
+              className="h-9 px-4"
+            >
+              ← Previous
+            </Button>
+            
+            <div className="flex items-center space-x-2">
+              <div className="text-sm font-medium text-gray-700">
+                Page {currentPage + 1} of {sections.length}
+              </div>
+              <div className="w-32 bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${((currentPage + 1) / sections.length) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(Math.min(sections.length - 1, currentPage + 1))}
+              disabled={isLastPage}
+              className="h-9 px-4"
+            >
+              Next →
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Render Dispatch Panel if applicable - Hidden in readOnly mode to avoid circular display */}
       {!readOnly && (srd?.inDispatch) && (
@@ -1651,6 +1784,8 @@ export default function DepartmentPanelExcel({
           </div>
         </div>
       )}
+
+
     </div>
   );
 }

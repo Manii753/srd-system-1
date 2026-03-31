@@ -115,7 +115,7 @@ export default function DynamicFieldsRenderer({
     const value = values[field._id] ?? '';
     
     return (
-      <div key={field._id} className="space-y-2 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+      <div key={field._id} className="flex space-y-2 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
         <Label htmlFor={field._id}>
           {field.name}
           {field.isRequired && <span className="text-red-500 ml-1">*</span>}

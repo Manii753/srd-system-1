@@ -279,7 +279,6 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
         <table className="w-full">
           <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <tr>
-              <th className="px-3 w-12"></th>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 <button
                   onClick={() => handleSort('createdAt')}
@@ -311,19 +310,6 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
               return (
                 <Fragment key={srd._id}>
                   <tr className="hover:bg-blue-50 transition-colors duration-200 group">
-                    <td className="px-3 py-5">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => toggleRowExpansion(srd._id)}
-                        className="w-8 h-8 rounded-full hover:bg-blue-100 transition-colors duration-200"
-                      >
-                        {isExpanded ?
-                          <ChevronUp className="h-4 w-4 text-gray-600" /> :
-                          <ChevronDown className="h-4 w-4 text-gray-600" />
-                        }
-                      </Button>
-                    </td>
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="text-sm font-semibold text-gray-900">
                         {new Date(srd.createdAt).toLocaleDateString()}
@@ -453,38 +439,6 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                       </div>
                     </td>
                   </tr>
-                  {isExpanded && (
-                    <tr>
-                      <td colSpan="7" className="p-0">
-                        <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-100">
-                          <h4 className="text-lg font-bold mb-4 text-gray-800 flex items-center">
-                            <div className="w-1 h-6 bg-blue-500 rounded-full mr-3"></div>
-                            Additional Details
-                          </h4>
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 text-sm">
-                            {(() => {
-                              const quickDetails = getQuickDetailsFields(srd);
-                              return quickDetails.length > 0 ? (
-                                quickDetails.map((field, index) => (
-                                  <div key={index} className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-                                    <span className="font-semibold text-gray-600 text-xs uppercase tracking-wide block mb-2">{field.name}</span>
-                                    <span className="text-gray-900 font-medium whitespace-pre-wrap">{field.value}</span>
-                                  </div>
-                                ))
-                              ) : (
-                                <div className="col-span-full bg-white rounded-lg p-6 text-center border border-gray-200">
-                                  <div className="text-gray-500 text-sm">
-                                    <div className="text-lg mb-2">📋</div>
-                                    No quick details fields configured. Enable &ldquo;Show in Quick Details&rdquo; for fields in the Fields Management page.
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
                 </Fragment>
               );
             })}
