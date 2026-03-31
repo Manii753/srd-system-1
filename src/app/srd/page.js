@@ -106,10 +106,10 @@ function SRDListPageContent() {
         </div>
       </div>
     }>
-      <div className="space-y-6">
+      <div className="flex flex-col flex-1 h-[calc(100vh-56px)] overflow-hidden space-y-4 p-4">
         {/* SRDs List */}
         {viewMode === 'cards' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto pr-2 custom-scrollbar">
             {srds.map((srd) => (
               <SRDCard key={srd._id} srd={srd} department={departmentFilter} />
             ))}

@@ -278,11 +278,11 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
 
 
   return (
-    <div className="flex flex-col w-full bg-white rounded-xl shadow-lg border border-gray-100">
+    <div className="flex flex-col h-full w-full bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
       {/* Table */}
-      <div className="w-full">
-        <table className="w-full">
-          <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+      <div className="w-full flex-1 overflow-y-auto relative custom-scrollbar">
+        <table className="w-full border-separate border-spacing-0">
+          <thead className="sticky top-0 z-10 bg-gray-50 shadow-sm">
             <tr>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 <button
@@ -307,14 +307,14 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
               <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-100">
+          <tbody className="bg-white">
             {paginatedSRDs.map((srd) => {
               const currentStage = getCurrentProductionStage(srd);
 
               return (
                 <Fragment key={srd._id}>
                   <tr className="hover:bg-blue-50 transition-colors duration-200 group">
-                    <td className="px-6 py-0 whitespace-nowrap">
+                    <td className="px-6 py-0 whitespace-nowrap border-b border-black/10">
                       <div className="text-sm font-semibold text-gray-900">
                         {new Date(srd.createdAt).toLocaleDateString()}
                       </div>
@@ -356,19 +356,19 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                         );
                       })()}
                     </td> */}
-                    <td className="px-6 py-0 whitespace-nowrap">
+                    <td className="px-6 py-0 whitespace-nowrap border-b border-black/10">
                       <div className="flex items-center">
                         <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
                           {srd.refNo}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-0 whitespace-nowrap">
+                    <td className="px-6 py-0 whitespace-nowrap border-b border-black/10">
                       <div className="text-sm font-medium text-gray-900">
                         {getDynamicFieldValue(srd, 'style')}
                       </div>
                     </td>
-                    <td className="px-6 py-0 whitespace-nowrap">
+                    <td className="px-6 py-0 whitespace-nowrap border-b border-black/10">
 
                       {srd.isComplete ? (
                         <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
@@ -410,7 +410,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                         </div>
                       )}
                     </td>
-                    <td className="justify-center align-middle px-6 py-0 whitespace-nowrap text-sm font-medium">
+                    <td className="justify-center align-middle px-6 py-0 whitespace-nowrap text-sm font-medium border-b border-black/10">
                       <div className="flex gap-2 justify-center">
                         <Link href={`/srd/${srd._id}`}>
                           <Button
@@ -458,15 +458,12 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
 
       {/* Pagination */}
       {paginationEnabled && totalPages > 1 && (
-        <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
-          <span className="text-xs text-gray-500">
-            Showing {((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredAndSortedSRDs.length)} of {filteredAndSortedSRDs.length}
-          </span>
+        <div className="flex items-center justify-end px-6 py-2 border-t border-gray-100 bg-transparent rounded-b-xl gap-2">
           <div className="flex items-center gap-1">
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded hover:bg-blue-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
