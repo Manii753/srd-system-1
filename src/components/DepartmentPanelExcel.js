@@ -50,6 +50,7 @@ export default function DepartmentPanelExcel({
   const [isPrinting, setIsPrinting] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [sections, setSections] = useState([]);
+  const [formPagination, setFormPagination] = useState({ enabled: true, itemsPerPage: 12 });
   const [pendingUpdates, setPendingUpdates] = useState({}); // Track updates per department
 
   // Status update state
@@ -98,6 +99,19 @@ export default function DepartmentPanelExcel({
           }
         }
         setAllFieldDefs(fieldDefsMap);
+
+        // Fetch pagination settings
+        try {
+          const companyRes = await fetch('/api/company');
+          const companyData = await companyRes.json();
+          const pg = companyData?.paginationSettings;
+          if (pg?.srdForm) {
+            setFormPagination(pg.srdForm);
+          }
+          // old flat structure has no srdForm key — keep default
+        } catch (err) {
+          console.error('Failed to fetch pagination settings:', err);
+        }
       } catch (err) {
         console.error('Failed to fetch data:', err);
         toast({
@@ -117,7 +131,7 @@ export default function DepartmentPanelExcel({
     lastSavedFieldsRef.current = JSON.stringify(srd.dynamicFields || []);
   }, [srd?.dynamicFields]);
 
-  // Process template cells into sections - Split into 2 pages at a specific point
+  // Process template cells into sections based on pagination settings
   useEffect(() => {
     if (!activeTemplate || !activeTemplate.cells) {
       setSections([]);
@@ -125,78 +139,24 @@ export default function DepartmentPanelExcel({
     }
 
     const allCells = activeTemplate.cells;
-    
-    // Find the split point - look for VMD heading or first VMD field
-    let splitIndex = 0; // Default: start from beginning
-    
-    // Find where VMD section starts
-    for (let i = 0; i < allCells.length; i++) {
-      const cell = allCells[i];
-      
-      // Check if this is VMD heading
-      const isHeading = cell.isCustom && cell.customType === 'custom-heading';
-      const headingName = isHeading ? cell.customValue?.toLowerCase() : '';
-      
-      // Check if this is a VMD field
-      const fieldDept = !cell.isCustom && cell.fieldId ? 
-        (typeof cell.fieldId === 'object' ? cell.fieldId.department : 
-         allFieldDefs[cell.fieldId?.toString()]?.department) : '';
-      
-      const fieldName = !cell.isCustom && cell.fieldId ? 
-        (typeof cell.fieldId === 'object' ? cell.fieldId.name?.toLowerCase() : 
-         allFieldDefs[cell.fieldId?.toString()]?.name?.toLowerCase()) : '';
-      
-      // Split at VMD heading or first VMD field
-      if (headingName?.includes('vmd') || 
-          fieldDept === 'vmd' ||
-          fieldName?.includes('fabric code') ||
-          fieldName?.includes('fabric type')) {
-        splitIndex = i;
-        console.log('Found VMD section at index:', i);
-        break;
-      }
-    }
-    
-    // Now find where to end page 1 (after COMMERCIAL section)
-    let endIndex = allCells.length;
-    for (let i = splitIndex; i < allCells.length; i++) {
-      const cell = allCells[i];
-      
-      // Check if this is a table field or something after COMMERCIAL
-      let fieldType = null;
-      let fieldDept = null;
-      if (cell.fieldId && !cell.isCustom) {
-        if (typeof cell.fieldId === 'object') {
-          fieldType = cell.fieldId.type;
-          fieldDept = cell.fieldId.department;
-        } else {
-          const fieldDef = allFieldDefs[cell.fieldId.toString()];
-          fieldType = fieldDef?.type;
-          fieldDept = fieldDef?.department;
-        }
-      }
-      
-      // End page 1 at first table field or after commercial section
-      if (fieldType === 'table' || 
-          (fieldDept && fieldDept !== 'vmd' && fieldDept !== 'cad' && fieldDept !== 'commercial')) {
-        endIndex = i;
-        console.log('Ending page 1 at index:', i);
-        break;
-      }
+
+    // If pagination disabled, one single page with all cells
+    if (!formPagination.enabled) {
+      setSections([{ name: 'Page 1', cells: allCells }]);
+      return;
     }
 
-    // Split cells into 2 pages
-    const sectionsArray = [
-      { name: 'Page 1', cells: allCells.slice(splitIndex, endIndex) },
-      { name: 'Page 2', cells: [...allCells.slice(0, splitIndex), ...allCells.slice(endIndex)] }
-    ];
-
-    setSections(sectionsArray);
-    console.log('Pages created:', sectionsArray.map(s => ({ 
-      name: s.name, 
-      cellCount: s.cells.length
-    })));
-  }, [activeTemplate, allFieldDefs]);
+    // Split cells evenly into chunks of itemsPerPage
+    const chunkSize = Math.max(1, formPagination.itemsPerPage);
+    const chunks = [];
+    for (let i = 0; i < allCells.length; i += chunkSize) {
+      chunks.push({
+        name: `Page ${chunks.length + 1}`,
+        cells: allCells.slice(i, i + chunkSize),
+      });
+    }
+    setSections(chunks.length > 0 ? chunks : [{ name: 'Page 1', cells: allCells }]);
+  }, [activeTemplate, formPagination]);
 
   // Auto-save function with debouncing - saves per department
   const debouncedAutoSave = useCallback(async (fieldsToSave, department) => {
@@ -649,7 +609,7 @@ export default function DepartmentPanelExcel({
     switch (type) {
       case 'heading':
         return (
-          <div className="bg-blue-50 px-2 py-1 font-semibold text-blue-800 text-sm">
+          <div className="font-semibold text-gray-800 text-sm px-1 py-0.5">
             {name}
           </div>
         );
@@ -658,70 +618,72 @@ export default function DepartmentPanelExcel({
       case 'number':
       case 'date':
       case 'createdAt':
-        // For createdAt type, use srd.createdAt as the value
         const displayValue = type === 'createdAt' ? (srd.createdAt ? new Date(srd.createdAt).toISOString().split('T')[0] : '') : fieldValue;
         return (
-          <>
-            <div className='flex justify-between align-end me-10'>
-              <label className='text-[12px]'>{name}</label>
-              <Input
-                type={type === 'createdAt' ? 'date' : type}
-                placeholder={placeholder || ''}
-                value={displayValue}
-                onChange={(e) => handleFieldChange(fieldId, name, e.target.value, department, fieldDef)}
-                required={isRequired}
-                disabled={!canEdit || type === 'createdAt'}
-                className={cn(
-                  "h-8 px-2 py-1 text-sm rounded-none focus:ring-1 focus:ring-blue-500 w-[50%] border-0 shadow-none border-b border-black",
-                  !canEdit && "bg-gray-100 cursor-not-allowed"
-                )}
-              />
-            </div>
-
-          </>
-
+          <div className="flex items-baseline gap-2 w-full px-1 py-0">
+            <span className="text-[11px] text-gray-600 shrink-0 min-w-[90px]">{name}</span>
+            <input
+              type={type === 'createdAt' ? 'date' : type}
+              placeholder={placeholder || ''}
+              value={displayValue}
+              onChange={(e) => handleFieldChange(fieldId, name, e.target.value, department, fieldDef)}
+              required={isRequired}
+              disabled={!canEdit || type === 'createdAt'}
+              className={cn(
+                "flex-1 min-w-0 bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-5",
+                !canEdit && "cursor-not-allowed text-gray-500"
+              )}
+            />
+          </div>
         );
 
       case 'textarea':
         return (
-          <Textarea
-            placeholder={placeholder || ''}
-            value={fieldValue}
-            onChange={(e) => handleFieldChange(fieldId, name, e.target.value, department, fieldDef)}
-            required={isRequired}
-            disabled={!canEdit}
-            className={cn(
-              "min-h-[60px] px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 resize-none w-full",
-              !canEdit && "bg-gray-100 cursor-not-allowed"
-            )}
-          />
+          <div className="flex items-start gap-2 w-full px-1 py-0">
+            <span className="text-[11px] text-gray-600 shrink-0 min-w-[90px]">{name}</span>
+            <textarea
+              placeholder={placeholder || ''}
+              value={fieldValue}
+              onChange={(e) => handleFieldChange(fieldId, name, e.target.value, department, fieldDef)}
+              required={isRequired}
+              disabled={!canEdit}
+              rows={1}
+              className={cn(
+                "flex-1 min-w-0 bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 resize-none leading-tight",
+                !canEdit && "cursor-not-allowed text-gray-500"
+              )}
+            />
+          </div>
         );
 
       case 'boolean':
         return (
-          <div className="flex items-center space-x-4 py-1">
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="radio"
-                name={`field-${fieldId}`}
-                checked={fieldValue === true}
-                onChange={() => handleFieldChange(fieldId, name, true, department, fieldDef)}
-                disabled={!canEdit}
-                className="form-radio h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-              />
-              <span className="text-sm text-gray-700">Yes</span>
-            </label>
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="radio"
-                name={`field-${fieldId}`}
-                checked={fieldValue === false}
-                onChange={() => handleFieldChange(fieldId, name, false, department, fieldDef)}
-                disabled={!canEdit}
-                className="form-radio h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-              />
-              <span className="text-sm text-gray-700">No</span>
-            </label>
+          <div className="flex items-center gap-2 w-full px-1 py-0">
+            <span className="text-[11px] text-gray-600 shrink-0 min-w-[90px]">{name}</span>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="radio"
+                  name={`field-${fieldId}`}
+                  checked={fieldValue === true}
+                  onChange={() => handleFieldChange(fieldId, name, true, department, fieldDef)}
+                  disabled={!canEdit}
+                  className="h-3 w-3 text-blue-600 border-gray-300"
+                />
+                <span className="text-[11px] text-gray-700">Yes</span>
+              </label>
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="radio"
+                  name={`field-${fieldId}`}
+                  checked={fieldValue === false}
+                  onChange={() => handleFieldChange(fieldId, name, false, department, fieldDef)}
+                  disabled={!canEdit}
+                  className="h-3 w-3 text-blue-600 border-gray-300"
+                />
+                <span className="text-[11px] text-gray-700">No</span>
+              </label>
+            </div>
           </div>
         );
 
@@ -794,55 +756,10 @@ export default function DepartmentPanelExcel({
         // Interactive Card Layout for wide tables
         if (totalCols >= 10) {
           return (
-            <div className="space-y-4 p-2 overflow-auto max-h-96 bg-gray-50/50 rounded-md">
-
-              {/*ENABLE Card Headers Controls to add more columns to table */}
-              {/* <div className="flex flex-wrap items-center gap-2 mb-4 p-2 bg-white border border-gray-200 rounded-md shadow-sm">
-                <span className="text-xs font-semibold text-gray-700 mr-2">Columns:</span>
-                {tableData.headers?.map((header, colIdx) => (
-                  <div key={colIdx} className="flex items-center group relative">
-                    <input
-                      type="text"
-                      value={typeof header === 'object' ? header.name : header}
-                      onChange={(e) => {
-                        const newHeaders = [...tableData.headers];
-                        newHeaders[colIdx] = typeof header === 'object' ? { ...header, name: e.target.value } : { name: e.target.value, owner: 'global' };
-                        handleFieldChange(fieldId, name, { ...tableData, headers: newHeaders }, department, fieldDef);
-                      }}
-                      className="w-24 text-xs bg-gray-100 border-none focus:ring-1 focus:ring-blue-400 rounded px-2 py-1"
-                      disabled={!canEditField(typeof header === 'object' ? header.owner : 'global')}
-                    />
-                    {canEditField(typeof header === 'object' ? header.owner : 'global') && tableData.headers.length > 1 && (
-                      <button
-                        onClick={() => {
-                          const newHeaders = tableData.headers.filter((_, idx) => idx !== colIdx);
-                          const newRows = tableData.rows.map(row => row.filter((_, idx) => idx !== colIdx));
-                          handleFieldChange(fieldId, name, { headers: newHeaders, rows: newRows }, department, fieldDef);
-                        }}
-                        className="absolute -top-1.5 -right-1.5 opacity-0 group-hover:opacity-100 bg-red-100 text-red-500 rounded-full p-0.5 hover:bg-red-200 transition-opacity"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                {canEdit && (
-                  <button
-                    onClick={() => {
-                      const newOwner = userRole === 'admin' || userRole === 'vmd' ? 'global' : userRole;
-                      const newHeaders = [...tableData.headers, { name: `Column ${tableData.headers.length + 1}`, owner: newOwner }];
-                      const newRows = tableData.rows.map(row => [...row, '']);
-                      handleFieldChange(fieldId, name, { headers: newHeaders, rows: newRows }, department, fieldDef);
-                    }}
-                    className="flex items-center justify-center p-1 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded transition-colors"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                )}
-              </div> */}
+            <div className="p-0">
 
               {/* Data Cards */}
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
                 {tableData.rows?.map((row, rowIdx) => {
                   const rowPredefined = predefinedData[rowIdx] || { purchaseType: 'purchase', opd: '', etd: '' };
                   const isInStock = rowPredefined.purchaseType === 'instock';
@@ -855,32 +772,12 @@ export default function DepartmentPanelExcel({
                   for (let i = 4; i < tableData.headers.length; i++) col2Indexes.push(i);
 
                   return (
-                    <div key={rowIdx} className="bg-white shadow-sm rounded-md p-3 relative group">
-
-                      {/* Add delete row button if user can edit and there's more than 1 row */}
-                      {/* {canEdit && (
-                        <button
-                          onClick={() => {
-                            const newRows = tableData.rows.filter((_, idx) => idx !== rowIdx);
-                            const newPredefined = predefinedData.filter((_, idx) => idx !== rowIdx);
-                            handleFieldChange(fieldId, name, {
-                              ...tableData,
-                              rows: newRows.length > 0 ? newRows : [new Array(tableData.headers.length).fill('')],
-                              predefinedData: newPredefined.length > 0 ? newPredefined : [{ purchaseType: 'purchase', opd: '', etd: '' }]
-                            }, department, fieldDef);
-                          }}
-                          className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 bg-red-100 text-red-500 hover:bg-red-500 hover:text-white rounded-full p-1 transition-all z-10 shadow-sm"
-                          title="Delete row card"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      )} */}
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div key={rowIdx} className="relative">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
                         {/* Col 1: First 4 fields */}
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-0">
                           {col1Indexes.map(idx => (
-                            <div key={idx} className="flex items-center text-xs">
+                            <div key={idx} className="flex items-center text-xs border-b border-gray-100">
                               <span className="w-20 flex-shrink-0 font-semibold text-gray-700 whitespace-nowrap capitalize break-words pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
                               <input
                                 type="text"
@@ -890,7 +787,7 @@ export default function DepartmentPanelExcel({
                                   newRows[rowIdx][idx] = e.target.value;
                                   handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
                                 }}
-                                className="flex-1 ml-5 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent px-1 py-0.5"
+                                className="flex-1 ml-2 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent px-1 py-0"
                                 disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
                               />
                             </div>
@@ -898,10 +795,10 @@ export default function DepartmentPanelExcel({
                         </div>
 
                         {/* Col 2: Remaining fields */}
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-0">
                           {col2Indexes.length > 0 ? (
                             col2Indexes.map(idx => (
-                              <div key={idx} className="flex items-center text-xs">
+                              <div key={idx} className="flex items-center text-xs border-b border-gray-100">
                                 <span className="w-20 flex-shrink-0 font-semibold text-gray-700 capitalize break-words whitespace-nowrap pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
                                 <input
                                   type="text"
@@ -911,7 +808,7 @@ export default function DepartmentPanelExcel({
                                     newRows[rowIdx][idx] = e.target.value;
                                     handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
                                   }}
-                                  className="flex-1 ml-5 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent px-1 py-0.5"
+                                  className="flex-1 ml-2 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent px-1 py-0"
                                   disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
                                 />
                               </div>
@@ -921,92 +818,70 @@ export default function DepartmentPanelExcel({
                           )}
                         </div>
 
-                        {/* Col 3: Predefined Fields - Purchase/Stock, OPD, IHD */}
+                        {/* Col 3: Predefined Fields - Purchase/Stock, OPD, ETD */}
                         <table className='h-10'>
                           <tr className='bg-gradient-to-r from-gray-50 to-gray-100'>
                             <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
-                              <span className="font-semibold text-center text-indigo-700 px-2 py-1.5 block text-[11px]">Purchase/Stock</span>
+                              <span className="font-semibold text-center text-indigo-700 px-2 py-0.5 block text-[11px]">Purchase/Stock</span>
                             </th>
                             <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
-                              <span className="font-semibold text-center text-indigo-700 px-2 py-1.5 block text-[11px]">OPD</span>
+                              <span className="font-semibold text-center text-indigo-700 px-2 py-0.5 block text-[11px]">OPD</span>
                             </th>
                             <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
-                              <span className="font-semibold text-center text-indigo-700 px-2 py-1.5 block text-[11px]">ETD</span>
+                              <span className="font-semibold text-center text-indigo-700 px-2 py-0.5 block text-[11px]">ETD</span>
                             </th>
                           </tr>
                           <tr className='group/row hover:bg-blue-50/30 transition-colors duration-100'>
-                            <td className='border border-gray-200 p-0 '>
-                              <div className="flex items-center justify-center gap-1">
+                            <td className='border border-gray-200 p-0'>
+                              <div className="flex items-center justify-center gap-1 py-0.5">
                                 <button
                                   onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
                                   disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                                   className={cn(
-                                    " p-1 rounded text-[10px] font-medium border",
+                                    "px-1.5 py-0.5 rounded text-[10px] font-medium border",
                                     !isInStock ? "bg-blue-600 text-white border-blue-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-blue-400"
                                   )}
-                                >
-                                  Purchase
-                                </button>
+                                >Purchase</button>
                                 <button
                                   onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'instock')}
                                   disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                                   className={cn(
-                                    " p-1 rounded text-[10px] font-medium border",
+                                    "px-1.5 py-0.5 rounded text-[10px] font-medium border",
                                     isInStock ? "bg-emerald-600 text-white border-emerald-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-emerald-400"
                                   )}
-                                >
-                                  InStock
-                                </button>
+                                >InStock</button>
                               </div>
                             </td>
                             <td className='border border-gray-200 p-0'>
-                              <div>
-                                <input
-                                  type="date"
-                                  value={rowPredefined.opd || ''}
-                                  onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
-                                  disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
-                                  className={cn(
-                                    "w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white text-gray-700",
-                                    isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
-                                  )}
-                                />
-                              </div>
+                              <input
+                                type="date"
+                                value={rowPredefined.opd || ''}
+                                onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
+                                disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
+                                className={cn(
+                                  "w-full px-1 py-0 text-xs bg-white text-gray-700 border-none focus:outline-none",
+                                  isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
+                                )}
+                              />
                             </td>
                             <td className='border border-gray-200 p-0'>
-                              <div>
-                                <input
-                                  type="date"
-                                  value={rowPredefined.etd || ''}
-                                  onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
-                                  disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
-                                  className={cn(
-                                    "w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white text-gray-700",
-                                    isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
-                                  )}
-                                />
-                              </div>
+                              <input
+                                type="date"
+                                value={rowPredefined.etd || ''}
+                                onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
+                                disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
+                                className={cn(
+                                  "w-full px-1 py-0 text-xs bg-white text-gray-700 border-none focus:outline-none",
+                                  isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
+                                )}
+                              />
                             </td>
                           </tr>
                         </table>
-
                       </div>
                     </div>
                   );
                 })}
-
-                {/* {canEdit && (
-                  <button
-                    onClick={() => {
-                      const newRows = [...tableData.rows, new Array(tableData.headers.length).fill('')];
-                      const newPredefined = [...predefinedData, { purchaseType: 'purchase', opd: '', etd: '' }];
-                      handleFieldChange(fieldId, name, { ...tableData, rows: newRows, predefinedData: newPredefined }, department, fieldDef);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 py-2 border-2 border-dashed border-gray-300 rounded-md text-gray-500 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all text-xs font-semibold mt-2"
-                  >
-                    <Plus className="h-4 w-4" /> Add New Row Card
-                  </button>
-                )} */}
               </div>
             </div>
           );
@@ -1403,8 +1278,57 @@ export default function DepartmentPanelExcel({
   const isFirstPage = currentPage === 0;
   const isLastPage = currentPage === sections.length - 1;
 
+  // Separate top-level section header row from the rest of the cells.
+  // A "section header" is a custom-heading whose colSpan fills a column slot
+  // and appears consecutively at the start of the cell list (or after the first row).
+  // We detect them by finding the first run of custom-headings that together sum to gridColumns.
+  const cells = currentSection.cells;
+  let headerCells = [];
+  let bodyCells = cells;
+
+  // Find a contiguous block of custom-headings that sums to exactly gridColumns
+  for (let start = 0; start < Math.min(cells.length, 6); start++) {
+    let sum = 0;
+    let end = start;
+    while (end < cells.length) {
+      const c = cells[end];
+      if (c.isCustom && c.customType === 'custom-heading') {
+        sum += (c.position?.colSpan || 1);
+        end++;
+        if (sum >= gridColumns) break;
+      } else {
+        break;
+      }
+    }
+    if (Math.abs(sum - gridColumns) < 0.1 && end > start) {
+      headerCells = cells.slice(start, end);
+      bodyCells = [...cells.slice(0, start), ...cells.slice(end)];
+      break;
+    }
+  }
+
   return (
     <div className="bg-white rounded-lg overflow-hidden">
+
+      {/* Section header row — always aligned */}
+      {headerCells.length > 0 && (
+        <div
+          className="grid gap-0 border-b border-gray-300 bg-gray-50"
+          style={{ gridTemplateColumns: `repeat(${gridColumns * 2}, minmax(0, 1fr))` }}
+        >
+          {headerCells.map((cell, i) => (
+            <div
+              key={i}
+              className="border-r border-gray-200 last:border-r-0 px-2 py-1"
+              style={{ gridColumn: `span ${(cell.position?.colSpan || 1) * 2}` }}
+            >
+              <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                {cell.customValue}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Grid based on template */}
       <div className="p-0">
@@ -1412,7 +1336,7 @@ export default function DepartmentPanelExcel({
           className="grid gap-0"
           style={{ gridTemplateColumns: `repeat(${gridColumns * 2}, minmax(0, 1fr))` }}
         >
-          {currentSection.cells.map((cell, cellIndex) => {
+          {bodyCells.map((cell, cellIndex) => {
             const colSpan = (cell.position?.colSpan || 1) * 2;
             const rowSpan = cell.position?.rowSpan || 1;
 
@@ -1421,13 +1345,13 @@ export default function DepartmentPanelExcel({
               return (
                 <div
                   key={cellIndex}
-                  className="p-1 bg-gray-100"
+                  className="border-b border-gray-200 bg-gray-50"
                   style={{
                     gridColumn: `span ${colSpan} `,
                     gridRow: `span ${rowSpan} `,
                   }}
                 >
-                  <div className="bg-gray-50 border border-gray-200 rounded p-2 h-full">
+                  <div className="h-full px-1 py-0.5">
                     {cell.customType === 'custom-heading' && (
                       <div className="font-semibold text-gray-800 text-sm">
                         {cell.customValue}
@@ -1525,8 +1449,8 @@ export default function DepartmentPanelExcel({
               <div
                 key={cellIndex}
                 className={cn(
-                  deptBg,
-                  "p-1"
+                  "border-b border-gray-200",
+                  isHeading ? "bg-gray-50" : "bg-white"
                 )}
                 style={{
                   gridColumn: `span ${colSpan} `,
@@ -1535,51 +1459,32 @@ export default function DepartmentPanelExcel({
               >
                 <div
                   className={cn(
-                    " rounded h-full flex flex-col gap-0",
-                    isHeading ? "bg-blue-50 border-blue-200" : " ",
-                    fieldDef.isOptional && !isOptionalEnabled && "bg-gray-50/70 border-dashed",
-                    !canEdit && !isHeading && "opacity-75"
+                    "h-full flex flex-col justify-center",
+                    isHeading && "bg-gray-50",
+                    fieldDef.isOptional && !isOptionalEnabled && "opacity-60"
                   )}
                 >
-                  {/* Field header */}
-                  {!isHeading && (
-                    <div className=" px-2 flex items-start justify-between shrink-0">
-                      {fieldDef.type === 'boolean' &&
-                        <div className="min-w-0 flex-1">
-                          <span className="text-xs font-medium text-gray-700 truncate block" title={fieldDef.name}>
-                            {fieldDef.name}
-                          </span>
-
-                        </div>
-
-                      }
-                      <div className="flex items-center ml-1">
-                        {fieldDef.isOptional && (
-                          <div className="flex items-center gap-2 rounded-full bg-white/80 px-2 py-0.5">
-                            <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                              Optional
-                            </span>
-                            <Switch
-                              checked={isOptionalEnabled}
-                              onCheckedChange={(checked) => handleOptionalFieldToggle(fieldIdStr, fieldDef, checked)}
-                              disabled={!canEdit}
-                              aria-label={`Toggle ${fieldDef.name}`}
-                              className="scale-75"
-                            />
-                          </div>
-                        )}
-                        {/* {fieldDef.isRequired && (
-                          <span className="text-red-500 text-xs font-bold">*</span>
-                        )} */}
+                  {/* Optional toggle */}
+                  {!isHeading && fieldDef.isOptional && (
+                    <div className="flex justify-end px-2 pt-0.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-gray-400">Optional</span>
+                        <Switch
+                          checked={isOptionalEnabled}
+                          onCheckedChange={(checked) => handleOptionalFieldToggle(fieldIdStr, fieldDef, checked)}
+                          disabled={!canEdit}
+                          aria-label={`Toggle ${fieldDef.name}`}
+                          className="scale-75"
+                        />
                       </div>
                     </div>
                   )}
 
                   {/* Field input */}
-                  <div className={cn(!isHeading && "p-1", "flex-1")}>
+                  <div className="flex-1">
                     {fieldDef.isOptional && !isOptionalEnabled ? (
-                      <div className="flex h-full min-h-[64px] items-center justify-center rounded border border-dashed bg-white/70 px-3 text-center text-xs text-gray-500">
-                        {canEdit ? 'Turn on to fill this field.' : 'This optional field is turned off.'}
+                      <div className="flex h-full min-h-[32px] items-center px-2 text-xs text-gray-400 italic">
+                        {canEdit ? 'Turn on to fill.' : 'Optional — off.'}
                       </div>
                     ) : (
                       renderCellInput(fieldDef, fieldIdStr, canEdit)

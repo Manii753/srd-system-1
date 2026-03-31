@@ -1,9 +1,7 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { ChevronUp, ChevronDown, Search, Filter, X, ChevronLeft, ChevronRight, Star, Copy, Repeat, Eye } from 'lucide-react';
+import { ChevronUp, ChevronDown, X, ChevronLeft, ChevronRight, Copy, Repeat, Eye } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -19,6 +17,8 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
   const [sortDirection, setSortDirection] = useState('desc');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [paginationSettings, setPaginationSettings] = useState({ enabled: true, itemsPerPage: 10 });
 
   // Use controlled props if provided
   const effectiveSearch = searchTermProp !== undefined ? searchTermProp : searchTerm;
@@ -26,21 +26,10 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
   const [selectedImages, setSelectedImages] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [productionStages, setProductionStages] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [expandedRows, setExpandedRows] = useState(new Set());
   const [quickDetailsFields, setQuickDetailsFields] = useState([]);
 
-  const toggleRowExpansion = (srdId) => {
-    setExpandedRows(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(srdId)) {
-        newSet.delete(srdId);
-      } else {
-        newSet.add(srdId);
-      }
-      return newSet;
-    });
-  };
+  // Reset to page 1 when search/filter changes
+  useEffect(() => { setCurrentPage(1); }, [effectiveSearch, effectiveFilter]);
 
   useEffect(() => {
     fetchData();
@@ -48,21 +37,30 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
 
   const fetchData = async () => {
     try {
-      const stagesRes = await fetch('/api/production-stages');
-      const stagesData = await stagesRes.json();
+      const [stagesRes, fieldsRes, companyRes] = await Promise.all([
+        fetch('/api/production-stages'),
+        fetch('/api/newField'),
+        fetch('/api/company'),
+      ]);
 
+      const stagesData = await stagesRes.json();
       if (stagesData.success) setProductionStages(stagesData.data.filter(s => s.isActive));
 
-      // Fetch fields with isShownInQuickDetails: true
-      const fieldsRes = await fetch('/api/newField');
       const fieldsData = await fieldsRes.json();
       if (Array.isArray(fieldsData)) {
         setQuickDetailsFields(fieldsData.filter(f => f.isShownInQuickDetails && f.active));
       }
+
+      const companyData = await companyRes.json();
+      const pg = companyData?.paginationSettings;
+      if (pg?.srdList) {
+        setPaginationSettings(pg.srdList);
+      } else if (pg?.itemsPerPage !== undefined) {
+        // old flat structure
+        setPaginationSettings({ enabled: pg.enabled ?? true, itemsPerPage: pg.itemsPerPage });
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -231,6 +229,13 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
       }
     });
 
+  // Pagination
+  const { enabled: paginationEnabled, itemsPerPage } = paginationSettings;
+  const totalPages = paginationEnabled ? Math.ceil(filteredAndSortedSRDs.length / itemsPerPage) : 1;
+  const paginatedSRDs = paginationEnabled
+    ? filteredAndSortedSRDs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    : filteredAndSortedSRDs;
+
   // Helper function to get all images for an SRD
   const getAllImages = (srd) => {
     return getImageAssetsFromDynamicFields(srd.dynamicFields, { department })
@@ -303,9 +308,8 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-100">
-            {filteredAndSortedSRDs.map((srd) => {
+            {paginatedSRDs.map((srd) => {
               const currentStage = getCurrentProductionStage(srd);
-              const isExpanded = expandedRows.has(srd._id);
 
               return (
                 <Fragment key={srd._id}>
@@ -449,6 +453,55 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
       {filteredAndSortedSRDs.length === 0 && (
         <div className="text-center py-12">
           <p className="text-gray-500">No SRDs found matching your criteria.</p>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {paginationEnabled && totalPages > 1 && (
+        <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
+          <span className="text-xs text-gray-500">
+            Showing {((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredAndSortedSRDs.length)} of {filteredAndSortedSRDs.length}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+              .reduce((acc, p, idx, arr) => {
+                if (idx > 0 && p - arr[idx - 1] > 1) acc.push('...');
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((p, idx) =>
+                p === '...' ? (
+                  <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 text-sm">…</span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setCurrentPage(p)}
+                    className={`w-7 h-7 rounded text-xs font-medium transition-colors ${
+                      currentPage === p
+                        ? 'bg-blue-600 text-white'
+                        : 'hover:bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                )
+              )}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 

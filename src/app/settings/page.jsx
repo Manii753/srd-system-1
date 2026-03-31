@@ -1,7 +1,7 @@
 'use client'
 import Layout from "@/components/layout/Layout";
 import { Card } from "@/components/ui/card";
-import { Settings, Building2, Workflow, FileText, Database, Landmark } from "lucide-react";
+import { Settings, Building2, Workflow, FileText, Database, Landmark, List } from "lucide-react";
 import Link from "next/link";
 
 export default function SettingsPage() {
@@ -61,6 +61,13 @@ export default function SettingsPage() {
             icon: Landmark,
             href: "/settings/company",
             color: "bg-yellow-500"
+        },
+        {
+            title: "Pagination",
+            description: "Control how many SRDs appear per page in table views",
+            icon: List,
+            href: "/settings/pagination",
+            color: "bg-cyan-500"
         }
     ];
 
