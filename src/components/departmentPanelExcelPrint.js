@@ -768,7 +768,7 @@ export async function printDepartmentPanelExcel({
       color: #000;
       flex-grow: 1;
       border-bottom: 0.4px solid #999;
-      min-height: 15px;
+      min-height: 10px;
       padding: 0 2px;
       display: flex;
       align-items: center;

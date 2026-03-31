@@ -621,7 +621,7 @@ export default function DepartmentPanelExcel({
         const displayValue = type === 'createdAt' ? (srd.createdAt ? new Date(srd.createdAt).toISOString().split('T')[0] : '') : fieldValue;
         return (
           <div className="flex items-baseline gap-2 w-full px-1 py-0">
-            <span className="text-[11px] text-gray-600 shrink-0 min-w-[90px]">{name}</span>
+            <span className="text-[11px] text-gray-700 font-semibold shrink-0 min-w-[140px]">{name}</span>
             <input
               type={type === 'createdAt' ? 'date' : type}
               placeholder={placeholder || ''}
@@ -640,7 +640,7 @@ export default function DepartmentPanelExcel({
       case 'textarea':
         return (
           <div className="flex items-start gap-2 w-full px-1 py-0">
-            <span className="text-[11px] text-gray-600 shrink-0 min-w-[90px]">{name}</span>
+            <span className="text-[11px] text-gray-700 font-semibold shrink-0 min-w-[140px]">{name}</span>
             <textarea
               placeholder={placeholder || ''}
               value={fieldValue}
@@ -659,7 +659,7 @@ export default function DepartmentPanelExcel({
       case 'boolean':
         return (
           <div className="flex items-center gap-2 w-full px-1 py-0">
-            <span className="text-[11px] text-gray-600 shrink-0 min-w-[90px]">{name}</span>
+            <span className="text-[11px] font-semibold text-gray-700 shrink-0 min-w-[140px]">{name}</span>
             <div className="flex items-center gap-3">
               <label className="flex items-center gap-1 cursor-pointer">
                 <input
@@ -756,8 +756,8 @@ export default function DepartmentPanelExcel({
         // Interactive Card Layout for wide tables
         if (totalCols >= 10) {
           return (
-            <div className="p-0">
-
+            <div className="p-0 flex flex-col w-full">
+              <span className="text-[11px] font-bold text-gray-700 uppercase px-1 pb-1">{name}</span>
               {/* Data Cards */}
               <div className="flex flex-col gap-1">
                 {tableData.rows?.map((row, rowIdx) => {
@@ -895,7 +895,8 @@ export default function DepartmentPanelExcel({
 
         // Standard Interactive Table Layout
         return (
-          <div className="space-y-1 p-0 overflow-auto max-h-96">
+          <div className="space-y-1 p-0 overflow-auto max-h-96 flex flex-col w-full">
+            <span className="text-[11px] font-bold text-gray-700 uppercase px-1 pb-1">{name}</span>
             <div className="border border-gray-200 overflow-hidden">
               <table className="w-full text-xs border-collapse table-fixed">
                 <thead>
