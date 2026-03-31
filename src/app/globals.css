@@ -108,6 +108,30 @@
   animation: pulse-slow 3s ease-in-out infinite;
 }
 
+@keyframes highlight-pulse-bg {
+  0%, 100% { background-color: rgba(59, 130, 246, 0.05); }
+  50% { background-color: rgba(59, 130, 246, 0.15); }
+}
+
+@keyframes subtle-bounce-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.5px); }
+}
+
+.highlight-empty-field {
+  animation: highlight-pulse-bg 2s ease-in-out infinite, subtle-bounce-y 3s ease-in-out infinite;
+  border-bottom: 2px solid rgba(59, 130, 246, 0.4) !important;
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.1);
+  transition: all 0.3s ease;
+}
+
+.highlight-empty-field:focus-within {
+  animation: none;
+  background-color: transparent;
+  transform: translateY(0);
+}
+
 /* PWA Standalone Mode Styles */
 @media (display-mode: standalone) {
   body {

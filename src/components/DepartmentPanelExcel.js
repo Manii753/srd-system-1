@@ -68,6 +68,7 @@ export default function DepartmentPanelExcel({
     return userRole === 'admin' || userRole === 'vmd' || userRole === fieldDepartment;
   }, [userRole]);
 
+
   // Fetch active template and all field definitions
   useEffect(() => {
     async function fetchData() {
@@ -451,6 +452,20 @@ export default function DepartmentPanelExcel({
     return srdField?.value ?? '';
   }, [findFieldState]);
 
+  // Determine if a field should be highlighted (empty and belongs to user's role)
+  const isFieldHighlighted = useCallback((fieldId, fieldDef, value = null) => {
+    if (readOnly) return false;
+
+    // Check ownership: current user's role must match the field's department
+    // For VMD, they only get highlights for 'vmd' fields (as per requirement)
+    const isOwner = userRole === fieldDef.department;
+    if (!isOwner) return false;
+
+    // Check if empty
+    const fieldValue = value !== null ? value : getFieldValue(fieldId, fieldDef);
+    return !hasMeaningfulValue(fieldValue, fieldDef.type);
+  }, [userRole, readOnly, getFieldValue, hasMeaningfulValue]);
+
   // Check if a field should be hidden based on toggle-active connection
   const isFieldHidden = useCallback((fieldDef) => {
     if (!fieldDef.isConnectedTo || fieldDef.connectionType !== 'toggle-active') {
@@ -630,8 +645,9 @@ export default function DepartmentPanelExcel({
               required={isRequired}
               disabled={!canEdit || type === 'createdAt'}
               className={cn(
-                "flex-1 min-w-0 bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-5",
-                !canEdit && "cursor-not-allowed text-gray-500"
+                "flex-1 min-w-0 bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-6",
+                !canEdit && "cursor-not-allowed text-gray-500",
+                isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
               )}
             />
           </div>
@@ -650,7 +666,8 @@ export default function DepartmentPanelExcel({
               rows={1}
               className={cn(
                 "flex-1 min-w-0 bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 resize-none leading-tight",
-                !canEdit && "cursor-not-allowed text-gray-500"
+                !canEdit && "cursor-not-allowed text-gray-500",
+                isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
               )}
             />
           </div>
@@ -660,7 +677,10 @@ export default function DepartmentPanelExcel({
         return (
           <div className="flex items-center gap-2 w-full px-1 py-0">
             <span className="text-[11px] font-semibold text-gray-700 shrink-0 min-w-[140px]">{name}</span>
-            <div className="flex items-center gap-3">
+            <div className={cn(
+              "flex items-center gap-3 p-1 rounded transition-all",
+              isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
+            )}>
               <label className="flex items-center gap-1 cursor-pointer">
                 <input
                   type="radio"
@@ -679,7 +699,7 @@ export default function DepartmentPanelExcel({
                   checked={fieldValue === false}
                   onChange={() => handleFieldChange(fieldId, name, false, department, fieldDef)}
                   disabled={!canEdit}
-                  className="h-3 w-3 text-blue-600 border-gray-300"
+                  className="flex-1 min-w-0 bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-6"
                 />
                 <span className="text-[11px] text-gray-700">No</span>
               </label>
@@ -787,7 +807,10 @@ export default function DepartmentPanelExcel({
                                   newRows[rowIdx][idx] = e.target.value;
                                   handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
                                 }}
-                                className="flex-1 ml-2 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent px-1 py-0"
+                                className={cn(
+                                  "flex-1 ml-2 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent px-1 py-0 transition-all duration-300",
+                                  isFieldHighlighted(fieldId, { ...fieldDef, department: typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global' }, row[idx]) && "highlight-empty-field"
+                                )}
                                 disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
                               />
                             </div>
@@ -808,7 +831,10 @@ export default function DepartmentPanelExcel({
                                     newRows[rowIdx][idx] = e.target.value;
                                     handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
                                   }}
-                                  className="flex-1 ml-2 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent px-1 py-0"
+                                  className={cn(
+                                    "flex-1 ml-2 min-w-0 border-b border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent px-1 py-0 transition-all duration-300",
+                                    isFieldHighlighted(fieldId, { ...fieldDef, department: typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global' }, row[idx]) && "highlight-empty-field"
+                                  )}
                                   disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
                                 />
                               </div>
@@ -862,7 +888,8 @@ export default function DepartmentPanelExcel({
                                   onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
                                   disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                                   className={cn(
-                                    "w-full px-1 py-0 text-xs bg-white text-gray-700 border-none focus:outline-none",
+                                    "w-full px-1 py-0 text-xs bg-white text-gray-700 border-none focus:outline-none transition-all duration-300",
+                                    !isInStock && isFieldHighlighted(fieldId, { ...fieldDef, department: fieldDef.predefinedFieldsOwner || 'global' }, rowPredefined.opd) && "highlight-empty-field",
                                     isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
                                   )}
                                 />
@@ -874,7 +901,8 @@ export default function DepartmentPanelExcel({
                                   onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
                                   disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                                   className={cn(
-                                    "w-full px-1 py-0 text-xs bg-white text-gray-700 border-none focus:outline-none",
+                                    "w-full px-1 py-0 text-xs bg-white text-gray-700 border-none focus:outline-none transition-all duration-300",
+                                    !isInStock && isFieldHighlighted(fieldId, { ...fieldDef, department: fieldDef.predefinedFieldsOwner || 'global' }, rowPredefined.etd) && "highlight-empty-field",
                                     isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
                                   )}
                                 />
@@ -1004,7 +1032,10 @@ export default function DepartmentPanelExcel({
                                       }, 50);
                                     }
                                   }}
-                                  className="w-full h-full px-2 py-1.5 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 bg-transparent transition-colors duration-100"
+                                  className={cn(
+                                    "w-full h-full px-2 py-1.5 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 bg-transparent transition-all duration-300",
+                                    isFieldHighlighted(fieldId, { ...fieldDef, department: colOwner }, cell) && "highlight-empty-field"
+                                  )}
                                   disabled={!canEditColumn}
                                 />
                               ) : (
@@ -1071,7 +1102,8 @@ export default function DepartmentPanelExcel({
                             onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
                             disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                             className={cn(
-                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 text-xs transition-colors duration-100",
+                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 text-xs transition-all duration-300",
+                              !isInStock && isFieldHighlighted(fieldId, { ...fieldDef, department: fieldDef.predefinedFieldsOwner || 'global' }, rowPredefined.opd) && "highlight-empty-field",
                               isInStock && "opacity-40 cursor-not-allowed"
                             )}
                           />
@@ -1084,7 +1116,8 @@ export default function DepartmentPanelExcel({
                             onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
                             disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                             className={cn(
-                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400  text-xs transition-colors duration-100",
+                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400  text-xs transition-all duration-300",
+                              !isInStock && isFieldHighlighted(fieldId, { ...fieldDef, department: fieldDef.predefinedFieldsOwner || 'global' }, rowPredefined.etd) && "highlight-empty-field",
                               isInStock && "opacity-40 cursor-not-allowed"
                             )}
                           />
@@ -1117,7 +1150,10 @@ export default function DepartmentPanelExcel({
         const fileUrl = getAssetUrl(fileAsset);
         const fileLabel = getAssetLabel(fileAsset, 'Download Excel');
         return (
-          <div className="space-y-1 p-1">
+          <div className={cn(
+            "space-y-1 p-1 rounded transition-all duration-300",
+            isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
+          )}>
             {canEdit && (
               <UploadFile
                 srdId={srd?._id}
@@ -1160,7 +1196,10 @@ export default function DepartmentPanelExcel({
         const allImages = deptImages;
 
         return (
-          <div className="space-y-1 p-1">
+          <div className={cn(
+            "space-y-1 p-1 rounded transition-all duration-300",
+            isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
+          )}>
             {canEdit && (
               <UploadImage
                 srdId={srd?._id}
