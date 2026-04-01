@@ -32,6 +32,70 @@ const DispatchPanel = dynamic(() => import('./DispatchPanel'), {
 import { Send } from 'lucide-react';
 import { checkCustomRoutes } from 'next/dist/lib/load-custom-routes';
 
+// Debounced input: keeps local state while typing so parent re-renders don't revert the value
+function DebouncedInput({ value, onDebouncedChange, delay = 400, onKeyDown: parentKeyDown, onBlur: parentBlur, ...props }) {
+  const [local, setLocal] = React.useState(value ?? '');
+  const timerRef = React.useRef(null);
+  const typingRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!typingRef.current) setLocal(value ?? '');
+  }, [value]);
+
+  const flush = React.useCallback((val) => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    typingRef.current = false;
+    onDebouncedChange(val);
+  }, [onDebouncedChange]);
+
+  return (
+    <input
+      {...props}
+      value={local}
+      onChange={(e) => {
+        const v = e.target.value;
+        setLocal(v);
+        typingRef.current = true;
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => flush(v), delay);
+      }}
+      onBlur={(e) => { flush(local); parentBlur?.(e); }}
+      onKeyDown={(e) => { if (e.key === 'Enter') flush(local); parentKeyDown?.(e); }}
+    />
+  );
+}
+
+function DebouncedTextarea({ value, onDebouncedChange, delay = 400, onBlur: parentBlur, ...props }) {
+  const [local, setLocal] = React.useState(value ?? '');
+  const timerRef = React.useRef(null);
+  const typingRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!typingRef.current) setLocal(value ?? '');
+  }, [value]);
+
+  const flush = React.useCallback((val) => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    typingRef.current = false;
+    onDebouncedChange(val);
+  }, [onDebouncedChange]);
+
+  return (
+    <textarea
+      {...props}
+      value={local}
+      onChange={(e) => {
+        const v = e.target.value;
+        setLocal(v);
+        typingRef.current = true;
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => flush(v), delay);
+      }}
+      onBlur={(e) => { flush(local); parentBlur?.(e); }}
+    />
+  );
+}
+
 export default function DepartmentPanelExcel({
   srd,
   userRole,
@@ -638,19 +702,25 @@ export default function DepartmentPanelExcel({
         return (
           <div className="flex items-baseline gap-2 w-full px-1 py-0">
             <span className="text-[12px] text-gray-700 font-semibold shrink-0 min-w-[140px]">{name}</span>
-            <input
-              type={type === 'createdAt' ? 'date' : type}
-              placeholder={placeholder || ''}
-              value={displayValue}
-              onChange={(e) => handleFieldChange(fieldId, name, e.target.value, department, fieldDef)}
-              required={isRequired}
-              disabled={!canEdit || type === 'createdAt'}
-              className={cn(
-                "flex-1 min-w-0 bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-6",
-                !canEdit && "cursor-not-allowed text-gray-500",
-                isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
+            <div className="flex-1 min-w-0 relative">
+              <DebouncedInput
+                type={type === 'createdAt' ? 'date' : type}
+                placeholder={placeholder || ''}
+                value={displayValue}
+                onDebouncedChange={(val) => handleFieldChange(fieldId, name, val, department, fieldDef)}
+                required={isRequired}
+                disabled={!canEdit || type === 'createdAt'}
+                maxLength={20}
+                className={cn(
+                  "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-6",
+                  !canEdit && "cursor-not-allowed text-gray-500",
+                  isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
+                )}
+              />
+              {String(displayValue || '').length >= 20 && (
+                <span className="absolute left-full top-1/2 -translate-y-1/2 -translate-x-[135px] ml-2 whitespace-nowrap text-[10px] text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 z-20 pointer-events-none">Cannot add more letters</span>
               )}
-            />
+            </div>
           </div>
         );
 
@@ -658,19 +728,25 @@ export default function DepartmentPanelExcel({
         return (
           <div className="flex items-start gap-2 w-full px-1 py-0">
             <span className="text-[12px] text-gray-700 font-semibold shrink-0 min-w-[140px]">{name}</span>
-            <textarea
-              placeholder={placeholder || ''}
-              value={fieldValue}
-              onChange={(e) => handleFieldChange(fieldId, name, e.target.value, department, fieldDef)}
-              required={isRequired}
-              disabled={!canEdit}
-              rows={1}
-              className={cn(
-                "flex-1 min-w-0 bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 resize-none leading-tight",
-                !canEdit && "cursor-not-allowed text-gray-500",
-                isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
+            <div className="flex-1 min-w-0 relative">
+              <DebouncedTextarea
+                placeholder={placeholder || ''}
+                value={fieldValue}
+                onDebouncedChange={(val) => handleFieldChange(fieldId, name, val, department, fieldDef)}
+                required={isRequired}
+                disabled={!canEdit}
+                maxLength={20}
+                rows={1}
+                className={cn(
+                  "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 resize-none leading-tight",
+                  !canEdit && "cursor-not-allowed text-gray-500",
+                  isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
+                )}
+              />
+              {String(fieldValue || '').length >= 20 && (
+                <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap text-[10px] text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 z-20 pointer-events-none">Cannot add more letters</span>
               )}
-            />
+            </div>
           </div>
         );
 
@@ -801,20 +877,26 @@ export default function DepartmentPanelExcel({
                           {col1Indexes.map(idx => (
                             <div key={idx} className="flex items-center text-xs border-b border-gray-100">
                               <span className="w-20 flex-shrink-0 font-semibold min-w-[140px] text-gray-700 whitespace-nowrap capitalize break-words pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
-                              <input
-                                type="text"
-                                value={row[idx] || ''}
-                                onChange={(e) => {
-                                  const newRows = [...tableData.rows];
-                                  newRows[rowIdx][idx] = e.target.value;
-                                  handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
-                                }}
-                                className={cn(
-                                  "flex-1 min-w-0 bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-6",
-                                  isFieldHighlighted(fieldId, { ...fieldDef, department: typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global' }, row[idx]) && "highlight-empty-field"
+                              <div className="flex-1 min-w-0 relative">
+                                <DebouncedInput
+                                  type="text"
+                                  value={row[idx] || ''}
+                                  onDebouncedChange={(val) => {
+                                    const newRows = [...tableData.rows];
+                                    newRows[rowIdx][idx] = val;
+                                    handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
+                                  }}
+                                  className={cn(
+                                    "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-6",
+                                    isFieldHighlighted(fieldId, { ...fieldDef, department: typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global' }, row[idx]) && "highlight-empty-field"
+                                  )}
+                                  disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
+                                  maxLength={20}
+                                />
+                                {(row[idx] || '').length >= 20 && (
+                                  <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap text-[10px] text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 z-20 pointer-events-none">Cannot add more letters</span>
                                 )}
-                                disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
-                              />
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -825,20 +907,26 @@ export default function DepartmentPanelExcel({
                             col2Indexes.map(idx => (
                               <div key={idx} className="flex items-center text-xs border-b border-gray-100">
                                 <span className="w-20 flex-shrink-0  min-w-[140px] font-semibold text-gray-700 capitalize break-words whitespace-nowrap pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
-                                <input
-                                  type="text"
-                                  value={row[idx] || ''}
-                                  onChange={(e) => {
-                                    const newRows = [...tableData.rows];
-                                    newRows[rowIdx][idx] = e.target.value;
-                                    handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
-                                  }}
-                                  className={cn(
-                                    "flex-1 min-w-0 bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-6",
-                                    isFieldHighlighted(fieldId, { ...fieldDef, department: typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global' }, row[idx]) && "highlight-empty-field"
+                                <div className="flex-1 min-w-0 relative">
+                                  <DebouncedInput
+                                    type="text"
+                                    value={row[idx] || ''}
+                                    onDebouncedChange={(val) => {
+                                      const newRows = [...tableData.rows];
+                                      newRows[rowIdx][idx] = val;
+                                      handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
+                                    }}
+                                    className={cn(
+                                      "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-6",
+                                      isFieldHighlighted(fieldId, { ...fieldDef, department: typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global' }, row[idx]) && "highlight-empty-field"
+                                    )}
+                                    disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
+                                    maxLength={20}
+                                  />
+                                  {(row[idx] || '').length >= 20 && (
+                                    <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap text-[10px] text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 z-20 pointer-events-none">Cannot add more letters</span>
                                   )}
-                                  disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
-                                />
+                                </div>
                               </div>
                             ))
                           ) : (
@@ -939,18 +1027,24 @@ export default function DepartmentPanelExcel({
                         <th key={colIdx} className="border border-gray-200 p-0 relative group/col">
                           <div className="flex items-center">
                             {canEditColumn ? (
-                              <input
-                                type="text"
-                                value={headerName}
-                                onChange={(e) => {
-                                  const newHeaders = [...tableData.headers];
-                                  newHeaders[colIdx] = typeof header === 'object' ? { ...header, name: e.target.value } : { name: e.target.value, owner: 'global' };
-                                  handleFieldChange(fieldId, name, { ...tableData, headers: newHeaders }, department, fieldDef);
-                                }}
-                                className="w-full border-none focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-2 py-1.5 font-semibold text-center text-gray-700 flex-1"
-                                placeholder={`Column ${colIdx + 1}`}
-                                disabled={!canEditColumn}
-                              />
+                              <div className="flex-1 relative">
+                                <DebouncedInput
+                                  type="text"
+                                  value={headerName}
+                                  onDebouncedChange={(val) => {
+                                    const newHeaders = [...tableData.headers];
+                                    newHeaders[colIdx] = typeof header === 'object' ? { ...header, name: val } : { name: val, owner: 'global' };
+                                    handleFieldChange(fieldId, name, { ...tableData, headers: newHeaders }, department, fieldDef);
+                                  }}
+                                  className="w-full border-none focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-2 py-1.5 font-semibold text-center text-gray-700"
+                                  placeholder={`Column ${colIdx + 1}`}
+                                  disabled={!canEditColumn}
+                                  maxLength={20}
+                                />
+                                {String(headerName || '').length >= 20 && (
+                                  <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap text-[10px] text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 z-20 pointer-events-none">Cannot add more letters</span>
+                                )}
+                              </div>
                             ) : (
                               <span className="font-semibold flex-1 text-center text-gray-700 px-2 py-1.5">{headerName}</span>
                             )}
@@ -1010,36 +1104,42 @@ export default function DepartmentPanelExcel({
                           const colOwner = typeof tableData.headers[colIdx] === 'object' ? tableData.headers[colIdx].owner : 'global';
                           const canEditColumn = canEditField(colOwner);
                           return (
-                            <td key={colIdx} className="border border-gray-200 p-0">
+                            <td key={colIdx} className="border border-gray-200 p-0 relative">
                               {canEditColumn ? (
-                                <input
-                                  type="text"
-                                  value={cell}
-                                  onChange={(e) => {
-                                    const newRows = [...tableData.rows];
-                                    newRows[rowIdx][colIdx] = e.target.value;
-                                    handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
+                                <>
+                                  <DebouncedInput
+                                    type="text"
+                                    value={cell}
+                                    onDebouncedChange={(val) => {
                                       const newRows = [...tableData.rows];
-                                      newRows.splice(rowIdx + 1, 0, new Array(tableData.headers.length).fill(''));
-                                      const newPredefined = [...predefinedData];
-                                      newPredefined.splice(rowIdx + 1, 0, { purchaseType: 'purchase', opd: '', etd: '' });
-                                      handleFieldChange(fieldId, name, { ...tableData, rows: newRows, predefinedData: newPredefined }, department, fieldDef);
-                                      setTimeout(() => {
-                                        const nextInput = e.target.closest('tr')?.nextElementSibling?.querySelector('input');
-                                        if (nextInput) nextInput.focus();
-                                      }, 50);
-                                    }
-                                  }}
-                                  className={cn(
-                                    "w-full h-full px-2 py-1.5 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 bg-transparent transition-all duration-300",
-                                    isFieldHighlighted(fieldId, { ...fieldDef, department: colOwner }, cell) && "highlight-empty-field"
+                                      newRows[rowIdx][colIdx] = val;
+                                      handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        const newRows = [...tableData.rows];
+                                        newRows.splice(rowIdx + 1, 0, new Array(tableData.headers.length).fill(''));
+                                        const newPredefined = [...predefinedData];
+                                        newPredefined.splice(rowIdx + 1, 0, { purchaseType: 'purchase', opd: '', etd: '' });
+                                        handleFieldChange(fieldId, name, { ...tableData, rows: newRows, predefinedData: newPredefined }, department, fieldDef);
+                                        setTimeout(() => {
+                                          const nextInput = e.target.closest('tr')?.nextElementSibling?.querySelector('input');
+                                          if (nextInput) nextInput.focus();
+                                        }, 50);
+                                      }
+                                    }}
+                                    className={cn(
+                                      "w-full h-full px-2 py-1.5 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 bg-transparent transition-all duration-300",
+                                      isFieldHighlighted(fieldId, { ...fieldDef, department: colOwner }, cell) && "highlight-empty-field"
+                                    )}
+                                    disabled={!canEditColumn}
+                                    maxLength={20}
+                                  />
+                                  {String(cell || '').length >= 20 && (
+                                    <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap text-[10px] text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 z-20 pointer-events-none">Cannot add more letters</span>
                                   )}
-                                  disabled={!canEditColumn}
-                                />
+                                </>
                               ) : (
                                 <span className="px-2 py-1.5 block text-xs">{cell}</span>
                               )}

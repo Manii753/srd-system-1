@@ -291,8 +291,11 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
               </th>
               {/* <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Picture</th> */}
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Inquiry #</th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Style</th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">VMD</th>
+              <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">CAD</th>
+              <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">MMC</th>
+              <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">COM</th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Current Status Summary</th>
               <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -321,41 +324,45 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                         </div>
                       </div>
                     </td>
+                    {depts.map(({ key }) => {
+                      const val = getDeptStatus(srd.status, key);
+                      const date = getDeptStatusDate(srd.status, key);
+                      const isApproved = val === 'approved';
+                      return (
+                        <td key={key} className="px-6 py-1 border-b border-black/10 text-center">
+                          {isApproved && date ? (
+                            <span className="text-xs font-medium text-green-700">
+                              {new Date(date).toLocaleDateString()}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400">Pending</span>
+                          )}
+                        </td>
+                      );
+                    })}
                     <td className="px-6 py-0 whitespace-nowrap border-b border-black/10">
-                      <div className="text-sm font-medium text-gray-900">
-                        {getDynamicFieldValue(srd, 'style')}
-                      </div>
-                    </td>
-                    <td className="px-6 py-1 border-b border-black/10">
                       <div className="flex items-center gap-2">
-                        <div className="flex gap-1 flex-wrap">
-                          {depts.map(({ key, label }) => {
-                            const val = getDeptStatus(srd.status, key);
-                            const date = getDeptStatusDate(srd.status, key);
-                            const isApproved = val === 'approved';
-                            return (
-                              <div
-                                key={key}
-                                className={`px-2 py-1 rounded-lg text-xs font-bold shadow-sm ${
-                                  isApproved
-                                    ? 'bg-green-100 text-green-700'
-                                    : 'bg-red-100 text-red-600'
-                                }`}
-                                title={isApproved && date ? `Approved: ${new Date(date).toLocaleDateString()}` : val}
-                              >
-                                <div className="uppercase">{label}</div>
-                                {isApproved && date && (
-                                  <div className="text-[10px] font-normal opacity-80">
-                                    {new Date(date).toLocaleDateString()}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
+                        {srd.inProduction && srd.currentProductionStage ? (() => {
+                          const stage = productionStages.find(s => String(s._id) === String(srd.currentProductionStage));
+                          const historyEntry = (srd.productionHistory || []).find(h => String(h.stage) === String(srd.currentProductionStage));
+                          return (
+                            <div className="flex flex-col">
+                              <span className="text-sm text-gray-700 font-medium">
+                                {stage?.displayName || stage?.name || '—'}
+                              </span>
+                              {historyEntry?.startDate && (
+                                <span className="text-[11px] text-blue-500">
+                                  {new Date(historyEntry.startDate).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })() : (
+                          <span className="text-sm text-gray-400">Pending</span>
+                        )}
                         <button
                           onClick={() => toggleRow(srd._id)}
-                          className="ml-1 p-1 rounded hover:bg-gray-200 transition-colors shrink-0"
+                          className="p-1 rounded hover:bg-gray-200 transition-colors shrink-0"
                           title={isExpanded ? 'Collapse production stages' : 'Expand production stages'}
                         >
                           {isExpanded
@@ -401,7 +408,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                   {/* Expanded production stage timeline */}
                   {isExpanded && (
                     <tr className="bg-gray-50">
-                      <td colSpan={5} className="px-6 py-3 border-b border-black/10">
+                      <td colSpan={8} className="px-6 py-3 border-b border-black/10">
                         {productionStages.length === 0 ? (
                           <p className="text-xs text-gray-400 italic">No production stages configured.</p>
                         ) : (

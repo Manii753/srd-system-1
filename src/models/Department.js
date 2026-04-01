@@ -14,6 +14,11 @@ const DepartmentSchema = new mongoose.Schema({
   description: {
     type: String,
   },
+  type: {
+    type: String,
+    enum: ['production', 'support'],
+    
+  },
   createdAt: {
     type: Date,
     default: Date.now,

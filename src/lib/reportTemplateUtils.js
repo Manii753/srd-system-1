@@ -82,7 +82,7 @@ export function getStageDisplayName(stage) {
 
 export function getFieldTableHeaders(field) {
   const headers = Array.isArray(field?.tableHeaders)
-    ? field.tableHeaders.map((header) => normalizeText(header)).filter(Boolean)
+    ? field.tableHeaders.map((header) => normalizeText(typeof header === 'object' && header !== null ? header.name : header)).filter(Boolean)
     : [];
 
   return headers.length > 0 ? headers : [...DEFAULT_REPORT_TABLE_HEADERS];
