@@ -119,11 +119,7 @@
 }
 
 .highlight-empty-field {
-  animation: highlight-pulse-bg 2s ease-in-out infinite, subtle-bounce-y 3s ease-in-out infinite;
-  border-bottom: 2px solid rgba(59, 130, 246, 0.4) !important;
-  border-radius: 4px;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.1);
-  transition: all 0.3s ease;
+  background-color: #e4e4e4;
 }
 
 .highlight-empty-field:focus-within {
