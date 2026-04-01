@@ -180,7 +180,7 @@ export default function DepartmentPanelExcel({
         isSavingInProgressRef.current = true;
         try {
           const updateData = {
-            status: srd.status?.[department] || 'pending',
+            status: (srd.status || []).find(s => s.department === department)?.value || 'pending',
             fields: deptFields,
           };
 
@@ -1610,13 +1610,13 @@ export default function DepartmentPanelExcel({
                 key={dept}
                 className={cn(
                   "text-xs",
-                  srd.status?.[dept] === 'approved' && 'bg-green-100 text-green-800',
-                  srd.status?.[dept] === 'in-progress' && 'bg-blue-100 text-blue-800',
-                  srd.status?.[dept] === 'flagged' && 'bg-red-100 text-red-800',
-                  (!srd.status?.[dept] || srd.status?.[dept] === 'pending') && 'bg-gray-100 text-gray-800'
+                  (srd.status || []).find(s => s.department === dept)?.value === 'approved' && 'bg-green-100 text-green-800',
+                  (srd.status || []).find(s => s.department === dept)?.value === 'in-progress' && 'bg-blue-100 text-blue-800',
+                  (srd.status || []).find(s => s.department === dept)?.value === 'flagged' && 'bg-red-100 text-red-800',
+                  (!(srd.status || []).find(s => s.department === dept) || (srd.status || []).find(s => s.department === dept)?.value === 'pending') && 'bg-gray-100 text-gray-800'
                 )}
               >
-                {dept.toUpperCase()}: {srd.status?.[dept] || 'pending'}
+                {dept.toUpperCase()}: {(srd.status || []).find(s => s.department === dept)?.value || 'pending'}
               </Badge>
             ))}
           </div>

@@ -2,6 +2,14 @@ import { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ChevronUp, ChevronDown, X, ChevronLeft, ChevronRight, Copy, Repeat, Eye } from 'lucide-react';
+
+// Helper: get status value for a department from the status array
+const getDeptStatus = (statusArray, dept) =>
+  (Array.isArray(statusArray) ? statusArray : []).find(s => s.department === dept)?.value || 'pending';
+
+// Helper: get status update date for a department
+const getDeptStatusDate = (statusArray, dept) =>
+  (Array.isArray(statusArray) ? statusArray : []).find(s => s.department === dept)?.updatedAt || null;
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -27,6 +35,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [productionStages, setProductionStages] = useState([]);
   const [quickDetailsFields, setQuickDetailsFields] = useState([]);
+  const [expandedRows, setExpandedRows] = useState({});
 
   // Reset to page 1 when search/filter changes
   useEffect(() => { setCurrentPage(1); }, [effectiveSearch, effectiveFilter]);
@@ -95,22 +104,6 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
       }
     } catch (error) {
       alert(`An error occurred: ${error.message}`);
-    }
-  };
-
-  // Helper function to get status-based colors for department badges
-  const getDepartmentStatusColor = (status) => {
-    switch (status) {
-      case 'approved':
-        return 'text-green-400';
-      case 'flagged':
-        return 'text-red-400';
-      case 'pending':
-        return 'text-orange-400';
-      case 'in-progress':
-        return 'text-blue-400';
-      default:
-        return 'text-gray-400';
     }
   };
 
@@ -210,7 +203,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
     .filter(srd => {
       const matchesSearch = (srd.title || '').toLowerCase().includes(effectiveSearch.toLowerCase()) ||
         (srd.refNo || '').toLowerCase().includes(effectiveSearch.toLowerCase());
-      const matchesStatus = effectiveFilter === 'all' || (srd.status && srd.status[department] === effectiveFilter);
+      const matchesStatus = effectiveFilter === 'all' || getDeptStatus(srd.status, department) === effectiveFilter;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -266,12 +259,8 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
     }
   };
 
-  // Helper function to get current production stage
-  const getCurrentProductionStage = (srd) => {
-    if (!srd.inProduction || !srd.currentProductionStage) {
-      return null;
-    }
-    return productionStages.find(stage => String(stage._id) === String(srd.currentProductionStage));
+  const toggleRow = (srdId) => {
+    setExpandedRows(prev => ({ ...prev, [srdId]: !prev[srdId] }));
   };
 
 
@@ -309,7 +298,13 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
           </thead>
           <tbody className="bg-white">
             {paginatedSRDs.map((srd) => {
-              const currentStage = getCurrentProductionStage(srd);
+              const isExpanded = !!expandedRows[srd._id];
+              const depts = [
+                { key: 'vmd', label: 'VMD' },
+                { key: 'cad', label: 'CAD' },
+                { key: 'mmc', label: 'MMC' },
+                { key: 'commercial', label: 'COM' },
+              ];
 
               return (
                 <Fragment key={srd._id}>
@@ -318,44 +313,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                       <div className="text-sm font-semibold text-gray-900">
                         {new Date(srd.createdAt).toLocaleDateString()}
                       </div>
-                      {/* <div className="text-xs text-gray-500">
-                        {new Date(srd.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div> */}
                     </td>
-                    {/* <td className="px-6 py-5 whitespace-nowrap">
-                      {(() => {
-                        const allImages = getAllImages(srd);
-                        return allImages.length > 0 ? (
-                          <div
-                            className="cursor-pointer hover:scale-105 transition-transform duration-200 relative group"
-                            onClick={() => openImageSlider(allImages)}
-                          >
-                            <div className="relative">
-                              <Image
-                                src={allImages[0]}
-                                width={70}
-                                height={70}
-                                alt="SRD cover"
-                                className="rounded-xl object-cover border-2 border-yellow-400 shadow-md"
-                              />
-                              <div className="absolute top-0 left-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 px-2 py-1 rounded-tl-xl rounded-br-xl text-xs font-bold flex items-center gap-1 shadow-sm">
-                                <Star className="h-3 w-3 fill-current" />
-                                <span>Cover</span>
-                              </div>
-                              {allImages.length > 1 && (
-                                <span className="absolute -top-2 -right-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold shadow-lg border-2 border-white">
-                                  {allImages.length}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="w-16 h-16 bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center">
-                            <span className="text-gray-400 text-xs font-medium">No Image</span>
-                          </div>
-                        );
-                      })()}
-                    </td> */}
                     <td className="px-6 py-0 whitespace-nowrap border-b border-black/10">
                       <div className="flex items-center">
                         <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
@@ -368,47 +326,43 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                         {getDynamicFieldValue(srd, 'style')}
                       </div>
                     </td>
-                    <td className="px-6 py-0 whitespace-nowrap border-b border-black/10">
-
-                      {srd.isComplete ? (
-                        <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                          <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-sm" />
-                          <span className="text-green-700 font-semibold text-sm">Sample Completed</span>
-                        </div>
-                      ) : srd.inProduction && currentStage ? (
-                        <div className="flex items-center bg-white rounded-lg px-3 py-0 border border-gray-200 shadow-sm">
-                          <div
-                            className="w-3 h-3 rounded-full mr-3 shadow-sm"
-                            style={{ backgroundColor: currentStage.color }}
-                          />
-                          <span className="font-semibold capitalize text-sm text-gray-800">
-                            {currentStage.displayName || currentStage.name}
-                          </span>
-                        </div>
-                      ) : (
+                    <td className="px-6 py-1 border-b border-black/10">
+                      <div className="flex items-center gap-2">
                         <div className="flex gap-1 flex-wrap">
-                          <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.vmd)} rounded-lg text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
-                            <div className="text-center">
-                              <div className="uppercase font-bold text-xs">VMD</div>
-                            </div>
-                          </div>
-                          <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.cad)} rounded-lg text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
-                            <div className="text-center">
-                              <div className="uppercase font-bold text-xs">CAD</div>
-                            </div>
-                          </div>
-                          <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.mmc)} rounded-lg text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
-                            <div className="text-center">
-                              <div className="uppercase font-bold text-xs">MMC</div>
-                            </div>
-                          </div>
-                          <div className={`px-2 py-1.5 ${getDepartmentStatusColor(srd.status.commercial)} rounded-lg text-xs font-medium shadow-sm hover:shadow-md transition-shadow`}>
-                            <div className="text-center">
-                              <div className="uppercase font-bold text-xs">COM</div>
-                            </div>
-                          </div>
+                          {depts.map(({ key, label }) => {
+                            const val = getDeptStatus(srd.status, key);
+                            const date = getDeptStatusDate(srd.status, key);
+                            const isApproved = val === 'approved';
+                            return (
+                              <div
+                                key={key}
+                                className={`px-2 py-1 rounded-lg text-xs font-bold shadow-sm ${
+                                  isApproved
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-red-100 text-red-600'
+                                }`}
+                                title={isApproved && date ? `Approved: ${new Date(date).toLocaleDateString()}` : val}
+                              >
+                                <div className="uppercase">{label}</div>
+                                {isApproved && date && (
+                                  <div className="text-[10px] font-normal opacity-80">
+                                    {new Date(date).toLocaleDateString()}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                      )}
+                        <button
+                          onClick={() => toggleRow(srd._id)}
+                          className="ml-1 p-1 rounded hover:bg-gray-200 transition-colors shrink-0"
+                          title={isExpanded ? 'Collapse production stages' : 'Expand production stages'}
+                        >
+                          {isExpanded
+                            ? <ChevronUp className="h-3.5 w-3.5 text-gray-500" />
+                            : <ChevronDown className="h-3.5 w-3.5 text-gray-500" />}
+                        </button>
+                      </div>
                     </td>
                     <td className="justify-center align-middle px-6 py-0 whitespace-nowrap text-sm font-medium border-b border-black/10">
                       <div className="flex gap-2 justify-center">
@@ -443,6 +397,64 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                       </div>
                     </td>
                   </tr>
+
+                  {/* Expanded production stage timeline */}
+                  {isExpanded && (
+                    <tr className="bg-gray-50">
+                      <td colSpan={5} className="px-6 py-3 border-b border-black/10">
+                        {productionStages.length === 0 ? (
+                          <p className="text-xs text-gray-400 italic">No production stages configured.</p>
+                        ) : (
+                          <div className="flex items-start gap-0">
+                            {[...productionStages].sort((a, b) => a.order - b.order).map((stage, idx, arr) => {
+                              const historyEntry = (srd.productionHistory || []).find(
+                                h => String(h.stage) === String(stage._id)
+                              );
+                              const isCompleted = historyEntry?.status === 'completed';
+                              const isCurrent = srd.inProduction && String(srd.currentProductionStage) === String(stage._id);
+                              const isLast = idx === arr.length - 1;
+
+                              return (
+                                <div key={stage._id} className="flex items-center">
+                                  <div className="flex flex-col items-center min-w-[80px]">
+                                    {/* Dot */}
+                                    <div className={`w-3 h-3 rounded-full border-2 border-white shadow ${
+                                      isCompleted ? 'bg-green-500' :
+                                      isCurrent ? 'bg-blue-500 ring-2 ring-blue-300 animate-pulse' :
+                                      'bg-gray-300'
+                                    }`} />
+                                    {/* Stage name */}
+                                    <div className="text-[10px] font-semibold text-gray-700 mt-1 text-center leading-tight">
+                                      {stage.displayName || stage.name}
+                                    </div>
+                                    {/* Date / indicator */}
+                                    {isCompleted && historyEntry.endDate ? (
+                                      <div className="text-[9px] text-green-600 text-center mt-0.5">
+                                        {new Date(historyEntry.endDate).toLocaleDateString()}
+                                      </div>
+                                    ) : isCurrent && historyEntry?.startDate ? (
+                                      <div className="flex flex-col items-center gap-0.5 mt-0.5">
+                                        <span className="text-[9px] text-blue-500 text-center">
+                                          {new Date(historyEntry.startDate).toLocaleDateString()}
+                                        </span>
+                                        <span className="text-[9px] bg-blue-100 text-blue-700 px-1 rounded font-medium">In Progress</span>
+                                      </div>
+                                    ) : (
+                                      <div className="text-[9px] text-gray-400 mt-0.5">—</div>
+                                    )}
+                                  </div>
+                                  {/* Connector line */}
+                                  {!isLast && (
+                                    <div className={`h-0.5 w-6 mb-6 ${isCompleted ? 'bg-green-400' : 'bg-gray-200'}`} />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
                 </Fragment>
               );
             })}

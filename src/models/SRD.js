@@ -87,11 +87,11 @@ const srdSchema = new mongoose.Schema({
   DispatchDetails: { type: mongoose.Schema.Types.ObjectId, ref: 'Dispatch' },
 
 
-  status: {
-    type: Object,
-    of: String,
-    default: {}
-  },
+  status:[{
+    department: String,
+    value: { type: String, enum: ['approved', 'rejected', 'flagged', 'pending'], default: 'pending' },
+    updatedAt: { type: Date, default: Date.now }
+  }],
 
   // Images (optional)
   images: [String],
@@ -123,9 +123,10 @@ const REQUIRED_DEPTS = ['vmd', 'cad', 'commercial', 'mmc'];
 
 srdSchema.pre('save', function (next) {
   if (this.isModified('status')) {
-    const statuses = this.status || {};
-    const allApproved = REQUIRED_DEPTS.every(dept => statuses[dept] === 'approved');
-
+    const statusArray = this.status || [];
+    const allApproved = REQUIRED_DEPTS.every(dept =>
+      statusArray.find(s => s.department === dept)?.value === 'approved'
+    );
     if (allApproved) {
       this.readyForProduction = true;
     }

@@ -56,7 +56,7 @@ const AirwayBillPrint = ({ srd }) => {
       const backImages = imgObj.back || [];
 
       // Departments from status
-      const departments = srd.status ? Object.keys(srd.status) : [];
+      const departments = Array.isArray(srd.status) ? srd.status.map(s => s.department) : [];
 
       // Build email rows
       const emailRows = buyerEmails.map((e, i) =>

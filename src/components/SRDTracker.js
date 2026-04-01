@@ -55,7 +55,7 @@ export default function SRDTracker({ srd }) {
   };
 
   const getDepartmentProgress = () => {
-    const approvedCount = departments.filter(dept => srd.status?.[dept.key] === 'approved').length;
+    const approvedCount = departments.filter(dept => (srd.status || []).find(s => s.department === dept.key)?.value === 'approved').length;
     return (approvedCount / departments.length) * 100;
   };
 
@@ -152,10 +152,11 @@ export default function SRDTracker({ srd }) {
                 let completedSteps = 1; // SR is always completed (created)
                 
                 // Count approved departments
-                if (srd.status?.vmd === 'approved') completedSteps++;
-                if (srd.status?.mmc === 'approved') completedSteps++;
-                if (srd.status?.cad === 'approved') completedSteps++;
-                if (srd.status?.commercial === 'approved') completedSteps++;
+                const _st = srd.status || [];
+                if (_st.find(s => s.department === 'vmd')?.value === 'approved') completedSteps++;
+                if (_st.find(s => s.department === 'mmc')?.value === 'approved') completedSteps++;
+                if (_st.find(s => s.department === 'cad')?.value === 'approved') completedSteps++;
+                if (_st.find(s => s.department === 'commercial')?.value === 'approved') completedSteps++;
                 
                 // Count completed production stages
                 if (srd.completedProductionStages) {
@@ -202,11 +203,11 @@ export default function SRDTracker({ srd }) {
               <div className="absolute" style={{ left: '14px', top: '37px' }}>
                 <div className={cn(
                   "w-3 h-3 rounded-full border-2 border-white shadow-sm",
-                  getStatusColor(srd.status?.vmd || 'pending')
+                  getStatusColor((srd.status || []).find(s => s.department === 'vmd')?.value || 'pending')
                 )}></div>
                 <div className="text-xs text-center mt-1 text-gray-600 font-medium" style={{ marginLeft: '-10px', width: '26px' }}>VMD</div>
                 <div className="text-xs text-center text-gray-500 capitalize" style={{ marginLeft: '-10px', width: '26px' }}>
-                  {srd.status?.vmd || 'Pending'}
+                  {(srd.status || []).find(s => s.department === 'vmd')?.value || 'Pending'}
                 </div>
               </div>
               
@@ -214,11 +215,11 @@ export default function SRDTracker({ srd }) {
               <div className="absolute" style={{ left: '58px', top: '4px' }}>
                 <div className={cn(
                   "w-3 h-3 rounded-full border-2 border-white shadow-sm",
-                  getStatusColor(srd.status?.mmc || 'pending')
+                  getStatusColor((srd.status || []).find(s => s.department === 'mmc')?.value || 'pending')
                 )}></div>
                 <div className="text-xs text-center mt-1 text-gray-600 font-medium" style={{ marginLeft: '-10px', width: '26px' }}>MMC</div>
                 <div className="text-xs text-center text-gray-500 capitalize" style={{ marginLeft: '-10px', width: '26px' }}>
-                  {srd.status?.mmc || 'Pending'}
+                  {(srd.status || []).find(s => s.department === 'mmc')?.value || 'Pending'}
                 </div>
               </div>
               
@@ -226,11 +227,11 @@ export default function SRDTracker({ srd }) {
               <div className="absolute" style={{ left: '102px', top: '37px' }}>
                 <div className={cn(
                   "w-3 h-3 rounded-full border-2 border-white shadow-sm",
-                  getStatusColor(srd.status?.cad || 'pending')
+                  getStatusColor((srd.status || []).find(s => s.department === 'cad')?.value || 'pending')
                 )}></div>
                 <div className="text-xs text-center mt-1 text-gray-600 font-medium" style={{ marginLeft: '-10px', width: '26px' }}>CAD</div>
                 <div className="text-xs text-center text-gray-500 capitalize" style={{ marginLeft: '-10px', width: '26px' }}>
-                  {srd.status?.cad || 'Pending'}
+                  {(srd.status || []).find(s => s.department === 'cad')?.value || 'Pending'}
                 </div>
               </div>
               
@@ -238,11 +239,11 @@ export default function SRDTracker({ srd }) {
               <div className="absolute" style={{ left: '58px', top: '67px' }}>
                 <div className={cn(
                   "w-3 h-3 rounded-full border-2 border-white shadow-sm",
-                  getStatusColor(srd.status?.commercial || 'pending')
+                  getStatusColor((srd.status || []).find(s => s.department === 'commercial')?.value || 'pending')
                 )}></div>
                 <div className="text-xs text-center mt-1 text-gray-600 font-medium" style={{ marginLeft: '-10px', width: '26px' }}>COM</div>
                 <div className="text-xs text-center text-gray-500 capitalize" style={{ marginLeft: '-10px', width: '26px' }}>
-                  {srd.status?.commercial || 'Pending'}
+                  {(srd.status || []).find(s => s.department === 'commercial')?.value || 'Pending'}
                 </div>
               </div>
             </div>
@@ -292,7 +293,7 @@ export default function SRDTracker({ srd }) {
         </div>
 
         {/* Rejection Flow */}
-        {departments.some(dept => srd.status?.[dept.key] === 'flagged') && (
+        {departments.some(dept => (srd.status || []).find(s => s.department === dept.key)?.value === 'flagged') && (
           <div className="border-2 border-dashed border-red-300 rounded-lg p-6 bg-red-50">
             <div className="text-sm font-medium text-red-600 mb-6">In Case of Rejection</div>
             
@@ -309,12 +310,12 @@ export default function SRDTracker({ srd }) {
               <div className="flex flex-col items-center">
                 <div className={cn(
                   "w-12 h-12 rounded-full border-2 flex items-center justify-center text-sm font-bold text-white",
-                  srd.status?.vmd === 'flagged' ? "bg-red-500 border-red-500" : "bg-orange-500 border-orange-500"
+                  (srd.status || []).find(s => s.department === 'vmd')?.value === 'flagged' ? "bg-red-500 border-red-500" : "bg-orange-500 border-orange-500"
                 )}>
                   VMD
                 </div>
                 <div className="text-xs text-red-600 mt-2 capitalize">
-                  {srd.status?.vmd === 'flagged' ? 'Flagged' : 'Pending'}
+                  {(srd.status || []).find(s => s.department === 'vmd')?.value === 'flagged' ? 'Flagged' : 'Pending'}
                 </div>
               </div>
 
@@ -327,43 +328,43 @@ export default function SRDTracker({ srd }) {
                   <line x1="64" y1="80" x2="48" y2="48" stroke="#ef4444" strokeWidth="1.5" strokeDasharray="4,4" />
                   <line x1="48" y1="48" x2="64" y2="16" stroke="#ef4444" strokeWidth="1.5" strokeDasharray="4,4" />
                 </svg>
-                
+
                 {/* MMC (Top of diamond) */}
                 <div className="absolute" style={{ left: '44px', top: '-4px' }}>
                   <div className={cn(
                     "w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-bold text-white",
-                    srd.status?.mmc === 'flagged' ? "bg-red-500 border-red-500" : "bg-orange-500 border-orange-500"
+                    (srd.status || []).find(s => s.department === 'mmc')?.value === 'flagged' ? "bg-red-500 border-red-500" : "bg-orange-500 border-orange-500"
                   )}>
                     MMC
                   </div>
                   <div className="text-xs text-center mt-1 text-red-600 capitalize">
-                    {srd.status?.mmc === 'flagged' ? 'Flagged' : 'Pending'}
+                    {(srd.status || []).find(s => s.department === 'mmc')?.value === 'flagged' ? 'Flagged' : 'Pending'}
                   </div>
                 </div>
-                
+
                 {/* CAD (Center-right - on main horizontal line) */}
                 <div className="absolute" style={{ left: '60px', top: '28px' }}>
                   <div className={cn(
                     "w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-bold text-white",
-                    srd.status?.cad === 'flagged' ? "bg-red-500 border-red-500" : "bg-orange-500 border-orange-500"
+                    (srd.status || []).find(s => s.department === 'cad')?.value === 'flagged' ? "bg-red-500 border-red-500" : "bg-orange-500 border-orange-500"
                   )}>
                     CAD
                   </div>
                   <div className="text-xs text-center mt-1 text-red-600 capitalize">
-                    {srd.status?.cad === 'flagged' ? 'Flagged' : 'Pending'}
+                    {(srd.status || []).find(s => s.department === 'cad')?.value === 'flagged' ? 'Flagged' : 'Pending'}
                   </div>
                 </div>
-                
+
                 {/* COM (Bottom of diamond) */}
                 <div className="absolute" style={{ left: '44px', top: '60px' }}>
                   <div className={cn(
                     "w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-bold text-white",
-                    srd.status?.commercial === 'flagged' ? "bg-red-500 border-red-500" : "bg-orange-500 border-orange-500"
+                    (srd.status || []).find(s => s.department === 'commercial')?.value === 'flagged' ? "bg-red-500 border-red-500" : "bg-orange-500 border-orange-500"
                   )}>
                     COM
                   </div>
                   <div className="text-xs text-center mt-1 text-red-600 capitalize">
-                    {srd.status?.commercial === 'flagged' ? 'Flagged' : 'Pending'}
+                    {(srd.status || []).find(s => s.department === 'commercial')?.value === 'flagged' ? 'Flagged' : 'Pending'}
                   </div>
                 </div>
               </div>

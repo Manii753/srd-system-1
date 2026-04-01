@@ -38,40 +38,39 @@ export async function PATCH(request, context) {
           return NextResponse.json({ success: false, error: 'Comment is required when flagging an SRD' }, { status: 400 });
         }
 
-        // 🔹 FIX: Update status properly
-        if (!srd.status) {
-          srd.status = {};
+        // Migrate legacy flat-object status → array format
+        if (srd.status && !Array.isArray(srd.status)) {
+          const flatStatus = srd.status;
+          srd.status = Object.entries(flatStatus).map(([department, value]) => ({
+            department,
+            value: String(value),
+            updatedAt: new Date(),
+          }));
         }
+        if (!srd.status) srd.status = [];
 
-        // Create a new object to ensure Mongoose detects the change
-        const updatedStatus = { ...srd.status };
-        updatedStatus[dept] = body.status;
-        srd.status = updatedStatus;
+        // Update status array entry for this department
+        const existingEntry = srd.status.find(s => s.department === dept);
+        if (existingEntry) {
+          existingEntry.value = body.status;
+          existingEntry.updatedAt = new Date();
+        } else {
+          srd.status.push({ department: dept, value: body.status, updatedAt: new Date() });
+        }
         srd.markModified('status');
 
-        // --- MOVED PROGRESS CALCULATION LOGIC HERE ---
-        const departmentStatuses = srd.status;
+        // Progress calculation
         const excludedDepts = ['admin', 'production-manager', 'vmd'];
-        let relevantDeptCount = 0;
-        let approvedDeptCount = 0;
+        const relevantEntries = srd.status.filter(s => !excludedDepts.includes(s.department));
+        const approvedCount = relevantEntries.filter(s => s.value === 'approved').length;
 
-        for (const deptKey in departmentStatuses) {
-          if (!excludedDepts.includes(deptKey)) {
-            relevantDeptCount++;
-            if (departmentStatuses[deptKey] === 'approved') {
-              approvedDeptCount++;
-            }
-          }
-        }
-
-        if (relevantDeptCount > 0) {
-          srd.progress = Math.round((approvedDeptCount / relevantDeptCount) * 100);
-          srd.readyForProduction = approvedDeptCount === relevantDeptCount;
+        if (relevantEntries.length > 0) {
+          srd.progress = Math.round((approvedCount / relevantEntries.length) * 100);
+          srd.readyForProduction = approvedCount === relevantEntries.length;
         } else {
           srd.progress = 0;
           srd.readyForProduction = false;
         }
-        // --- END OF MOVED LOGIC ---
 
         srd.updatedAt = new Date();
 

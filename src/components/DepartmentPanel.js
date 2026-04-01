@@ -30,7 +30,9 @@ export default function DepartmentPanel({
   canEdit
 }) {
   const { toast } = useToast();
-  const [status, setStatus] = useState(srd.status?.[department] || 'pending');
+  const [status, setStatus] = useState(
+    (srd.status || []).find(s => s.department === department)?.value || 'pending'
+  );
   const [fields, setFields] = useState(srd.dynamicFields?.filter(f => f.department === department) || []);
   const [fieldDefs, setFieldDefs] = useState([]);
   const [allFieldDefs, setAllFieldDefs] = useState({});
@@ -114,7 +116,7 @@ export default function DepartmentPanel({
   }, [fields, debouncedAutoSave]);
   useEffect(() => {
     // Sync status from SRD
-    setStatus(srd.status?.[department] || 'pending');
+    setStatus((srd.status || []).find(s => s.department === department)?.value || 'pending');
 
     // Get fields for this department
     const srdDynamicFields = srd.dynamicFields?.filter(f => f.department === department) || [];

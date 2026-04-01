@@ -32,20 +32,23 @@ export async function GET(request, { params }) {
         progress: srd.progress,
         readyForProduction: srd.readyForProduction,
         inProduction: srd.inProduction,
-        statusMap: srd.status || {}
+        statusMap: Object.fromEntries((srd.status || []).map(s => [s.department, s.value]))
       },
 
       // Department analysis
       departments: {
         total: validDepartments.length,
-        inStatus: srd.status ? Object.keys(srd.status).length : 0,
-        list: validDepartments.map(d => ({
-          slug: d.slug,
-          name: d.name,
-          inStatus: srd.status ? d.slug in srd.status : false,
-          status: srd.status && d.slug in srd.status ? srd.status[d.slug] : 'missing',
-          approved: srd.status ? srd.status[d.slug] === 'approved' : false
-        }))
+        inStatus: (srd.status || []).length,
+        list: validDepartments.map(d => {
+          const entry = (srd.status || []).find(s => s.department === d.slug);
+          return {
+            slug: d.slug,
+            name: d.name,
+            inStatus: !!entry,
+            status: entry ? entry.value : 'missing',
+            approved: entry?.value === 'approved'
+          };
+        })
       },
 
       // Issues found
@@ -56,30 +59,24 @@ export async function GET(request, { params }) {
     };
 
     // Check for issues
-    
+    const statusArray = srd.status || [];
+    const invalidRoles = ['admin', 'production-manager'];
+
     // Issue 1: Admin or production-manager in status
-    if (srd.status) {
-      if ('admin' in srd.status) {
+    for (const role of invalidRoles) {
+      if (statusArray.some(s => s.department === role)) {
         diagnostic.issues.push({
           type: 'invalid_role_in_status',
-          role: 'admin',
-          message: 'Admin should not be in approval workflow'
+          role,
+          message: `${role} should not be in approval workflow`
         });
-        diagnostic.recommendations.push('Remove admin from status');
-      }
-      if ('production-manager' in srd.status) {
-        diagnostic.issues.push({
-          type: 'invalid_role_in_status',
-          role: 'production-manager',
-          message: 'Production Manager should not be in approval workflow'
-        });
-        diagnostic.recommendations.push('Remove production-manager from status');
+        diagnostic.recommendations.push(`Remove ${role} from status`);
       }
     }
 
     // Issue 2: Missing departments in status
-    const missingDepts = validDepartments.filter(d => 
-      !srd.status || !(d.slug in srd.status)
+    const missingDepts = validDepartments.filter(d =>
+      !statusArray.some(s => s.department === d.slug)
     );
     if (missingDepts.length > 0) {
       diagnostic.issues.push({
@@ -91,8 +88,8 @@ export async function GET(request, { params }) {
     }
 
     // Issue 3: Check if should be ready for production
-    const approvedDepts = validDepartments.filter(d => 
-      srd.status && srd.status[d.slug] === 'approved'
+    const approvedDepts = validDepartments.filter(d =>
+      statusArray.some(s => s.department === d.slug && s.value === 'approved')
     );
     const shouldBeReady = approvedDepts.length === validDepartments.length;
     
@@ -159,30 +156,28 @@ export async function POST(request, { params }) {
     const changes = [];
     const excludedRoles = ['admin', 'production-manager'];
 
+    if (!srd.status) srd.status = [];
+
     // Fix 1: Remove admin and production-manager from status
-    if (srd.status) {
-      for (const role of excludedRoles) {
-        if (role in srd.status) {
-          delete srd.status[role];
-          changes.push(`Removed ${role} from status`);
-        }
+    for (const role of excludedRoles) {
+      const idx = srd.status.findIndex(s => s.department === role);
+      if (idx !== -1) {
+        srd.status.splice(idx, 1);
+        changes.push(`Removed ${role} from status`);
       }
     }
 
     // Fix 2: Add missing departments
     const allDepartments = await Department.find({});
     const validDepartments = allDepartments.filter(d => !excludedRoles.includes(d.slug));
-    
+
     for (const dept of validDepartments) {
-      if (!srd.status || !(dept.slug in srd.status)) {
-        if (!srd.status) {
-          srd.status = {};
-        }
-        srd.status[dept.slug] = 'pending';
+      if (!srd.status.some(s => s.department === dept.slug)) {
+        srd.status.push({ department: dept.slug, value: 'pending', updatedAt: new Date() });
         changes.push(`Added ${dept.slug} to status as pending`);
       }
     }
-    
+
     // Mark status as modified for Mongoose
     srd.markModified('status');
 
@@ -201,7 +196,7 @@ export async function POST(request, { params }) {
           refNo: srd.refNo,
           progress: srd.progress,
           readyForProduction: srd.readyForProduction,
-          status: srd.status || {}
+          status: srd.status || []
         }
       }
     });

@@ -59,41 +59,18 @@ export async function GET(request) {
 
     let query = {};
 
-    // Filter by department status (handle both uppercase and lowercase keys)
+    // Filter by department status
     if (department === 'dispatch') {
       query['inDispatch'] = true;
     } else if (department && department !== 'all') {
-      const deptUpper = department.toUpperCase();
       const deptLower = department.toLowerCase();
-      query['$or'] = [
-        { [`status.${deptUpper}`]: { $exists: true } },
-        { [`status.${deptLower}`]: { $exists: true } }
-      ];
-    }
-
-    // Filter by status (handle both uppercase and lowercase keys)
-    if (status && status !== 'all') {
-      if (department === 'dispatch') {
-        // Advanced dispatch status filtering if needed later
-      } else if (department && department !== 'all') {
-        const deptUpper = department.toUpperCase();
-        const deptLower = department.toLowerCase();
-        query['$or'] = [
-          { [`status.${deptUpper}`]: status },
-          { [`status.${deptLower}`]: status }
-        ];
+      if (status && status !== 'all') {
+        query['status'] = { $elemMatch: { department: deptLower, value: status } };
       } else {
-        query['$or'] = [
-          { 'status.vmd': status },
-          { 'status.VMD': status },
-          { 'status.cad': status },
-          { 'status.CAD': status },
-          { 'status.commercial': status },
-          { 'status.COMMERCIAL': status },
-          { 'status.mmc': status },
-          { 'status.MMC': status },
-        ];
+        query['status'] = { $elemMatch: { department: deptLower } };
       }
+    } else if (status && status !== 'all') {
+      query['status'] = { $elemMatch: { value: status } };
     }
 
     // Filter by readyForProduction
@@ -266,18 +243,13 @@ export async function POST(request) {
     }
 
     // Use the status from the request body if it exists, otherwise initialize for all departments
-    if (!body.status || Object.keys(body.status).length === 0) {
+    if (!body.status || (Array.isArray(body.status) && body.status.length === 0)) {
       const Department = require('@/models/Department').default;
       const allDepartments = await Department.find({});
-      const initialStatus = {};
       const excludedRoles = ['admin', 'production-manager'];
-      allDepartments.forEach(dept => {
-        if (!excludedRoles.includes(dept.slug)) {
-          // Use lowercase keys to match the frontend expectations
-          initialStatus[dept.slug.toLowerCase()] = 'pending';
-        }
-      });
-      body.status = initialStatus;
+      body.status = allDepartments
+        .filter(dept => !excludedRoles.includes(dept.slug))
+        .map(dept => ({ department: dept.slug.toLowerCase(), value: 'pending', updatedAt: new Date() }));
     }
 
     // --- Generate unique refNo if not provided ---

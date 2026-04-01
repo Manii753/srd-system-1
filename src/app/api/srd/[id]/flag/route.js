@@ -21,7 +21,19 @@ export async function PATCH(request, context) {
       return NextResponse.json({ success: false, error: 'SRD not found' }, { status: 404 });
     }
 
-    srd.status[department] = 'flagged';
+    if (srd.status && !Array.isArray(srd.status)) {
+      const flatStatus = srd.status;
+      srd.status = Object.entries(flatStatus).map(([d, v]) => ({ department: d, value: String(v), updatedAt: new Date() }));
+    }
+    if (!srd.status) srd.status = [];
+    const flagEntry = srd.status.find(s => s.department === department);
+    if (flagEntry) {
+      flagEntry.value = 'flagged';
+      flagEntry.updatedAt = new Date();
+    } else {
+      srd.status.push({ department, value: 'flagged', updatedAt: new Date() });
+    }
+    srd.markModified('status');
     srd.comments.push({
       department,
       author,
