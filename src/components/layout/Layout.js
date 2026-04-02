@@ -21,9 +21,9 @@ export default function Layout({ children, headerContent }) {
     <SidebarProvider>
       <DynamicSidebar />
       <SidebarInset>
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
           <Header headerContent={headerContent} />
-          <main className="flex-1">
+          <main className="flex-1 min-h-0 overflow-hidden">
             {children}
           </main>
           <Toaster />

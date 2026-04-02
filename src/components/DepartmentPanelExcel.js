@@ -760,7 +760,7 @@ export default function DepartmentPanelExcel({
                 )}
               />
               {String(displayValue || '').length >= 20 && (
-                <span className="absolute left-full top-1/2 -translate-y-1/2 -translate-x-[135px] ml-2 whitespace-nowrap text-[10px] text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 z-20 pointer-events-none">Cannot add more letters</span>
+                <span className="absolute left-full top-1/2 -translate-y-1/2 -translate-x-[145px] ml-2 whitespace-nowrap text-[10px] text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 z-20 pointer-events-none">Cannot add more letters</span>
               )}
             </div>
           </div>
@@ -1498,9 +1498,9 @@ export default function DepartmentPanelExcel({
   }
 
   return (
-    <div className="flex gap-0 bg-white rounded-lg overflow-hidden h-[calc(100vh-120px)]">
+    <div className="flex gap-0 bg-white rounded-lg overflow-hidden flex-1 min-h-0">
       {/* Main Form Area */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div className="flex flex-col flex-1 min-h-0 overflow-y-hidden">
 
       {/* Section header row — always aligned */}
       {headerCells.length > 0 && (
@@ -1521,269 +1521,269 @@ export default function DepartmentPanelExcel({
           ))}
         </div>
       )}
+      <div className='flex-1 overflow-y-auto custom-scrollbar min-h-0'>
+        {/* Grid based on template ------------------------------------------------------------*/}
+        <div className="p-0 ">
+          <div
+            className="grid gap-0"
+            style={{ gridTemplateColumns: `repeat(${gridColumns * 2}, minmax(0, 1fr))` }}
+          >
+            {bodyCells.map((cell, cellIndex) => {
+              const colSpan = (cell.position?.colSpan || 1) * 2;
+              const rowSpan = cell.position?.rowSpan || 1;
 
-      {/* Grid based on template */}
-      <div className="p-0">
-        <div
-          className="grid gap-0"
-          style={{ gridTemplateColumns: `repeat(${gridColumns * 2}, minmax(0, 1fr))` }}
-        >
-          {bodyCells.map((cell, cellIndex) => {
-            const colSpan = (cell.position?.colSpan || 1) * 2;
-            const rowSpan = cell.position?.rowSpan || 1;
-
-            // Handle custom elements
-            if (cell.isCustom) {
-              return (
-                <div
-                  key={cellIndex}
-                  className="border-b border-gray-200 bg-gray-50"
-                  style={{
-                    gridColumn: `span ${colSpan} `,
-                    gridRow: `span ${rowSpan} `,
-                  }}
-                >
-                  <div className="h-full px-1 py-0.5">
-                    {cell.customType === 'custom-heading' && (
-                      <div className="font-semibold text-gray-800 text-app-text">
-                        {cell.customValue}
-                      </div>
-                    )}
-                    {cell.customType === 'custom-text' && (
-                      <div className="text-gray-600 text-app-text">
-                        {cell.customValue}
-                      </div>
-                    )}
-                    {cell.customType === 'custom-separator' && (
-                      <div className="border-t border-gray-300 my-2"></div>
-                    )}
-                    {cell.customType === 'custom-empty-field' && (
-                      <div className="text-gray-400 text-app-text">
-                        {cell.customValue}<span className="italic">{cell.customPlaceholder}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            }
-
-            // Handle regular database fields
-            // Get fieldId - could be ObjectId, string, or populated object
-            let fieldIdStr = null;
-            let fieldDef = null;
-
-            if (cell.fieldId) {
-              // If fieldId is already populated (an object with _id), use it directly
-              if (typeof cell.fieldId === 'object' && cell.fieldId._id) {
-                fieldDef = cell.fieldId;
-                fieldIdStr = cell.fieldId._id.toString();
-              } else {
-                // Otherwise look up in our map
-                fieldIdStr = cell.fieldId.toString();
-                fieldDef = allFieldDefs[fieldIdStr];
-              }
-            }
-            if (!fieldDef) {
-              return (
-                <div
-                  key={cellIndex}
-                  className="p-1 bg-red-50"
-                  style={{
-                    gridColumn: `span ${colSpan} `,
-                    gridRow: `span ${rowSpan} `,
-                  }}
-                >
+              // Handle custom elements
+              if (cell.isCustom) {
+                return (
                   <div
-                    className="bg-red-50 border border-red-200 rounded p-2 text-app-text text-red-500 h-full"
-                  >
-                    Field not found
-                  </div>
-                </div>
-              );
-            }
-
-            const isFieldActive = fieldDef.active !== false; // Active by default if property missing
-            // Allow all roles to edit table-type fields, unless in readOnly mode
-            const canEdit = readOnly ? false : (fieldDef.type === 'table' ? isFieldActive : (canEditField(fieldDef.department) && isFieldActive));
-            const isHeading = fieldDef.type === 'heading';
-            const isHidden = isFieldHidden(fieldDef);
-            const isOptionalEnabled = isOptionalFieldEnabled(fieldIdStr, fieldDef);
-            const attachmentLabels = getAttachmentLabels(fieldIdStr);
-            const deptBgColor = {
-              vmd: 'bg-gray-100',
-              cad: 'bg-amber-100',
-              commercial: 'bg-emerald-100',
-              mmc: 'bg-sky-200',
-            };
-            const deptBg = deptBgColor[fieldDef.department] || 'bg-gray-100';
-
-            if (isHidden) {
-              return (
-                <div
-                  key={cellIndex}
-                  className="p-1 bg-gray-50"
-                  style={{
-                    gridColumn: `span ${colSpan} `,
-                    gridRow: `span ${rowSpan} `,
-                  }}
-                >
-                  <div
-                    className="bg-gray-50 border border-gray-100 rounded h-full"
+                    key={cellIndex}
+                    className="border-b border-gray-200 bg-gray-50"
                     style={{
-                      opacity: 0.5,
+                      gridColumn: `span ${colSpan} `,
+                      gridRow: `span ${rowSpan} `,
                     }}
-                  ></div>
-                </div>
-              );
-            }
-
-            return (
-              <div
-                key={cellIndex}
-                className={cn(
-                  "border-b border-gray-200",
-                  isHeading ? "bg-gray-50" : "bg-white"
-                )}
-                style={{
-                  gridColumn: `span ${colSpan} `,
-                  gridRow: `span ${rowSpan} `,
-                }}
-              >
-                <div
-                  className={cn(
-                    "h-full flex flex-col justify-center",
-                    isHeading && "bg-gray-50",
-                    fieldDef.isOptional && !isOptionalEnabled && "opacity-60"
-                  )}
-                >
-                  {/* Optional toggle */}
-                  {!isHeading && fieldDef.isOptional && (
-                    <div className="flex items-center justify-between px-1 py-0">
-                      { <span className="text-[11px] text-gray-600 shrink-0 min-w-[90px]">{(fieldDef.isOptional && !isOptionalEnabled)&& fieldDef.name}</span>}
-                      <Switch
-                        checked={isOptionalEnabled}
-                        onCheckedChange={(checked) => handleOptionalFieldToggle(fieldIdStr, fieldDef, checked)}
-                        disabled={!canEdit}
-                        aria-label={`Toggle ${fieldDef.name}`}
-                        className="scale-75"
-                      />
+                  >
+                    <div className="h-full px-1 py-0.5">
+                      {cell.customType === 'custom-heading' && (
+                        <div className="font-semibold text-gray-800 text-app-text">
+                          {cell.customValue}
+                        </div>
+                      )}
+                      {cell.customType === 'custom-text' && (
+                        <div className="text-gray-600 text-app-text">
+                          {cell.customValue}
+                        </div>
+                      )}
+                      {cell.customType === 'custom-separator' && (
+                        <div className="border-t border-gray-300 my-2"></div>
+                      )}
+                      {cell.customType === 'custom-empty-field' && (
+                        <div className="text-gray-400 text-app-text">
+                          {cell.customValue}<span className="italic">{cell.customPlaceholder}</span>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+                );
+              }
 
-                  {/* Field input — only shown when optional is enabled (or field is not optional) */}
-                  <div className="flex-1">
-                    {fieldDef.isOptional && !isOptionalEnabled ? null : (
-                      renderCellInput(fieldDef, fieldIdStr, canEdit)
+              // Handle regular database fields
+              // Get fieldId - could be ObjectId, string, or populated object
+              let fieldIdStr = null;
+              let fieldDef = null;
+
+              if (cell.fieldId) {
+                // If fieldId is already populated (an object with _id), use it directly
+                if (typeof cell.fieldId === 'object' && cell.fieldId._id) {
+                  fieldDef = cell.fieldId;
+                  fieldIdStr = cell.fieldId._id.toString();
+                } else {
+                  // Otherwise look up in our map
+                  fieldIdStr = cell.fieldId.toString();
+                  fieldDef = allFieldDefs[fieldIdStr];
+                }
+              }
+              if (!fieldDef) {
+                return (
+                  <div
+                    key={cellIndex}
+                    className="p-1 bg-red-50"
+                    style={{
+                      gridColumn: `span ${colSpan} `,
+                      gridRow: `span ${rowSpan} `,
+                    }}
+                  >
+                    <div
+                      className="bg-red-50 border border-red-200 rounded p-2 text-app-text text-red-500 h-full"
+                    >
+                      Field not found
+                    </div>
+                  </div>
+                );
+              }
+
+              const isFieldActive = fieldDef.active !== false; // Active by default if property missing
+              // Allow all roles to edit table-type fields, unless in readOnly mode
+              const canEdit = readOnly ? false : (fieldDef.type === 'table' ? isFieldActive : (canEditField(fieldDef.department) && isFieldActive));
+              const isHeading = fieldDef.type === 'heading';
+              const isHidden = isFieldHidden(fieldDef);
+              const isOptionalEnabled = isOptionalFieldEnabled(fieldIdStr, fieldDef);
+              const attachmentLabels = getAttachmentLabels(fieldIdStr);
+              const deptBgColor = {
+                vmd: 'bg-gray-100',
+                cad: 'bg-amber-100',
+                commercial: 'bg-emerald-100',
+                mmc: 'bg-sky-200',
+              };
+              const deptBg = deptBgColor[fieldDef.department] || 'bg-gray-100';
+
+              if (isHidden) {
+                return (
+                  <div
+                    key={cellIndex}
+                    className="p-1 bg-gray-50"
+                    style={{
+                      gridColumn: `span ${colSpan} `,
+                      gridRow: `span ${rowSpan} `,
+                    }}
+                  >
+                    <div
+                      className="bg-gray-50 border border-gray-100 rounded h-full"
+                      style={{
+                        opacity: 0.5,
+                      }}
+                    ></div>
+                  </div>
+                );
+              }
+
+              return (
+                <div
+                  key={cellIndex}
+                  className={cn(
+                    "border-b border-gray-200",
+                    isHeading ? "bg-gray-50" : "bg-white"
+                  )}
+                  style={{
+                    gridColumn: `span ${colSpan} `,
+                    gridRow: `span ${rowSpan} `,
+                  }}
+                >
+                  <div
+                    className={cn(
+                      "h-full flex flex-col justify-center",
+                      isHeading && "bg-gray-50",
+                      fieldDef.isOptional && !isOptionalEnabled && "opacity-60"
+                    )}
+                  >
+                    {/* Optional toggle */}
+                    {!isHeading && fieldDef.isOptional && (
+                      <div className="flex items-center justify-between px-1 py-0">
+                        { <span className="text-[11px] text-gray-600 shrink-0 min-w-[90px]">{(fieldDef.isOptional && !isOptionalEnabled)&& fieldDef.name}</span>}
+                        <Switch
+                          checked={isOptionalEnabled}
+                          onCheckedChange={(checked) => handleOptionalFieldToggle(fieldIdStr, fieldDef, checked)}
+                          disabled={!canEdit}
+                          aria-label={`Toggle ${fieldDef.name}`}
+                          className="scale-75"
+                        />
+                      </div>
+                    )}
+
+                    {/* Field input — only shown when optional is enabled (or field is not optional) */}
+                    <div className="flex-1">
+                      {fieldDef.isOptional && !isOptionalEnabled ? null : (
+                        renderCellInput(fieldDef, fieldIdStr, canEdit)
+                      )}
+                    </div>
+                    {attachmentLabels.length > 0 && (
+                      <div className="mt-1 space-x-1 flex flex-row flex-wrap justify-start">
+                        {attachmentLabels.map((label, index) => (
+                          <div
+                            key={`${label}-${index}`}
+                            className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"
+                          >
+                            {label}
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  {attachmentLabels.length > 0 && (
-                    <div className="mt-1 space-x-1 flex flex-row flex-wrap justify-start">
-                      {attachmentLabels.map((label, index) => (
-                        <div
-                          key={`${label}-${index}`}
-                          className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"
-                        >
-                          {label}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+
                 </div>
 
-              </div>
-
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* Approval Sections - Rendered inside grid on last page */}
-      {currentSection?.includeApprovals && (
-        <>
-          {/* Status Update Section - Hidden in readOnly mode */}
-          {!readOnly && (
-            <div className="bg-gray-50 border-t border-gray-200 p-3">
-              <div className="grid grid-cols-6 gap-2 items-end">
-                {/* Department display/selector */}
-                <div>
-                  <Label className="text-app-text font-medium text-gray-700">Department</Label>
-                  {userRole === 'admin' || userRole === 'vmd' ? (
+        {/* Approval Sections - Rendered inside grid on last page */}
+        {currentSection?.includeApprovals && (
+          <>
+            {/* Status Update Section - Hidden in readOnly mode */}
+            {!readOnly && (
+              <div className="bg-gray-50 border-t border-gray-200 p-3">
+                <div className="grid grid-cols-6 gap-2 items-end">
+                  {/* Department display/selector */}
+                  <div>
+                    <Label className="text-app-text font-medium text-gray-700">Department</Label>
+                    {userRole === 'admin' || userRole === 'vmd' ? (
+                      <select
+                        value={selectedDepartment}
+                        onChange={(e) => setSelectedDepartment(e.target.value)}
+                        className="mt-1 px-1 py-1 text-app-text border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
+                        disabled={isSubmitting}
+                      >
+                        {['vmd', 'cad', 'commercial', 'mmc'].map(dept => (
+                          <option key={dept} value={dept}>{dept.toUpperCase()}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="mt-1 px-2 py-1 text-app-text border border-gray-300 rounded bg-gray-100 h-7 flex items-center font-medium text-gray-700">
+                        {userRole?.toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-app-text font-medium text-gray-700">Status</Label>
                     <select
-                      value={selectedDepartment}
-                      onChange={(e) => setSelectedDepartment(e.target.value)}
+                      value={statusToUpdate}
+                      onChange={(e) => setStatusToUpdate(e.target.value)}
                       className="mt-1 px-1 py-1 text-app-text border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
                       disabled={isSubmitting}
                     >
-                      {['vmd', 'cad', 'commercial', 'mmc'].map(dept => (
-                        <option key={dept} value={dept}>{dept.toUpperCase()}</option>
-                      ))}
+                      <option value="pending">Pending</option>
+                      <option value="in-progress">In Progress</option>
+                      <option value="approved">Approved</option>
+                      <option value="flagged">Flag Issue</option>
                     </select>
-                  ) : (
-                    <div className="mt-1 px-2 py-1 text-app-text border border-gray-300 rounded bg-gray-100 h-7 flex items-center font-medium text-gray-700">
-                      {userRole?.toUpperCase()}
-                    </div>
-                  )}
+                  </div>
+                  <div className="col-span-3">
+                    <Label htmlFor="updateComment" className="text-app-text font-medium text-gray-700">
+                      Comment {statusToUpdate !== 'flagged' && <span className="text-gray-500">(Optional)</span>}
+                    </Label>
+                    <Input
+                      id="updateComment"
+                      value={updateComment}
+                      onChange={(e) => setUpdateComment(e.target.value)}
+                      placeholder={statusToUpdate === 'flagged' ? 'Describe issue...' : 'Add comment...'}
+                      required={statusToUpdate === 'flagged'}
+                      className="mt-1 text-app-text h-7 border border-gray-300 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <Button
+                      onClick={handleStatusUpdate}
+                      disabled={isSubmitting || (statusToUpdate === 'flagged' && !updateComment.trim())}
+                      size="sm"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white text-app-text h-7"
+                    >
+                      {isSubmitting ? 'Updating...' : 'Update Status'}
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-app-text font-medium text-gray-700">Status</Label>
-                  <select
-                    value={statusToUpdate}
-                    onChange={(e) => setStatusToUpdate(e.target.value)}
-                    className="mt-1 px-1 py-1 text-app-text border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
-                    disabled={isSubmitting}
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="approved">Approved</option>
-                    <option value="flagged">Flag Issue</option>
-                  </select>
-                </div>
-                <div className="col-span-3">
-                  <Label htmlFor="updateComment" className="text-app-text font-medium text-gray-700">
-                    Comment {statusToUpdate !== 'flagged' && <span className="text-gray-500">(Optional)</span>}
-                  </Label>
-                  <Input
-                    id="updateComment"
-                    value={updateComment}
-                    onChange={(e) => setUpdateComment(e.target.value)}
-                    placeholder={statusToUpdate === 'flagged' ? 'Describe issue...' : 'Add comment...'}
-                    required={statusToUpdate === 'flagged'}
-                    className="mt-1 text-app-text h-7 border border-gray-300 focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <Button
-                    onClick={handleStatusUpdate}
-                    disabled={isSubmitting || (statusToUpdate === 'flagged' && !updateComment.trim())}
-                    size="sm"
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-app-text h-7"
-                  >
-                    {isSubmitting ? 'Updating...' : 'Update Status'}
-                  </Button>
-                </div>
+                <p className="text-app-text text-gray-500 text-center mt-1">
+                  Field changes auto-save. Use button for status/comments only.
+                </p>
               </div>
-              <p className="text-app-text text-gray-500 text-center mt-1">
-                Field changes auto-save. Use button for status/comments only.
-              </p>
-            </div>
-          )}
+            )}
 
-          {/* Render Dispatch Panel if applicable - Hidden in readOnly mode to avoid circular display */}
-          {!readOnly && (srd?.inDispatch) && (
-            <div className="border-gray-200">
-              <DispatchPanel
-                srd={srd}
-                onUpdate={onSrdUpdate}
-                canEdit={userRole === 'dispatch' || userRole === 'vmd' || userRole === 'admin'}
-              />
-            </div>
-          )}
-        </>
-      )}
-
+            {/* Render Dispatch Panel if applicable - Hidden in readOnly mode to avoid circular display */}
+            {!readOnly && (srd?.inDispatch) && (
+              <div className="border-gray-200">
+                <DispatchPanel
+                  srd={srd}
+                  onUpdate={onSrdUpdate}
+                  canEdit={userRole === 'dispatch' || userRole === 'vmd' || userRole === 'admin'}
+                />
+              </div>
+            )}
+          </>
+        )}
+      </div>  
       {/* Pagination Controls */}
       {sections.length > 1 && (
-        <div className="flex items-center justify-center gap-3 py-3 border-t border-gray-200">
+        <div className="flex items-center justify-center gap-3 py-3">
           <button
             onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
             disabled={isFirstPage}

@@ -156,7 +156,7 @@ export default function SRDDetailPage() {
         {productionHeaderContent}
       </div>
     }>
-      <div className="space-y-3">
+      <div className="h-full flex flex-col min-h-0">
         {/* Production Control - Only for VMD/Admin */}
         {(userRole === 'vmd' || userRole === 'admin') && (
           <ProductionControl
