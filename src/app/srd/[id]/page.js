@@ -4,38 +4,11 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
-import DepartmentPanel from '@/components/DepartmentPanel';
 import DepartmentPanelExcel from '@/components/DepartmentPanelExcel';
 import ProductionControl from '@/components/ProductionControl';
-import SRDTracker from '@/components/SRDTracker';
-import SRDReports from '@/components/SRDReports';
-import DispatchPanel from '@/components/DispatchPanel';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/lib/use-toast';
-import { cn } from '@/lib/utils';
-import Cookies from 'js-cookie';
-
-import {
-  FileText,
-  MessageCircle,
-  Clock,
-  Table,
-  Grid3X3,
-  BarChart3,
-  Send
-} from 'lucide-react';
-import { set } from 'mongoose';
+import { FileText } from 'lucide-react';
+import DispatchPanel from '@/components/DispatchPanel';
 
 export default function SRDDetailPage() {
   const { data: session, status } = useSession();
@@ -44,21 +17,8 @@ export default function SRDDetailPage() {
   const { toast } = useToast();
   const [srd, setSrd] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [timeline, setTimeline] = useState([]);
-  const [viewMode, setViewMode] = useState();
-  const [mode, setMode] = useState('excel');
   const [excelHeaderContent, setExcelHeaderContent] = useState(null);
   const [productionHeaderContent, setProductionHeaderContent] = useState(null);
-  const allowedDepartments = ['vmd', 'cad', 'mmc', 'commercial'];
-  useEffect(() => {
-    const view = Cookies.get('mode')
-    setViewMode(view)
-  })
-
-  const toogleView = (mode) => {
-    Cookies.set('mode', mode)
-    setViewMode(mode)
-  }
 
 
   useEffect(() => {
@@ -89,23 +49,10 @@ export default function SRDDetailPage() {
       }
     };
 
-    const fetchTimeline = async () => {
-      try {
-        const response = await fetch(`/api/srd/${params.id}/timeline`);
-        const data = await response.json();
-        if (data.success) {
-          setTimeline(data.data);
-        }
-      } catch (error) {
-        console.error('Error fetching timeline:', error);
-      }
-    };
-
     fetchSRD();
-    fetchTimeline();
   }, [session, status, router, params.id]);
 
-  const handleDepartmentUpdate = async (department, updateData, shouldRefreshSrd = true) => {
+  const handleDepartmentUpdate = async (department, updateData) => {
     try {
 
 
@@ -158,16 +105,6 @@ export default function SRDDetailPage() {
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'in-progress': return 'bg-blue-100 text-blue-800';
-      case 'flagged': return 'bg-red-100 text-red-800';
-      case 'pending': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   if (loading) {
     return (
       <Layout>
@@ -191,7 +128,6 @@ export default function SRDDetailPage() {
   }
 
   const userRole = session.user.role;
-  const canViewAll = true
 
   if (userRole === 'dispatch') {
     return (
@@ -215,101 +151,13 @@ export default function SRDDetailPage() {
 
   return (
     <Layout headerContent={
-      <div className="flex items-center gap-2 ml-auto">
-        {viewMode === 'excel' && excelHeaderContent}
+      <div className="flex items-center gap-2 w-full">
+        {excelHeaderContent}
         {productionHeaderContent}
-        <Button variant={viewMode === 'form' ? 'default' : 'outline'} size="sm" onClick={() => toogleView('form')} className="flex items-center gap-2">
-          <Grid3X3 className="h-4 w-4" />
-          Form View
-        </Button>
-        <Button variant={viewMode === 'excel' ? 'default' : 'outline'} size="sm" onClick={() => toogleView('excel')} className="flex items-center gap-2">
-          <Table className="h-4 w-4" />
-          Excel View
-        </Button>
       </div>
     }>
-      <div className={cn("space-y-6", viewMode === 'excel' && "space-y-3")}>
-        {/* Header */}
-        {/* <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center space-x-3">
-              <h1 className="text-3xl font-bold text-gray-900">{srd.title}</h1>
-              <Badge className="bg-blue-100 text-blue-800">{srd.refNo}</Badge>
-            </div>
-            <p className="text-gray-600 mt-2">{srd.description}</p>
-          </div>
-          <div className="text-right">
-            <div className="text-sm text-gray-500">Overall Progress</div>
-            <div className="text-2xl font-bold">{srd.progress}%</div>
-            <Progress value={srd.progress} className="w-32 mt-1" />
-          </div>
-        </div> */}
-
-        {/* SRD Info */}
-        {/* <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">SRD Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="flex items-center space-x-2">
-                <User className="h-5 w-5 text-gray-400" />
-                <div>
-                  <div className="text-sm text-gray-500">Created by</div>
-                  <div className="font-medium">{srd.createdBy.name}</div>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5 text-gray-400" />
-                <div>
-                  <div className="text-sm text-gray-500">Created date</div>
-                  <div className="font-medium">
-                    {new Date(srd.createdAt).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <MessageCircle className="h-5 w-5 text-gray-400" />
-                <div>
-                  <div className="text-sm text-gray-500">Comments</div>
-                  <div className="font-medium">{srd.comments.length}</div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card> */}
-
-        {/* SRD Progress Tracker */}
-        {/* Department Status - Hide in Excel mode to save space */}
-        {viewMode !== 'excel' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold">Department Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {srd.status && Object.entries(srd.status)
-                  .filter(([dept]) => allowedDepartments.includes(dept))
-                  .map(([dept, status]) => (
-                    <div key={dept} className="text-center">
-                      <Badge className={getStatusColor(status)}>
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                      </Badge>
-                      <div className="mt-2 text-sm font-medium text-gray-900">
-                        {dept.toUpperCase()}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-       
-
-        {/* Production Control - Only for Production Manager */}
+      <div className="space-y-3">
+        {/* Production Control - Only for VMD/Admin */}
         {(userRole === 'vmd' || userRole === 'admin') && (
           <ProductionControl
             srdId={srd._id}
@@ -319,136 +167,13 @@ export default function SRDDetailPage() {
           />
         )}
 
-        {/* Efficiency Reports Button - Visible to all who can access the SRD */}
-        {/* <div className="flex justify-center">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="w-full max-w-md flex items-center justify-center gap-2 border-blue-200 hover:bg-blue-50 text-blue-700 bg-white shadow-sm">
-                <BarChart3 className="h-4 w-4" />
-                View Detailed Efficiency Reports
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>SRD Efficiency Report - {srd.refNo}</DialogTitle>
-              </DialogHeader>
-              <div className="mt-4">
-                <SRDReports srd={srd} />
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div> */}
-
-        {/* Department Views */}
-        <div className={cn("w-full", viewMode === 'excel' && "space-y-2")}>
-          {viewMode === 'excel' ? (
-            /* Excel View - Single unified view with all departments */
-            <DepartmentPanelExcel
-              srd={srd}
-              userRole={userRole}
-              onUpdate={(department, data, shouldRefresh) => handleDepartmentUpdate(department, data, shouldRefresh)}
-              onSrdUpdate={setSrd}
-              onHeaderContent={setExcelHeaderContent}
-            />
-          ) : (
-            /* Form View - Tabs for each department */
-            <Tabs defaultValue={userRole === 'admin' || userRole === 'vmd' ? 'vmd' : userRole} className="w-full">
-              <TabsList className="flex flex-wrap w-full p-1 bg-muted rounded-xl justify-start">
-                {allowedDepartments.filter(dept => (canViewAll ? true : dept === userRole)).map((dept) => (
-                  <TabsTrigger key={dept} value={dept} className="flex-1 min-w-[120px]">
-                    {dept.toUpperCase()}
-                  </TabsTrigger>
-                ))}
-                {(srd?.inDispatch || userRole === 'dispatch' || userRole === 'admin') && (
-                  <TabsTrigger value="dispatch" className="flex-1 text-blue-600 data-[state=active]:text-blue-700 min-w-[120px] flex items-center justify-center gap-2">
-                    <Send className="h-4 w-4" />
-                    DISPATCH
-                  </TabsTrigger>
-                )}
-                <TabsTrigger value="reports" className="flex-1 min-w-[120px] flex items-center justify-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  REPORTS
-                </TabsTrigger>
-              </TabsList>
-
-              {srd.status && allowedDepartments.filter(dept => (canViewAll ? true : dept === userRole)).map((dept) => {
-                const canEdit = userRole === dept || userRole === 'admin' || userRole === 'vmd';
-
-                return (
-                  <TabsContent key={dept} value={dept}>
-                    <DepartmentPanel
-                      srd={srd}
-                      department={dept}
-                      onUpdate={(data) => handleDepartmentUpdate(dept, data)}
-                      canEdit={canEdit}
-                    />
-                  </TabsContent>
-                );
-              })}
-
-              <TabsContent value="reports">
-                <SRDReports srd={srd} />
-              </TabsContent>
-              {(srd?.inDispatch || userRole === 'dispatch' || userRole === 'admin') && (
-                <TabsContent value="dispatch">
-                  <DispatchPanel
-                    srd={srd}
-                    onUpdate={(data) => setSrd(data)}
-                    canEdit={userRole === 'dispatch' || userRole === 'admin'}
-                  />
-                </TabsContent>
-              )}
-            </Tabs>
-          )}
-        </div>
-
-
-        {/* Timeline - Hide in Excel mode to save space */}
-        {viewMode !== 'excel' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold">Activity Timeline</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {timeline.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">No activity yet</p>
-                ) : (
-                  timeline.map((item, index) => (
-                    <div key={index} className="flex items-start space-x-3">
-                      <div className="flex-shrink-0">
-                        {item.type === 'audit' ? (
-                          <Clock className="h-5 w-5 text-gray-400" />
-                        ) : (
-                          <MessageCircle className="h-5 w-5 text-blue-500" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-medium">
-                            {item.type === 'audit' ? item.action : item.author}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {item.department && `${item.department.toUpperCase()} • `}
-                            {new Date(item.timestamp || item.date).toLocaleString()}
-                          </span>
-                        </div>
-                        {item.type === 'comment' && (
-                          <p className="text-sm text-gray-600 mt-1">{item.text}</p>
-                        )}
-                        {item.type === 'audit' && item.details && (
-                          <p className="text-sm text-gray-600 mt-1">
-                            Status: {item.details.status}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <DepartmentPanelExcel
+          srd={srd}
+          userRole={userRole}
+          onUpdate={(department, data, shouldRefresh) => handleDepartmentUpdate(department, data, shouldRefresh)}
+          onSrdUpdate={setSrd}
+          onHeaderContent={setExcelHeaderContent}
+        />
       </div>
     </Layout>
   );

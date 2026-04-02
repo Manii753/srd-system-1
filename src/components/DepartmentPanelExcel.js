@@ -206,9 +206,9 @@ export default function DepartmentPanelExcel({
 
     const allCells = activeTemplate.cells;
 
-    // If pagination disabled, one single page with all cells
+    // If pagination disabled, one single page with all cells + approval sections
     if (!formPagination.enabled) {
-      setSections([{ name: 'Page 1', cells: allCells }]);
+      setSections([{ name: 'Page 1', cells: allCells, includeApprovals: true }]);
       return;
     }
 
@@ -219,9 +219,16 @@ export default function DepartmentPanelExcel({
       chunks.push({
         name: `Page ${chunks.length + 1}`,
         cells: allCells.slice(i, i + chunkSize),
+        includeApprovals: false, // Only last page will have approvals
       });
     }
-    setSections(chunks.length > 0 ? chunks : [{ name: 'Page 1', cells: allCells }]);
+    
+    // Mark the last page to include approval sections
+    if (chunks.length > 0) {
+      chunks[chunks.length - 1].includeApprovals = true;
+    }
+    
+    setSections(chunks.length > 0 ? chunks : [{ name: 'Page 1', cells: allCells, includeApprovals: true }]);
   }, [activeTemplate, formPagination]);
 
   // Auto-save function with debouncing - saves per department
@@ -677,6 +684,25 @@ export default function DepartmentPanelExcel({
             Saving...
           </div>
         )}
+        <div className="flex items-center gap-1 ml-2">
+          {['vmd', 'cad', 'commercial', 'mmc'].map(dept => {
+            const val = (srd.status || []).find(s => s.department === dept)?.value || 'pending';
+            return (
+              <span
+                key={dept}
+                className={cn(
+                  "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                  val === 'approved' && 'bg-green-100 text-green-800',
+                  val === 'in-progress' && 'bg-blue-100 text-blue-800',
+                  val === 'flagged' && 'bg-red-100 text-red-800',
+                  val === 'pending' && 'bg-gray-100 text-gray-800'
+                )}
+              >
+                {dept.toUpperCase()}: {val}
+              </span>
+            );
+          })}
+        </div>
       </div>
     );
   }, [onHeaderContent, srd, isPrinting, hasUnsavedChanges, handlePrint]);
@@ -1653,6 +1679,90 @@ export default function DepartmentPanelExcel({
         </div>
       </div>
 
+      {/* Approval Sections - Rendered inside grid on last page */}
+      {currentSection?.includeApprovals && (
+        <>
+          {/* Status Update Section - Hidden in readOnly mode */}
+          {!readOnly && (
+            <div className="bg-gray-50 border-t border-gray-200 p-3">
+              <div className="grid grid-cols-6 gap-2 items-end">
+                {/* Department display/selector */}
+                <div>
+                  <Label className="text-xs font-medium text-gray-700">Department</Label>
+                  {userRole === 'admin' || userRole === 'vmd' ? (
+                    <select
+                      value={selectedDepartment}
+                      onChange={(e) => setSelectedDepartment(e.target.value)}
+                      className="mt-1 px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
+                      disabled={isSubmitting}
+                    >
+                      {['vmd', 'cad', 'commercial', 'mmc'].map(dept => (
+                        <option key={dept} value={dept}>{dept.toUpperCase()}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded bg-gray-100 h-7 flex items-center font-medium text-gray-700">
+                      {userRole?.toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <Label className="text-xs font-medium text-gray-700">Status</Label>
+                  <select
+                    value={statusToUpdate}
+                    onChange={(e) => setStatusToUpdate(e.target.value)}
+                    className="mt-1 px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
+                    disabled={isSubmitting}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="approved">Approved</option>
+                    <option value="flagged">Flag Issue</option>
+                  </select>
+                </div>
+                <div className="col-span-3">
+                  <Label htmlFor="updateComment" className="text-xs font-medium text-gray-700">
+                    Comment {statusToUpdate !== 'flagged' && <span className="text-gray-500">(Optional)</span>}
+                  </Label>
+                  <Input
+                    id="updateComment"
+                    value={updateComment}
+                    onChange={(e) => setUpdateComment(e.target.value)}
+                    placeholder={statusToUpdate === 'flagged' ? 'Describe issue...' : 'Add comment...'}
+                    required={statusToUpdate === 'flagged'}
+                    className="mt-1 text-xs h-7 border border-gray-300 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <Button
+                    onClick={handleStatusUpdate}
+                    disabled={isSubmitting || (statusToUpdate === 'flagged' && !updateComment.trim())}
+                    size="sm"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs h-7"
+                  >
+                    {isSubmitting ? 'Updating...' : 'Update Status'}
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 text-center mt-1">
+                Field changes auto-save. Use button for status/comments only.
+              </p>
+            </div>
+          )}
+
+          {/* Render Dispatch Panel if applicable - Hidden in readOnly mode to avoid circular display */}
+          {!readOnly && (srd?.inDispatch) && (
+            <div className="border-gray-200">
+              <DispatchPanel
+                srd={srd}
+                onUpdate={onSrdUpdate}
+                canEdit={userRole === 'dispatch' || userRole === 'vmd' || userRole === 'admin'}
+              />
+            </div>
+          )}
+        </>
+      )}
+
       {/* Pagination Controls */}
       {sections.length > 1 && (
         <div className="flex items-center justify-center gap-3 py-2 border-t border-gray-100">
@@ -1688,108 +1798,7 @@ export default function DepartmentPanelExcel({
         </div>
       )}
 
-      {/* Render Dispatch Panel if applicable - Hidden in readOnly mode to avoid circular display */}
-      {!readOnly && (srd?.inDispatch) && (
-        <div className="border-gray-200">
 
-          <DispatchPanel
-            srd={srd}
-            onUpdate={onSrdUpdate}
-            canEdit={userRole === 'dispatch' || userRole === 'vmd' || userRole === 'admin'}
-          />
-        </div>
-      )}
-
-      {/* Department status legend */}
-      <div className="bg-gray-50 border-t px-3 py-2">
-        <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center space-x-4">
-            <span className="text-gray-500">Status:</span>
-            {['vmd', 'cad', 'commercial', 'mmc'].map(dept => (
-              <Badge
-                key={dept}
-                className={cn(
-                  "text-xs",
-                  (srd.status || []).find(s => s.department === dept)?.value === 'approved' && 'bg-green-100 text-green-800',
-                  (srd.status || []).find(s => s.department === dept)?.value === 'in-progress' && 'bg-blue-100 text-blue-800',
-                  (srd.status || []).find(s => s.department === dept)?.value === 'flagged' && 'bg-red-100 text-red-800',
-                  (!(srd.status || []).find(s => s.department === dept) || (srd.status || []).find(s => s.department === dept)?.value === 'pending') && 'bg-gray-100 text-gray-800'
-                )}
-              >
-                {dept.toUpperCase()}: {(srd.status || []).find(s => s.department === dept)?.value || 'pending'}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Status Update Section - Hidden in readOnly mode */}
-      {!readOnly && (
-        <div className="bg-gray-50 border-t border-gray-200 p-3">
-          <div className="grid grid-cols-6 gap-2 items-end">
-            {/* Department display/selector */}
-            <div>
-              <Label className="text-xs font-medium text-gray-700">Department</Label>
-              {userRole === 'admin' || userRole === 'vmd' ? (
-                <select
-                  value={selectedDepartment}
-                  onChange={(e) => setSelectedDepartment(e.target.value)}
-                  className="mt-1 px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
-                  disabled={isSubmitting}
-                >
-                  {['vmd', 'cad', 'commercial', 'mmc'].map(dept => (
-                    <option key={dept} value={dept}>{dept.toUpperCase()}</option>
-                  ))}
-                </select>
-              ) : (
-                <div className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded bg-gray-100 h-7 flex items-center font-medium text-gray-700">
-                  {userRole?.toUpperCase()}
-                </div>
-              )}
-            </div>
-            <div>
-              <Label className="text-xs font-medium text-gray-700">Status</Label>
-              <select
-                value={statusToUpdate}
-                onChange={(e) => setStatusToUpdate(e.target.value)}
-                className="mt-1 px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
-                disabled={isSubmitting}
-              >
-                <option value="pending">Pending</option>
-                <option value="in-progress">In Progress</option>
-                <option value="approved">Approved</option>
-                <option value="flagged">Flag Issue</option>
-              </select>
-            </div>
-            <div className="col-span-3">
-              <Label htmlFor="updateComment" className="text-xs font-medium text-gray-700">
-                Comment {statusToUpdate !== 'flagged' && <span className="text-gray-500">(Optional)</span>}
-              </Label>
-              <Input
-                id="updateComment"
-                value={updateComment}
-                onChange={(e) => setUpdateComment(e.target.value)}
-                placeholder={statusToUpdate === 'flagged' ? 'Describe issue...' : 'Add comment...'}
-                required={statusToUpdate === 'flagged'}
-                className="mt-1 text-xs h-7 border border-gray-300 focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <Button
-                onClick={handleStatusUpdate}
-                disabled={isSubmitting || (statusToUpdate === 'flagged' && !updateComment.trim())}
-                size="sm"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs h-7"
-              >
-                {isSubmitting ? 'Updating...' : 'Update Status'}
-              </Button>
-            </div>
-          </div>
-          <p className="text-xs text-gray-500 text-center mt-1">
-            Field changes auto-save. Use button for status/comments only.
-          </p>
-        </div>
-      )}
 
       {srd.audit && srd.audit.length > 0 && (
         <div className="border-t border-gray-200 p-3">
