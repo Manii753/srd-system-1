@@ -117,6 +117,7 @@ export default function DepartmentPanelExcel({
   const [sections, setSections] = useState([]);
   const [formPagination, setFormPagination] = useState({ enabled: true, itemsPerPage: 12 });
   const [pendingUpdates, setPendingUpdates] = useState({}); // Track updates per department
+  const [showActivityConsole, setShowActivityConsole] = useState(false); // Activity console visibility - default hidden
 
   // Status update state
   const [selectedDepartment, setSelectedDepartment] = useState(userRole === 'admin' || userRole === 'vmd' ? 'vmd' : userRole);
@@ -1482,12 +1483,14 @@ export default function DepartmentPanelExcel({
   }
 
   return (
-    <div className="bg-white rounded-lg overflow-hidden">
+    <div className="flex gap-0 bg-white rounded-lg overflow-hidden h-[calc(100vh-120px)]">
+      {/* Main Form Area */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
 
       {/* Section header row — always aligned */}
       {headerCells.length > 0 && (
         <div
-          className="grid gap-0 border-b border-gray-300 bg-gray-50"
+          className="grid gap-0 border-b border-gray-300 bg-gray-50 sticky top-0 z-10"
           style={{ gridTemplateColumns: `repeat(${gridColumns * 2}, minmax(0, 1fr))` }}
         >
           {headerCells.map((cell, i) => (
@@ -1765,76 +1768,100 @@ export default function DepartmentPanelExcel({
 
       {/* Pagination Controls */}
       {sections.length > 1 && (
-        <div className="flex items-center justify-center gap-3 py-2 border-t border-gray-100">
+        <div className="flex items-center justify-center gap-3 py-3 border-t border-gray-200">
           <button
             onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
             disabled={isFirstPage}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-20 disabled:cursor-not-allowed transition-all rotate-180"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            aria-label="Previous page"
           >
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z" /></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
           </button>
 
-          <div className="flex items-center gap-1.5">
-            {sections.map((_, i) => (
-              <button key={i} onClick={() => setCurrentPage(i)} className="transition-all duration-200 focus:outline-none">
-                <svg
-                  viewBox="0 0 10 10"
-                  className={`transition-all duration-200 ${i === currentPage ? 'w-2.5 h-2.5 text-gray-800' : 'w-1.5 h-1.5 text-gray-300 hover:text-gray-500'}`}
-                  fill="currentColor"
-                >
-                  <polygon points="5,0 10,5 5,10 0,5" />
-                </svg>
-              </button>
-            ))}
-          </div>
+          <span className="text-sm text-gray-700 font-medium min-w-[60px] text-center">
+            {currentPage + 1} of {sections.length}
+          </span>
 
           <button
             onClick={() => setCurrentPage(Math.min(sections.length - 1, currentPage + 1))}
             disabled={isLastPage}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            aria-label="Next page"
           >
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z" /></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
           </button>
         </div>
       )}
 
+      </div>
+      {/* End Main Form Area */}
 
-
+      {/* Activity Sidebar Console */}
       {srd.audit && srd.audit.length > 0 && (
-        <div className="border-t border-gray-200 p-3">
-          <h4 className="text-sm font-semibold text-gray-700 mb-2">Activity</h4>
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {srd.audit.slice().reverse().map((entry, idx) => {
-              // Find comment with matching timestamp (within 1 second tolerance)
-              const relatedComment = srd.comments?.find(comment =>
-                Math.abs(new Date(comment.date) - new Date(entry.timestamp)) < 1000
-              );
-
-              return (
-                <div key={idx} className="bg-blue-50 rounded p-2 text-xs">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-gray-800">
-                      {entry.author}
-                      {entry.department && (
-                        <Badge variant="outline" className="ml-1 text-xs px-1 py-0">
-                          {entry.department.toUpperCase()}
-                        </Badge>
-                      )}
-                    </span>
-                    <span className="text-gray-400">
-                      {new Date(entry.timestamp).toLocaleString()}
-                    </span>
-                  </div>
-                  <p className="text-blue-700 font-medium mb-1">{entry.action}</p>
-                  {relatedComment && (
-                    <div className="mt-2 pl-2 border-l-2 border-blue-300">
-                      <p className="text-gray-600 italic">&ldquo;{relatedComment.text}&rdquo;</p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+        <div className={`border-l border-gray-300 bg-gray-50 flex flex-col h-full transition-all duration-300 ${showActivityConsole ? 'w-80' : 'w-12'}`}>
+          <div className="px-3 py-3 border-b border-gray-300 bg-gray-100 flex-shrink-0 flex items-center justify-between">
+            {showActivityConsole && <h4 className="text-sm font-bold text-gray-800 uppercase tracking-wide">Activity Console</h4>}
+            <button
+              onClick={() => setShowActivityConsole(!showActivityConsole)}
+              className="p-1 hover:bg-gray-200 rounded transition-colors"
+              aria-label={showActivityConsole ? "Hide activity console" : "Show activity console"}
+            >
+              {showActivityConsole ? (
+                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              )}
+            </button>
           </div>
+          {showActivityConsole && (
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+              {srd.audit.slice().reverse().map((entry, idx) => {
+                // Find comment with matching timestamp (within 1 second tolerance)
+                const relatedComment = srd.comments?.find(comment =>
+                  Math.abs(new Date(comment.date) - new Date(entry.timestamp)) < 1000
+                );
+
+                return (
+                  <div key={idx} className="bg-white border border-gray-200 rounded p-2 text-xs hover:shadow-sm transition-shadow">
+                    <div className="flex items-start justify-between mb-1 gap-2">
+                      <div className="flex-1">
+                        <span className="font-semibold text-gray-900 block">
+                          {entry.author}
+                        </span>
+                        {entry.department && (
+                          <Badge variant="outline" className="mt-1 text-[10px] px-1.5 py-0 bg-gray-100">
+                            {entry.department.toUpperCase()}
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-gray-500 whitespace-nowrap">
+                        {new Date(entry.timestamp).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                    <p className="text-gray-700 font-medium leading-tight">{entry.action}</p>
+                    {relatedComment && (
+                      <div className="mt-2 pl-2 border-l-2 border-gray-300 bg-gray-50 p-1.5 rounded-r">
+                        <p className="text-gray-600 italic text-[11px]">&ldquo;{relatedComment.text}&rdquo;</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
