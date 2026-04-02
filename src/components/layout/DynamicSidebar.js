@@ -258,7 +258,7 @@ export default function DynamicSidebar() {
           <div className={cn("relative", !open && "flex flex-col items-center")}>
             {open && (
               <div>
-                <h2 className="text-app-text text-nowrap font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                <h2 className="text-app-heading text-nowrap font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
                   SRD System
                 </h2>
               </div>
@@ -335,7 +335,7 @@ export default function DynamicSidebar() {
                         {open && (
                           <>
                             <span className={cn(
-                              "font-medium text-app-text",
+                              "font-medium text-app-heading",
                               isActive && "font-semibold"
                             )}>
                               {item.name}
@@ -401,7 +401,7 @@ export default function DynamicSidebar() {
                     </div>
                     {open && (
                       <>
-                        <span className="font-medium text-app-text">
+                        <span className="font-medium text-app-heading">
                           Logout
                         </span>
                         <ChevronRight className="ml-auto h-4 w-4 shrink-0 opacity-0 group-hover:opacity-100" />
