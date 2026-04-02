@@ -255,6 +255,12 @@ export default function DepartmentPanelExcel({
             fields: deptFields,
           };
 
+          // If any refNo field was changed, include the new refNo value for srd-level update
+          const refNoField = deptFields.find(f => f.type === 'refNo');
+          if (refNoField) {
+            updateData.refNo = refNoField.value;
+          }
+
           await onUpdate(department, updateData, false);
 
           lastSavedFieldsRef.current = JSON.stringify(fieldsToSave);
@@ -724,18 +730,27 @@ export default function DepartmentPanelExcel({
       case 'number':
       case 'date':
       case 'createdAt':
-        const displayValue = type === 'createdAt' ? (srd.createdAt ? new Date(srd.createdAt).toISOString().split('T')[0] : '') : fieldValue;
+      case 'refNo':
+      case 'old-refNo':
+        const isAutoField = type === 'createdAt' || type === 'old-refNo';
+        const displayValue = type === 'createdAt'
+          ? (srd.createdAt ? new Date(srd.createdAt).toISOString().split('T')[0] : '')
+          : type === 'refNo'
+            ? (fieldValue || srd.refNo || '')
+            : type === 'old-refNo'
+              ? (fieldValue || '')
+              : fieldValue;
         return (
           <div className="flex items-baseline gap-2 w-full px-1 py-0">
             <span className="text-[12px] text-gray-700 font-semibold shrink-0 min-w-[140px]">{name}</span>
             <div className="flex-1 min-w-0 relative">
               <DebouncedInput
-                type={type === 'createdAt' ? 'date' : type}
+                type={type === 'createdAt' ? 'date' : (type === 'refNo' || type === 'old-refNo') ? 'text' : type}
                 placeholder={placeholder || ''}
                 value={displayValue}
                 onDebouncedChange={(val) => handleFieldChange(fieldId, name, val, department, fieldDef)}
                 required={isRequired}
-                disabled={!canEdit || type === 'createdAt'}
+                disabled={!canEdit || isAutoField}
                 maxLength={20}
                 className={cn(
                   "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-6",

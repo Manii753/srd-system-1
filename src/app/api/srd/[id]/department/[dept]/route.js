@@ -74,6 +74,11 @@ export async function PATCH(request, context) {
 
         srd.updatedAt = new Date();
 
+        // Update srd.refNo if a refNo field was changed
+        if (body.refNo !== undefined) {
+          srd.refNo = body.refNo;
+        }
+
         // Update dynamic fields
         if (body.fields && Array.isArray(body.fields) && body.fields.length > 0) {
           // Update existing dynamicFields array

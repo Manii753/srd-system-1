@@ -327,6 +327,8 @@ export async function printDepartmentPanelExcel({
       const isFile = fieldDef.type === 'file';
       const isTable = fieldDef.type === 'table';
       const isCreatedAt = fieldDef.type === 'createdAt';
+      const isRefNo = fieldDef.type === 'refNo';
+      const isOldRefNo = fieldDef.type === 'old-refNo';
 
       if (fieldDef.type === 'boolean') {
         if (fieldDef.booleanDisplayType === 'instock-purchase') {
@@ -521,6 +523,10 @@ export async function printDepartmentPanelExcel({
       } else if (isCreatedAt) {
         // For createdAt type, display the SRD's createdAt
         valueDisplay = srd.createdAt ? new Date(srd.createdAt).toISOString().split('T')[0] : '';
+      } else if (isRefNo) {
+        valueDisplay = srd.refNo || '';
+      } else if (isOldRefNo) {
+        valueDisplay = fieldValue || '';
       } else {
         valueDisplay = fieldValue || '';
       }
