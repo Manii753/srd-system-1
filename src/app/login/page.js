@@ -81,15 +81,15 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900">SRD Tracking System</h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <h2 className="text-app-heading font-bold text-gray-900">SRD Tracking System</h2>
+          <p className="mt-2 text-app-text text-gray-600">
             Sign in to your account to continue
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl text-center">Login</CardTitle>
+            <CardTitle className="text-app-text text-center">Login</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -143,11 +143,11 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="flex flex-col items-center">
             <div className="w-full space-y-4">
-              <p className="text-sm font-medium text-center text-gray-700">Demo Accounts:</p>
+              <p className="text-app-text font-medium text-center text-gray-700">Demo Accounts:</p>
 
               {/* Management */}
               <div>
-                <p className="text-xs font-semibold text-gray-600 mb-2">Management:</p>
+                <p className="text-app-heading font-semibold text-gray-600 mb-2">Management:</p>
                 {demoCredentials.filter(c => c.category === 'Management').map((cred) => (
                   <button
                     key={cred.email}
@@ -155,7 +155,7 @@ export default function LoginPage() {
                       setEmail(cred.email);
                       setPassword(cred.password || 'password');
                     }}
-                    className="w-full text-left p-2 text-xs bg-purple-50 hover:bg-purple-100 rounded-md transition-colors mb-1"
+                    className="w-full text-left p-2 text-app-text bg-purple-50 hover:bg-purple-100 rounded-md transition-colors mb-1"
                   >
                     <span className="font-medium">{cred.role}:</span> {cred.email}
                     <span className="text-gray-500 ml-2">({cred.password || 'password'})</span>
@@ -165,7 +165,7 @@ export default function LoginPage() {
 
               {/* Approval Departments */}
               <div>
-                <p className="text-xs font-semibold text-gray-600 mb-2">Approval Departments:</p>
+                <p className="text-app-heading font-semibold text-gray-600 mb-2">Approval Departments:</p>
                 {demoCredentials.filter(c => c.category === 'Approval').map((cred) => (
                   <button
                     key={cred.email}
@@ -173,7 +173,7 @@ export default function LoginPage() {
                       setEmail(cred.email);
                       setPassword(cred.password || 'password');
                     }}
-                    className="w-full text-left p-2 text-xs bg-blue-50 hover:bg-blue-100 rounded-md transition-colors mb-1"
+                    className="w-full text-left p-2 text-app-text bg-blue-50 hover:bg-blue-100 rounded-md transition-colors mb-1"
                   >
                     <span className="font-medium">{cred.role}:</span> {cred.email}
                     <span className="text-gray-500 ml-2">({cred.password || 'password'})</span>
@@ -183,7 +183,7 @@ export default function LoginPage() {
 
               {/* Production Stages */}
               <div>
-                <p className="text-xs font-semibold text-gray-600 mb-2">🏭 Production Stages:</p>
+                <p className="text-app-heading font-semibold text-gray-600 mb-2">🏭 Production Stages:</p>
                 {demoCredentials.filter(c => c.category === 'Production').map((cred) => (
                   <button
                     key={cred.email}
@@ -191,7 +191,7 @@ export default function LoginPage() {
                       setEmail(cred.email);
                       setPassword(cred.password || 'password');
                     }}
-                    className="w-full text-left p-2 text-xs bg-green-50 hover:bg-green-100 rounded-md transition-colors mb-1"
+                    className="w-full text-left p-2 text-app-text bg-green-50 hover:bg-green-100 rounded-md transition-colors mb-1"
                   >
                     <span className="font-medium">{cred.role}:</span> {cred.email}
                     <span className="text-gray-500 ml-2">({cred.password})</span>
@@ -205,3 +205,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

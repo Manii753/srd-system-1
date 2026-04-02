@@ -76,7 +76,7 @@ export default function ManageDepartmentsPage() {
   return (
     <Layout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Manage Departments</h1>
+        <h1 className="text-app-heading font-bold">Manage Departments</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2">
@@ -90,7 +90,7 @@ export default function ManageDepartmentsPage() {
                     <div key={dept._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <h3 className="font-semibold">{dept.name} ({dept.slug})</h3>
-                        <p className="text-sm text-gray-500">{dept.description}</p>
+                        <p className="text-app-text text-gray-500">{dept.description}</p>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/admin/departments/${dept._id}`)}>
@@ -138,3 +138,4 @@ export default function ManageDepartmentsPage() {
     </Layout>
   );
 }
+

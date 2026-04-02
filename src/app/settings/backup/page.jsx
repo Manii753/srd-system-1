@@ -368,7 +368,7 @@ export default function BackupPage() {
           <div className="flex items-center space-x-3">
             <Database className="h-8 w-8 text-gray-700" />
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Backup Management</h1>
+              <h1 className="text-app-heading font-bold text-gray-900">Backup Management</h1>
               <p className="text-gray-600 mt-1">Create, manage, and restore system backups</p>
             </div>
           </div>
@@ -394,7 +394,7 @@ export default function BackupPage() {
 
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-gray-700">
+            <p className="text-app-text text-gray-700">
               Automatic backups use one rolling ZIP file and stay separate from manual backups. They only run when the separate scheduler worker is running with `npm run backup:scheduler`.
             </p>
           </CardContent>
@@ -410,7 +410,7 @@ export default function BackupPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-app-text text-gray-600 mb-4">
                 Create a downloadable ZIP backup with database data and everything under `public/uploads`
               </p>
               <Button 
@@ -441,7 +441,7 @@ export default function BackupPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-app-text text-gray-600 mb-4">
                 Upload a ZIP backup or legacy JSON backup, then restore it from backup history
               </p>
               <input
@@ -469,7 +469,7 @@ export default function BackupPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-app-text">
                   <span>Processing backup...</span>
                   <span>{uploadProgress}%</span>
                 </div>
@@ -491,7 +491,7 @@ export default function BackupPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">Retention Period</label>
+                  <label className="text-app-text font-medium">Retention Period</label>
                   <select 
                     className="w-full mt-1 p-2 border rounded-md"
                     value={settings.retentionDays}
@@ -507,7 +507,7 @@ export default function BackupPage() {
                 </div>
                 
                 <div>
-                  <label className="text-sm font-medium">Backup Frequency</label>
+                  <label className="text-app-text font-medium">Backup Frequency</label>
                   <select 
                     className="w-full mt-1 p-2 border rounded-md"
                     value={settings.backupFrequency}
@@ -523,11 +523,11 @@ export default function BackupPage() {
               
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">Default Location</label>
-                  <div className="w-full mt-1 p-2 border rounded-md bg-gray-50 text-sm text-gray-700">
+                  <label className="text-app-text font-medium">Default Location</label>
+                  <div className="w-full mt-1 p-2 border rounded-md bg-gray-50 text-app-text text-gray-700">
                     Local storage only
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-app-text text-gray-500 mt-2">
                     Google Drive backup is currently disabled. Automatic backup is a rolling full ZIP snapshot and requires the separate scheduler worker process.
                   </p>
                 </div>
@@ -539,7 +539,7 @@ export default function BackupPage() {
                     checked={settings.autoBackup}
                     onChange={(e) => updateSettings({...settings, autoBackup: e.target.checked})}
                   />
-                  <label htmlFor="auto-backup" className="text-sm font-medium">
+                  <label htmlFor="auto-backup" className="text-app-text font-medium">
                     Enable Automatic Backups
                   </label>
                 </div>
@@ -561,7 +561,7 @@ export default function BackupPage() {
               <div className="text-center py-8 text-gray-500">
                 <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No backups found</p>
-                <p className="text-sm">Create your first backup to get started</p>
+                <p className="text-app-text">Create your first backup to get started</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -577,10 +577,10 @@ export default function BackupPage() {
                       </div>
                         <div>
                           <h3 className="font-medium">{backup.name}</h3>
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-app-text text-gray-500 mt-1">
                             {getBackupTypeDescription(backup)}
                           </p>
-                          <div className="flex items-center space-x-4 text-sm text-gray-500 mt-2">
+                          <div className="flex items-center space-x-4 text-app-text text-gray-500 mt-2">
                             <span>{formatDate(getBackupDisplayDate(backup))}</span>
                             <span>{formatFileSize(backup.size)}</span>
                             <Badge variant={backup.type === 'automatic' ? 'secondary' : 'outline'}>
@@ -629,3 +629,4 @@ export default function BackupPage() {
     </Layout>
   );
 }
+

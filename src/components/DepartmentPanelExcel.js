@@ -117,6 +117,7 @@ export default function DepartmentPanelExcel({
   const [sections, setSections] = useState([]);
   const [formPagination, setFormPagination] = useState({ enabled: true, itemsPerPage: 12 });
   const [pendingUpdates, setPendingUpdates] = useState({}); // Track updates per department
+  const [showActivityConsole, setShowActivityConsole] = useState(false); // Activity console visibility - default hidden
 
   // Status update state
   const [selectedDepartment, setSelectedDepartment] = useState(userRole === 'admin' || userRole === 'vmd' ? 'vmd' : userRole);
@@ -679,13 +680,13 @@ export default function DepartmentPanelExcel({
           onClick={handlePrint}
           size="sm"
           variant="outline"
-          className="h-7 px-2 text-xs"
+          className="h-7 px-2 text-app-text"
           disabled={isPrinting}
         >
           {isPrinting ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Wait...</> : <><Printer className="h-3 w-3 mr-1" />Print SRD</>}
         </Button>
         {hasUnsavedChanges && (
-          <div className="flex items-center text-xs text-amber-600">
+          <div className="flex items-center text-app-text text-amber-600">
             <div className="animate-pulse w-1.5 h-1.5 bg-amber-400 rounded-full mr-1" />
             Saving...
           </div>
@@ -697,7 +698,7 @@ export default function DepartmentPanelExcel({
               <span
                 key={dept}
                 className={cn(
-                  "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                  "inline-flex items-center rounded-full px-2 py-0.5 text-app-text font-medium",
                   val === 'approved' && 'bg-green-100 text-green-800',
                   val === 'in-progress' && 'bg-blue-100 text-blue-800',
                   val === 'flagged' && 'bg-red-100 text-red-800',
@@ -721,7 +722,7 @@ export default function DepartmentPanelExcel({
     switch (type) {
       case 'heading':
         return (
-          <div className="font-semibold text-gray-800 text-sm px-1 py-0.5">
+          <div className="font-semibold text-gray-800 text-app-text px-1 py-0.5">
             {name}
           </div>
         );
@@ -753,7 +754,7 @@ export default function DepartmentPanelExcel({
                 disabled={!canEdit || isAutoField}
                 maxLength={20}
                 className={cn(
-                  "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-6",
+                  "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-app-text py-0 px-0 h-6",
                   !canEdit && "cursor-not-allowed text-gray-500",
                   isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
                 )}
@@ -779,7 +780,7 @@ export default function DepartmentPanelExcel({
                 maxLength={20}
                 rows={1}
                 className={cn(
-                  "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 resize-none leading-tight",
+                  "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-app-text py-0 px-0 resize-none leading-tight",
                   !canEdit && "cursor-not-allowed text-gray-500",
                   isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
                 )}
@@ -916,7 +917,7 @@ export default function DepartmentPanelExcel({
                         {/* Col 1: First 4 fields */}
                         <div className="flex flex-col gap-0">
                           {col1Indexes.map(idx => (
-                            <div key={idx} className="flex items-center text-xs border-b border-gray-100">
+                            <div key={idx} className="flex items-center text-app-text border-b border-gray-100">
                               <span className="w-20 flex-shrink-0 font-semibold min-w-[140px] text-gray-700 whitespace-nowrap capitalize break-words pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
                               <div className="flex-1 min-w-0 relative">
                                 <DebouncedInput
@@ -928,7 +929,7 @@ export default function DepartmentPanelExcel({
                                     handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
                                   }}
                                   className={cn(
-                                    "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-6",
+                                    "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-app-text py-0 px-0 h-6",
                                     isFieldHighlighted(fieldId, { ...fieldDef, department: typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global' }, row[idx]) && "highlight-empty-field"
                                   )}
                                   disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
@@ -946,7 +947,7 @@ export default function DepartmentPanelExcel({
                         <div className="flex flex-col gap-0">
                           {col2Indexes.length > 0 ? (
                             col2Indexes.map(idx => (
-                              <div key={idx} className="flex items-center text-xs border-b border-gray-100">
+                              <div key={idx} className="flex items-center text-app-text border-b border-gray-100">
                                 <span className="w-20 flex-shrink-0  min-w-[140px] font-semibold text-gray-700 capitalize break-words whitespace-nowrap pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
                                 <div className="flex-1 min-w-0 relative">
                                   <DebouncedInput
@@ -958,7 +959,7 @@ export default function DepartmentPanelExcel({
                                       handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
                                     }}
                                     className={cn(
-                                      "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-xs py-0 px-0 h-6",
+                                      "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-app-text py-0 px-0 h-6",
                                       isFieldHighlighted(fieldId, { ...fieldDef, department: typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global' }, row[idx]) && "highlight-empty-field"
                                     )}
                                     disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
@@ -971,7 +972,7 @@ export default function DepartmentPanelExcel({
                               </div>
                             ))
                           ) : (
-                            <div className="text-gray-400 italic text-xs h-full flex items-center justify-center">-</div>
+                            <div className="text-gray-400 italic text-app-text h-full flex items-center justify-center">-</div>
                           )}
                         </div>
 
@@ -1019,7 +1020,7 @@ export default function DepartmentPanelExcel({
                                   onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
                                   disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                                   className={cn(
-                                    "w-full px-1 py-0 text-xs bg-white text-gray-700 border-none focus:outline-none transition-all duration-300",
+                                    "w-full px-1 py-0 text-app-text bg-white text-gray-700 border-none focus:outline-none transition-all duration-300",
                                     !isInStock && isFieldHighlighted(fieldId, { ...fieldDef, department: fieldDef.predefinedFieldsOwner || 'global' }, rowPredefined.opd) && "highlight-empty-field",
                                     isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
                                   )}
@@ -1032,7 +1033,7 @@ export default function DepartmentPanelExcel({
                                   onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
                                   disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                                   className={cn(
-                                    "w-full px-1 py-0 text-xs bg-white text-gray-700 border-none focus:outline-none transition-all duration-300",
+                                    "w-full px-1 py-0 text-app-text bg-white text-gray-700 border-none focus:outline-none transition-all duration-300",
                                     !isInStock && isFieldHighlighted(fieldId, { ...fieldDef, department: fieldDef.predefinedFieldsOwner || 'global' }, rowPredefined.etd) && "highlight-empty-field",
                                     isInStock && "opacity-40 bg-gray-100 cursor-not-allowed"
                                   )}
@@ -1057,7 +1058,7 @@ export default function DepartmentPanelExcel({
           <div className="space-y-1 p-0 overflow-auto max-h-96 flex flex-col w-full">
             <span className="text-[11px] font-bold text-gray-700 uppercase px-1 pb-1">{name}</span>
             <div className="border border-gray-200 overflow-hidden">
-              <table className="w-full text-xs border-collapse table-fixed">
+              <table className="w-full text-app-text border-collapse table-fixed">
                 <thead>
                   <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
                     {tableData.headers?.map((header, colIdx) => {
@@ -1182,7 +1183,7 @@ export default function DepartmentPanelExcel({
                                   )}
                                 </>
                               ) : (
-                                <span className="px-2 py-1.5 block text-xs">{cell}</span>
+                                <span className="px-2 py-1.5 block text-app-text">{cell}</span>
                               )}
                             </td>
                           )
@@ -1245,7 +1246,7 @@ export default function DepartmentPanelExcel({
                             onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
                             disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                             className={cn(
-                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 text-xs transition-all duration-300",
+                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 text-app-text transition-all duration-300",
                               !isInStock && isFieldHighlighted(fieldId, { ...fieldDef, department: fieldDef.predefinedFieldsOwner || 'global' }, rowPredefined.opd) && "highlight-empty-field",
                               isInStock && "opacity-40 cursor-not-allowed"
                             )}
@@ -1259,7 +1260,7 @@ export default function DepartmentPanelExcel({
                             onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
                             disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                             className={cn(
-                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400  text-xs transition-all duration-300",
+                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400  text-app-text transition-all duration-300",
                               !isInStock && isFieldHighlighted(fieldId, { ...fieldDef, department: fieldDef.predefinedFieldsOwner || 'global' }, rowPredefined.etd) && "highlight-empty-field",
                               isInStock && "opacity-40 cursor-not-allowed"
                             )}
@@ -1279,7 +1280,7 @@ export default function DepartmentPanelExcel({
                     const newPredefined = [...predefinedData, { purchaseType: 'purchase', opd: '', etd: '' }];
                     handleFieldChange(fieldId, name, { ...tableData, rows: newRows, predefinedData: newPredefined }, department, fieldDef);
                   }}
-                  className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1.5 px-3 py-1.5 border border-blue-200 rounded-md hover:bg-blue-50 hover:border-blue-300 transition-all duration-150 shadow-sm"
+                  className="text-app-text text-blue-600 hover:text-blue-700 flex items-center gap-1.5 px-3 py-1.5 border border-blue-200 rounded-md hover:bg-blue-50 hover:border-blue-300 transition-all duration-150 shadow-sm"
                 >
                   <Plus className="h-3 w-3" />
                 </button>
@@ -1314,7 +1315,7 @@ export default function DepartmentPanelExcel({
               />
             )}
             {fileUrl && (
-              <div className="flex items-center p-1 bg-gray-50 border rounded text-xs">
+              <div className="flex items-center p-1 bg-gray-50 border rounded text-app-text">
                 <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
                 <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate flex-1 block" title={fileLabel}>
                   {fileLabel}
@@ -1380,7 +1381,7 @@ export default function DepartmentPanelExcel({
                         )}
                       />
                       {isCover && (
-                        <div className="absolute top-0 left-0 bg-yellow-400 text-yellow-900 px-0.5 py-0.5 rounded-br text-xs">
+                        <div className="absolute top-0 left-0 bg-yellow-400 text-yellow-900 px-0.5 py-0.5 rounded-br text-app-text">
                           <Star className="h-2 w-2 fill-current" />
                         </div>
                       )}
@@ -1417,7 +1418,7 @@ export default function DepartmentPanelExcel({
                   );
                 })}
                 {allImages.length > 6 && (
-                  <div className="aspect-square border border-gray-200 rounded flex items-center justify-center text-xs text-gray-500">
+                  <div className="aspect-square border border-gray-200 rounded flex items-center justify-center text-app-text text-gray-500">
                     +{allImages.length - 6}
                   </div>
                 )}
@@ -1430,7 +1431,7 @@ export default function DepartmentPanelExcel({
 
       default:
         return (
-          <div className="text-xs text-gray-400 text-center py-1">
+          <div className="text-app-text text-gray-400 text-center py-1">
             Unsupported type
           </div>
         );
@@ -1443,7 +1444,7 @@ export default function DepartmentPanelExcel({
       <div className="bg-white border border-gray-200 rounded-lg p-8">
         <div className="flex flex-col items-center justify-center">
           <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-2" />
-          <p className="text-sm text-gray-500">Loading template...</p>
+          <p className="text-app-text text-gray-500">Loading template...</p>
         </div>
       </div>
     );
@@ -1455,8 +1456,8 @@ export default function DepartmentPanelExcel({
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <div className="text-center">
           <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-          <h3 className="text-sm font-medium text-gray-700">No Active Template</h3>
-          <p className="text-xs text-gray-500 mt-1">Please create and activate a print template in the template designer.</p>
+          <h3 className="text-app-text font-medium text-gray-700">No Active Template</h3>
+          <p className="text-app-text text-gray-500 mt-1">Please create and activate a print template in the template designer.</p>
         </div>
       </div>
     );
@@ -1497,12 +1498,14 @@ export default function DepartmentPanelExcel({
   }
 
   return (
-    <div className="bg-white rounded-lg overflow-hidden">
+    <div className="flex gap-0 bg-white rounded-lg overflow-hidden h-[calc(100vh-120px)]">
+      {/* Main Form Area */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
 
       {/* Section header row — always aligned */}
       {headerCells.length > 0 && (
         <div
-          className="grid gap-0 border-b border-gray-300 bg-gray-50"
+          className="grid gap-0 border-b border-gray-300 bg-gray-50 sticky top-0 z-10"
           style={{ gridTemplateColumns: `repeat(${gridColumns * 2}, minmax(0, 1fr))` }}
         >
           {headerCells.map((cell, i) => (
@@ -1511,7 +1514,7 @@ export default function DepartmentPanelExcel({
               className="border-r border-gray-200 last:border-r-0 px-2 py-1"
               style={{ gridColumn: `span ${(cell.position?.colSpan || 1) * 2}` }}
             >
-              <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+              <span className="text-app-heading font-bold text-gray-700 uppercase tracking-wide">
                 {cell.customValue}
               </span>
             </div>
@@ -1542,12 +1545,12 @@ export default function DepartmentPanelExcel({
                 >
                   <div className="h-full px-1 py-0.5">
                     {cell.customType === 'custom-heading' && (
-                      <div className="font-semibold text-gray-800 text-sm">
+                      <div className="font-semibold text-gray-800 text-app-text">
                         {cell.customValue}
                       </div>
                     )}
                     {cell.customType === 'custom-text' && (
-                      <div className="text-gray-600 text-sm">
+                      <div className="text-gray-600 text-app-text">
                         {cell.customValue}
                       </div>
                     )}
@@ -1555,7 +1558,7 @@ export default function DepartmentPanelExcel({
                       <div className="border-t border-gray-300 my-2"></div>
                     )}
                     {cell.customType === 'custom-empty-field' && (
-                      <div className="text-gray-400 text-xs">
+                      <div className="text-gray-400 text-app-text">
                         {cell.customValue}<span className="italic">{cell.customPlaceholder}</span>
                       </div>
                     )}
@@ -1591,7 +1594,7 @@ export default function DepartmentPanelExcel({
                   }}
                 >
                   <div
-                    className="bg-red-50 border border-red-200 rounded p-2 text-xs text-red-500 h-full"
+                    className="bg-red-50 border border-red-200 rounded p-2 text-app-text text-red-500 h-full"
                   >
                     Field not found
                   </div>
@@ -1703,12 +1706,12 @@ export default function DepartmentPanelExcel({
               <div className="grid grid-cols-6 gap-2 items-end">
                 {/* Department display/selector */}
                 <div>
-                  <Label className="text-xs font-medium text-gray-700">Department</Label>
+                  <Label className="text-app-text font-medium text-gray-700">Department</Label>
                   {userRole === 'admin' || userRole === 'vmd' ? (
                     <select
                       value={selectedDepartment}
                       onChange={(e) => setSelectedDepartment(e.target.value)}
-                      className="mt-1 px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
+                      className="mt-1 px-1 py-1 text-app-text border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
                       disabled={isSubmitting}
                     >
                       {['vmd', 'cad', 'commercial', 'mmc'].map(dept => (
@@ -1716,17 +1719,17 @@ export default function DepartmentPanelExcel({
                       ))}
                     </select>
                   ) : (
-                    <div className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded bg-gray-100 h-7 flex items-center font-medium text-gray-700">
+                    <div className="mt-1 px-2 py-1 text-app-text border border-gray-300 rounded bg-gray-100 h-7 flex items-center font-medium text-gray-700">
                       {userRole?.toUpperCase()}
                     </div>
                   )}
                 </div>
                 <div>
-                  <Label className="text-xs font-medium text-gray-700">Status</Label>
+                  <Label className="text-app-text font-medium text-gray-700">Status</Label>
                   <select
                     value={statusToUpdate}
                     onChange={(e) => setStatusToUpdate(e.target.value)}
-                    className="mt-1 px-1 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
+                    className="mt-1 px-1 py-1 text-app-text border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
                     disabled={isSubmitting}
                   >
                     <option value="pending">Pending</option>
@@ -1736,7 +1739,7 @@ export default function DepartmentPanelExcel({
                   </select>
                 </div>
                 <div className="col-span-3">
-                  <Label htmlFor="updateComment" className="text-xs font-medium text-gray-700">
+                  <Label htmlFor="updateComment" className="text-app-text font-medium text-gray-700">
                     Comment {statusToUpdate !== 'flagged' && <span className="text-gray-500">(Optional)</span>}
                   </Label>
                   <Input
@@ -1745,7 +1748,7 @@ export default function DepartmentPanelExcel({
                     onChange={(e) => setUpdateComment(e.target.value)}
                     placeholder={statusToUpdate === 'flagged' ? 'Describe issue...' : 'Add comment...'}
                     required={statusToUpdate === 'flagged'}
-                    className="mt-1 text-xs h-7 border border-gray-300 focus:ring-1 focus:ring-blue-500"
+                    className="mt-1 text-app-text h-7 border border-gray-300 focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -1753,13 +1756,13 @@ export default function DepartmentPanelExcel({
                     onClick={handleStatusUpdate}
                     disabled={isSubmitting || (statusToUpdate === 'flagged' && !updateComment.trim())}
                     size="sm"
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs h-7"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-app-text h-7"
                   >
                     {isSubmitting ? 'Updating...' : 'Update Status'}
                   </Button>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 text-center mt-1">
+              <p className="text-app-text text-gray-500 text-center mt-1">
                 Field changes auto-save. Use button for status/comments only.
               </p>
             </div>
@@ -1780,76 +1783,100 @@ export default function DepartmentPanelExcel({
 
       {/* Pagination Controls */}
       {sections.length > 1 && (
-        <div className="flex items-center justify-center gap-3 py-2 border-t border-gray-100">
+        <div className="flex items-center justify-center gap-3 py-3 border-t border-gray-200">
           <button
             onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
             disabled={isFirstPage}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-20 disabled:cursor-not-allowed transition-all rotate-180"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            aria-label="Previous page"
           >
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z" /></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
           </button>
 
-          <div className="flex items-center gap-1.5">
-            {sections.map((_, i) => (
-              <button key={i} onClick={() => setCurrentPage(i)} className="transition-all duration-200 focus:outline-none">
-                <svg
-                  viewBox="0 0 10 10"
-                  className={`transition-all duration-200 ${i === currentPage ? 'w-2.5 h-2.5 text-gray-800' : 'w-1.5 h-1.5 text-gray-300 hover:text-gray-500'}`}
-                  fill="currentColor"
-                >
-                  <polygon points="5,0 10,5 5,10 0,5" />
-                </svg>
-              </button>
-            ))}
-          </div>
+          <span className="text-app-text text-gray-700 font-medium min-w-[60px] text-center">
+            {currentPage + 1} of {sections.length}
+          </span>
 
           <button
             onClick={() => setCurrentPage(Math.min(sections.length - 1, currentPage + 1))}
             disabled={isLastPage}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            aria-label="Next page"
           >
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z" /></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
           </button>
         </div>
       )}
 
+      </div>
+      {/* End Main Form Area */}
 
-
+      {/* Activity Sidebar Console */}
       {srd.audit && srd.audit.length > 0 && (
-        <div className="border-t border-gray-200 p-3">
-          <h4 className="text-sm font-semibold text-gray-700 mb-2">Activity</h4>
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {srd.audit.slice().reverse().map((entry, idx) => {
-              // Find comment with matching timestamp (within 1 second tolerance)
-              const relatedComment = srd.comments?.find(comment =>
-                Math.abs(new Date(comment.date) - new Date(entry.timestamp)) < 1000
-              );
-
-              return (
-                <div key={idx} className="bg-blue-50 rounded p-2 text-xs">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-gray-800">
-                      {entry.author}
-                      {entry.department && (
-                        <Badge variant="outline" className="ml-1 text-xs px-1 py-0">
-                          {entry.department.toUpperCase()}
-                        </Badge>
-                      )}
-                    </span>
-                    <span className="text-gray-400">
-                      {new Date(entry.timestamp).toLocaleString()}
-                    </span>
-                  </div>
-                  <p className="text-blue-700 font-medium mb-1">{entry.action}</p>
-                  {relatedComment && (
-                    <div className="mt-2 pl-2 border-l-2 border-blue-300">
-                      <p className="text-gray-600 italic">&ldquo;{relatedComment.text}&rdquo;</p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+        <div className={`border-l border-gray-300 bg-gray-50 flex flex-col h-full transition-all duration-300 ${showActivityConsole ? 'w-80' : 'w-12'}`}>
+          <div className="px-3 py-3 border-b border-gray-300 bg-gray-100 flex-shrink-0 flex items-center justify-between">
+            {showActivityConsole && <h4 className="text-app-heading font-bold text-gray-800 uppercase tracking-wide">Activity Console</h4>}
+            <button
+              onClick={() => setShowActivityConsole(!showActivityConsole)}
+              className="p-1 hover:bg-gray-200 rounded transition-colors"
+              aria-label={showActivityConsole ? "Hide activity console" : "Show activity console"}
+            >
+              {showActivityConsole ? (
+                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              )}
+            </button>
           </div>
+          {showActivityConsole && (
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+              {srd.audit.slice().reverse().map((entry, idx) => {
+                // Find comment with matching timestamp (within 1 second tolerance)
+                const relatedComment = srd.comments?.find(comment =>
+                  Math.abs(new Date(comment.date) - new Date(entry.timestamp)) < 1000
+                );
+
+                return (
+                  <div key={idx} className="bg-white border border-gray-200 rounded p-2 text-app-text hover:shadow-sm transition-shadow">
+                    <div className="flex items-start justify-between mb-1 gap-2">
+                      <div className="flex-1">
+                        <span className="font-semibold text-gray-900 block">
+                          {entry.author}
+                        </span>
+                        {entry.department && (
+                          <Badge variant="outline" className="mt-1 text-[10px] px-1.5 py-0 bg-gray-100">
+                            {entry.department.toUpperCase()}
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-gray-500 whitespace-nowrap">
+                        {new Date(entry.timestamp).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                    <p className="text-gray-700 font-medium leading-tight">{entry.action}</p>
+                    {relatedComment && (
+                      <div className="mt-2 pl-2 border-l-2 border-gray-300 bg-gray-50 p-1.5 rounded-r">
+                        <p className="text-gray-600 italic text-[11px]">&ldquo;{relatedComment.text}&rdquo;</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

@@ -44,7 +44,7 @@ export default function ProductionControl({ srdId, initialData, onUpdate, onHead
       <Button
         size="sm"
         variant="outline"
-        className="h-7 px-2 text-xs flex items-center gap-1"
+        className="h-7 px-2 text-app-text flex items-center gap-1"
         onClick={() => setShowProductionModal(true)}
       >
         <Package className="h-3 w-3" />
@@ -205,7 +205,7 @@ export default function ProductionControl({ srdId, initialData, onUpdate, onHead
               <CheckCircle className="h-5 w-5 text-green-600" />
               <div>
                 <p className="font-medium text-green-900">Ready for Production</p>
-                <p className="text-sm text-green-700">
+                <p className="text-app-text text-green-700">
                   All departments approved. Click to start production.
                 </p>
               </div>
@@ -234,7 +234,7 @@ export default function ProductionControl({ srdId, initialData, onUpdate, onHead
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
               <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
+                <h2 className="text-app-heading font-semibold flex items-center gap-2">
                   <Package className="h-5 w-5" />
                   Production Status
                   <Badge className="bg-blue-100 text-blue-800 ml-2">In Production</Badge>
@@ -247,8 +247,8 @@ export default function ProductionControl({ srdId, initialData, onUpdate, onHead
                 {/* Progress */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Overall Progress</span>
-                    <span className="text-sm font-bold">{productionProgress}%</span>
+                    <span className="text-app-text font-medium">Overall Progress</span>
+                    <span className="text-app-heading font-bold">{productionProgress}%</span>
                   </div>
                   <Progress value={productionProgress} className="h-3" />
                 </div>
@@ -258,8 +258,8 @@ export default function ProductionControl({ srdId, initialData, onUpdate, onHead
                   <div className="border rounded-lg p-4 bg-blue-50">
                     <div className="flex items-center justify-between mb-3">
                       <div>
-                        <p className="text-sm text-gray-600">Current Stage</p>
-                        <p className="text-lg font-semibold">
+                        <p className="text-app-text text-gray-600">Current Stage</p>
+                        <p className="text-app-heading font-semibold">
                           {productionHistory?.find(h =>
                             String(h.stage) === String(currentProductionStage)
                           )?.stageDisplayName}
@@ -274,7 +274,7 @@ export default function ProductionControl({ srdId, initialData, onUpdate, onHead
                     </div>
 
                     {currentProductionStage.estimatedDuration > 0 && (
-                      <p className="text-sm text-gray-600">
+                      <p className="text-app-text text-gray-600">
                         <Clock className="h-4 w-4 inline mr-1" />
                         Estimated: {currentProductionStage.estimatedDuration} days
                       </p>
@@ -318,8 +318,8 @@ export default function ProductionControl({ srdId, initialData, onUpdate, onHead
                     <div className="flex items-center space-x-3">
                       <CheckCircle className="h-8 w-8 text-green-600" />
                       <div>
-                        <p className="text-lg font-semibold text-green-900">Sample Complete!</p>
-                        <p className="text-sm text-green-700">
+                        <p className="text-app-heading font-semibold text-green-900">Sample Complete!</p>
+                        <p className="text-app-text text-green-700">
                           All production stages have been completed successfully.
                         </p>
                       </div>
@@ -330,7 +330,7 @@ export default function ProductionControl({ srdId, initialData, onUpdate, onHead
                 {/* Production History */}
                 {productionHistory && productionHistory.length > 0 && (
                   <div>
-                    <h3 className="text-base font-semibold mb-3">Production History</h3>
+                    <h3 className="text-app-heading font-semibold mb-3">Production History</h3>
                     <div className="space-y-4">
                       {productionHistory.map((entry, index) => (
                         <div key={index} className="flex items-start space-x-4 pb-4 border-b last:border-b-0">
@@ -357,7 +357,7 @@ export default function ProductionControl({ srdId, initialData, onUpdate, onHead
                                 {entry.status}
                               </Badge>
                             </div>
-                            <div className="text-sm text-gray-600 mt-1 space-y-1">
+                            <div className="text-app-text text-gray-600 mt-1 space-y-1">
                               <p>
                                 <Calendar className="h-3 w-3 inline mr-1" />
                                 Started: {new Date(entry.startDate).toLocaleString()}
@@ -399,8 +399,8 @@ export default function ProductionControl({ srdId, initialData, onUpdate, onHead
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
               <div className="flex items-center justify-between px-6 py-4 border-b">
-                <h2 className="text-lg font-semibold">Complete Production Stage</h2>
-                <button className="text-gray-500 hover:text-gray-800 text-2xl" onClick={() => setShowCompleteModal(false)}>×</button>
+                <h2 className="text-app-heading font-semibold">Complete Production Stage</h2>
+                <button className="text-gray-500 hover:text-gray-800 text-app-text" onClick={() => setShowCompleteModal(false)}>×</button>
               </div>
               <div className="px-6 py-4 space-y-4">
                 <div>
@@ -445,14 +445,14 @@ export default function ProductionControl({ srdId, initialData, onUpdate, onHead
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
               <div className="flex items-center justify-between px-6 py-4 border-b">
-                <h2 className="text-lg font-semibold flex items-center">
+                <h2 className="text-app-heading font-semibold flex items-center">
                   {customerApprovalStatus === 'approved' ? (
                     <><CheckCircle className="h-5 w-5 text-green-600 mr-2" /> Approve Production</>
                   ) : (
                     <><AlertCircle className="h-5 w-5 text-red-600 mr-2" /> Reject Production</>
                   )}
                 </h2>
-                <button className="text-gray-500 hover:text-gray-800 text-2xl" onClick={() => setShowCustomerApprovalModal(false)}>×</button>
+                <button className="text-gray-500 hover:text-gray-800 text-app-text" onClick={() => setShowCustomerApprovalModal(false)}>×</button>
               </div>
               <div className="px-6 py-4 space-y-4">
                 <div>
@@ -496,3 +496,4 @@ export default function ProductionControl({ srdId, initialData, onUpdate, onHead
     </div>
   );
 }
+

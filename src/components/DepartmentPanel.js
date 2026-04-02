@@ -389,7 +389,7 @@ export default function DepartmentPanel({
         {attachmentLabels.map((label, index) => (
           <div
             key={`${label}-${index}`}
-            className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700"
+            className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-app-text font-medium text-emerald-700"
           >
             {label}
           </div>
@@ -446,7 +446,7 @@ export default function DepartmentPanel({
           <div key={`section-${heading._id}`} className="mb-8">
             {/* Section Heading */}
             <div className="mb-4">
-              <h3 className="text-xl font-semibold text-gray-700 border-b-2 border-blue-200 pb-2 mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 rounded-lg">
+              <h3 className="text-app-heading font-semibold text-gray-700 border-b-2 border-blue-200 pb-2 mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 rounded-lg">
                 📁 {heading.name}
               </h3>
             </div>
@@ -501,7 +501,7 @@ export default function DepartmentPanel({
               {hasValue && !isEditing ? (
                 <div className="relative">
                   <div className="mt-1 p-3 bg-gray-50 border rounded-md min-h-[40px] flex items-center pr-10">
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-app-text font-medium text-gray-900">
                       {type === 'date' && fieldValue ? new Date(fieldValue).toLocaleDateString() : fieldValue}
                     </span>
                   </div>
@@ -540,7 +540,7 @@ export default function DepartmentPanel({
               {hasTextValue && !isTextEditing ? (
                 <div className="relative">
                   <div className="mt-1 p-3 bg-gray-50 border rounded-md min-h-[80px] pr-10">
-                    <span className="text-sm text-gray-900 whitespace-pre-wrap">{fieldValue}</span>
+                    <span className="text-app-text text-gray-900 whitespace-pre-wrap">{fieldValue}</span>
                   </div>
                   {canEdit && (
                     <Button variant="ghost" size="icon" onClick={() => toggleEditMode(name)} className="absolute top-2 right-1 h-8 w-8">
@@ -578,7 +578,7 @@ export default function DepartmentPanel({
               {hasBoolValue && !isBoolEditing ? (
                 <div className="flex items-center gap-2">
                   <div className="px-3 py-2 bg-gray-50 border rounded-md">
-                    <span className={`text-sm font-medium ${fieldValue ? 'text-green-700' : 'text-gray-600'}`}>{fieldValue ? 'Yes' : 'No'}</span>
+                    <span className={`text-app-text font-medium ${fieldValue ? 'text-green-700' : 'text-gray-600'}`}>{fieldValue ? 'Yes' : 'No'}</span>
                   </div>
                   {canEdit && (
                     <Button variant="ghost" size="icon" onClick={() => toggleEditMode(name)} className="h-8 w-8">
@@ -627,7 +627,7 @@ export default function DepartmentPanel({
               </div>
             )}
             {fileUrl ? (
-              <div className="mt-2 flex items-center gap-2 rounded-md border bg-gray-50 p-3 text-sm">
+              <div className="mt-2 flex items-center gap-2 rounded-md border bg-gray-50 p-3 text-app-text">
                 <FileSpreadsheet className="h-4 w-4 text-green-600" />
                 <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="truncate text-blue-600 hover:underline" title={fileLabel}>
                   {fileLabel}
@@ -639,7 +639,7 @@ export default function DepartmentPanel({
                 )}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 italic mt-1">No file uploaded yet.</p>
+              <p className="text-app-text text-gray-500 italic mt-1">No file uploaded yet.</p>
             )}
           </div>
         );
@@ -681,11 +681,11 @@ export default function DepartmentPanel({
                       <div className="cursor-pointer w-full h-full" onClick={() => { setImageModalIndex(idx); setModalImages(allImages.map((entry) => getAssetUrl(entry))); setIsImageModalOpen(true); }}>
                         <Image src={imageUrl} alt={`${name}-${idx}`} fill className={cn("object-cover rounded border transition-all", isCover ? "border-yellow-400 border-2" : "border-gray-200 hover:border-blue-400")} />
                         {isCover && (
-                          <div className="absolute top-1 left-1 bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded text-xs font-semibold flex items-center gap-1">
+                          <div className="absolute top-1 left-1 bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded text-app-heading font-semibold flex items-center gap-1">
                             <Star className="h-3 w-3 fill-current" />Cover
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition rounded">
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-app-text transition rounded">
                           <span className="bg-black/60 px-2 py-1 rounded">View</span>
                         </div>
                       </div>
@@ -706,7 +706,7 @@ export default function DepartmentPanel({
                 })}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 italic mt-1">No images uploaded yet.</p>
+              <p className="text-app-text text-gray-500 italic mt-1">No images uploaded yet.</p>
             )}
           </div>
         );
@@ -719,9 +719,9 @@ export default function DepartmentPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg font-semibold">{department.toUpperCase()} Department</CardTitle>
+        <CardTitle className="text-app-heading font-semibold">{department.toUpperCase()} Department</CardTitle>
         <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-500">Status:</span>
+          <span className="text-app-text text-gray-500">Status:</span>
           <Badge className={cn(status === 'approved' && 'bg-green-100 text-green-800', status === 'in-progress' && 'bg-blue-100 text-blue-800', status === 'flagged' && 'bg-red-100 text-red-800', status === 'pending' && 'bg-gray-100 text-gray-800')}>
             {status}
           </Badge>
@@ -732,9 +732,9 @@ export default function DepartmentPanel({
         {canEdit && (
           <div className="mt-6 pt-6 border-t border-gray-200">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-medium text-gray-700">Update Status</h4>
+              <h4 className="text-app-text font-medium text-gray-700">Update Status</h4>
               {hasUnsavedChanges && (
-                <div className="flex items-center text-xs text-amber-600">
+                <div className="flex items-center text-app-text text-amber-600">
                   <div className="animate-pulse w-2 h-2 bg-amber-400 rounded-full mr-2"></div>
                   Auto-saving...
                 </div>
@@ -748,13 +748,13 @@ export default function DepartmentPanel({
                 <option value="flagged">Flag Issue</option>
               </select>
               <div>
-                <Label htmlFor="updateComment">Comment{' '}{status !== 'flagged' && (<span className="text-xs text-gray-500">(Optional)</span>)}</Label>
+                <Label htmlFor="updateComment">Comment{' '}{status !== 'flagged' && (<span className="text-app-text text-gray-500">(Optional)</span>)}</Label>
                 <Textarea id="updateComment" value={updateComment} onChange={(e) => setUpdateComment(e.target.value)} placeholder={status === 'flagged' ? 'Describe the issue... (Required)' : 'Add a comment...'} required={status === 'flagged'} className="min-h-[100px] mt-1" />
               </div>
               <Button onClick={handleSaveChanges} disabled={isSubmitting} className="px-4 py-2 w-full">
                 {isSubmitting ? 'Updating Status...' : 'Update Status & Comment'}
               </Button>
-              <p className="text-xs text-gray-500 text-center">
+              <p className="text-app-text text-gray-500 text-center">
                 Field changes are saved automatically. Use this button only to update status or add comments.
               </p>
             </div>
@@ -778,7 +778,7 @@ export default function DepartmentPanel({
                 <button onClick={() => setImageModalIndex(Math.min(modalImages.length - 1, imageModalIndex + 1))} disabled={imageModalIndex === modalImages.length - 1} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 disabled:opacity-30 disabled:cursor-not-allowed rounded-full p-2 transition-all">
                   <ChevronRight className="h-6 w-6 text-gray-800" />
                 </button>
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black bg-opacity-60 text-white px-4 py-2 rounded-full text-sm">
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black bg-opacity-60 text-white px-4 py-2 rounded-full text-app-text">
                   {imageModalIndex + 1} / {modalImages.length}
                 </div>
               </>
@@ -789,4 +789,5 @@ export default function DepartmentPanel({
     </Card>
   );
 }
+
 

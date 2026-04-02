@@ -105,8 +105,8 @@ export default function SRDTracker({ srd }) {
       <div className="flex items-center justify-between p-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
           <Factory className="h-4 w-4 text-blue-600" />
-          <span className="text-sm font-semibold text-gray-700">SRD Workflow Tracker</span>
-          <Badge variant="outline" className="text-xs">
+          <span className="text-app-heading font-semibold text-gray-700">SRD Workflow Tracker</span>
+          <Badge variant="outline" className="text-app-text">
             {srd.progress || 0}%
           </Badge>
         </div>
@@ -134,7 +134,7 @@ export default function SRDTracker({ srd }) {
       <div className="p-6">
         {/* Normal Flow */}
         <div className="mb-8">
-          <div className="text-sm font-medium text-gray-600 mb-6">For Normal</div>
+          <div className="text-app-text font-medium text-gray-600 mb-6">For Normal</div>
           
           <div className="flex items-center justify-start gap-6 relative">
             {/* Progress Line - Extends through all stages */}
@@ -181,8 +181,8 @@ export default function SRDTracker({ srd }) {
             {/* SR Step */}
             <div className="flex flex-col items-center relative z-10">
               <div className="w-3 h-3 rounded-full bg-green-500 border-2 border-white shadow-sm"></div>
-              <div className="text-xs text-center mt-2 text-gray-600 font-medium">SR</div>
-              <div className="text-xs text-center text-gray-500">CREATED</div>
+              <div className="text-app-text text-center mt-2 text-gray-600 font-medium">SR</div>
+              <div className="text-app-text text-center text-gray-500">CREATED</div>
             </div>
 
             {/* Main horizontal line connecting all elements */}
@@ -205,8 +205,8 @@ export default function SRDTracker({ srd }) {
                   "w-3 h-3 rounded-full border-2 border-white shadow-sm",
                   getStatusColor((srd.status || []).find(s => s.department === 'vmd')?.value || 'pending')
                 )}></div>
-                <div className="text-xs text-center mt-1 text-gray-600 font-medium" style={{ marginLeft: '-10px', width: '26px' }}>VMD</div>
-                <div className="text-xs text-center text-gray-500 capitalize" style={{ marginLeft: '-10px', width: '26px' }}>
+                <div className="text-app-text text-center mt-1 text-gray-600 font-medium" style={{ marginLeft: '-10px', width: '26px' }}>VMD</div>
+                <div className="text-app-text text-center text-gray-500 capitalize" style={{ marginLeft: '-10px', width: '26px' }}>
                   {(srd.status || []).find(s => s.department === 'vmd')?.value || 'Pending'}
                 </div>
               </div>
@@ -217,8 +217,8 @@ export default function SRDTracker({ srd }) {
                   "w-3 h-3 rounded-full border-2 border-white shadow-sm",
                   getStatusColor((srd.status || []).find(s => s.department === 'mmc')?.value || 'pending')
                 )}></div>
-                <div className="text-xs text-center mt-1 text-gray-600 font-medium" style={{ marginLeft: '-10px', width: '26px' }}>MMC</div>
-                <div className="text-xs text-center text-gray-500 capitalize" style={{ marginLeft: '-10px', width: '26px' }}>
+                <div className="text-app-text text-center mt-1 text-gray-600 font-medium" style={{ marginLeft: '-10px', width: '26px' }}>MMC</div>
+                <div className="text-app-text text-center text-gray-500 capitalize" style={{ marginLeft: '-10px', width: '26px' }}>
                   {(srd.status || []).find(s => s.department === 'mmc')?.value || 'Pending'}
                 </div>
               </div>
@@ -229,8 +229,8 @@ export default function SRDTracker({ srd }) {
                   "w-3 h-3 rounded-full border-2 border-white shadow-sm",
                   getStatusColor((srd.status || []).find(s => s.department === 'cad')?.value || 'pending')
                 )}></div>
-                <div className="text-xs text-center mt-1 text-gray-600 font-medium" style={{ marginLeft: '-10px', width: '26px' }}>CAD</div>
-                <div className="text-xs text-center text-gray-500 capitalize" style={{ marginLeft: '-10px', width: '26px' }}>
+                <div className="text-app-text text-center mt-1 text-gray-600 font-medium" style={{ marginLeft: '-10px', width: '26px' }}>CAD</div>
+                <div className="text-app-text text-center text-gray-500 capitalize" style={{ marginLeft: '-10px', width: '26px' }}>
                   {(srd.status || []).find(s => s.department === 'cad')?.value || 'Pending'}
                 </div>
               </div>
@@ -241,8 +241,8 @@ export default function SRDTracker({ srd }) {
                   "w-3 h-3 rounded-full border-2 border-white shadow-sm",
                   getStatusColor((srd.status || []).find(s => s.department === 'commercial')?.value || 'pending')
                 )}></div>
-                <div className="text-xs text-center mt-1 text-gray-600 font-medium" style={{ marginLeft: '-10px', width: '26px' }}>COM</div>
-                <div className="text-xs text-center text-gray-500 capitalize" style={{ marginLeft: '-10px', width: '26px' }}>
+                <div className="text-app-text text-center mt-1 text-gray-600 font-medium" style={{ marginLeft: '-10px', width: '26px' }}>COM</div>
+                <div className="text-app-text text-center text-gray-500 capitalize" style={{ marginLeft: '-10px', width: '26px' }}>
                   {(srd.status || []).find(s => s.department === 'commercial')?.value || 'Pending'}
                 </div>
               </div>
@@ -262,10 +262,10 @@ export default function SRDTracker({ srd }) {
                       isCurrent && "bg-blue-500",
                       !isCompleted && !isCurrent && "bg-orange-500"
                     )}></div>
-                    <div className="text-xs text-center mt-2 text-gray-600 font-medium">
+                    <div className="text-app-text text-center mt-2 text-gray-600 font-medium">
                       {stage.name.substring(0, 3).toUpperCase()}
                     </div>
-                    <div className="text-xs text-center text-gray-500">
+                    <div className="text-app-text text-center text-gray-500">
                       {stage.displayName || stage.name}
                     </div>
                   </div>
@@ -283,8 +283,8 @@ export default function SRDTracker({ srd }) {
                 ].map((stage) => (
                   <div key={stage.name} className="flex flex-col items-center relative z-10">
                     <div className="w-3 h-3 rounded-full bg-orange-500 border-2 border-white shadow-sm"></div>
-                    <div className="text-xs text-center mt-2 text-gray-600 font-medium">{stage.name}</div>
-                    <div className="text-xs text-center text-gray-500">{stage.label}</div>
+                    <div className="text-app-text text-center mt-2 text-gray-600 font-medium">{stage.name}</div>
+                    <div className="text-app-text text-center text-gray-500">{stage.label}</div>
                   </div>
                 ))}
               </>
@@ -295,26 +295,26 @@ export default function SRDTracker({ srd }) {
         {/* Rejection Flow */}
         {departments.some(dept => (srd.status || []).find(s => s.department === dept.key)?.value === 'flagged') && (
           <div className="border-2 border-dashed border-red-300 rounded-lg p-6 bg-red-50">
-            <div className="text-sm font-medium text-red-600 mb-6">In Case of Rejection</div>
+            <div className="text-app-text font-medium text-red-600 mb-6">In Case of Rejection</div>
             
             <div className="flex items-center justify-start gap-8 relative">
               {/* SR Node - Rejected */}
               <div className="flex flex-col items-center">
-                <div className="w-12 h-12 rounded-full bg-red-500 border-2 border-red-500 flex items-center justify-center text-white font-bold text-sm">
+                <div className="w-12 h-12 rounded-full bg-red-500 border-2 border-red-500 flex items-center justify-center text-white font-bold text-app-heading">
                   SR
                 </div>
-                <div className="text-xs text-red-600 mt-2">REJECTED</div>
+                <div className="text-app-text text-red-600 mt-2">REJECTED</div>
               </div>
 
               {/* VMD Node - Rejected */}
               <div className="flex flex-col items-center">
                 <div className={cn(
-                  "w-12 h-12 rounded-full border-2 flex items-center justify-center text-sm font-bold text-white",
+                  "w-12 h-12 rounded-full border-2 flex items-center justify-center text-app-heading font-bold text-white",
                   (srd.status || []).find(s => s.department === 'vmd')?.value === 'flagged' ? "bg-red-500 border-red-500" : "bg-orange-500 border-orange-500"
                 )}>
                   VMD
                 </div>
-                <div className="text-xs text-red-600 mt-2 capitalize">
+                <div className="text-app-text text-red-600 mt-2 capitalize">
                   {(srd.status || []).find(s => s.department === 'vmd')?.value === 'flagged' ? 'Flagged' : 'Pending'}
                 </div>
               </div>
@@ -332,12 +332,12 @@ export default function SRDTracker({ srd }) {
                 {/* MMC (Top of diamond) */}
                 <div className="absolute" style={{ left: '44px', top: '-4px' }}>
                   <div className={cn(
-                    "w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-bold text-white",
+                    "w-10 h-10 rounded-full border-2 flex items-center justify-center text-app-heading font-bold text-white",
                     (srd.status || []).find(s => s.department === 'mmc')?.value === 'flagged' ? "bg-red-500 border-red-500" : "bg-orange-500 border-orange-500"
                   )}>
                     MMC
                   </div>
-                  <div className="text-xs text-center mt-1 text-red-600 capitalize">
+                  <div className="text-app-text text-center mt-1 text-red-600 capitalize">
                     {(srd.status || []).find(s => s.department === 'mmc')?.value === 'flagged' ? 'Flagged' : 'Pending'}
                   </div>
                 </div>
@@ -345,12 +345,12 @@ export default function SRDTracker({ srd }) {
                 {/* CAD (Center-right - on main horizontal line) */}
                 <div className="absolute" style={{ left: '60px', top: '28px' }}>
                   <div className={cn(
-                    "w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-bold text-white",
+                    "w-10 h-10 rounded-full border-2 flex items-center justify-center text-app-heading font-bold text-white",
                     (srd.status || []).find(s => s.department === 'cad')?.value === 'flagged' ? "bg-red-500 border-red-500" : "bg-orange-500 border-orange-500"
                   )}>
                     CAD
                   </div>
-                  <div className="text-xs text-center mt-1 text-red-600 capitalize">
+                  <div className="text-app-text text-center mt-1 text-red-600 capitalize">
                     {(srd.status || []).find(s => s.department === 'cad')?.value === 'flagged' ? 'Flagged' : 'Pending'}
                   </div>
                 </div>
@@ -358,12 +358,12 @@ export default function SRDTracker({ srd }) {
                 {/* COM (Bottom of diamond) */}
                 <div className="absolute" style={{ left: '44px', top: '60px' }}>
                   <div className={cn(
-                    "w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-bold text-white",
+                    "w-10 h-10 rounded-full border-2 flex items-center justify-center text-app-heading font-bold text-white",
                     (srd.status || []).find(s => s.department === 'commercial')?.value === 'flagged' ? "bg-red-500 border-red-500" : "bg-orange-500 border-orange-500"
                   )}>
                     COM
                   </div>
-                  <div className="text-xs text-center mt-1 text-red-600 capitalize">
+                  <div className="text-app-text text-center mt-1 text-red-600 capitalize">
                     {(srd.status || []).find(s => s.department === 'commercial')?.value === 'flagged' ? 'Flagged' : 'Pending'}
                   </div>
                 </div>
@@ -372,7 +372,7 @@ export default function SRDTracker({ srd }) {
               {/* Production Halted */}
               <div className="flex flex-col items-center">
                 <div className="w-24 h-12 rounded-lg bg-red-100 border-2 border-red-300 flex items-center justify-center">
-                  <span className="text-xs text-red-600 font-medium">Production Halted</span>
+                  <span className="text-app-text text-red-600 font-medium">Production Halted</span>
                 </div>
               </div>
 
@@ -387,7 +387,7 @@ export default function SRDTracker({ srd }) {
         {/* Expanded Details */}
         {isExpanded && (
           <div className="border-t border-gray-100 pt-4 mt-4">
-            <div className="grid grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-2 gap-4 text-app-text">
               <div>
                 <div className="font-semibold text-gray-700 mb-2">Department Progress</div>
                 <Progress value={departmentProgress} className="h-1 mb-2" />

@@ -113,7 +113,7 @@ const DispatchCardPrint = ({ srd }) => {
       onClick={handlePrint}
       size="sm"
       variant="outline"
-      className="h-6 px-2 py-0 text-xs bg-white text-blue-700 border-white hover:bg-blue-50"
+      className="h-6 px-2 py-0 text-app-text bg-white text-blue-700 border-white hover:bg-blue-50"
       disabled={isPrinting}
     >
       {isPrinting ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Wait...</> : <><Printer className="h-3 w-3 mr-1" />Print Dispatch Card</>}

@@ -113,16 +113,16 @@ export default function SRDReports({ srd }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="bg-blue-50 border-blue-200">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-blue-700 flex items-center">
+                        <CardTitle className="text-app-text font-medium text-blue-700 flex items-center">
                             <Calendar className="h-4 w-4 mr-2" />
                             SRD Raised
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-blue-900">
+                        <div className="text-app-heading font-bold text-blue-900">
                             {createdAt.toLocaleDateString()}
                         </div>
-                        <p className="text-xs text-blue-600 mt-1">
+                        <p className="text-app-text text-blue-600 mt-1">
                             At {createdAt.toLocaleTimeString()}
                         </p>
                     </CardContent>
@@ -130,16 +130,16 @@ export default function SRDReports({ srd }) {
 
                 <Card className="bg-purple-50 border-purple-200">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-purple-700 flex items-center">
+                        <CardTitle className="text-app-text font-medium text-purple-700 flex items-center">
                             <Timer className="h-4 w-4 mr-2" />
                             Total Time Elapsed
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-purple-900">
+                        <div className="text-app-heading font-bold text-purple-900">
                             {formatDuration(overallDuration)}
                         </div>
-                        <p className="text-xs text-purple-600 mt-1">
+                        <p className="text-app-text text-purple-600 mt-1">
                             From creation {isComplete ? 'to completion' : 'to now'}
                         </p>
                     </CardContent>
@@ -147,16 +147,16 @@ export default function SRDReports({ srd }) {
 
                 <Card className="bg-green-50 border-green-200">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-green-700 flex items-center">
+                        <CardTitle className="text-app-text font-medium text-green-700 flex items-center">
                             <CheckCircle className="h-4 w-4 mr-2" />
                             Status
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-900 capitalize">
+                        <div className="text-app-heading font-bold text-green-900 capitalize">
                             {isComplete ? 'Completed' : (srd.inProduction ? 'In Production' : 'Pre-Production')}
                         </div>
-                        <p className="text-xs text-green-600 mt-1">
+                        <p className="text-app-text text-green-600 mt-1">
                             Overall Progress: {srd.progress}%
                         </p>
                     </CardContent>
@@ -166,7 +166,7 @@ export default function SRDReports({ srd }) {
             {/* Department Breakdown */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-lg font-semibold flex items-center">
+                    <CardTitle className="text-app-heading font-semibold flex items-center">
                         <History className="h-5 w-5 mr-2 text-gray-500" />
                         Department Efficiency
                     </CardTitle>
@@ -192,7 +192,7 @@ export default function SRDReports({ srd }) {
                                                     <Badge className="bg-green-100 text-green-700 text-[10px] py-0 h-4 uppercase border-green-200">Approved</Badge>
                                                 )}
                                             </div>
-                                            <p className="text-xs text-gray-500">
+                                            <p className="text-app-text text-gray-500">
                                                 {dept.date ? `Approved on ${dept.date.toLocaleDateString()}` :
                                                     dept.flagged ? `Flagged on ${dept.latestFlag?.date.toLocaleDateString()}` :
                                                         'Pending approval'}
@@ -205,7 +205,7 @@ export default function SRDReports({ srd }) {
                                                 dept.flagged ? formatDuration(dept.latestFlag?.date - createdAt) :
                                                     formatDuration(now - createdAt)}
                                         </p>
-                                        <p className="text-xs text-gray-400">
+                                        <p className="text-app-text text-gray-400">
                                             {dept.approved ? 'Time to approve' :
                                                 dept.flagged ? 'Time until flagged' : 'Currently pending'}
                                         </p>
@@ -214,7 +214,7 @@ export default function SRDReports({ srd }) {
 
                                 {dept.latestFlag && (
                                     <div className={cn(
-                                        "mt-2 p-3 rounded-lg text-sm",
+                                        "mt-2 p-3 rounded-lg text-app-text",
                                         dept.flagged ? "bg-red-50 border border-red-100 text-red-700" : "bg-gray-50 text-gray-600"
                                     )}>
                                         <div className="flex items-start gap-2">
@@ -235,7 +235,7 @@ export default function SRDReports({ srd }) {
             {/* Production Stage Breakdown */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-lg font-semibold flex items-center">
+                    <CardTitle className="text-app-heading font-semibold flex items-center">
                         <Factory className="h-5 w-5 mr-2 text-orange-500" />
                         Production Stage Durations
                     </CardTitle>
@@ -265,7 +265,7 @@ export default function SRDReports({ srd }) {
                                     </div>
                                     <div className="text-right">
                                         <p className="font-bold text-gray-900">{formatDuration(stage.duration)}</p>
-                                        <p className="text-xs text-gray-400">Total spent</p>
+                                        <p className="text-app-text text-gray-400">Total spent</p>
                                     </div>
                                 </div>
                             ))}
@@ -276,3 +276,4 @@ export default function SRDReports({ srd }) {
         </div>
     );
 }
+

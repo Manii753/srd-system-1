@@ -77,7 +77,7 @@ export default function SRDDiagnostic({ srdId, onFixed }) {
               <Wrench className="h-5 w-5 text-blue-600" />
               <div>
                 <p className="font-medium text-blue-900">SRD Diagnostic Tool</p>
-                <p className="text-sm text-blue-700">
+                <p className="text-app-text text-blue-700">
                   Check if this SRD is ready for production
                 </p>
               </div>
@@ -105,8 +105,8 @@ export default function SRDDiagnostic({ srdId, onFixed }) {
             {/* Summary */}
             <div className="flex items-center justify-between pb-4 border-b">
               <div>
-                <h3 className="font-semibold text-lg">Diagnostic Results</h3>
-                <p className="text-sm text-gray-600">
+                <h3 className="font-semibold text-app-heading">Diagnostic Results</h3>
+                <p className="text-app-text text-gray-600">
                   {diagnostic.summary.approvedCount} of {diagnostic.summary.totalDepartments} departments approved
                 </p>
               </div>
@@ -125,7 +125,7 @@ export default function SRDDiagnostic({ srdId, onFixed }) {
             {/* Current Status */}
             <div>
               <h4 className="font-medium mb-2">Current Status</h4>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-2 gap-4 text-app-text">
                 <div>
                   <span className="text-gray-600">Progress:</span>
                   <span className="ml-2 font-medium">{diagnostic.currentStatus.progress}%</span>
@@ -155,7 +155,7 @@ export default function SRDDiagnostic({ srdId, onFixed }) {
               <div className="space-y-2">
                 {diagnostic.departments.list.map((dept) => (
                   <div key={dept.slug} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                    <span className="text-sm font-medium">{dept.name}</span>
+                    <span className="text-app-text font-medium">{dept.name}</span>
                     <div className="flex items-center space-x-2">
                       {dept.inStatus ? (
                         <>
@@ -187,8 +187,8 @@ export default function SRDDiagnostic({ srdId, onFixed }) {
                     <div key={index} className="flex items-start space-x-2 p-3 bg-red-50 border border-red-200 rounded">
                       <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-red-900">{issue.type}</p>
-                        <p className="text-sm text-red-700">{issue.message}</p>
+                        <p className="text-app-text font-medium text-red-900">{issue.type}</p>
+                        <p className="text-app-text text-red-700">{issue.message}</p>
                       </div>
                     </div>
                   ))}
@@ -202,7 +202,7 @@ export default function SRDDiagnostic({ srdId, onFixed }) {
                 <h4 className="font-medium mb-2">Recommendations</h4>
                 <ul className="space-y-1">
                   {diagnostic.recommendations.map((rec, index) => (
-                    <li key={index} className="text-sm text-gray-700 flex items-start">
+                    <li key={index} className="text-app-text text-gray-700 flex items-start">
                       <span className="mr-2">•</span>
                       <span>{rec}</span>
                     </li>
@@ -226,7 +226,7 @@ export default function SRDDiagnostic({ srdId, onFixed }) {
                   )}
                   Auto-Fix Issues
                 </Button>
-                <p className="text-xs text-gray-500 mt-2 text-center">
+                <p className="text-app-text text-gray-500 mt-2 text-center">
                   This will automatically fix all detected issues
                 </p>
               </div>
@@ -237,7 +237,7 @@ export default function SRDDiagnostic({ srdId, onFixed }) {
               <div className="p-4 bg-green-50 border border-green-200 rounded">
                 <div className="flex items-center space-x-2">
                   <CheckCircle className="h-5 w-5 text-green-600" />
-                  <p className="text-sm font-medium text-green-900">
+                  <p className="text-app-text font-medium text-green-900">
                     This SRD is ready for production!
                   </p>
                 </div>
@@ -249,3 +249,4 @@ export default function SRDDiagnostic({ srdId, onFixed }) {
     </div>
   );
 }
+

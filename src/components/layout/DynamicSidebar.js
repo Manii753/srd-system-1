@@ -258,7 +258,7 @@ export default function DynamicSidebar() {
           <div className={cn("relative", !open && "flex flex-col items-center")}>
             {open && (
               <div>
-                <h2 className="text-xl text-nowrap font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                <h2 className="text-app-heading text-nowrap font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
                   SRD System
                 </h2>
               </div>
@@ -335,7 +335,7 @@ export default function DynamicSidebar() {
                         {open && (
                           <>
                             <span className={cn(
-                              "font-medium text-sm",
+                              "font-medium text-app-heading",
                               isActive && "font-semibold"
                             )}>
                               {item.name}
@@ -343,7 +343,7 @@ export default function DynamicSidebar() {
 
                             {/* Unread count badge */}
                             {item.showBadge && unreadCount > 0 && (
-                              <span className="ml-auto mr-2 px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full min-w-[20px] text-center">
+                              <span className="ml-auto mr-2 px-2 py-0.5 text-app-heading font-bold bg-red-500 text-white rounded-full min-w-[20px] text-center">
                                 {unreadCount > 99 ? '99+' : unreadCount}
                               </span>
                             )}
@@ -359,7 +359,7 @@ export default function DynamicSidebar() {
 
                         {/* Unread badge when collapsed */}
                         {!open && item.showBadge && unreadCount > 0 && (
-                          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full min-w-[18px] text-center">
+                          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-app-heading font-bold bg-red-500 text-white rounded-full min-w-[18px] text-center">
                             {unreadCount > 9 ? '9+' : unreadCount}
                           </span>
                         )}
@@ -401,7 +401,7 @@ export default function DynamicSidebar() {
                     </div>
                     {open && (
                       <>
-                        <span className="font-medium text-sm">
+                        <span className="font-medium text-app-heading">
                           Logout
                         </span>
                         <ChevronRight className="ml-auto h-4 w-4 shrink-0 opacity-0 group-hover:opacity-100" />
@@ -420,8 +420,8 @@ export default function DynamicSidebar() {
             {/* User Info Section */}
             {open && (
               <div className="mt-4 px-4 py-3 bg-white/40 rounded-xl border border-slate-200/50">
-                <p className="text-sm font-medium text-gray-900">{session?.user?.name}</p>
-                <p className="text-xs text-gray-500">{session?.user?.role?.toUpperCase()}</p>
+                <p className="text-app-text font-medium text-gray-900">{session?.user?.name}</p>
+                <p className="text-app-text text-gray-500">{session?.user?.role?.toUpperCase()}</p>
               </div>
             )}
 
@@ -433,3 +433,4 @@ export default function DynamicSidebar() {
     </Sidebar>
   );
 }
+

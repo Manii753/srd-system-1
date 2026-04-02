@@ -83,7 +83,7 @@ export default function CommercialDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Commercial Portal</h1>
+            <h1 className="text-app-heading font-bold text-gray-900">Commercial Portal</h1>
             <p className="text-gray-600 mt-1">Manage supplier quotations and procurement</p>
           </div>
           <Link href="/dashboard/commercial/create">
@@ -98,63 +98,63 @@ export default function CommercialDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total SRDs</CardTitle>
+              <CardTitle className="text-app-text font-medium">Total SRDs</CardTitle>
               <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs text-muted-foreground">For procurement</p>
+              <div className="text-app-heading font-bold">{stats.total}</div>
+              <p className="text-app-text text-muted-foreground">For procurement</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Quotes</CardTitle>
+              <CardTitle className="text-app-text font-medium">Pending Quotes</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pending}</div>
-              <p className="text-xs text-muted-foreground">Awaiting quotes</p>
+              <div className="text-app-heading font-bold">{stats.pending}</div>
+              <p className="text-app-text text-muted-foreground">Awaiting quotes</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Approved</CardTitle>
+              <CardTitle className="text-app-text font-medium">Approved</CardTitle>
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.approved}</div>
-              <p className="text-xs text-muted-foreground">Quotes approved</p>
+              <div className="text-app-heading font-bold">{stats.approved}</div>
+              <p className="text-app-text text-muted-foreground">Quotes approved</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Flagged</CardTitle>
+              <CardTitle className="text-app-text font-medium">Flagged</CardTitle>
               <AlertCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.flagged}</div>
-              <p className="text-xs text-muted-foreground">Issues flagged</p>
+              <div className="text-app-heading font-bold">{stats.flagged}</div>
+              <p className="text-app-text text-muted-foreground">Issues flagged</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Value</CardTitle>
+              <CardTitle className="text-app-text font-medium">Total Value</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.totalCost.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">Estimated value</p>
+              <div className="text-app-heading font-bold">${stats.totalCost.toFixed(2)}</div>
+              <p className="text-app-text text-muted-foreground">Estimated value</p>
             </CardContent>
           </Card>
         </div>
 
         {/* View Toggle */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Commercial SRDs</h2>
+          <h2 className="text-app-heading font-semibold">Commercial SRDs</h2>
           <div className="flex items-center space-x-2">
             <Button
               variant={viewMode === 'cards' ? 'default' : 'outline'}
@@ -187,11 +187,12 @@ export default function CommercialDashboard() {
         {srds.length === 0 && (
           <div className="text-center py-12">
             <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No SRDs available</h3>
-            <p className="mt-1 text-sm text-gray-500">SRDs will appear here when approved by VMD.</p>
+            <h3 className="mt-2 text-app-text font-medium text-gray-900">No SRDs available</h3>
+            <p className="mt-1 text-app-text text-gray-500">SRDs will appear here when approved by VMD.</p>
           </div>
         )}
       </div>
     </Layout>
   );
 }
+

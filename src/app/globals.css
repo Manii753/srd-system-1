@@ -32,6 +32,10 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+    
+    /* App-wide font sizes - customize here */
+    --font-size-heading: 13px;
+    --font-size-text: 11px;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -147,20 +151,71 @@
 }
 
 /* Custom scrollbar utility */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
+  background: #f1f5f9;
   border-radius: 10px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+.custom-scrollbar::-webkit-scrollbar-thumb {
   background: #cbd5e1;
+  border-radius: 10px;
+  border: 2px solid #f1f5f9;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* App-wide Typography System */
+@layer utilities {
+  /* Headings - 11px (labels, section titles, table headers) */
+  .text-app-heading {
+    font-size: var(--font-size-heading) !important;
+  }
+  
+  /* Normal text - 9px (body text, descriptions, values) */
+  .text-app-text {
+    font-size: var(--font-size-text) !important;
+  }
+}
+
+/* Force all text elements to use app font sizes */
+@layer base {
+  /* All text inputs, textareas, selects */
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: var(--font-size-text) !important;
+  }
+  
+  /* All labels */
+  label {
+    font-size: var(--font-size-heading) !important;
+  }
+  
+  /* All buttons */
+  button {
+    font-size: var(--font-size-text) !important;
+  }
+  
+  /* All spans and divs with text */
+  span,
+  p {
+    font-size: var(--font-size-text) !important;
+  }
+  
+  /* All headings */
+  h1, h2, h3, h4, h5, h6 {
+    font-size: var(--font-size-heading) !important;
+  }
 }

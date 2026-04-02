@@ -1375,7 +1375,7 @@ export default function InboxPage() {
           {/* Sidebar Header */}
           <div className="bg-white border-b border-gray-200 p-4">
             <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
+              <h1 className="text-app-heading font-bold text-gray-900">Messages</h1>
               <Button 
                 onClick={() => setShowCreateGroupDialog(true)}
                 size="sm"
@@ -1435,7 +1435,7 @@ export default function InboxPage() {
               {/* Groups Section */}
               {groups.length > 0 && (
                 <div className="mb-6">
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase mb-3 px-2">Groups</h3>
+                  <h3 className="text-app-heading font-semibold text-gray-500 uppercase mb-3 px-2">Groups</h3>
                   <div className="space-y-1">
                     {groups.map(group => {
                       const groupConversation = conversations.find(c => c.type === 'group' && c.group?._id === group._id);
@@ -1454,11 +1454,11 @@ export default function InboxPage() {
                             <Users className="h-6 w-6 text-white" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900">{group.name}</p>
-                            <p className="text-xs text-gray-500">{group.members.length} members</p>
+                            <p className="text-app-heading font-semibold text-gray-900">{group.name}</p>
+                            <p className="text-app-text text-gray-500">{group.members.length} members</p>
                           </div>
                           {groupConversation && groupConversation.unreadCount > 0 && (
-                            <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                            <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-app-heading font-bold flex-shrink-0">
                               {groupConversation.unreadCount}
                             </div>
                           )}
@@ -1471,7 +1471,7 @@ export default function InboxPage() {
 
               {/* Users Section */}
               <div>
-                <h3 className="text-xs font-semibold text-gray-500 uppercase mb-3 px-2">Contacts</h3>
+                <h3 className="text-app-heading font-semibold text-gray-500 uppercase mb-3 px-2">Contacts</h3>
                 <div className="space-y-1">
                   {users.map(user => {
                     const userConversation = conversations.find(c => c.type === 'direct' && c.user?._id === user._id);
@@ -1487,7 +1487,7 @@ export default function InboxPage() {
                         onClick={() => startConversation('direct', user, userConversation)}
                       >
                         <div className="relative flex-shrink-0">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-lg">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-app-heading">
                             {user.name?.charAt(0).toUpperCase()}
                           </div>
                           {userStatuses[user.email]?.status === 'online' && (
@@ -1501,17 +1501,17 @@ export default function InboxPage() {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+                          <p className="text-app-heading font-semibold text-gray-900 truncate">{user.name}</p>
                           {userConversation ? (
-                            <p className="text-xs text-gray-500 truncate">
+                            <p className="text-app-text text-gray-500 truncate">
                               {userConversation.lastMessage.content}
                             </p>
                           ) : (
-                            <p className="text-xs text-gray-500">{user.role}</p>
+                            <p className="text-app-text text-gray-500">{user.role}</p>
                           )}
                         </div>
                         {userConversation && userConversation.unreadCount > 0 && (
-                          <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                          <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-app-heading font-bold flex-shrink-0">
                             {userConversation.unreadCount}
                           </div>
                         )}
@@ -1568,7 +1568,7 @@ export default function InboxPage() {
                         ? selectedConversation.user?.name
                         : `${selectedConversation.department?.toUpperCase()} Department`}
                     </h2>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-app-text text-gray-500">
                       {selectedConversation.type === 'direct'
                         ? userStatuses[selectedConversation.user?.email]?.status === 'online'
                           ? '🟢 Online'
@@ -1609,7 +1609,7 @@ export default function InboxPage() {
               {selectedConversation.type === 'direct' && (
                 <div className="px-4 py-2 border-b bg-gray-50">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Quick Call</span>
+                    <span className="text-app-text font-medium text-gray-700">Quick Call</span>
                     <SimpleCall 
                       myEmail={session?.user?.email}
                       otherEmail={selectedConversation.user?.email}
@@ -1665,7 +1665,7 @@ export default function InboxPage() {
                         {!isOwn && (
                           <div className="w-8 h-8 flex-shrink-0">
                             {showAvatar && (
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-xs font-semibold">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-app-heading font-semibold">
                                 {msg.sender.name?.charAt(0).toUpperCase()}
                               </div>
                             )}
@@ -1685,7 +1685,7 @@ export default function InboxPage() {
                             : "bg-white text-gray-900 rounded-bl-sm"
                         )}>
                           {!isOwn && showAvatar && (
-                            <p className="text-xs font-semibold mb-1 opacity-70">
+                            <p className="text-app-heading font-semibold mb-1 opacity-70">
                               {msg.sender.name}
                             </p>
                           )}
@@ -1723,7 +1723,7 @@ export default function InboxPage() {
                               </div>
                               {msg.transcription && (
                                 <div className={cn(
-                                  "text-xs italic px-2 py-1 rounded",
+                                  "text-app-text italic px-2 py-1 rounded",
                                   isOwn ? "bg-blue-600 bg-opacity-50 text-blue-50" : "bg-gray-100 text-gray-600"
                                 )}>
                                   <span className="font-semibold">📝 </span>
@@ -1734,7 +1734,7 @@ export default function InboxPage() {
                           ) : msg.srd ? (
                             /* SRD Reference */
                             <div>
-                              <p className="text-sm break-words whitespace-pre-wrap mb-2">
+                              <p className="text-app-text break-words whitespace-pre-wrap mb-2">
                                 {msg.content}
                               </p>
                               <Link 
@@ -1747,25 +1747,25 @@ export default function InboxPage() {
                               >
                                 <div className="flex items-center gap-2 mb-1">
                                   <FileText className={cn("h-4 w-4", isOwn ? "text-blue-100" : "text-blue-600")} />
-                                  <span className={cn("text-xs font-semibold", isOwn ? "text-blue-100" : "text-gray-500")}>
+                                  <span className={cn("text-app-heading font-semibold", isOwn ? "text-blue-100" : "text-gray-500")}>
                                     SRD Reference
                                   </span>
                                 </div>
-                                <p className={cn("font-semibold text-sm", isOwn ? "text-white" : "text-gray-900")}>
+                                <p className={cn("font-semibold text-app-heading", isOwn ? "text-white" : "text-gray-900")}>
                                   {msg.srd.refNo}
                                 </p>
-                                <p className={cn("text-xs mt-1", isOwn ? "text-blue-100" : "text-gray-600")}>
+                                <p className={cn("text-app-text mt-1", isOwn ? "text-blue-100" : "text-gray-600")}>
                                   {msg.srd.title}
                                 </p>
                               </Link>
                             </div>
                           ) : (
-                            <p className="text-sm break-words whitespace-pre-wrap">
+                            <p className="text-app-text break-words whitespace-pre-wrap">
                               {msg.content}
                             </p>
                           )}
                           <div className={cn(
-                            "flex items-center gap-1 mt-1 text-xs",
+                            "flex items-center gap-1 mt-1 text-app-text",
                             isOwn ? "text-blue-100 justify-end" : "text-gray-500"
                           )}>
                             <span>
@@ -1773,7 +1773,7 @@ export default function InboxPage() {
                             </span>
                             {isOwn && (
                               isFailed ? (
-                                <span className="text-red-200 text-xs">Failed</span>
+                                <span className="text-red-200 text-app-text">Failed</span>
                               ) : isLocalOnly ? (
                                 <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                               ) : isRead ? (
@@ -1807,7 +1807,7 @@ export default function InboxPage() {
                           <Mic className="h-5 w-5 text-white" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">Voice message ready</p>
+                          <p className="text-app-text font-medium text-gray-900">Voice message ready</p>
                           <audio controls className="w-full mt-1" src={URL.createObjectURL(audioBlob)} />
                         </div>
                       </div>
@@ -1831,7 +1831,7 @@ export default function InboxPage() {
                       </Button>
                     </div>
                     {transcription && (
-                      <div className="bg-white rounded-lg px-3 py-2 text-sm text-gray-700">
+                      <div className="bg-white rounded-lg px-3 py-2 text-app-text text-gray-700">
                         <span className="font-semibold text-blue-600">Transcription: </span>
                         {transcription}
                       </div>
@@ -1843,14 +1843,14 @@ export default function InboxPage() {
                     <div className="flex items-center gap-2">
                       <div className="flex-1 flex items-center gap-3">
                         <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                        <p className="text-sm font-medium text-red-600">
+                        <p className="text-app-text font-medium text-red-600">
                           {recordingMode === 'voice' ? 'Recording Voice...' : 'Recording for Text...'}
                         </p>
                         {recordingMode === 'transcribe' && (
                           <select
                             value={selectedLanguage}
                             onChange={(e) => setSelectedLanguage(e.target.value)}
-                            className="text-xs px-2 py-1 rounded border"
+                            className="text-app-text px-2 py-1 rounded border"
                           >
                             <option value="en-US">English</option>
                             <option value="hi-IN">Hindi</option>
@@ -1875,7 +1875,7 @@ export default function InboxPage() {
                       </Button>
                     </div>
                     {isTranscribing && transcription && (
-                      <div className="bg-white rounded-lg px-3 py-2 text-sm text-gray-700">
+                      <div className="bg-white rounded-lg px-3 py-2 text-app-text text-gray-700">
                         <span className="font-semibold text-red-600">Live: </span>
                         {transcription}
                       </div>
@@ -1890,8 +1890,8 @@ export default function InboxPage() {
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-blue-600" />
                           <div>
-                            <p className="text-xs font-semibold text-blue-900">{selectedSRD.refNo}</p>
-                            <p className="text-xs text-blue-700">{selectedSRD.title}</p>
+                            <p className="text-app-heading font-semibold text-blue-900">{selectedSRD.refNo}</p>
+                            <p className="text-app-text text-blue-700">{selectedSRD.title}</p>
                           </div>
                         </div>
                         <Button
@@ -1980,7 +1980,7 @@ export default function InboxPage() {
               <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center mb-6 shadow-lg">
                 <MessageSquare className="h-16 w-16 text-blue-500" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Messages</h2>
+              <h2 className="text-app-heading font-bold text-gray-900 mb-2">Welcome to Messages</h2>
               <p className="text-gray-500 mb-6 max-w-md">
                 Select a user or department from the sidebar to start messaging
               </p>
@@ -1989,13 +1989,13 @@ export default function InboxPage() {
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center mb-2 mx-auto">
                     <User className="h-8 w-8 text-white" />
                   </div>
-                  <p className="text-sm text-gray-600">Direct Messages</p>
+                  <p className="text-app-text text-gray-600">Direct Messages</p>
                 </div>
                 <div className="text-center">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center mb-2 mx-auto">
                     <Users className="h-8 w-8 text-white" />
                   </div>
-                  <p className="text-sm text-gray-600">Department Groups</p>
+                  <p className="text-app-text text-gray-600">Department Groups</p>
                 </div>
               </div>
             </div>
@@ -2020,19 +2020,19 @@ export default function InboxPage() {
             <div className="space-y-6 py-6">
               {/* Contact Info */}
               <div className="flex flex-col items-center">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-3xl font-bold mb-4">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-app-heading font-bold mb-4">
                   {selectedConversation?.type === 'direct' 
                     ? selectedConversation.user?.name?.charAt(0).toUpperCase()
                     : <Users className="h-12 w-12" />
                   }
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900">
+                <h3 className="text-app-heading font-semibold text-gray-900">
                   {selectedConversation?.type === 'direct' 
                     ? selectedConversation.user?.name
                     : selectedConversation?.group?.name
                   }
                 </h3>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-app-text text-gray-500 mt-1">
                   {isInCall ? formatDuration(callDuration) : 'Calling...'}
                 </p>
               </div>
@@ -2042,12 +2042,12 @@ export default function InboxPage() {
                 {isInCall ? (
                   <div className="flex items-center gap-2 text-green-600">
                     <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-sm font-medium">Connected</span>
+                    <span className="text-app-text font-medium">Connected</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-gray-500">
                     <div className="w-3 h-3 rounded-full bg-gray-400 animate-pulse" />
-                    <span className="text-sm font-medium">Connecting...</span>
+                    <span className="text-app-text font-medium">Connecting...</span>
                   </div>
                 )}
               </div>
@@ -2067,7 +2067,7 @@ export default function InboxPage() {
                     ) : (
                       <div className="text-center">
                         <Video className="h-16 w-16 text-gray-600 mx-auto mb-2" />
-                        <p className="text-gray-500 text-sm">Waiting for video...</p>
+                        <p className="text-gray-500 text-app-text">Waiting for video...</p>
                       </div>
                     )}
                   </div>
@@ -2197,12 +2197,12 @@ export default function InboxPage() {
                         <div className="flex items-center gap-2 mb-1">
                           <FileText className="h-4 w-4 text-blue-600" />
                           <span className="font-semibold text-gray-900">{srd.refNo}</span>
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-app-text">
                             {srd.progress}%
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-700 font-medium">{srd.title}</p>
-                        <p className="text-xs text-gray-500 mt-1">{srd.description}</p>
+                        <p className="text-app-text text-gray-700 font-medium">{srd.title}</p>
+                        <p className="text-app-text text-gray-500 mt-1">{srd.description}</p>
                       </div>
                       <ChevronRight className="h-5 w-5 text-gray-400" />
                     </div>
@@ -2225,12 +2225,12 @@ export default function InboxPage() {
             <div className="bg-gradient-to-br from-green-400 to-green-600 rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl animate-pulse-slow">
               <div className="text-center">
                 {/* Caller Avatar */}
-                <div className="w-32 h-32 rounded-full bg-white flex items-center justify-center text-green-600 text-5xl font-bold mx-auto mb-4 shadow-lg">
+                <div className="w-32 h-32 rounded-full bg-white flex items-center justify-center text-green-600 text-app-text font-bold mx-auto mb-4 shadow-lg">
                   {incomingCall.from.name?.charAt(0).toUpperCase()}
                 </div>
                 
                 {/* Caller Info */}
-                <h2 className="text-2xl font-bold text-white mb-2">
+                <h2 className="text-app-heading font-bold text-white mb-2">
                   {incomingCall.from.name}
                 </h2>
                 <p className="text-green-100 mb-1">{incomingCall.from.role}</p>
@@ -2264,7 +2264,7 @@ export default function InboxPage() {
                   </button>
                 </div>
                 
-                <p className="text-white text-sm mt-4 opacity-80">
+                <p className="text-white text-app-text mt-4 opacity-80">
                   Swipe to answer
                 </p>
               </div>
@@ -2282,7 +2282,7 @@ export default function InboxPage() {
             <div className="space-y-4">
               {/* Group Name */}
               <div>
-                <label className="text-sm font-medium">Group Name</label>
+                <label className="text-app-text font-medium">Group Name</label>
                 <Input
                   type="text"
                   placeholder="Enter group name..."
@@ -2294,7 +2294,7 @@ export default function InboxPage() {
 
               {/* Select Members */}
               <div>
-                <label className="text-sm font-medium">Select Members</label>
+                <label className="text-app-text font-medium">Select Members</label>
                 <div className="mt-2 max-h-64 overflow-y-auto space-y-2 border rounded-lg p-3">
                   {users.map(user => (
                     <div key={user._id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
@@ -2312,13 +2312,13 @@ export default function InboxPage() {
                         {user.name?.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">{user.name}</p>
-                        <p className="text-xs text-gray-500">{user.role}</p>
+                        <p className="text-app-text font-medium">{user.name}</p>
+                        <p className="text-app-text text-gray-500">{user.role}</p>
                       </div>
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-app-text text-gray-500 mt-2">
                   {newGroup.members.length} member{newGroup.members.length !== 1 ? 's' : ''} selected
                 </p>
               </div>
@@ -2348,3 +2348,4 @@ export default function InboxPage() {
     </Layout>
   );
 }
+

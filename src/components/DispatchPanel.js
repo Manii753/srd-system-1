@@ -203,7 +203,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     handleAction('internal_approval', {
       internalApproved: approved,
       internalComments,
-      internalApprovedBy: session?.user?.name+' | '+session.user?.role,
+      internalApprovedBy: session?.user?.name + ' | ' + session.user?.role,
       internalRejectedReasons: !approved ? internalRejectedReasons : [],
     });
   };
@@ -230,7 +230,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   const handleBuyerApproval = (approved) => {
     handleAction('buyer_approval', {
       BuyerApproved: approved,
-      BuyerApprovedBy: session?.user?.name+' | '+session.user?.role,
+      BuyerApprovedBy: session?.user?.name + ' | ' + session.user?.role,
       BuyerComments: buyerComments,
       BuyerRejectedReasons: !approved ? buyerRejectedReasons : [],
     });
@@ -264,136 +264,147 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         )}
       </div> */}
 
-      <Card className={'rounded-none'}>
-        <CardHeader>
-          <CardTitle className="flex justify-between items-center text-lg font-bold">
-            <div className="flex items-center gap-4">
-              <span>Dispatch Aproval</span>
-              <DispatchCardPrint srd={srd} />
-            </div>
-            {srd.internalApproved ? (
-              <Badge className="bg-green-100 text-green-800">Approved by {srd.internalApprovedBy}</Badge>
-            ) : srd.internalApprovedDate ? (
-              <Badge className="bg-red-100 text-red-800">Rejected by {srd.internalApprovedBy.name+" | "+srd.internalApprovedBy.role}</Badge>
-            ) : (
-              <Badge className="bg-blue-100 text-blue-800">Pending Verification</Badge>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Comments</label>
-            <Textarea
-              placeholder="Enter internal verification comments..."
-              value={internalComments}
-              onChange={(e) => setInternalComments(e.target.value)}
-              disabled={!canEdit || !!srd.internalApprovedDate}
-            />
+      {/* Dispatch Approval - Excel Style */}
+      <div className="border border-gray-300 bg-white mt-2">
+        {/* Section Header */}
+        <div className="bg-gray-100 border-b border-gray-300 px-2 py-1.5 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <span className="text-app-heading font-bold text-gray-800 uppercase">Dispatch Approval</span>
+            <DispatchCardPrint srd={srd} />
           </div>
+          <span className={`text-app-text font-medium ${srd.internalApproved ? 'text-green-600' : srd.internalApprovedDate ? 'text-red-600' : 'text-blue-600'}`}>
+            {srd.internalApproved ? `Approved by ${srd.internalApprovedBy}` : srd.internalApprovedDate ? `Rejected by ${srd.internalApprovedBy.name} | ${srd.internalApprovedBy.role}` : 'Pending Verification'}
+          </span>
+        </div>
 
-          {!srd.internalApproved && (
-            <div className="space-y-4 border p-4 rounded-md bg-red-50/50">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                Dispatch Rejection Reasons
-                <Badge variant="outline" className="bg-white">{internalRejectedReasons.length}</Badge>
-              </h3>
-              
-              <div className="space-y-2">
+        {/* Grid Content */}
+        <div className="border-b border-gray-300">
+          <div className="grid grid-cols-12">
+            <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
+              <span className="text-app-heading font-semibold text-gray-700">Comments</span>
+            </div>
+            <div className="col-span-10 px-2 py-1.5">
+              <Textarea
+                placeholder="Good Work"
+                value={internalComments}
+                onChange={(e) => setInternalComments(e.target.value)}
+                disabled={!canEdit || !!srd.internalApprovedDate}
+                className="text-app-text resize-none h-12 border-gray-300 rounded-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        {!srd.internalApproved && internalRejectedReasons.length > 0 && (
+          <div className="border-b border-gray-300">
+            <div className="grid grid-cols-12">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5">
+                <span className="text-app-heading font-semibold text-gray-700">Rejection Reasons</span>
+              </div>
+              <div className="col-span-10 px-2 py-1.5 space-y-1">
                 {internalRejectedReasons.map((r, i) => (
-                  <div key={i} className="flex justify-between items-start bg-white p-2 rounded border text-sm">
+                  <div key={i} className="flex justify-between items-center bg-gray-50 px-2 py-0.5 text-app-text border border-gray-200">
                     <div>
-                      <span className="font-bold uppercase text-[10px] bg-slate-100 px-1 rounded mr-2">{r.department}</span>
-                      <span>{r.reason}</span>
+                      <span className="font-semibold text-gray-600 mr-2">{r.department.toUpperCase()}</span>
+                      <span className="text-gray-700">{r.reason}</span>
                     </div>
                     {canEdit && !srd.internalApprovedDate && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-6 w-6 p-0 text-red-500"
-                        onClick={() => setInternalRejectedReasons(prev => prev.filter((_, idx) => idx !== i))}
-                      >
+                      <button onClick={() => setInternalRejectedReasons(prev => prev.filter((_, idx) => idx !== i))} className="text-gray-400 hover:text-red-500">
                         <X className="h-3 w-3" />
-                      </Button>
+                      </button>
                     )}
                   </div>
                 ))}
               </div>
-
-              {canEdit && !srd.internalApprovedDate && (
-                <div className="flex gap-2 items-end mt-2">
-                  <div className="flex-1 space-y-1">
-                    <Label className="text-[10px]">Dept</Label>
-                    <select 
-                      className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs"
-                      value={newReason.department}
-                      onChange={e => setNewReason({ ...newReason, department: e.target.value })}
-                    >
-                      <option value="">Select Dept</option>
-                      {['vmd', 'cad', 'commercial', 'mmc', 'sewing','cutting','pattern','washing','finishing'].map(d => (
-                        <option key={d} value={d}>{d.toUpperCase()}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex-[3] space-y-1">
-                    <Label className="text-[10px]">Reason</Label>
-                    <Input 
-                      className="h-8 text-xs" 
-                      value={newReason.reason} 
-                      onChange={e => setNewReason({ ...newReason, reason: e.target.value })}
-                      placeholder="Why is it rejected?"
-                    />
-                  </div>
-                  <Button 
-                    size="sm" 
-                    className="h-8"
-                    onClick={() => {
-                      if (newReason.department && newReason.reason) {
-                        setInternalRejectedReasons([...internalRejectedReasons, newReason]);
-                        setNewReason({ department: '', reason: '' });
-                      }
-                    }}
-                  >
-                    Add
-                  </Button>
-                </div>
-              )}
             </div>
-          )}
+          </div>
+        )}
 
-          {canEdit && !srd.internalApprovedDate && (
-            <div className="flex gap-2">
-              <Button onClick={() => handleInternalVerify(true)} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white flex-1">
+        {!srd.internalApproved && canEdit && !srd.internalApprovedDate && (
+          <div className="border-b border-gray-300">
+            <div className="grid grid-cols-12">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5">
+                <span className="text-app-heading font-semibold text-gray-700">Add Reason</span>
+              </div>
+              <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
+                <select
+                  className="h-7 px-2 text-app-text border border-gray-300 bg-white rounded-none"
+                  value={newReason.department}
+                  onChange={e => setNewReason({ ...newReason, department: e.target.value })}
+                >
+                  <option value="">Select Dept</option>
+                  {['vmd', 'cad', 'commercial', 'mmc', 'sewing', 'cutting', 'pattern', 'washing', 'finishing'].map(d => (
+                    <option key={d} value={d}>{d.toUpperCase()}</option>
+                  ))}
+                </select>
+                <Input
+                  className="h-7 text-app-text flex-1 rounded-none border-gray-300"
+                  value={newReason.reason}
+                  onChange={e => setNewReason({ ...newReason, reason: e.target.value })}
+                  placeholder="Reason..."
+                />
+                <Button
+                  size="sm"
+                  className="h-7 px-2 text-app-text bg-blue-600 hover:bg-blue-700 rounded-none"
+                  onClick={() => {
+                    if (newReason.department && newReason.reason) {
+                      setInternalRejectedReasons([...internalRejectedReasons, newReason]);
+                      setNewReason({ department: '', reason: '' });
+                    }
+                  }}
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {canEdit && !srd.internalApprovedDate && (
+          <div className="grid grid-cols-12">
+            <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
+            <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
+              <Button 
+                onClick={() => handleInternalVerify(true)} 
+                disabled={loading} 
+                className="bg-green-600 hover:bg-green-700 text-white flex-1 h-8 text-app-text font-medium rounded-none"
+              >
                 Approve for Dispatch
               </Button>
-              <Button onClick={() => handleInternalVerify(false)} disabled={loading} variant="destructive" className="flex-1">
+              <Button 
+                onClick={() => handleInternalVerify(false)} 
+                disabled={loading} 
+                className="bg-red-600 hover:bg-red-700 text-white flex-1 h-8 text-app-text font-medium rounded-none"
+              >
                 Reject
               </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </div>
 
       {srd.internalApproved && (
-        <Card className={`${!canEdit ? 'opacity-70 pointer-events-none' : ''} rounded-none`}>
-          <CardHeader>
-            <CardTitle className="flex justify-between items-center text-lg font-bold">
-              <div className="flex items-center gap-3">
-                <span>2. Dispatch Details</span>
-                {srd.DispatchDetails && <AirwayBillPrint srd={srd} />}
+        <div className="border border-gray-300 bg-white mt-2">
+          {/* Section Header */}
+          <div className="bg-gray-100 border-b border-gray-300 px-2 py-1.5 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className="text-app-heading font-bold text-gray-800 uppercase">Dispatch Details</span>
+              {srd.DispatchDetails && <AirwayBillPrint srd={srd} />}
+            </div>
+            <span className={`text-app-text font-medium ${srd.DispatchDetails ? 'text-green-600' : 'text-yellow-600'}`}>
+              {srd.DispatchDetails ? 'Details Saved' : 'Pending Details'}
+            </span>
+          </div>
+
+          {/* Buyer Selection */}
+          <div className="border-b border-gray-300">
+            <div className="grid grid-cols-12">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
+                <span className="text-app-heading font-semibold text-gray-700">Buyer Selection</span>
               </div>
-              {srd.DispatchDetails ? (
-                <Badge className="bg-green-100 text-green-800">Details Saved</Badge>
-              ) : (
-                <Badge className="bg-yellow-100 text-yellow-800">Pending Details</Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-4 border p-4 rounded-md bg-slate-50">
-              <h3 className="text-sm font-semibold">Buyer Selection</h3>
-              <div className="flex gap-2">
+              <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
                 <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="h-7 px-2 text-app-text border border-gray-300 bg-white flex-1 rounded-none"
                   value={selectedBuyer}
                   onChange={(e) => {
                     const bId = e.target.value;
@@ -403,386 +414,277 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   }}
                   disabled={!canEdit || srd.sampleDispatchedToBuyer}
                 >
-                  <option value="">-- Select a Buyer --</option>
+                  <option value="">Denim</option>
                   {buyers.map(b => (
                     <option key={b._id} value={b._id}>{b.name}</option>
                   ))}
                 </select>
-
                 {canEdit && !srd.sampleDispatchedToBuyer && (
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        if (isCreatingBuyer) {
-                          setIsCreatingBuyer(false);
-                          setIsEditingBuyer(false);
-                        } else {
-                          setIsCreatingBuyer(true);
-                          setIsEditingBuyer(false);
-                          setNewBuyer({
-                            name: '',
-                            email: '',
-                            phone: '',
-                            contactPerson: [{ name: '', phone: '' }]
-                          });
-                        }
-                      }}
-                    >
-                      {isCreatingBuyer && !isEditingBuyer ? 'Cancel' : 'Add New'}
-                    </Button>
-
-                    {selectedBuyer && !isCreatingBuyer && (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={handleStartEdit}
-                      >
-                        Edit Profile
-                      </Button>
-                    )}
-
-                    {isEditingBuyer && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => {
-                          setIsCreatingBuyer(false);
-                          setIsEditingBuyer(false);
-                        }}
-                      >
-                        Cancel Edit
-                      </Button>
-                    )}
-                  </div>
+                  <Button variant="outline" size="sm" className="h-7 text-app-text rounded-none" onClick={() => setIsCreatingBuyer(!isCreatingBuyer)}>
+                    {isCreatingBuyer ? 'Cancel' : 'Add New'}
+                  </Button>
                 )}
               </div>
-
-              {isCreatingBuyer && (
-                <div className="space-y-3 p-4 border rounded-md bg-white">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <Label>Buyer Name *</Label>
-                      <Input required value={newBuyer.name} onChange={e => setNewBuyer({ ...newBuyer, name: e.target.value })} placeholder="Company or Name" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Emails (comma separated)</Label>
-                      <Input value={newBuyer.email} onChange={e => setNewBuyer({ ...newBuyer, email: e.target.value })} placeholder="email1@test.com, email2@test.com" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Phones (comma separated)</Label>
-                      <Input value={newBuyer.phone} onChange={e => setNewBuyer({ ...newBuyer, phone: e.target.value })} placeholder="+1234567, +987654" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 mt-4">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-xs font-bold uppercase">Contact Persons</Label>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => setNewBuyer({
-                          ...newBuyer,
-                          contactPerson: [...newBuyer.contactPerson, { name: '', phone: '' }]
-                        })}
-                      >
-                        <Plus className="h-3 w-3 mr-1" /> Add Person
-                      </Button>
-                    </div>
-                    {newBuyer.contactPerson.map((cp, idx) => (
-                      <div key={idx} className="flex gap-2 items-end">
-                        <div className="flex-1 space-y-1">
-                          <Label className="text-[10px]">Name</Label>
-                          <Input
-                            className="h-8 text-xs"
-                            value={cp.name}
-                            onChange={e => {
-                              const updated = [...newBuyer.contactPerson];
-                              updated[idx].name = e.target.value;
-                              setNewBuyer({ ...newBuyer, contactPerson: updated });
-                            }}
-                          />
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          <Label className="text-[10px]">Phone</Label>
-                          <Input
-                            className="h-8 text-xs"
-                            value={cp.phone}
-                            onChange={e => {
-                              const updated = [...newBuyer.contactPerson];
-                              updated[idx].phone = e.target.value;
-                              setNewBuyer({ ...newBuyer, contactPerson: updated });
-                            }}
-                          />
-                        </div>
-                        {newBuyer.contactPerson.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-red-500"
-                            onClick={() => {
-                              setNewBuyer({
-                                ...newBuyer,
-                                contactPerson: newBuyer.contactPerson.filter((_, i) => i !== idx)
-                              });
-                            }}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  <Button
-                    onClick={isEditingBuyer ? handleUpdateBuyer : handleCreateBuyer}
-                    disabled={loading}
-                    className="w-full mt-4"
-                  >
-                    {isEditingBuyer ? 'Update Buyer Profile' : 'Save Buyer Profile'}
-                  </Button>
-                </div>
-              )}
             </div>
+          </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>AWB Number</Label>
+          {/* AWB, Quantity, Dispatch Date */}
+          <div className="border-b border-gray-300">
+            <div className="grid grid-cols-12">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
+                <span className="text-app-heading font-semibold text-gray-700">AWB Number</span>
+              </div>
+              <div className="col-span-2 border-r border-gray-300 px-2 py-1.5">
                 <Input
                   value={dispatchAWB}
                   onChange={e => setDispatchAWB(e.target.value)}
-                  placeholder="Tracking #"
+                  placeholder="####"
                   disabled={!canEdit || srd.sampleDispatchedToBuyer}
+                  className="h-7 text-app-text rounded-none border-gray-300"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Quantity</Label>
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
+                <span className="text-app-heading font-semibold text-gray-700">Quantity</span>
+              </div>
+              <div className="col-span-2 border-r border-gray-300 px-2 py-1.5">
                 <Input
                   type="number"
                   value={dispatchQty}
                   onChange={e => setDispatchQty(e.target.value)}
-                  placeholder="Sample Qty"
+                  placeholder="5"
                   disabled={!canEdit || srd.sampleDispatchedToBuyer}
+                  className="h-7 text-app-text rounded-none border-gray-300"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Dispatch Date</Label>
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
+                <span className="text-app-heading font-semibold text-gray-700">Dispatch Date</span>
+              </div>
+              <div className="col-span-2 px-2 py-1.5">
                 <Input
                   type="date"
                   value={dispatchDate}
                   onChange={e => setDispatchDate(e.target.value)}
                   disabled={!canEdit || srd.sampleDispatchedToBuyer}
+                  className="h-7 text-app-text rounded-none border-gray-300"
                 />
               </div>
-              <div className="space-y-2 col-span-3">
-                <Label>Shipping Address</Label>
+            </div>
+          </div>
+
+          {/* Shipping Address */}
+          <div className="border-b border-gray-300">
+            <div className="grid grid-cols-12">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
+                <span className="text-app-heading font-semibold text-gray-700">Shipping Address</span>
+              </div>
+              <div className="col-span-10 px-2 py-1.5">
                 <Textarea
                   value={dispatchAddress}
                   onChange={e => setDispatchAddress(e.target.value)}
-                  placeholder="Destimation Address"
+                  placeholder="USA"
                   disabled={!canEdit || srd.sampleDispatchedToBuyer}
+                  className="text-app-text resize-none h-12 rounded-none border-gray-300"
                 />
               </div>
             </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-6 pt-4 border-t">
-              <div className="space-y-3">
-                <Label className="font-bold flex items-center gap-2">
-                  Front Images
-                  <Badge variant="outline">{dispatchFrontImages.length}</Badge>
-                </Label>
-                <div className="grid grid-cols-4 gap-2 border p-2 rounded-md bg-white min-h-[60px]">
+          {/* Front Images */}
+          <div className="border-b border-gray-300">
+            <div className="grid grid-cols-12">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
+                <span className="text-app-heading font-semibold text-gray-700">Front Images</span>
+                <span className="text-app-text text-gray-500 ml-2">({dispatchFrontImages.length})</span>
+              </div>
+              <div className="col-span-10 px-2 py-1.5">
+                <div className="flex flex-wrap gap-1.5">
                   {dispatchFrontImages.map((url, i) => (
-                    <div key={i} className="relative group aspect-square">
-                      <Image src={url} alt="Front" width={80} height={80} className="w-full h-full object-cover rounded shadow-sm" />
+                    <div key={i} className="relative group w-20 h-20">
+                      <Image src={url} alt="Front" width={80} height={80} className="w-full h-full object-cover border border-gray-300" />
                       {!srd.sampleDispatchedToBuyer && canEdit && (
                         <button
                           onClick={() => setDispatchFrontImages(prev => prev.filter((_, idx) => idx !== i))}
-                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                          className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <X className="h-3 w-3" />
                         </button>
                       )}
                     </div>
                   ))}
+                  {!srd.sampleDispatchedToBuyer && canEdit && (
+                    <UploadImage
+                      srdId={srd._id}
+                      fieldId="dispatchFront"
+                      onUploaded={(assets) => setDispatchFrontImages(prev => [...prev, ...assets.map(a => a.url)])}
+                    />
+                  )}
                 </div>
-                {!srd.sampleDispatchedToBuyer && canEdit && (
-                  <UploadImage
-                    srdId={srd._id}
-                    fieldId="dispatchFront"
-                    onUploaded={(assets) => setDispatchFrontImages(prev => [...prev, ...assets.map(a => a.url)])}
-                  />
-                )}
               </div>
+            </div>
+          </div>
 
-              <div className="space-y-3">
-                <Label className="font-bold flex items-center gap-2">
-                  Back Images
-                  <Badge variant="outline">{dispatchBackImages.length}</Badge>
-                </Label>
-                <div className="grid grid-cols-4 gap-2 border p-2 rounded-md bg-white min-h-[60px]">
+          {/* Back Images */}
+          <div className="border-b border-gray-300">
+            <div className="grid grid-cols-12">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
+                <span className="text-app-heading font-semibold text-gray-700">Back Images</span>
+                <span className="text-app-text text-gray-500 ml-2">({dispatchBackImages.length})</span>
+              </div>
+              <div className="col-span-10 px-2 py-1.5">
+                <div className="flex flex-wrap gap-1.5">
                   {dispatchBackImages.map((url, i) => (
-                    <div key={i} className="relative group aspect-square">
-                      <Image src={url} alt="Back" width={80} height={80} className="w-full h-full object-cover rounded shadow-sm" />
+                    <div key={i} className="relative group w-20 h-20">
+                      <Image src={url} alt="Back" width={80} height={80} className="w-full h-full object-cover border border-gray-300" />
                       {!srd.sampleDispatchedToBuyer && canEdit && (
                         <button
                           onClick={() => setDispatchBackImages(prev => prev.filter((_, idx) => idx !== i))}
-                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                          className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <X className="h-3 w-3" />
                         </button>
                       )}
                     </div>
                   ))}
+                  {!srd.sampleDispatchedToBuyer && canEdit && (
+                    <UploadImage
+                      srdId={srd._id}
+                      fieldId="dispatchBack"
+                      onUploaded={(assets) => setDispatchBackImages(prev => [...prev, ...assets.map(a => a.url)])}
+                    />
+                  )}
                 </div>
-                {!srd.sampleDispatchedToBuyer && canEdit && (
-                  <UploadImage
-                    srdId={srd._id}
-                    fieldId="dispatchBack"
-                    onUploaded={(assets) => setDispatchBackImages(prev => [...prev, ...assets.map(a => a.url)])}
-                  />
-                )}
               </div>
             </div>
-
-            {canEdit && !srd.sampleDispatchedToBuyer && (
-              <Button onClick={handleSaveDispatchDetails} disabled={loading} className="w-full">
-                Save Dispatch Details
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
-      {srd.DispatchDetails && (
-        <Card className={`${!canEdit ? 'opacity-70 pointer-events-none' : ''} rounded-none`}>
-          <CardHeader>
-            <CardTitle className="text-lg font-bold">3. Dispatch Sample</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!srd.sampleDispatchedToBuyer ? (
-              <div className="text-center py-4 bg-blue-50 border border-blue-100 rounded-md">
-                <p className="text-blue-700 mb-4">Sample details are ready. Click below to confirm physical dispatch.</p>
-                <Button onClick={handleDispatchToBuyer} disabled={loading} className="bg-blue-600 hover:bg-blue-700 w-full max-w-xs">
+      {srd.DispatchDetails && !srd.sampleDispatchedToBuyer && (
+        <div className="border border-gray-300 bg-white mt-2">
+          <div className="bg-gray-100 border-b border-gray-300 px-2 py-1.5">
+            <span className="text-app-heading font-bold text-gray-800 uppercase">Dispatch Sample</span>
+          </div>
+          <div className="px-2 py-2">
+            <div className="text-center py-3 bg-blue-50 border border-blue-200">
+              <p className="text-app-text text-blue-700 mb-2">Sample details are ready. Click below to confirm physical dispatch.</p>
+              <div className="flex gap-2 justify-center">
+                {canEdit && (
+                  <Button onClick={handleSaveDispatchDetails} disabled={loading} className="bg-blue-600 hover:bg-blue-700 h-7 text-app-text rounded-none">
+                    Save Dispatch Details
+                  </Button>
+                )}
+                <Button onClick={handleDispatchToBuyer} disabled={loading} className="bg-blue-600 hover:bg-blue-700 h-7 text-app-text rounded-none">
                   Dispatch Sample to Buyer
                 </Button>
               </div>
-            ) : (
-              <div className="text-center py-4 bg-green-50 border border-green-100 rounded-md">
-                <p className="text-green-700 font-bold">Sample Dispatched on {new Date(srd.sampleDispatchDate).toLocaleString()}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          </div>
+        </div>
       )}
 
-      <Card className={`${!srd.sampleDispatchedToBuyer ? 'opacity-50 pointer-events-none' : ''} rounded-none`}>
-        <CardHeader>
-          <CardTitle className="flex justify-between items-center text-lg font-bold">
-            <span>4. Buyer Approval</span>
-            {srd.BuyerApproved ? (
-              <Badge className="bg-green-100 text-green-800">Buyer Approved</Badge>
-            ) : srd.BuyerApprovedDate ? (
-              <Badge className="bg-red-100 text-red-800">Buyer Rejected</Badge>
-            ) : srd.sampleDispatchedToBuyer ? (
-              <Badge className="bg-yellow-100 text-yellow-800">Waiting for Buyer</Badge>
-            ) : (
-              <Badge className="bg-gray-100 text-gray-800">Not Dispatched</Badge>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Comments</label>
-            <Textarea
-              placeholder="Enter buyer comments..."
-              value={buyerComments}
-              onChange={(e) => setBuyerComments(e.target.value)}
-              disabled={!canEdit || !!srd.BuyerApprovedDate}
-            />
+      <div className={`border border-gray-300 bg-white mt-2 ${!srd.sampleDispatchedToBuyer ? 'opacity-50 pointer-events-none' : ''}`}>
+        <div className="bg-gray-100 border-b border-gray-300 px-2 py-1.5 flex justify-between items-center">
+          <span className="text-app-heading font-bold text-gray-800 uppercase">Buyer Approval</span>
+          <span className={`text-app-text font-medium ${srd.BuyerApproved ? 'text-green-600' : srd.BuyerApprovedDate ? 'text-red-600' : srd.sampleDispatchedToBuyer ? 'text-yellow-600' : 'text-gray-500'}`}>
+            {srd.BuyerApproved ? 'Buyer Approved' : srd.BuyerApprovedDate ? 'Buyer Rejected' : srd.sampleDispatchedToBuyer ? 'Waiting for Buyer' : 'Not Dispatched'}
+          </span>
+        </div>
+        
+        <div className="border-b border-gray-300">
+          <div className="grid grid-cols-12">
+            <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
+              <span className="text-app-heading font-semibold text-gray-700">Comments</span>
+            </div>
+            <div className="col-span-10 px-2 py-1.5">
+              <Textarea
+                placeholder="Enter buyer comments..."
+                value={buyerComments}
+                onChange={(e) => setBuyerComments(e.target.value)}
+                disabled={!canEdit || !!srd.BuyerApprovedDate}
+                className="text-app-text resize-none h-12 rounded-none border-gray-300"
+              />
+            </div>
           </div>
+        </div>
 
-          {!srd.BuyerApproved && srd.sampleDispatchedToBuyer && (
-            <div className="space-y-4 border p-4 rounded-md bg-red-50/50">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                Buyer Rejection Reasons
-                <Badge variant="outline" className="bg-white">{buyerRejectedReasons.length}</Badge>
-              </h3>
-              
-              <div className="space-y-2">
+        {!srd.BuyerApproved && srd.sampleDispatchedToBuyer && buyerRejectedReasons.length > 0 && (
+          <div className="border-b border-gray-300">
+            <div className="grid grid-cols-12">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5">
+                <span className="text-app-heading font-semibold text-gray-700">Buyer Rejection Reasons</span>
+              </div>
+              <div className="col-span-10 px-2 py-1.5 space-y-1">
                 {buyerRejectedReasons.map((r, i) => (
-                  <div key={i} className="flex justify-between items-start bg-white p-2 rounded border text-sm">
-                    <div>
-                      <span className="font-bold uppercase text-[10px] bg-slate-100 px-1 rounded mr-2 text-slate-500">{r.department}</span>
-                      <span>{r.reason}</span>
+                  <div key={i} className="flex justify-between items-center bg-gray-50 px-2 py-0.5 text-app-text border border-gray-200">
+                    <div className="flex items-center gap-2">
+                      {r.department && <span className="font-semibold text-gray-600">{r.department}</span>}
+                      <span className="text-gray-700">{r.reason}</span>
                     </div>
                     {canEdit && !srd.BuyerApprovedDate && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-6 w-6 p-0 text-red-500"
+                      <button
                         onClick={() => setBuyerRejectedReasons(prev => prev.filter((_, idx) => idx !== i))}
+                        className="text-gray-400 hover:text-red-500"
                       >
                         <X className="h-3 w-3" />
-                      </Button>
+                      </button>
                     )}
                   </div>
                 ))}
               </div>
-
-              {canEdit && !srd.BuyerApprovedDate && (
-                <div className="flex gap-2 items-end mt-2">
-                  <div className="flex-1 space-y-1">
-                    <Label className="text-[10px]">Dept (Optional)</Label>
-                    <Input 
-                      className="h-8 text-xs font-uppercase" 
-                      value={newReason.department} 
-                      onChange={e => setNewReason({ ...newReason, department: e.target.value.toUpperCase() })}
-                      placeholder="QA/Prod..."
-                    />
-                  </div>
-                  <div className="flex-[3] space-y-1">
-                    <Label className="text-[10px]">Reason</Label>
-                    <Input 
-                      className="h-8 text-xs" 
-                      value={newReason.reason} 
-                      onChange={e => setNewReason({ ...newReason, reason: e.target.value })}
-                      placeholder="Buyer's feedback..."
-                    />
-                  </div>
-                  <Button 
-                    size="sm" 
-                    className="h-8"
-                    onClick={() => {
-                      if (newReason.reason) {
-                        setBuyerRejectedReasons([...buyerRejectedReasons, { ...newReason, department: newReason.department || 'GENERAL' }]);
-                        setNewReason({ department: '', reason: '' });
-                      }
-                    }}
-                  >
-                    Add
-                  </Button>
-                </div>
-              )}
             </div>
-          )}
+          </div>
+        )}
 
-          {canEdit && srd.sampleDispatchedToBuyer && !srd.BuyerApprovedDate && (
-            <div className="flex gap-2">
-              <Button onClick={() => handleBuyerApproval(true)} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white flex-1">
+        {!srd.BuyerApproved && srd.sampleDispatchedToBuyer && canEdit && !srd.BuyerApprovedDate && (
+          <div className="border-b border-gray-300">
+            <div className="grid grid-cols-12">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5">
+                <span className="text-app-heading font-semibold text-gray-700">Add Reason</span>
+              </div>
+              <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
+                <Input
+                  className="h-7 text-app-text flex-1 rounded-none border-gray-300"
+                  value={newReason.department}
+                  onChange={e => setNewReason({ ...newReason, department: e.target.value.toUpperCase() })}
+                  placeholder="Dept (Optional)"
+                />
+                <Input
+                  className="h-7 text-app-text flex-[3] rounded-none border-gray-300"
+                  value={newReason.reason}
+                  onChange={e => setNewReason({ ...newReason, reason: e.target.value })}
+                  placeholder="Buyer's feedback..."
+                />
+                <Button
+                  size="sm"
+                  className="h-7 px-2 text-app-text bg-blue-600 hover:bg-blue-700 rounded-none"
+                  onClick={() => {
+                    if (newReason.reason) {
+                      setBuyerRejectedReasons([...buyerRejectedReasons, { ...newReason, department: newReason.department || 'GENERAL' }]);
+                      setNewReason({ department: '', reason: '' });
+                    }
+                  }}
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {canEdit && srd.sampleDispatchedToBuyer && !srd.BuyerApprovedDate && (
+          <div className="grid grid-cols-12">
+            <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
+            <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
+              <Button onClick={() => handleBuyerApproval(true)} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white flex-1 h-8 text-app-text font-medium rounded-none">
                 Mark as Approved by Buyer
               </Button>
-              <Button onClick={() => handleBuyerApproval(false)} disabled={loading} variant="destructive" className="flex-1">
+              <Button onClick={() => handleBuyerApproval(false)} disabled={loading} className="bg-red-600 hover:bg-red-700 text-white flex-1 h-8 text-app-text font-medium rounded-none">
                 Mark as Rejected by Buyer
               </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

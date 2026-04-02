@@ -126,18 +126,18 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
           {/* Heading Info */}
           <div className="flex-1">
             <div className="flex items-center space-x-3">
-              <span className="font-semibold text-blue-900 text-lg">
+              <span className="font-semibold text-blue-900 text-app-text">
                 📁 {field.name}
               </span>
-              <span className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+              <span className="text-app-text text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
                 Section Header
               </span>
-              <span className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+              <span className="text-app-text text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
                 {field.department?.toUpperCase() || 'GLOBAL'}
               </span>
             </div>
             {field.children && (
-              <div className="text-sm text-blue-600 mt-1">
+              <div className="text-app-text text-blue-600 mt-1">
                 {Array.isArray(field.children) ? field.children.length : 0} fields in this section
               </div>
             )}
@@ -146,13 +146,13 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
           {/* Actions */}
           <div className="flex items-center space-x-2">
             <button
-              className="text-blue-600 hover:text-blue-900 px-3 py-1 text-sm font-medium"
+              className="text-blue-600 hover:text-blue-900 px-3 py-1 text-app-text font-medium"
               onClick={() => onEdit(field)}
             >
               Edit
             </button>
             <button
-              className="text-red-600 hover:text-red-900 px-3 py-1 text-sm font-medium"
+              className="text-red-600 hover:text-red-900 px-3 py-1 text-app-text font-medium"
               onClick={() => onDelete(field)}
             >
               Delete
@@ -204,25 +204,25 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
             <span className="font-medium text-gray-900">
               {field.name}
             </span>
-            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+            <span className="text-app-text text-gray-500 bg-gray-100 px-2 py-1 rounded">
               {field.type}
             </span>
-            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+            <span className="text-app-text text-gray-500 bg-gray-100 px-2 py-1 rounded">
               {field.department?.toUpperCase() || 'GLOBAL'}
             </span>
             {field.isRequired && (
-              <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded">
+              <span className="text-app-text text-red-600 bg-red-100 px-2 py-1 rounded">
                 Required
               </span>
             )}
             {field.isOptional && (
-              <span className="text-xs text-amber-700 bg-amber-100 px-2 py-1 rounded">
+              <span className="text-app-text text-amber-700 bg-amber-100 px-2 py-1 rounded">
                 Optional Toggle
               </span>
             )}
           </div>
           {field.placeholder && (
-            <div className="text-sm text-gray-500 mt-1">
+            <div className="text-app-text text-gray-500 mt-1">
               Placeholder: {field.placeholder}
             </div>
           )}
@@ -239,7 +239,7 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
                   onChange={() => onToggleQuickDetails(field)}
                   className="form-checkbox h-4 w-4 text-blue-600 rounded"
                 />
-                <span className="text-xs text-gray-600">Quick Details</span>
+                <span className="text-app-text text-gray-600">Quick Details</span>
               </label>
               <label className="flex items-center space-x-1 cursor-pointer">
                 <input
@@ -248,7 +248,7 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
                   onChange={() => onToggleReport(field)}
                   className="form-checkbox h-4 w-4 text-green-600 rounded"
                 />
-                <span className="text-xs text-gray-600">Report</span>
+                <span className="text-app-text text-gray-600">Report</span>
               </label>
               <label className="flex items-center space-x-1 cursor-pointer">
                 <input
@@ -257,18 +257,18 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
                   onChange={() => onToggleDispatchCard(field)}
                   className="form-checkbox h-4 w-4 text-purple-600 rounded"
                 />
-                <span className="text-xs text-gray-600">Dispatch Card</span>
+                <span className="text-app-text text-gray-600">Dispatch Card</span>
               </label>
             </>
           )}
           <button
-            className="text-blue-600 hover:text-blue-900 px-2 py-1 text-sm"
+            className="text-blue-600 hover:text-blue-900 px-2 py-1 text-app-text"
             onClick={() => onEdit(field)}
           >
             Edit
           </button>
           <button
-            className="text-red-600 hover:text-red-900 px-2 py-1 text-sm"
+            className="text-red-600 hover:text-red-900 px-2 py-1 text-app-text"
             onClick={() => onDelete(field)}
           >
             Delete
@@ -646,7 +646,7 @@ export default function Page() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Manage SRD Fields</h1>
+          <h1 className="text-app-heading font-bold text-gray-900">Manage SRD Fields</h1>
           <p className="text-gray-600 mt-1">Organize fields into sections and drag to reorder. Click sections to expand/collapse.</p>
         </div>
         <div className="flex items-center space-x-3">
@@ -694,8 +694,8 @@ export default function Page() {
         {displayFields.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 rounded-lg">
             <Folder className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No fields yet</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by creating your first field or section.</p>
+            <h3 className="mt-2 text-app-text font-medium text-gray-900">No fields yet</h3>
+            <p className="mt-1 text-app-text text-gray-500">Get started by creating your first field or section.</p>
             <div className="mt-6 flex justify-center space-x-3">
               <Button onClick={() => openNew()}>
                 <PlusCircleIcon className="h-4 w-4 mr-2" />
@@ -805,11 +805,11 @@ export default function Page() {
           <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:items-center sm:p-4">
             <div className="bg-white rounded-lg sm:rounded-xl shadow-2xl w-full max-w-3xl border border-gray-200 overflow-hidden max-h-[calc(100vh-1rem)] sm:max-h-[90vh] flex flex-col">
               <div className="flex items-start justify-between gap-4 px-4 py-3 border-b sm:px-6 sm:py-4 shrink-0">
-                <h2 className="text-base sm:text-lg font-semibold pr-4">
+                <h2 className="text-app-text sm:text-app-heading font-semibold pr-4">
                   {editingId ? "Edit SRD Field" : "Add New SRD Field"}
                 </h2>
                 <button
-                  className="text-gray-500 hover:text-gray-800 text-2xl leading-none shrink-0"
+                  className="text-gray-500 hover:text-gray-800 text-app-text leading-none shrink-0"
                   onClick={() => setModalOpen(false)}
                   aria-label="Close modal"
                 >
@@ -821,7 +821,7 @@ export default function Page() {
                 <div className="grid gap-4 md:grid-cols-2">
                   {/* Name */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-app-text font-medium text-gray-700 mb-1">
                       Field Name
                     </label>
                     <input
@@ -835,7 +835,7 @@ export default function Page() {
 
                   {/* Type */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-app-text font-medium text-gray-700 mb-1">
                       Field Type
                     </label>
                     <select
@@ -864,7 +864,7 @@ export default function Page() {
                 {/* Boolean Display Type */}
                 {values.type === 'boolean' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-app-text font-medium text-gray-700 mb-1">
                       Boolean Display Type
                     </label>
                     <select
@@ -882,20 +882,20 @@ export default function Page() {
                 {/* Table Headers Customization */}
                 {values.type === 'table' && (
                   <div className="border border-gray-200 rounded-md p-3 bg-gray-50/50">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-app-heading font-semibold text-gray-700 mb-2">
                       Custom Table Columns
                     </label>
-                    <p className="text-xs text-gray-500 mb-3">
+                    <p className="text-app-text text-gray-500 mb-3">
                       Define the default column headers for this table. Users can still add/remove columns inside individual SRDs.
                     </p>
 
                     <div className="space-y-2 mb-3">
                       {values.tableHeaders?.map((header, idx) => (
                         <div key={idx} className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 font-mono w-4">{idx + 1}.</span>
+                          <span className="text-app-text text-gray-400 font-mono w-4">{idx + 1}.</span>
                           <input
                             type="text"
-                            className="flex-1 p-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                            className="flex-1 p-1.5 text-app-text border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:outline-none"
                             value={header?.name || header || ''}
                             onChange={(e) => {
                               const newHeaders = [...values.tableHeaders];
@@ -909,7 +909,7 @@ export default function Page() {
                             required
                           />
                           <select
-                            className="p-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 bg-white"
+                            className="p-1.5 text-app-text border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 bg-white"
                             value={header?.owner || 'global'}
                             onChange={(e) => {
                               const newHeaders = [...values.tableHeaders];
@@ -959,16 +959,16 @@ export default function Page() {
                           tableHeaders: [...(values.tableHeaders || []), { name: `Column ${(values.tableHeaders?.length || 0) + 1}`, owner: 'global' }]
                         });
                       }}
-                      className="w-full py-1.5 border-2 border-dashed border-gray-300 text-gray-500 rounded text-xs font-semibold hover:border-blue-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-1"
+                      className="w-full py-1.5 border-2 border-dashed border-gray-300 text-gray-500 rounded text-app-heading font-semibold hover:border-blue-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-1"
                     >
                       <Plus className="h-3.5 w-3.5" /> Add Column
                     </button>
                     
                     <div className="mt-4 pt-4 border-t border-gray-200">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-app-text font-medium text-gray-700 mb-1">
                         Predefined Data Owner
                       </label>
-                      <p className="text-xs text-gray-500 mb-2">
+                      <p className="text-app-text text-gray-500 mb-2">
                         Which department can edit the Predefined Data (OPD, ETD, Purchase Type) in this table?
                       </p>
                       <select
@@ -989,7 +989,7 @@ export default function Page() {
                 {/* Parent Heading (only for non-heading fields) */}
                 {values.type !== 'heading' && headingOptions.length > 0 && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-app-text font-medium text-gray-700 mb-1">
                       Group Under Section (Optional)
                     </label>
                     <select
@@ -1010,7 +1010,7 @@ export default function Page() {
                 {/* Department */}
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-app-text font-medium text-gray-700 mb-1">
                       Department
                     </label>
                     <select
@@ -1027,7 +1027,7 @@ export default function Page() {
                   </div>
                   {values.type === 'createdAt' && (
                     <div className="flex items-end">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-app-text font-medium text-gray-700 mb-1">
                         This Will Be Set Automatically
                       </label>
                     </div>
@@ -1036,7 +1036,7 @@ export default function Page() {
                 {/* Placeholder */}
                 {values.type !== 'heading' && values.type !== 'createdAt' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-app-text font-medium text-gray-700 mb-1">
                       Placeholder (optional)
                     </label>
                     <input
@@ -1058,7 +1058,7 @@ export default function Page() {
                       onChange={(e) => setValues({ ...values, isRequired: e.target.checked })}
                       disabled={values.isOptional}
                     />
-                    <span className={cn("text-sm text-gray-700", values.isOptional && "text-gray-400")}>Required</span>
+                    <span className={cn("text-app-text text-gray-700", values.isOptional && "text-gray-400")}>Required</span>
                   </div>
                 )}
 
@@ -1075,7 +1075,7 @@ export default function Page() {
                         isRequired: e.target.checked ? false : values.isRequired
                       })}
                     />
-                    <span className="text-sm text-gray-700">Show toggle in SRD panel</span>
+                    <span className="text-app-text text-gray-700">Show toggle in SRD panel</span>
                   </div>
                 )}
 
@@ -1088,7 +1088,7 @@ export default function Page() {
                       checked={values.isShownInQuickDetails}
                       onChange={(e) => setValues({ ...values, isShownInQuickDetails: e.target.checked })}
                     />
-                    <span className="text-sm text-gray-700">Show in Quick Details</span>
+                    <span className="text-app-text text-gray-700">Show in Quick Details</span>
                   </div>
                 )}
 
@@ -1102,22 +1102,22 @@ export default function Page() {
                         checked={values.inReport}
                         onChange={(e) => setValues({ ...values, inReport: e.target.checked })}
                       />
-                      <span className="text-sm text-gray-700">Show in Report</span>
+                      <span className="text-app-text text-gray-700">Show in Report</span>
                     </div>
                     {values.inReport && (
                       <div className="ml-0 sm:ml-6">
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                        <label className="block text-app-text font-medium text-gray-600 mb-1">
                           Report Column Order
                         </label>
                         <input
                           type="number"
                           min="0"
-                          className="w-24 p-1.5 text-sm border border-gray-300 rounded"
+                          className="w-24 p-1.5 text-app-text border border-gray-300 rounded"
                           value={values.inReportOrder || 0}
                           onChange={(e) => setValues({ ...values, inReportOrder: parseInt(e.target.value) || 0 })}
                           placeholder="0"
                         />
-                        <p className="text-xs text-gray-500 mt-1">Lower numbers appear first</p>
+                        <p className="text-app-text text-gray-500 mt-1">Lower numbers appear first</p>
                       </div>
                     )}
                   </div>
@@ -1132,7 +1132,7 @@ export default function Page() {
                       checked={values.inDispatchCard}
                       onChange={(e) => setValues({ ...values, inDispatchCard: e.target.checked })}
                     />
-                    <span className="text-sm text-gray-700">Show in Dispatch Card</span>
+                    <span className="text-app-text text-gray-700">Show in Dispatch Card</span>
                   </div>
                 )}
 
@@ -1151,14 +1151,14 @@ export default function Page() {
                           connectionType: e.target.checked ? values.connectionType : null
                         })}
                       />
-                      <span className="text-sm font-medium text-gray-700">🔗 Connect to another field</span>
+                      <span className="text-app-text font-medium text-gray-700">🔗 Connect to another field</span>
                     </div>
 
                     {values.isConnectedTo && (
                       <div className="space-y-3 pl-4 sm:pl-6 border-l-2 border-blue-200">
                         {/* Select Connected Field */}
                         <div className="relative">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-app-text font-medium text-gray-700 mb-1">
                             Connected Field
                           </label>
                           <input
@@ -1170,11 +1170,11 @@ export default function Page() {
                             onFocus={() => setShowFieldDropdown(true)}
                           />
                           {values.connectedFieldId && (
-                            <div className="mt-1 text-sm text-blue-600 flex items-center justify-between">
+                            <div className="mt-1 text-app-text text-blue-600 flex items-center justify-between">
                               <span>✓ Selected: {allFields.find(f => f._id?.toString() === values.connectedFieldId?.toString())?.name || 'Unknown'}</span>
                               <button
                                 type="button"
-                                className="text-red-500 text-xs hover:underline"
+                                className="text-red-500 text-app-text hover:underline"
                                 onClick={() => setValues({ ...values, connectedFieldId: null })}
                               >
                                 Clear
@@ -1184,10 +1184,10 @@ export default function Page() {
                           {showFieldDropdown && (
                             <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-52 sm:max-h-64 overflow-y-auto">
                               <div className="sticky top-0 bg-gray-100 px-3 py-2 border-b flex justify-between items-center">
-                                <span className="text-xs font-medium text-gray-500">Available Fields</span>
+                                <span className="text-app-text font-medium text-gray-500">Available Fields</span>
                                 <button
                                   type="button"
-                                  className="text-gray-500 hover:text-gray-700 text-lg leading-none"
+                                  className="text-gray-500 hover:text-gray-700 text-app-text leading-none"
                                   onClick={() => setShowFieldDropdown(false)}
                                 >
                                   ×
@@ -1215,10 +1215,10 @@ export default function Page() {
                                   >
                                     <div className="flex items-center justify-between">
                                       <span className="font-medium text-gray-900">{f.name}</span>
-                                      <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">{f.department?.toUpperCase()}</span>
+                                      <span className="text-app-text bg-gray-200 px-2 py-0.5 rounded">{f.department?.toUpperCase()}</span>
                                     </div>
                                     {f.parentHeading?.name && (
-                                      <div className="text-xs text-gray-500 mt-0.5">📁 {f.parentHeading.name}</div>
+                                      <div className="text-app-text text-gray-500 mt-0.5">📁 {f.parentHeading.name}</div>
                                     )}
                                   </div>
                                 ))}
@@ -1227,7 +1227,7 @@ export default function Page() {
                                 const searchLower = connectedFieldSearch.toLowerCase();
                                 return f.name.toLowerCase().includes(searchLower) || f.department?.toLowerCase().includes(searchLower);
                               }).length === 0 && (
-                                  <div className="px-3 py-4 text-center text-gray-500 text-sm">No fields found</div>
+                                  <div className="px-3 py-4 text-center text-gray-500 text-app-text">No fields found</div>
                                 )}
                             </div>
                           )}
@@ -1235,7 +1235,7 @@ export default function Page() {
 
                         {/* Connection Type */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-app-text font-medium text-gray-700 mb-1">
                             Connection Type
                           </label>
                           <select
@@ -1251,7 +1251,7 @@ export default function Page() {
                             )}
                           </select>
                           {values.connectionType === 'is-attached' && (
-                            <p className="mt-1 text-xs text-blue-600">
+                            <p className="mt-1 text-app-text text-blue-600">
                               The connected field will show &quot;{values.name || 'This image field'} attached&quot; when images are uploaded.
                             </p>
                           )}
@@ -1286,3 +1286,4 @@ export default function Page() {
     </Layout >
   );
 }
+

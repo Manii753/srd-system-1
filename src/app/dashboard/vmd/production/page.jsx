@@ -125,7 +125,7 @@ export default function VMDProductionDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Production Management</h1>
+            <h1 className="text-app-heading font-bold text-gray-900">Production Management</h1>
             <p className="text-gray-600 mt-1">Mark SRDs as in production and track their progress</p>
           </div>
         </div>
@@ -134,45 +134,45 @@ export default function VMDProductionDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ready to Start</CardTitle>
+              <CardTitle className="text-app-text font-medium">Ready to Start</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.ready}</div>
-              <p className="text-xs text-muted-foreground">Awaiting production start</p>
+              <div className="text-app-heading font-bold">{stats.ready}</div>
+              <p className="text-app-text text-muted-foreground">Awaiting production start</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">In Production</CardTitle>
+              <CardTitle className="text-app-text font-medium">In Production</CardTitle>
               <Factory className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs text-muted-foreground">Currently active</p>
+              <div className="text-app-heading font-bold">{stats.total}</div>
+              <p className="text-app-text text-muted-foreground">Currently active</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Progress</CardTitle>
+              <CardTitle className="text-app-text font-medium">Avg Progress</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.avgProgress}%</div>
+              <div className="text-app-heading font-bold">{stats.avgProgress}%</div>
               <Progress value={stats.avgProgress} className="mt-2" />
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Production Stages</CardTitle>
+              <CardTitle className="text-app-text font-medium">Production Stages</CardTitle>
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{productionStages.length}</div>
-              <p className="text-xs text-muted-foreground">Active stages</p>
+              <div className="text-app-heading font-bold">{productionStages.length}</div>
+              <p className="text-app-text text-muted-foreground">Active stages</p>
             </CardContent>
           </Card>
         </div>
@@ -180,8 +180,8 @@ export default function VMDProductionDashboard() {
         {/* Ready for Production */}
         {readyForProduction.length > 0 && (
           <div>
-            <h2 className="text-xl font-semibold mb-4">Ready to Start Production</h2>
-            <p className="text-sm text-gray-600 mb-4">
+            <h2 className="text-app-heading font-semibold mb-4">Ready to Start Production</h2>
+            <p className="text-app-text text-gray-600 mb-4">
               These SRDs have been approved by all departments. Click "Mark as In Production" to send them to the first production stage.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -189,12 +189,12 @@ export default function VMDProductionDashboard() {
                 <Card key={srd._id} className="border-green-200 bg-green-50 hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{srd.title}</CardTitle>
+                      <CardTitle className="text-app-text">{srd.title}</CardTitle>
                       <Badge className="bg-green-100 text-green-800">{srd.refNo}</Badge>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex items-center text-sm text-gray-600">
+                    <div className="flex items-center text-app-text text-gray-600">
                       <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
                       All departments approved
                     </div>
@@ -224,8 +224,8 @@ export default function VMDProductionDashboard() {
           <Card>
             <CardContent className="py-12 text-center">
               <CheckCircle className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No SRDs ready for production</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <h3 className="mt-2 text-app-text font-medium text-gray-900">No SRDs ready for production</h3>
+              <p className="mt-1 text-app-text text-gray-500">
                 SRDs will appear here once all departments have approved them.
               </p>
             </CardContent>
@@ -235,7 +235,7 @@ export default function VMDProductionDashboard() {
         {/* In Production */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Currently in Production</h2>
+            <h2 className="text-app-heading font-semibold">Currently in Production</h2>
             {inProduction.length > 0 && (
               <Link href="/srd?inProduction=true">
                 <Button variant="outline" size="sm">
@@ -250,8 +250,8 @@ export default function VMDProductionDashboard() {
             <Card>
               <CardContent className="py-12 text-center">
                 <Factory className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No SRDs in production</h3>
-                <p className="mt-1 text-sm text-gray-500">
+                <h3 className="mt-2 text-app-text font-medium text-gray-900">No SRDs in production</h3>
+                <p className="mt-1 text-app-text text-gray-500">
                   Mark SRDs as in production to see them here and track their progress through production stages.
                 </p>
               </CardContent>
@@ -265,14 +265,14 @@ export default function VMDProductionDashboard() {
                   <Card key={srd._id} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{srd.title}</CardTitle>
+                        <CardTitle className="text-app-text">{srd.title}</CardTitle>
                         <Badge variant="outline">{srd.refNo}</Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {currentStage && (
                         <div>
-                          <p className="text-sm text-gray-500 mb-1">Current Stage</p>
+                          <p className="text-app-text text-gray-500 mb-1">Current Stage</p>
                           <div className="flex items-center">
                             <div
                               className="w-3 h-3 rounded-full mr-2"
@@ -285,14 +285,14 @@ export default function VMDProductionDashboard() {
 
                       <div>
                         <div className="flex items-center justify-between mb-1">
-                          <p className="text-sm text-gray-500">Progress</p>
-                          <span className="text-sm font-medium">{srd.productionProgress || 0}%</span>
+                          <p className="text-app-text text-gray-500">Progress</p>
+                          <span className="text-app-text font-medium">{srd.productionProgress || 0}%</span>
                         </div>
                         <Progress value={srd.productionProgress || 0} />
                       </div>
 
                       {srd.productionStartDate && (
-                        <div className="flex items-center text-xs text-gray-500 bg-blue-50 rounded-lg px-3 py-2">
+                        <div className="flex items-center text-app-text text-gray-500 bg-blue-50 rounded-lg px-3 py-2">
                           <Clock className="h-3.5 w-3.5 mr-2 text-blue-600" />
                           <span>Started: {new Date(srd.productionStartDate).toLocaleDateString()}</span>
                         </div>
@@ -335,7 +335,7 @@ export default function VMDProductionDashboard() {
                       <div key={stage._id} className="flex flex-col items-center">
                         {/* Stage circle */}
                         <div
-                          className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg relative z-10 transition-transform hover:scale-110"
+                          className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-app-heading shadow-lg relative z-10 transition-transform hover:scale-110"
                           style={{ backgroundColor: stage.color }}
                         >
                           {count}
@@ -343,8 +343,8 @@ export default function VMDProductionDashboard() {
 
                         {/* Stage name */}
                         <div className="mt-3 text-center">
-                          <p className="font-semibold text-sm capitalize">{stage.displayName || stage.name}</p>
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="font-semibold text-app-heading capitalize">{stage.displayName || stage.name}</p>
+                          <p className="text-app-text text-gray-500 mt-1">
                             {count} {count === 1 ? 'SRD' : 'SRDs'}
                           </p>
                         </div>
@@ -368,4 +368,5 @@ export default function VMDProductionDashboard() {
     </Layout>
   );
 }
+
 

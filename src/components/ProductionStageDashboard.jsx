@@ -176,10 +176,10 @@ export default function ProductionStageDashboard({ stageName }) {
               <StageIcon className="h-8 w-8" />
             </div>
             <div className="text-white">
-              <h1 className="text-4xl font-bold capitalize">
+              <h1 className="text-app-text font-bold capitalize">
                 {stage?.displayName || stageName}
               </h1>
-              <p className="text-white/90 mt-1 text-lg">{stage?.description || `${stageName} stage`}</p>
+              <p className="text-white/90 mt-1 text-app-text">{stage?.description || `${stageName} stage`}</p>
             </div>
           </div>
         </div>
@@ -189,29 +189,29 @@ export default function ProductionStageDashboard({ stageName }) {
           <Card className="border-l-4 hover:shadow-lg transition-shadow"
             style={{ borderLeftColor: stage?.color || '#3b82f6' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">In {stage?.displayName || stageName}</CardTitle>
+              <CardTitle className="text-app-text font-medium">In {stage?.displayName || stageName}</CardTitle>
               <div className="w-10 h-10 rounded-lg flex items-center justify-center"
                 style={{ backgroundColor: `${stage?.color || '#3b82f6'}20` }}>
                 <StageIcon className="h-5 w-5" style={{ color: stage?.color || '#3b82f6' }} />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold" style={{ color: stage?.color || '#3b82f6' }}>
+              <div className="text-app-heading font-bold" style={{ color: stage?.color || '#3b82f6' }}>
                 {srds.length}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Currently in this stage</p>
+              <p className="text-app-text text-muted-foreground mt-1">Currently in this stage</p>
             </CardContent>
           </Card>
 
           <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Progress</CardTitle>
+              <CardTitle className="text-app-text font-medium">Avg Progress</CardTitle>
               <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-blue-50">
                 <Clock className="h-5 w-5 text-blue-600" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-blue-600">
+              <div className="text-app-heading font-bold text-blue-600">
                 {srds.length > 0
                   ? Math.round(srds.reduce((sum, srd) => sum + (srd.productionProgress || 0), 0) / srds.length)
                   : 0}%
@@ -224,14 +224,14 @@ export default function ProductionStageDashboard({ stageName }) {
 
           <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed Today</CardTitle>
+              <CardTitle className="text-app-text font-medium">Completed Today</CardTitle>
               <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-green-50">
                 <CheckCircle className="h-5 w-5 text-green-600" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-green-600">0</div>
-              <p className="text-xs text-muted-foreground mt-1">SRDs completed today</p>
+              <div className="text-app-heading font-bold text-green-600">0</div>
+              <p className="text-app-text text-muted-foreground mt-1">SRDs completed today</p>
             </CardContent>
           </Card>
         </div>
@@ -239,12 +239,12 @@ export default function ProductionStageDashboard({ stageName }) {
         {/* SRDs List */}
         <div>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-app-heading font-bold text-gray-900">
               SRDs in {stage?.displayName || stageName}
             </h2>
             <div className="flex items-center gap-3">
               {srds.length > 0 && (
-                <Badge variant="outline" className="text-lg px-4 py-2">
+                <Badge variant="outline" className="text-app-text px-4 py-2">
                   {srds.length} {srds.length === 1 ? 'Item' : 'Items'}
                 </Badge>
               )}
@@ -266,10 +266,10 @@ export default function ProductionStageDashboard({ stageName }) {
                 <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center mb-4 bg-yellow-100">
                   <Package className="h-10 w-10 text-yellow-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-app-heading font-semibold text-gray-900 mb-2">
                   Production Stage Not Found
                 </h3>
-                <p className="text-sm text-gray-600 max-w-md mx-auto mb-4">
+                <p className="text-app-text text-gray-600 max-w-md mx-auto mb-4">
                   The "{stageName}" production stage is not configured. Production stages need to be set up first.
                 </p>
                 <Button
@@ -300,10 +300,10 @@ export default function ProductionStageDashboard({ stageName }) {
                   style={{ backgroundColor: `${stage?.color || '#3b82f6'}20` }}>
                   <StageIcon className="h-10 w-10" style={{ color: stage?.color || '#3b82f6' }} />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-app-heading font-semibold text-gray-900 mb-2">
                   No SRDs in {stage?.displayName || stageName}
                 </h3>
-                <p className="text-sm text-gray-500 max-w-md mx-auto">
+                <p className="text-app-text text-gray-500 max-w-md mx-auto">
                   SRDs will appear here when they enter the {stageName} stage. Check back soon or contact the production manager.
                 </p>
               </CardContent>
@@ -316,16 +316,16 @@ export default function ProductionStageDashboard({ stageName }) {
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <CardTitle className="text-lg mb-1 line-clamp-2">{srd.title}</CardTitle>
-                        <Badge variant="secondary" className="text-xs">{srd.refNo}</Badge>
+                        <CardTitle className="text-app-text mb-1 line-clamp-2">{srd.title}</CardTitle>
+                        <Badge variant="secondary" className="text-app-text">{srd.refNo}</Badge>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="bg-gray-50 rounded-lg p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-medium text-gray-600">Production Progress</p>
-                        <span className="text-sm font-bold" style={{ color: stage?.color || '#3b82f6' }}>
+                        <p className="text-app-text font-medium text-gray-600">Production Progress</p>
+                        <span className="text-app-heading font-bold" style={{ color: stage?.color || '#3b82f6' }}>
                           {srd.productionProgress || 0}%
                         </span>
                       </div>
@@ -333,7 +333,7 @@ export default function ProductionStageDashboard({ stageName }) {
                     </div>
 
                     {srd.productionStartDate && (
-                      <div className="flex items-center text-xs text-gray-500 bg-blue-50 rounded-lg px-3 py-2">
+                      <div className="flex items-center text-app-text text-gray-500 bg-blue-50 rounded-lg px-3 py-2">
                         <Clock className="h-3.5 w-3.5 mr-2 text-blue-600" />
                         <span>Started: {new Date(srd.productionStartDate).toLocaleDateString()}</span>
                       </div>
@@ -355,7 +355,7 @@ export default function ProductionStageDashboard({ stageName }) {
                           Complete & Move Next
                         </Button>
                       </div>
-                      <p className="text-xs text-gray-500 text-center">
+                      <p className="text-app-text text-gray-500 text-center">
                         Click "Complete" to approve and move to next production stage
                       </p>
                     </div>
@@ -369,3 +369,4 @@ export default function ProductionStageDashboard({ stageName }) {
     </Layout>
   );
 }
+

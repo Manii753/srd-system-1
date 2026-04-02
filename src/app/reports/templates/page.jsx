@@ -388,7 +388,7 @@ export default function ReportTemplatesPage() {
                 Back to Reports
               </Button>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mt-4">Dynamic Report Template Designer</h1>
+            <h1 className="text-app-heading font-bold text-gray-900 mt-4">Dynamic Report Template Designer</h1>
             <p className="text-gray-600 mt-1">
               Build the column order for the dynamic SRD report using report fields and computed production columns.
             </p>
@@ -412,14 +412,14 @@ export default function ReportTemplatesPage() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <LayoutList className="h-5 w-5 text-purple-600" />
-                  <h2 className="text-lg font-semibold">Saved Templates</h2>
+                  <h2 className="text-app-heading font-semibold">Saved Templates</h2>
                 </div>
-                <span className="text-sm text-gray-500">{templates.length} total</span>
+                <span className="text-app-text text-gray-500">{templates.length} total</span>
               </div>
 
               <div className="space-y-3">
                 {templates.length === 0 ? (
-                  <div className="text-sm text-gray-500 bg-gray-50 border border-dashed rounded-lg p-4">
+                  <div className="text-app-text text-gray-500 bg-gray-50 border border-dashed rounded-lg p-4">
                     No templates yet.
                   </div>
                 ) : templates.map((template) => (
@@ -430,12 +430,12 @@ export default function ReportTemplatesPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="font-medium text-gray-900">{template.name}</div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-app-text text-gray-500 mt-1">
                           {template.columns?.length || 0} column{template.columns?.length === 1 ? '' : 's'}
                         </div>
                       </div>
                       {template.isActive && (
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                        <span className="text-app-text bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
                           Active
                         </span>
                       )}
@@ -464,12 +464,12 @@ export default function ReportTemplatesPage() {
             <div className="bg-white rounded-lg shadow p-5">
               <div className="flex items-center gap-2 mb-4">
                 <FileSpreadsheet className="h-5 w-5 text-blue-600" />
-                <h2 className="text-lg font-semibold">Report Fields</h2>
+                <h2 className="text-app-heading font-semibold">Report Fields</h2>
               </div>
 
               <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                 {availableFields.length === 0 ? (
-                  <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4">
+                  <div className="text-app-text text-gray-500 bg-gray-50 rounded-lg p-4">
                     No fields are marked for reports. Add them from SRD Fields first.
                   </div>
                 ) : availableFields.map((field) => {
@@ -479,7 +479,7 @@ export default function ReportTemplatesPage() {
                   return (
                     <div key={field._id} className="border rounded-lg p-3 bg-gray-50">
                       <div className="font-medium text-gray-900">{field.name}</div>
-                      <div className="text-xs text-gray-500 mt-1">
+                      <div className="text-app-text text-gray-500 mt-1">
                         {field.type} • {field.department?.toUpperCase() || 'GLOBAL'}
                       </div>
                       {field.type === 'table' && (
@@ -505,7 +505,7 @@ export default function ReportTemplatesPage() {
             <div className="bg-white rounded-lg shadow p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Factory className="h-5 w-5 text-orange-600" />
-                <h2 className="text-lg font-semibold">Computed Columns</h2>
+                <h2 className="text-app-heading font-semibold">Computed Columns</h2>
               </div>
 
               <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
@@ -516,7 +516,7 @@ export default function ReportTemplatesPage() {
                   return (
                     <div key={`${item.computedKey}:${item.stageId || 'none'}`} className="border rounded-lg p-3 bg-gray-50">
                       <div className="font-medium text-gray-900">{item.label}</div>
-                      <div className="text-xs text-gray-500 mt-1">{item.description}</div>
+                      <div className="text-app-text text-gray-500 mt-1">{item.description}</div>
                       <Button
                         size="sm"
                         className="mt-3 w-full"
@@ -536,7 +536,7 @@ export default function ReportTemplatesPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between mb-6">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-app-text font-medium text-gray-700 mb-1">
                   Template Name
                 </label>
                 <input
@@ -548,7 +548,7 @@ export default function ReportTemplatesPage() {
                 />
               </div>
 
-              <div className="flex gap-4 text-sm text-gray-500">
+              <div className="flex gap-4 text-app-text text-gray-500">
                 <span>{columns.length} column{columns.length === 1 ? '' : 's'}</span>
                 <span>{templates.find((template) => template._id === currentTemplateId)?.isActive ? 'Active template' : 'Draft or inactive template'}</span>
               </div>
@@ -557,14 +557,14 @@ export default function ReportTemplatesPage() {
             {columns.length === 0 ? (
               <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
                 <CalendarRange className="mx-auto h-10 w-10 text-gray-300 mb-3" />
-                <h3 className="text-base font-semibold text-gray-700">No columns added yet</h3>
-                <p className="text-sm text-gray-500 mt-1">
+                <h3 className="text-app-heading font-semibold text-gray-700">No columns added yet</h3>
+                <p className="text-app-text text-gray-500 mt-1">
                   Add report fields or computed columns from the left panel.
                 </p>
               </div>
             ) : (
               <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="grid grid-cols-[auto_minmax(0,1fr)_220px_auto] gap-0 text-xs font-semibold uppercase tracking-wide text-gray-500 bg-gray-50 px-4 py-3 border-b">
+                <div className="grid grid-cols-[auto_minmax(0,1fr)_220px_auto] gap-0 text-app-heading font-semibold uppercase tracking-wide text-gray-500 bg-gray-50 px-4 py-3 border-b">
                   <div className="w-8"></div>
                   <div>Column</div>
                   <div>Header Label</div>
@@ -603,8 +603,8 @@ export default function ReportTemplatesPage() {
 
                         <div className="min-w-0">
                           <div className="font-medium text-gray-900 truncate">{meta.title}</div>
-                          <div className="text-xs text-gray-500 mt-1">{meta.description}</div>
-                          <div className="text-xs inline-flex mt-2 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                          <div className="text-app-text text-gray-500 mt-1">{meta.description}</div>
+                          <div className="text-app-text inline-flex mt-2 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
                             {meta.badge}
                           </div>
                         </div>
@@ -612,7 +612,7 @@ export default function ReportTemplatesPage() {
                         <div>
                           <input
                             type="text"
-                            className="w-full p-2 text-sm border border-gray-300 rounded"
+                            className="w-full p-2 text-app-text border border-gray-300 rounded"
                             value={column.label}
                             onChange={(event) => updateColumnLabel(column.clientId, event.target.value)}
                           />
@@ -628,16 +628,16 @@ export default function ReportTemplatesPage() {
 
                       {isTableField && tableSelection && (
                         <div className="mt-4 ml-11 rounded-lg border border-blue-100 bg-blue-50/60 p-3">
-                          <div className="text-xs font-semibold uppercase tracking-wide text-blue-700 mb-3">
+                          <div className="text-app-heading font-semibold uppercase tracking-wide text-blue-700 mb-3">
                             Table Value Selection
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                              <label className="block text-app-text font-medium text-gray-700 mb-1">
                                 Row Mode
                               </label>
                               <select
-                                className="w-full p-2 text-sm border border-gray-300 rounded bg-white"
+                                className="w-full p-2 text-app-text border border-gray-300 rounded bg-white"
                                 value={tableSelection.rowMode}
                                 onChange={(event) => updateTableSelection(column.clientId, { rowMode: event.target.value })}
                               >
@@ -651,13 +651,13 @@ export default function ReportTemplatesPage() {
 
                             {tableSelection.rowMode === 'fixed' && (
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                <label className="block text-app-text font-medium text-gray-700 mb-1">
                                   Row Number
                                 </label>
                                 <input
                                   type="number"
                                   min="1"
-                                  className="w-full p-2 text-sm border border-gray-300 rounded bg-white"
+                                  className="w-full p-2 text-app-text border border-gray-300 rounded bg-white"
                                   value={tableSelection.rowIndex + 1}
                                   onChange={(event) => updateTableSelection(column.clientId, {
                                     rowIndex: Math.max(0, (parseInt(event.target.value, 10) || 1) - 1),
@@ -667,11 +667,11 @@ export default function ReportTemplatesPage() {
                             )}
 
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                              <label className="block text-app-text font-medium text-gray-700 mb-1">
                                 Column Type
                               </label>
                               <select
-                                className="w-full p-2 text-sm border border-gray-300 rounded bg-white"
+                                className="w-full p-2 text-app-text border border-gray-300 rounded bg-white"
                                 value={tableSelection.columnSource}
                                 onChange={(event) => updateTableSelection(column.clientId, {
                                   columnSource: event.target.value,
@@ -683,11 +683,11 @@ export default function ReportTemplatesPage() {
                             </div>
 
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                              <label className="block text-app-text font-medium text-gray-700 mb-1">
                                 Column
                               </label>
                               <select
-                                className="w-full p-2 text-sm border border-gray-300 rounded bg-white"
+                                className="w-full p-2 text-app-text border border-gray-300 rounded bg-white"
                                 value={tableSelection.columnKey}
                                 onChange={(event) => {
                                   const selectedOption = tableColumnOptions.find((option) => option.value === event.target.value);
@@ -706,7 +706,7 @@ export default function ReportTemplatesPage() {
                             </div>
                           </div>
 
-                          <div className="text-xs text-blue-700 mt-3">
+                          <div className="text-app-text text-blue-700 mt-3">
                             Current selection: {describeReportTableSelection(tableSelection, columnField)}
                           </div>
                         </div>
@@ -722,3 +722,4 @@ export default function ReportTemplatesPage() {
     </Layout>
   );
 }
+

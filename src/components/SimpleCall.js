@@ -502,7 +502,7 @@ export default function SimpleCall({ myEmail, otherEmail, pusher }) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 text-center shadow-2xl">
             <Phone className="h-16 w-16 mx-auto mb-4 text-green-600 animate-bounce" />
-            <h2 className="text-xl font-bold mb-2">Incoming Call</h2>
+            <h2 className="text-app-heading font-bold mb-2">Incoming Call</h2>
             <p className="text-gray-600 mb-6">from {window.incomingFrom}</p>
             <div className="flex gap-4 justify-center">
               <Button 
@@ -545,3 +545,4 @@ export default function SimpleCall({ myEmail, otherEmail, pusher }) {
     </div>
   );
 }
+

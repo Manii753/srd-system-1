@@ -78,7 +78,7 @@ export default function SRDCard({ srd, department }) {
       <CardHeader>
         <div className="flex items-start justify-between">
           <div>
-            <CardTitle className="text-lg font-semibold">{srd.refNo}</CardTitle>
+            <CardTitle className="text-app-heading font-semibold">{srd.refNo}</CardTitle>
           </div>
           <Badge className={getStatusColor(department === 'admin' ? (srd.readyForProduction ? 'approved' : 'in-progress') : departmentStatus)}>
             {srd.inProduction && srd.readyForProduction ?  "In Production"  : (srd.readyForProduction ? 'Ready for Production' : departmentStatus)}
@@ -87,16 +87,16 @@ export default function SRDCard({ srd, department }) {
       </CardHeader>
       
       <CardContent>
-        <p className="text-sm text-gray-600 mb-4">{srd.description}</p>
+        <p className="text-app-text text-gray-600 mb-4">{srd.description}</p>
         
         <div className="space-y-3">
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center justify-between text-app-text">
             <span className="text-gray-500">Progress</span>
             <span className="font-medium">{srd.progress}%</span>
           </div>
           <Progress value={srd.progress} className="h-2" />
           
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center justify-between text-app-text">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-1">
                 <Calendar className="h-4 w-4 text-gray-400" />
@@ -113,7 +113,7 @@ export default function SRDCard({ srd, department }) {
           </div>
           
           {srd.comments.length > 0 && (
-            <div className="flex items-center space-x-1 text-sm text-gray-500">
+            <div className="flex items-center space-x-1 text-app-text text-gray-500">
               <MessageCircle className="h-4 w-4" />
               <span>{srd.comments.length} comments</span>
             </div>
@@ -135,3 +135,4 @@ export default function SRDCard({ srd, department }) {
     </Card>
   );
 }
+

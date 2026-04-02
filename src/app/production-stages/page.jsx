@@ -165,7 +165,7 @@ export default function ProductionStagesPage() {
         <Layout>
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Production Stages</h1>
+                    <h1 className="text-app-heading font-bold text-gray-900">Production Stages</h1>
                     <p className="text-gray-600 mt-1">Configure production workflow stages for approved SRDs.</p>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -188,35 +188,35 @@ export default function ProductionStagesPage() {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Color</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration (days)</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase">Order</th>
+                                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase">Name</th>
+                                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase">Color</th>
+                                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase">Duration (days)</th>
+                                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase">Status</th>
+                                    <th className="px-6 py-3 text-right text-app-text font-medium text-gray-500 uppercase">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {stages.map((stage) => (
                                     <tr key={stage._id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{stage.order}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-app-text text-gray-900">{stage.order}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
                                                 <div 
                                                     className="w-3 h-3 rounded-full mr-2" 
                                                     style={{ backgroundColor: stage.color }}
                                                 />
-                                                <span className="text-sm text-gray-900">{stage.name}</span>
+                                                <span className="text-app-text text-gray-900">{stage.name}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stage.color}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stage.estimatedDuration || '-'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-app-text text-gray-500">{stage.color}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-app-text text-gray-500">{stage.estimatedDuration || '-'}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 py-1 text-xs rounded ${stage.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                            <span className={`px-2 py-1 text-app-text rounded ${stage.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                                                 {stage.isActive ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                                        <td className="px-6 py-4 whitespace-nowrap text-app-text font-medium text-right">
                                             <button
                                                 className="text-blue-600 hover:text-blue-900 mr-4"
                                                 onClick={() => openEdit(stage)}
@@ -244,15 +244,15 @@ export default function ProductionStagesPage() {
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                         <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl border overflow-y-auto max-h-[90vh]">
                             <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white">
-                                <h2 className="text-lg font-semibold">
+                                <h2 className="text-app-heading font-semibold">
                                     {editingId ? "Edit Production Stage" : "Add Production Stage"}
                                 </h2>
-                                <button className="text-gray-500 hover:text-gray-800 text-2xl" onClick={() => setModalOpen(false)}>×</button>
+                                <button className="text-gray-500 hover:text-gray-800 text-app-text" onClick={() => setModalOpen(false)}>×</button>
                             </div>
 
                             <form className="px-6 py-4 space-y-4" onSubmit={handleSubmit}>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Stage Name *</label>
+                                    <label className="block text-app-text font-medium text-gray-700 mb-1">Stage Name *</label>
                                     <input
                                         type="text"
                                         className="w-full p-2 border border-gray-300 rounded"
@@ -263,7 +263,7 @@ export default function ProductionStagesPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+                                    <label className="block text-app-text font-medium text-gray-700 mb-1">Slug</label>
                                     <input
                                         type="text"
                                         className="w-full p-2 border border-gray-300 rounded"
@@ -274,7 +274,7 @@ export default function ProductionStagesPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                    <label className="block text-app-text font-medium text-gray-700 mb-1">Description</label>
                                     <textarea
                                         className="w-full p-2 border border-gray-300 rounded"
                                         value={values.description}
@@ -285,7 +285,7 @@ export default function ProductionStagesPage() {
 
                                 <div className="grid grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                                        <label className="block text-app-text font-medium text-gray-700 mb-1">Color</label>
                                         <input
                                             type="color"
                                             className="w-full h-10 p-1 border border-gray-300 rounded"
@@ -294,7 +294,7 @@ export default function ProductionStagesPage() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Order</label>
+                                        <label className="block text-app-text font-medium text-gray-700 mb-1">Order</label>
                                         <input
                                             type="number"
                                             className="w-full p-2 border border-gray-300 rounded"
@@ -303,7 +303,7 @@ export default function ProductionStagesPage() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Duration (days)</label>
+                                        <label className="block text-app-text font-medium text-gray-700 mb-1">Duration (days)</label>
                                         <input
                                             type="number"
                                             className="w-full p-2 border border-gray-300 rounded"
@@ -314,7 +314,7 @@ export default function ProductionStagesPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Icon (Lucide name)</label>
+                                    <label className="block text-app-text font-medium text-gray-700 mb-1">Icon (Lucide name)</label>
                                     <input
                                         type="text"
                                         className="w-full p-2 border border-gray-300 rounded"
@@ -331,7 +331,7 @@ export default function ProductionStagesPage() {
                                         checked={values.isActive}
                                         onChange={(e) => setValues({ ...values, isActive: e.target.checked })}
                                     />
-                                    <span className="text-sm text-gray-700">Active</span>
+                                    <span className="text-app-text text-gray-700">Active</span>
                                 </div>
 
                                 <div className="flex justify-end pt-3 border-t">
@@ -350,3 +350,4 @@ export default function ProductionStagesPage() {
         </Layout>
     );
 }
+

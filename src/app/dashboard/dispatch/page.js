@@ -63,13 +63,13 @@ export default function DispatchDashboard() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dispatch Department</h1>
+            <h1 className="text-app-heading font-bold text-gray-900">Dispatch Department</h1>
             <p className="text-gray-600 mt-1">Manage sample dispatches, internal verification, and buyer approvals</p>
           </div>
         </div>
         
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Ready for Dispatch</h2>
+          <h2 className="text-app-heading font-semibold">Ready for Dispatch</h2>
           <div className="flex items-center space-x-2">
             <Button
               variant={viewMode === 'cards' ? 'default' : 'outline'}
@@ -101,11 +101,12 @@ export default function DispatchDashboard() {
         {srds.length === 0 && (
           <div className="text-center py-12">
             <Send className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No Dispatches Pending</h3>
-            <p className="mt-1 text-sm text-gray-500">There are no SRDs ready for dispatch currently.</p>
+            <h3 className="mt-2 text-app-text font-medium text-gray-900">No Dispatches Pending</h3>
+            <p className="mt-1 text-app-text text-gray-500">There are no SRDs ready for dispatch currently.</p>
           </div>
         )}
       </div>
     </Layout>
   );
 }
+

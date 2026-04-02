@@ -108,7 +108,7 @@ export default function ProductionTrackingPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Production Tracking</h1>
+            <h1 className="text-app-heading font-bold text-gray-900">Production Tracking</h1>
             <p className="text-gray-600 mt-1">Monitor SRDs in production with dynamic stage tracking</p>
           </div>
           <Link href="/production-stages">
@@ -122,47 +122,47 @@ export default function ProductionTrackingPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">In Production</CardTitle>
+              <CardTitle className="text-app-text font-medium">In Production</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs text-muted-foreground">Active SRDs</p>
+              <div className="text-app-heading font-bold">{stats.total}</div>
+              <p className="text-app-text text-muted-foreground">Active SRDs</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Progress</CardTitle>
+              <CardTitle className="text-app-text font-medium">Avg Progress</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.avgProgress}%</div>
+              <div className="text-app-heading font-bold">{stats.avgProgress}%</div>
               <Progress value={stats.avgProgress} className="mt-2" />
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Production Stages</CardTitle>
+              <CardTitle className="text-app-text font-medium">Production Stages</CardTitle>
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{productionStages.length}</div>
-              <p className="text-xs text-muted-foreground">Active stages</p>
+              <div className="text-app-heading font-bold">{productionStages.length}</div>
+              <p className="text-app-text text-muted-foreground">Active stages</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ready for Production</CardTitle>
+              <CardTitle className="text-app-text font-medium">Ready for Production</CardTitle>
               <AlertCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-app-heading font-bold">
                 {srds.filter(s => s.readyForProduction && !s.inProduction).length}
               </div>
-              <p className="text-xs text-muted-foreground">Awaiting start</p>
+              <p className="text-app-text text-muted-foreground">Awaiting start</p>
             </CardContent>
           </Card>
         </div>
@@ -183,12 +183,12 @@ export default function ProductionTrackingPage() {
                           className="w-3 h-3 rounded-full mr-2" 
                           style={{ backgroundColor: stage.color }}
                         />
-                        <span className="font-medium text-sm">{stage.name}</span>
+                        <span className="font-medium text-app-text">{stage.name}</span>
                       </div>
                       <Badge variant="outline">{stats.byStage[stage._id] || 0}</Badge>
                     </div>
                     {stage.estimatedDuration > 0 && (
-                      <p className="text-xs text-gray-500">
+                      <p className="text-app-text text-gray-500">
                         Est. {stage.estimatedDuration} days
                       </p>
                     )}
@@ -201,14 +201,14 @@ export default function ProductionTrackingPage() {
 
         {/* SRDs in Production */}
         <div>
-          <h2 className="text-xl font-semibold mb-4">SRDs in Production</h2>
+          <h2 className="text-app-heading font-semibold mb-4">SRDs in Production</h2>
           
           {srds.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <Package className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No SRDs in production</h3>
-                <p className="mt-1 text-sm text-gray-500">
+                <h3 className="mt-2 text-app-text font-medium text-gray-900">No SRDs in production</h3>
+                <p className="mt-1 text-app-text text-gray-500">
                   SRDs will appear here once they are approved and moved to production.
                 </p>
               </CardContent>
@@ -219,7 +219,7 @@ export default function ProductionTrackingPage() {
                 <Card key={srd._id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{srd.title}</CardTitle>
+                      <CardTitle className="text-app-text">{srd.title}</CardTitle>
                       <Badge variant="outline">{srd.refNo}</Badge>
                     </div>
                   </CardHeader>
@@ -227,7 +227,7 @@ export default function ProductionTrackingPage() {
                     {/* Current Stage */}
                     {srd.currentProductionStage && (
                       <div>
-                        <p className="text-sm text-gray-500 mb-1">Current Stage</p>
+                        <p className="text-app-text text-gray-500 mb-1">Current Stage</p>
                         <div className="flex items-center">
                           <div 
                             className="w-3 h-3 rounded-full mr-2" 
@@ -241,15 +241,15 @@ export default function ProductionTrackingPage() {
                     {/* Progress */}
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-sm text-gray-500">Production Progress</p>
-                        <span className="text-sm font-medium">{srd.productionProgress || 0}%</span>
+                        <p className="text-app-text text-gray-500">Production Progress</p>
+                        <span className="text-app-text font-medium">{srd.productionProgress || 0}%</span>
                       </div>
                       <Progress value={srd.productionProgress || 0} />
                     </div>
 
                     {/* Dates */}
                     {srd.productionStartDate && (
-                      <div className="flex items-center text-sm text-gray-500">
+                      <div className="flex items-center text-app-text text-gray-500">
                         <Calendar className="h-4 w-4 mr-1" />
                         Started: {new Date(srd.productionStartDate).toLocaleDateString()}
                       </div>
@@ -257,7 +257,7 @@ export default function ProductionTrackingPage() {
 
                     {/* History Count */}
                     {srd.productionHistory && srd.productionHistory.length > 0 && (
-                      <div className="text-sm text-gray-500">
+                      <div className="text-app-text text-gray-500">
                         {srd.productionHistory.length} stage{srd.productionHistory.length !== 1 ? 's' : ''} completed
                       </div>
                     )}
@@ -281,3 +281,4 @@ export default function ProductionTrackingPage() {
     </Layout>
   );
 }
+

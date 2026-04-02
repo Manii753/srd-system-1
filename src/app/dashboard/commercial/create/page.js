@@ -166,7 +166,7 @@ export default function CreateSRDPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Create New SRD</h1>
+            <h1 className="text-app-heading font-bold text-gray-900">Create New SRD</h1>
             <p className="text-gray-600">Fill in the details to create a new sample request</p>
           </div>
         </div>
@@ -175,7 +175,7 @@ export default function CreateSRDPage() {
           {/* Basic Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-semibold">Basic Information</CardTitle>
+              <CardTitle className="text-app-heading font-semibold">Basic Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -205,7 +205,7 @@ export default function CreateSRDPage() {
           {/* Commercial Fields */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-semibold">Commercial Fields</CardTitle>
+              <CardTitle className="text-app-heading font-semibold">Commercial Fields</CardTitle>
             </CardHeader>
             <CardContent>
               <DynamicFieldsRenderer
@@ -242,3 +242,4 @@ export default function CreateSRDPage() {
     </Layout>
   );
 }
+

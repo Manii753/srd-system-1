@@ -169,7 +169,7 @@ export default function UploadFile({ onUploaded, srdId, fieldId, accept = ".xlsx
         />
 
         {!canUpload && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-app-text text-amber-900">
             Create the SRD first, then upload files from the SRD editor.
           </div>
         )}
@@ -177,14 +177,14 @@ export default function UploadFile({ onUploaded, srdId, fieldId, accept = ".xlsx
         {canUpload && files.length === 0 && (
           <div className="flex flex-col items-center justify-center py-2">
             <Upload className="h-6 w-6 text-gray-400 mb-2" />
-            <p className="text-xs text-gray-600">Click to upload Excel file</p>
+            <p className="text-app-text text-gray-600">Click to upload Excel file</p>
           </div>
         )}
 
         {canUpload && files.length > 0 && (
           <div className="space-y-2">
             {files.map((f, i) => (
-              <div key={i} className="flex items-center justify-between bg-white p-2 rounded border border-gray-200 text-xs">
+              <div key={i} className="flex items-center justify-between bg-white p-2 rounded border border-gray-200 text-app-text">
                 <div className="flex items-center space-x-2 overflow-hidden">
                   <FileSpreadsheet className="h-4 w-4 text-green-600 flex-shrink-0" />
                   <span className="truncate max-w-[150px]" title={f.name}>{f.name}</span>
@@ -208,7 +208,7 @@ export default function UploadFile({ onUploaded, srdId, fieldId, accept = ".xlsx
             ))}
 
             {!uploading && files.some(f => !f.uploadedAsset) && (
-              <Button size="sm" onClick={uploadAll} className="w-full h-7 text-xs mt-2">
+              <Button size="sm" onClick={uploadAll} className="w-full h-7 text-app-text mt-2">
                 Upload Files
               </Button>
             )}

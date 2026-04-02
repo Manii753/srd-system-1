@@ -82,7 +82,7 @@ function SRDListPageContent() {
             placeholder="Search SRDs by reference or title..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+            className="w-full pl-9 pr-4 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-app-text"
           />
         </div>
         <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
@@ -90,7 +90,7 @@ function SRDListPageContent() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="border-0 focus:ring-0 focus:outline-none bg-transparent text-sm text-gray-700 font-medium"
+            className="border-0 focus:ring-0 focus:outline-none bg-transparent text-app-text text-gray-700 font-medium"
           >
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
@@ -121,8 +121,8 @@ function SRDListPageContent() {
         {srds.length === 0 && (
           <div className="text-center py-12">
             <FileText className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No SRDs found</h3>
-            <p className="mt-1 text-sm text-gray-500">Adjust your filters or create a new SRD.</p>
+            <h3 className="mt-2 text-app-text font-medium text-gray-900">No SRDs found</h3>
+            <p className="mt-1 text-app-text text-gray-500">Adjust your filters or create a new SRD.</p>
           </div>
         )}
       </div>

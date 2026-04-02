@@ -66,7 +66,7 @@ export default function CompanySettingsPage() {
             <div>
               <Label>Logo</Label>
               <Input type="file" accept="image/*" onChange={handleLogoUpload} className="mt-1" disabled={uploading} />
-              {uploading && <p className="text-xs text-gray-500 mt-1">Uploading...</p>}
+              {uploading && <p className="text-app-text text-gray-500 mt-1">Uploading...</p>}
               {logo && (
                 <div className="mt-2 border rounded p-2 inline-block">
                   <Image src={logo} alt="Company Logo" width={120} height={60} className="object-contain" />

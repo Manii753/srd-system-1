@@ -280,7 +280,7 @@ const AirwayBillPrint = ({ srd }) => {
       onClick={handlePrint}
       size="sm"
       variant="outline"
-      className="h-7 px-3 py-0 text-xs bg-white text-green-700 border-green-200 hover:bg-green-50"
+      className="h-7 px-3 py-0 text-app-text bg-white text-green-700 border-green-200 hover:bg-green-50"
       disabled={isPrinting}
     >
       {isPrinting ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Wait...</> : <><Printer className="h-3 w-3 mr-1" />Print Air Waybill</>}

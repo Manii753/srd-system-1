@@ -219,7 +219,7 @@ export default function ManageStagesPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Manage Workflow Stages</h1>
+            <h1 className="text-app-heading font-bold text-gray-900">Manage Workflow Stages</h1>
             <p className="text-gray-600 mt-1">Create and customize stages for your SRD workflow</p>
           </div>
           <Button onClick={() => { resetForm(); setShowModal(true); }}>
@@ -234,8 +234,8 @@ export default function ManageStagesPage() {
           ) : stages.length === 0 ? (
             <div className="col-span-3 text-center py-12">
               <Circle className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No stages</h3>
-              <p className="mt-1 text-sm text-gray-500">Get started by creating a new stage.</p>
+              <h3 className="mt-2 text-app-text font-medium text-gray-900">No stages</h3>
+              <p className="mt-1 text-app-text text-gray-500">Get started by creating a new stage.</p>
             </div>
           ) : (
             stages.map((stage) => {
@@ -252,8 +252,8 @@ export default function ManageStagesPage() {
                           <IconComponent className="h-5 w-5" style={{ color: stage.color }} />
                         </div>
                         <div>
-                          <CardTitle className="text-lg">{stage.name}</CardTitle>
-                          <div className="text-xs text-gray-500 mt-1">
+                          <CardTitle className="text-app-text">{stage.name}</CardTitle>
+                          <div className="text-app-text text-gray-500 mt-1">
                             {stage.slug} • Order: {stage.order}
                           </div>
                         </div>
@@ -262,19 +262,19 @@ export default function ManageStagesPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-gray-600 mb-4">
+                    <p className="text-app-text text-gray-600 mb-4">
                       {stage.description || 'No description provided'}
                     </p>
                     
                     {/* Departments */}
                     {stage.departments && stage.departments.length > 0 && (
                       <div className="mb-4">
-                        <div className="text-xs font-medium text-gray-500 mb-2">Departments:</div>
+                        <div className="text-app-text font-medium text-gray-500 mb-2">Departments:</div>
                         <div className="flex flex-wrap gap-1">
                           {stage.departments.map(dept => (
                             <span
                               key={dept._id}
-                              className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded"
+                              className="px-2 py-1 text-app-text bg-blue-100 text-blue-700 rounded"
                             >
                               {dept.name}
                             </span>
@@ -286,16 +286,16 @@ export default function ManageStagesPage() {
                     {/* Status Badges */}
                     <div className="flex flex-wrap gap-2 mb-4">
                       {stage.isAutomatic && (
-                        <span className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-full">
+                        <span className="px-2 py-1 text-app-text bg-purple-100 text-purple-700 rounded-full">
                           Automatic
                         </span>
                       )}
                       {stage.isActive ? (
-                        <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
+                        <span className="px-2 py-1 text-app-text bg-green-100 text-green-700 rounded-full">
                           Active
                         </span>
                       ) : (
-                        <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">
+                        <span className="px-2 py-1 text-app-text bg-gray-100 text-gray-700 rounded-full">
                           Inactive
                         </span>
                       )}
@@ -327,11 +327,11 @@ export default function ManageStagesPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl border border-gray-200 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white z-10">
-                <h2 className="text-lg font-semibold">
+                <h2 className="text-app-heading font-semibold">
                   {editingStage ? 'Edit Stage' : 'Create New Stage'}
                 </h2>
                 <button
-                  className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
+                  className="text-gray-500 hover:text-gray-800 text-app-text leading-none"
                   onClick={() => setShowModal(false)}
                 >
                   ×
@@ -394,7 +394,7 @@ export default function ManageStagesPage() {
                       }
                       placeholder="0"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Lower numbers appear first</p>
+                    <p className="text-app-text text-gray-500 mt-1">Lower numbers appear first</p>
                   </div>
                 </div>
 
@@ -450,7 +450,7 @@ export default function ManageStagesPage() {
                 {/* Departments */}
                 <div className="space-y-4 border-t pt-4">
                   <h3 className="font-medium text-gray-900">Departments</h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-app-text text-gray-600">
                     Select which departments this stage applies to (leave empty for all)
                   </p>
                   <div className="grid grid-cols-2 gap-2">
@@ -465,7 +465,7 @@ export default function ManageStagesPage() {
                           onChange={() => handleDepartmentToggle(dept._id)}
                           className="form-checkbox h-4 w-4"
                         />
-                        <span className="text-sm">{dept.name}</span>
+                        <span className="text-app-text">{dept.name}</span>
                       </label>
                     ))}
                   </div>
@@ -478,7 +478,7 @@ export default function ManageStagesPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>Active</Label>
-                      <p className="text-xs text-gray-500">Stage is available for use</p>
+                      <p className="text-app-text text-gray-500">Stage is available for use</p>
                     </div>
                     <Switch
                       checked={newStage.isActive}
@@ -491,7 +491,7 @@ export default function ManageStagesPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>Automatic</Label>
-                      <p className="text-xs text-gray-500">Stage is set automatically by rules</p>
+                      <p className="text-app-text text-gray-500">Stage is set automatically by rules</p>
                     </div>
                     <Switch
                       checked={newStage.isAutomatic}
@@ -519,3 +519,4 @@ export default function ManageStagesPage() {
     </Layout>
   );
 }
+

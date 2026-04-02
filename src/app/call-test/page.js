@@ -113,7 +113,7 @@ export default function CallTestPage() {
         <Icon className={`h-5 w-5 ${status ? 'text-green-600' : 'text-red-600'}`} />
         <div>
           <div className="font-medium">{label}</div>
-          <div className="text-sm text-gray-500">{description}</div>
+          <div className="text-app-text text-gray-500">{description}</div>
         </div>
       </div>
       <Badge variant={status ? 'default' : 'destructive'}>
@@ -131,7 +131,7 @@ export default function CallTestPage() {
   return (
     <Layout>
       <div className="p-8 max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">WebRTC Call Test & Diagnostics</h1>
+        <h1 className="text-app-heading font-bold mb-6">WebRTC Call Test & Diagnostics</h1>
 
         {/* Diagnostics Section */}
         <Card className="mb-6">
@@ -178,7 +178,7 @@ export default function CallTestPage() {
             {!allDiagnosticsPassed && (
               <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <h4 className="font-semibold text-yellow-800 mb-2">Issues Detected:</h4>
-                <ul className="text-sm text-yellow-700 space-y-1">
+                <ul className="text-app-text text-yellow-700 space-y-1">
                   {!diagnostics.https && <li>• HTTPS is required for WebRTC in production environments</li>}
                   {!diagnostics.webrtc && <li>• Your browser doesn't support WebRTC</li>}
                   {!diagnostics.microphone && <li>• Microphone access is required for voice calls</li>}
@@ -207,7 +207,7 @@ export default function CallTestPage() {
           </CardHeader>
           <CardContent>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Select User to Call:</label>
+              <label className="block text-app-text font-medium mb-2">Select User to Call:</label>
               <select
                 className="w-full p-2 border rounded-lg"
                 onChange={(e) => setSelectedUser(e.target.value)}
@@ -248,7 +248,7 @@ export default function CallTestPage() {
             <CardTitle>Testing Instructions</CardTitle>
           </CardHeader>
           <CardContent>
-            <ol className="list-decimal list-inside space-y-2 text-sm">
+            <ol className="list-decimal list-inside space-y-2 text-app-text">
               <li>Ensure all diagnostics pass (green checkmarks above)</li>
               <li>Open this page in 2 different browsers or devices</li>
               <li>Login as different users in each browser</li>
@@ -260,7 +260,7 @@ export default function CallTestPage() {
 
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="font-semibold text-blue-800 mb-1">Troubleshooting Tips:</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
+              <ul className="text-app-text text-blue-700 space-y-1">
                 <li>• Make sure microphone permissions are granted</li>
                 <li>• Try different browsers (Chrome, Firefox, Safari)</li>
                 <li>• Check if you're on the same network or different networks</li>
@@ -273,3 +273,4 @@ export default function CallTestPage() {
     </Layout>
   );
 }
+

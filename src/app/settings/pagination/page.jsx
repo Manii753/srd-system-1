@@ -101,26 +101,26 @@ export default function PaginationSettingsPage() {
         <div className="flex items-center gap-3">
           <List className="h-7 w-7 text-gray-700" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Pagination Settings</h1>
-            <p className="text-sm text-gray-500">Configure pagination separately for each view</p>
+            <h1 className="text-app-heading font-bold text-gray-900">Pagination Settings</h1>
+            <p className="text-app-text text-gray-500">Configure pagination separately for each view</p>
           </div>
         </div>
 
         {loading ? (
-          <p className="text-sm text-gray-400">Loading...</p>
+          <p className="text-app-text text-gray-400">Loading...</p>
         ) : (
           <>
             {PAGES.map(({ key, label, description, inputLabel, min, max }) => (
               <Card key={key}>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">{label}</CardTitle>
-                  <p className="text-xs text-gray-500">{description}</p>
+                  <CardTitle className="text-app-text">{label}</CardTitle>
+                  <p className="text-app-text text-gray-500">{description}</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label className="text-sm font-medium">Enable Pagination</Label>
-                      <p className="text-xs text-gray-400">When off, everything loads on one page</p>
+                      <Label className="text-app-text font-medium">Enable Pagination</Label>
+                      <p className="text-app-text text-gray-400">When off, everything loads on one page</p>
                     </div>
                     <Switch
                       checked={settings[key].enabled}
@@ -129,8 +129,8 @@ export default function PaginationSettingsPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex-1">
-                      <Label className="text-sm font-medium">{inputLabel}</Label>
-                      <p className="text-xs text-gray-400 mb-1">
+                      <Label className="text-app-text font-medium">{inputLabel}</Label>
+                      <p className="text-app-text text-gray-400 mb-1">
                         Current value: <span className="font-semibold text-gray-700">{settings[key].itemsPerPage}</span>
                       </p>
                       <Input
@@ -142,7 +142,7 @@ export default function PaginationSettingsPage() {
                         onChange={(e) =>
                           update(key, 'itemsPerPage', Math.max(min, parseInt(e.target.value) || min))
                         }
-                        className="w-32 h-9 text-sm"
+                        className="w-32 h-9 text-app-text"
                       />
                     </div>
                   </div>
@@ -159,3 +159,4 @@ export default function PaginationSettingsPage() {
     </Layout>
   );
 }
+
