@@ -219,7 +219,7 @@ export default function UsersManagementPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
+            <h1 className="text-app-heading font-bold text-gray-900">User Management</h1>
             <p className="text-gray-600 mt-1">Manage system users and permissions</p>
           </div>
           <Button onClick={openNewUserModal} className="flex items-center space-x-2">
@@ -232,21 +232,21 @@ export default function UsersManagementPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <CardTitle className="text-app-text font-medium">Total Users</CardTitle>
               <Shield className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{users.length}</div>
+              <div className="text-app-heading font-bold">{users.length}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+              <CardTitle className="text-app-text font-medium">Active Users</CardTitle>
               <UserCheck className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-app-heading font-bold">
                 {users.filter(u => u.isActive).length}
               </div>
             </CardContent>
@@ -254,11 +254,11 @@ export default function UsersManagementPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Inactive Users</CardTitle>
+              <CardTitle className="text-app-text font-medium">Inactive Users</CardTitle>
               <UserX className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-app-heading font-bold">
                 {users.filter(u => !u.isActive).length}
               </div>
             </CardContent>
@@ -266,11 +266,11 @@ export default function UsersManagementPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Admins</CardTitle>
+              <CardTitle className="text-app-text font-medium">Admins</CardTitle>
               <Shield className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-app-heading font-bold">
                 {users.filter(u => u.role === 'admin').length}
               </div>
             </CardContent>
@@ -298,22 +298,22 @@ export default function UsersManagementPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">
                       User
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">
                       Role
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">
                       Department
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">
                       Created
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-right text-app-text font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -329,8 +329,8 @@ export default function UsersManagementPage() {
                             </span>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                            <div className="text-sm text-gray-500 flex items-center">
+                            <div className="text-app-text font-medium text-gray-900">{user.name}</div>
+                            <div className="text-app-text text-gray-500 flex items-center">
                               <Mail className="h-3 w-3 mr-1" />
                               {user.email}
                             </div>
@@ -342,7 +342,7 @@ export default function UsersManagementPage() {
                           {user.role.toUpperCase()}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-app-text text-gray-500">
                         {user.department || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -350,13 +350,13 @@ export default function UsersManagementPage() {
                           {user.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-app-text text-gray-500">
                         <div className="flex items-center">
                           <Calendar className="h-3 w-3 mr-1" />
                           {new Date(user.createdAt).toLocaleDateString()}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-app-text font-medium space-x-2">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -406,11 +406,11 @@ export default function UsersManagementPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md border border-gray-200">
               <div className="flex items-center justify-between px-6 py-4 border-b">
-                <h2 className="text-lg font-semibold">
+                <h2 className="text-app-heading font-semibold">
                   {editingUser ? 'Edit User' : 'Add New User'}
                 </h2>
                 <button
-                  className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
+                  className="text-gray-500 hover:text-gray-800 text-app-text leading-none"
                   onClick={() => setModalOpen(false)}
                 >
                   ×
@@ -512,3 +512,4 @@ export default function UsersManagementPage() {
     </Layout>
   );
 }
+

@@ -125,10 +125,10 @@ export default function PaginatedSRDForm({ srd, onSave, userRole }) {
       {/* Progress Bar */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold text-gray-700">
+          <h2 className="text-app-heading font-semibold text-gray-700">
             Step {currentPage + 1} of {DEPARTMENTS.length}: {currentDept.toUpperCase()} Department
           </h2>
-          <Badge variant="outline" className="text-sm">
+          <Badge variant="outline" className="text-app-text">
             {completionPercentage}% Complete
           </Badge>
         </div>
@@ -165,10 +165,10 @@ export default function PaginatedSRDForm({ srd, onSave, userRole }) {
                 {index < currentPage ? (
                   <Check className="h-4 w-4" />
                 ) : (
-                  <span className="text-sm">{index + 1}</span>
+                  <span className="text-app-text">{index + 1}</span>
                 )}
               </div>
-              <span className="text-sm hidden md:inline">{dept.toUpperCase()}</span>
+              <span className="text-app-text hidden md:inline">{dept.toUpperCase()}</span>
             </div>
           ))}
         </div>
@@ -178,7 +178,7 @@ export default function PaginatedSRDForm({ srd, onSave, userRole }) {
       {!isFirstPage && (
         <Card className="mb-6 bg-blue-50 border-blue-200">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center text-blue-900">
+            <CardTitle className="text-app-text flex items-center text-blue-900">
               <FileText className="h-4 w-4 mr-2" />
               Summary of Previous Sections
             </CardTitle>
@@ -195,14 +195,14 @@ export default function PaginatedSRDForm({ srd, onSave, userRole }) {
                 return (
                   <div key={dept} className="bg-white rounded-lg p-3 border border-blue-200">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold text-sm text-gray-700">
+                      <span className="font-semibold text-app-heading text-gray-700">
                         {dept.toUpperCase()}
                       </span>
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="text-app-text">
                         {filledCount}/{deptFields.length}
                       </Badge>
                     </div>
-                    <div className="text-xs text-gray-600">
+                    <div className="text-app-text text-gray-600">
                       {filledCount === deptFields.length ? (
                         <span className="text-green-600 font-medium">✓ Completed</span>
                       ) : (
@@ -220,10 +220,10 @@ export default function PaginatedSRDForm({ srd, onSave, userRole }) {
       {/* Current Page Fields */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">
+          <CardTitle className="text-app-text">
             {currentDept.toUpperCase()} Department Information
           </CardTitle>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-app-text text-gray-500 mt-1">
             Fill in the required information for the {currentDept.toUpperCase()} department
           </p>
         </CardHeader>
@@ -254,7 +254,7 @@ export default function PaginatedSRDForm({ srd, onSave, userRole }) {
           Previous
         </Button>
 
-        <div className="text-sm text-gray-600">
+        <div className="text-app-text text-gray-600">
           Page {currentPage + 1} of {DEPARTMENTS.length}
         </div>
 
@@ -279,3 +279,4 @@ export default function PaginatedSRDForm({ srd, onSave, userRole }) {
     </div>
   );
 }
+

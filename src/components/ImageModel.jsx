@@ -16,7 +16,7 @@ export default function ImageModal({ images = [], currentIndex = 0, onClose }) {
       {/* Close */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 text-white text-3xl font-light hover:text-gray-300"
+        className="absolute top-4 right-4 text-white text-app-text font-light hover:text-gray-300"
       >
         <X size={28} />
       </button>
@@ -50,9 +50,10 @@ export default function ImageModal({ images = [], currentIndex = 0, onClose }) {
       </div>
 
       {/* Counter */}
-      <div className="absolute bottom-6 text-white/80 text-sm">
+      <div className="absolute bottom-6 text-white/80 text-app-text">
         {index + 1} / {images.length}
       </div>
     </div>
   );
 }
+

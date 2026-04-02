@@ -78,7 +78,7 @@ export default function SettingsPage() {
                 <div className="flex items-center space-x-3">
                     <Settings className="h-8 w-8 text-gray-700" />
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">System Settings</h1>
+                        <h1 className="text-app-heading font-bold text-gray-900">System Settings</h1>
                         <p className="text-gray-600 mt-1">Configure and customize your SRD tracking system</p>
                     </div>
                 </div>
@@ -95,10 +95,10 @@ export default function SettingsPage() {
                                             <Icon className="h-6 w-6 text-white" />
                                         </div>
                                         <div className="flex-1">
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                                            <h3 className="text-app-heading font-semibold text-gray-900 mb-1">
                                                 {card.title}
                                             </h3>
-                                            <p className="text-sm text-gray-600">
+                                            <p className="text-app-text text-gray-600">
                                                 {card.description}
                                             </p>
                                         </div>
@@ -114,8 +114,8 @@ export default function SettingsPage() {
                     <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-blue-600 font-medium">Departments</p>
-                                <p className="text-2xl font-bold text-blue-900 mt-1">Dynamic</p>
+                                <p className="text-app-text text-blue-600 font-medium">Departments</p>
+                                <p className="text-app-heading font-bold text-blue-900 mt-1">Dynamic</p>
                             </div>
                             <Building2 className="h-8 w-8 text-blue-500" />
                         </div>
@@ -123,8 +123,8 @@ export default function SettingsPage() {
                     <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-purple-600 font-medium">Workflow Stages</p>
-                                <p className="text-2xl font-bold text-purple-900 mt-1">Customizable</p>
+                                <p className="text-app-text text-purple-600 font-medium">Workflow Stages</p>
+                                <p className="text-app-heading font-bold text-purple-900 mt-1">Customizable</p>
                             </div>
                             <Workflow className="h-8 w-8 text-purple-500" />
                         </div>
@@ -132,8 +132,8 @@ export default function SettingsPage() {
                     <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-green-600 font-medium">Custom Fields</p>
-                                <p className="text-2xl font-bold text-green-900 mt-1">Unlimited</p>
+                                <p className="text-app-text text-green-600 font-medium">Custom Fields</p>
+                                <p className="text-app-heading font-bold text-green-900 mt-1">Unlimited</p>
                             </div>
                             <FileText className="h-8 w-8 text-green-500" />
                         </div>
@@ -142,7 +142,7 @@ export default function SettingsPage() {
 
                 {/* Info Section */}
                 <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-                    <h2 className="text-lg font-semibold text-blue-900 mb-2">Dynamic System Configuration</h2>
+                    <h2 className="text-app-heading font-semibold text-blue-900 mb-2">Dynamic System Configuration</h2>
                     <p className="text-blue-800 mb-4">
                         Your SRD system is now fully dynamic and customizable. You can:
                     </p>
@@ -168,18 +168,18 @@ export default function SettingsPage() {
 
                 {/* Quick Links */}
                 <div className="mt-8 bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 rounded-lg p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Start</h2>
+                    <h2 className="text-app-heading font-semibold text-gray-900 mb-4">Quick Start</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <h3 className="font-medium text-gray-900 mb-2">📚 Documentation</h3>
-                            <ul className="space-y-1 text-sm text-gray-600">
+                            <ul className="space-y-1 text-app-text text-gray-600">
                                 <li>• See QUICK_START_DYNAMIC.md for a 5-minute guide</li>
                                 <li>• Read DYNAMIC_SYSTEM.md for full documentation</li>
                             </ul>
                         </div>
                         <div>
                             <h3 className="font-medium text-gray-900 mb-2">🚀 First Steps</h3>
-                            <ul className="space-y-1 text-sm text-gray-600">
+                            <ul className="space-y-1 text-app-text text-gray-600">
                                 <li>• Run: npm run seed:dynamic</li>
                                 <li>• Configure your departments and stages</li>
                                 <li>• Add custom fields as needed</li>
@@ -191,3 +191,4 @@ export default function SettingsPage() {
         </Layout>
     );
 }
+

@@ -100,42 +100,42 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total SRDs</CardTitle>
+              <CardTitle className="text-app-text font-medium">Total SRDs</CardTitle>
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalSRDs}</div>
-              <p className="text-xs text-muted-foreground">Across all departments</p>
+              <div className="text-app-heading font-bold">{stats.totalSRDs}</div>
+              <p className="text-app-text text-muted-foreground">Across all departments</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed</CardTitle>
+              <CardTitle className="text-app-text font-medium">Completed</CardTitle>
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.completedSRDs}</div>
-              <p className="text-xs text-muted-foreground">100% progress</p>
+              <div className="text-app-heading font-bold">{stats.completedSRDs}</div>
+              <p className="text-app-text text-muted-foreground">100% progress</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Flagged Issues</CardTitle>
+              <CardTitle className="text-app-text font-medium">Flagged Issues</CardTitle>
               <AlertCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.flaggedSRDs}</div>
-              <p className="text-xs text-muted-foreground">Require attention</p>
+              <div className="text-app-heading font-bold">{stats.flaggedSRDs}</div>
+              <p className="text-app-text text-muted-foreground">Require attention</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <CardTitle className="text-app-text font-medium">Total Users</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalUsers}</div>
-              <p className="text-xs text-muted-foreground">System users</p>
+              <div className="text-app-heading font-bold">{stats.totalUsers}</div>
+              <p className="text-app-text text-muted-foreground">System users</p>
             </CardContent>
           </Card>
         </div>
@@ -144,7 +144,7 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+              <CardTitle className="text-app-heading font-semibold">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Button className="w-full justify-start" variant="outline">
@@ -172,20 +172,20 @@ export default function AdminDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-semibold">System Status</CardTitle>
+              <CardTitle className="text-app-heading font-semibold">System Status</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Database</span>
+                  <span className="text-app-text">Database</span>
                   <Badge className="bg-green-100 text-green-800">Connected</Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Pusher (Real-time)</span>
+                  <span className="text-app-text">Pusher (Real-time)</span>
                   <Badge className="bg-green-100 text-green-800">Active</Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Authentication</span>
+                  <span className="text-app-text">Authentication</span>
                   <Badge className="bg-green-100 text-green-800">Active</Badge>
                 </div>
               </div>
@@ -194,11 +194,11 @@ export default function AdminDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-semibold">Pagination Settings</CardTitle>
+              <CardTitle className="text-app-heading font-semibold">Pagination Settings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label htmlFor="pagination-enabled" className="text-sm">Enable Pagination</Label>
+                <Label htmlFor="pagination-enabled" className="text-app-text">Enable Pagination</Label>
                 <Switch
                   id="pagination-enabled"
                   checked={paginationSettings.enabled}
@@ -208,7 +208,7 @@ export default function AdminDashboard() {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="items-per-page" className="text-sm">Items per page</Label>
+                <Label htmlFor="items-per-page" className="text-app-text">Items per page</Label>
                 <Input
                   id="items-per-page"
                   type="number"
@@ -222,7 +222,7 @@ export default function AdminDashboard() {
                       itemsPerPage: Math.max(1, parseInt(e.target.value) || 1),
                     }))
                   }
-                  className="h-8 text-sm"
+                  className="h-8 text-app-text"
                 />
               </div>
               <Button
@@ -239,7 +239,7 @@ export default function AdminDashboard() {
 
         {/* All SRDs */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">All SRDs</h2>
+          <h2 className="text-app-heading font-semibold">All SRDs</h2>
           <div className="flex items-center space-x-2">
             <Button variant={viewMode === 'cards' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('cards')}>Cards</Button>
             <Button variant={viewMode === 'table' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('table')}>Table</Button>
@@ -259,3 +259,4 @@ export default function AdminDashboard() {
     </Layout>
   );
 }
+

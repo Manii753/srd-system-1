@@ -106,19 +106,19 @@ export default function ReportsPage() {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">SRD Reports</h1>
+          <h1 className="text-app-heading font-bold text-gray-900">SRD Reports</h1>
           <p className="text-gray-600 mt-1">Generate detailed reports with filters</p>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center mb-4">
             <Filter className="h-5 w-5 mr-2 text-gray-600" />
-            <h2 className="text-lg font-semibold">Filters</h2>
+            <h2 className="text-app-heading font-semibold">Filters</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-app-text font-medium text-gray-700 mb-1">
                 Start Date
               </label>
               <input
@@ -130,7 +130,7 @@ export default function ReportsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-app-text font-medium text-gray-700 mb-1">
                 End Date
               </label>
               <input
@@ -142,7 +142,7 @@ export default function ReportsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-app-text font-medium text-gray-700 mb-1">
                 Department
               </label>
               <select
@@ -159,7 +159,7 @@ export default function ReportsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-app-text font-medium text-gray-700 mb-1">
                 Status
               </label>
               <select
@@ -175,7 +175,7 @@ export default function ReportsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-app-text font-medium text-gray-700 mb-1">
                 Brand
               </label>
               <input
@@ -188,7 +188,7 @@ export default function ReportsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-app-text font-medium text-gray-700 mb-1">
                 Sample Type
               </label>
               <input
@@ -223,9 +223,9 @@ export default function ReportsPage() {
             <div>
               <div className="flex items-center">
                 <LayoutList className="h-5 w-5 mr-2 text-purple-600" />
-                <h2 className="text-lg font-semibold">Dynamic Report Template</h2>
+                <h2 className="text-app-heading font-semibold">Dynamic Report Template</h2>
               </div>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-app-text text-gray-500 mt-2">
                 Manage the ordered columns for the dynamic report in the dedicated template designer.
               </p>
             </div>
@@ -244,22 +244,22 @@ export default function ReportsPage() {
 
           <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
             {loadingTemplate ? (
-              <div className="text-sm text-gray-500">Loading active template...</div>
+              <div className="text-app-text text-gray-500">Loading active template...</div>
             ) : activeTemplate ? (
               <div className="space-y-2">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>
                     <div className="font-semibold text-gray-900">{activeTemplate.name}</div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-app-text text-gray-500">
                       {dynamicColumnCount} column{dynamicColumnCount === 1 ? '' : 's'} in the active template
                     </div>
                   </div>
-                  <span className="inline-flex w-fit rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                  <span className="inline-flex w-fit rounded-full bg-green-100 px-3 py-1 text-app-text font-medium text-green-700">
                     Active Template
                   </span>
                 </div>
 
-                <div className="text-sm text-gray-600">
+                <div className="text-app-text text-gray-600">
                   {dynamicColumnCount > 0
                     ? `Columns: ${activeLabelsPreview}${dynamicColumnCount > 8 ? ' ...' : ''}`
                     : 'This template has no columns yet.'}
@@ -268,7 +268,7 @@ export default function ReportsPage() {
             ) : (
               <div className="space-y-2">
                 <div className="font-medium text-gray-800">No active dynamic report template</div>
-                <div className="text-sm text-gray-500">
+                <div className="text-app-text text-gray-500">
                   Open the template designer to create or activate a report template.
                 </div>
               </div>
@@ -281,13 +281,13 @@ export default function ReportsPage() {
             <div className="flex items-center mb-4">
               <Calendar className="h-8 w-8 text-green-600 mr-3" />
               <div>
-                <h3 className="text-lg font-semibold">Summary Report</h3>
-                <p className="text-sm text-gray-600">Choose any saved template without changing the active one</p>
+                <h3 className="text-app-heading font-semibold">Summary Report</h3>
+                <p className="text-app-text text-gray-600">Choose any saved template without changing the active one</p>
               </div>
             </div>
             <div className="mb-4 space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-app-text font-medium text-gray-700 mb-1">
                   Template
                 </label>
                 <select
@@ -307,7 +307,7 @@ export default function ReportsPage() {
                   )}
                 </select>
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-app-text text-gray-600">
                 {loadingTemplate
                   ? 'Loading templates...'
                   : selectedSummaryTemplate && summaryTemplateColumnCount > 0
@@ -328,11 +328,11 @@ export default function ReportsPage() {
             <div className="flex items-center mb-4">
               <LayoutList className="h-8 w-8 text-purple-600 mr-3" />
               <div>
-                <h3 className="text-lg font-semibold">Dynamic Report</h3>
-                <p className="text-sm text-gray-600">Uses the active dynamic report template</p>
+                <h3 className="text-app-heading font-semibold">Dynamic Report</h3>
+                <p className="text-app-text text-gray-600">Uses the active dynamic report template</p>
               </div>
             </div>
-            <div className="mb-4 text-sm text-gray-600">
+            <div className="mb-4 text-app-text text-gray-600">
               {loadingTemplate
                 ? 'Loading active template...'
                 : activeTemplate && dynamicColumnCount > 0
@@ -352,3 +352,4 @@ export default function ReportsPage() {
     </Layout>
   );
 }
+

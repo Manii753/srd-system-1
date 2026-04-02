@@ -119,7 +119,7 @@ export default function DepartmentsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Manage Departments</h1>
+                    <h1 className="text-app-heading font-bold text-gray-900">Manage Departments</h1>
                     <p className="text-gray-600 mt-1">Configure departments for your organization.</p>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -143,19 +143,19 @@ export default function DepartmentsPage() {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">Slug</th>
+                                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                    <th className="px-6 py-3 text-right text-app-text font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {departments.map((dept) => (
                                     <tr key={dept._id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{dept.name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{dept.slug}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">{dept.description || '-'}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                                        <td className="px-6 py-4 whitespace-nowrap text-app-text font-medium text-gray-900">{dept.name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-app-text text-gray-500">{dept.slug}</td>
+                                        <td className="px-6 py-4 text-app-text text-gray-500">{dept.description || '-'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-app-text font-medium text-right">
                                             <button
                                                 className="text-blue-600 hover:text-blue-900 mr-4"
                                                 onClick={() => openEdit(dept)}
@@ -192,11 +192,11 @@ export default function DepartmentsPage() {
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                         <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg border border-gray-200 overflow-hidden">
                             <div className="flex items-center justify-between px-6 py-4 border-b">
-                                <h2 className="text-lg font-semibold">
+                                <h2 className="text-app-heading font-semibold">
                                     {editingId ? "Edit Department" : "Add New Department"}
                                 </h2>
                                 <button
-                                    className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
+                                    className="text-gray-500 hover:text-gray-800 text-app-text leading-none"
                                     onClick={() => setModalOpen(false)}
                                     aria-label="Close modal"
                                 >
@@ -207,7 +207,7 @@ export default function DepartmentsPage() {
                             <form className="px-6 py-4 space-y-4" onSubmit={handleSubmit}>
                                 {/* Name */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-app-text font-medium text-gray-700 mb-1">
                                         Department Name *
                                     </label>
                                     <input
@@ -221,7 +221,7 @@ export default function DepartmentsPage() {
 
                                 {/* Slug */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-app-text font-medium text-gray-700 mb-1">
                                         Slug (auto-generated if empty)
                                     </label>
                                     <input
@@ -235,7 +235,7 @@ export default function DepartmentsPage() {
 
                                 {/* Description */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-app-text font-medium text-gray-700 mb-1">
                                         Description
                                     </label>
                                     <textarea
@@ -271,3 +271,4 @@ export default function DepartmentsPage() {
         </Layout>
     );
 }
+

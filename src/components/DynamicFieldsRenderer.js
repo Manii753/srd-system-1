@@ -90,10 +90,10 @@ export default function DynamicFieldsRenderer({
                 <Folder className="h-6 w-6" />
               )}
             </div>
-            <h3 className="text-lg font-semibold text-blue-900">
+            <h3 className="text-app-heading font-semibold text-blue-900">
               📁 {heading.name}
             </h3>
-            <div className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+            <div className="text-app-text text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
               {childFields.length} field{childFields.length !== 1 ? 's' : ''}
             </div>
           </div>
@@ -156,16 +156,16 @@ export default function DynamicFieldsRenderer({
               onChange={(e) => onChange(field._id, e.target.checked)}
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
-            <Label htmlFor={field._id} className="text-sm text-gray-700 cursor-pointer">
+            <Label htmlFor={field._id} className="text-app-text text-gray-700 cursor-pointer">
               {field.placeholder || 'Yes/No'}
             </Label>
           </div>
         ) : field.type === 'file' ? (
-          <div className="rounded-md border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="rounded-md border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-app-text text-amber-900">
             Create the SRD first, then upload files from the SRD editor.
           </div>
         ) : field.type === 'image' ? (
-          <div className="rounded-md border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="rounded-md border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-app-text text-amber-900">
             Create the SRD first, then upload images from the SRD editor.
           </div>
         ) : (
@@ -180,7 +180,7 @@ export default function DynamicFieldsRenderer({
         )}
         
         {field.placeholder && field.type !== 'boolean' && (
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-app-text text-gray-500 mt-1">
             {field.placeholder}
           </div>
         )}
@@ -193,8 +193,8 @@ export default function DynamicFieldsRenderer({
       {fields.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
           <Folder className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No fields defined</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <h3 className="mt-2 text-app-text font-medium text-gray-900">No fields defined</h3>
+          <p className="mt-1 text-app-text text-gray-500">
             Contact admin to add fields for this department.
           </p>
         </div>
@@ -206,3 +206,4 @@ export default function DynamicFieldsRenderer({
     </div>
   );
 }
+

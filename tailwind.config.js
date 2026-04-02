@@ -8,6 +8,10 @@ export const content = [
 ];
 export const theme = {
 	extend: {
+		fontSize: {
+			'app-heading': 'var(--font-size-heading)',
+			'app-text': 'var(--font-size-text)',
+		},
 		borderRadius: {
 			lg: 'var(--radius)',
 			md: 'calc(var(--radius) - 2px)',

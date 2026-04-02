@@ -86,31 +86,31 @@ export default function Header({ headerContent }) {
           </PopoverTrigger>
           <PopoverContent align="end" className="w-80 p-0 shadow-lg">
             <div className="flex items-center justify-between px-4 py-3 border-b">
-              <span className="font-semibold text-sm text-gray-800">Notifications</span>
+              <span className="font-semibold text-app-heading text-gray-800">Notifications</span>
               {unreadCount > 0 && (
-                <button onClick={markAllAsRead} className="text-xs text-blue-600 hover:underline">
+                <button onClick={markAllAsRead} className="text-app-text text-blue-600 hover:underline">
                   Mark all read
                 </button>
               )}
             </div>
             <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
               {notifications.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-6">No notifications</p>
+                <p className="text-app-text text-gray-400 text-center py-6">No notifications</p>
               ) : notifications.map((n) => (
                 <div key={n._id} className={`px-4 py-3 hover:bg-gray-50 transition-colors ${!n.read ? 'bg-blue-50/50' : ''}`}>
                   <div className="flex-1 min-w-0">
                     {!n.read && <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500 mr-1.5 mb-0.5 align-middle" />}
-                    <span className="text-sm text-gray-800">{n.message}</span>
-                    <p className="text-xs text-gray-400 mt-0.5">{new Date(n.timestamp).toLocaleString()}</p>
+                    <span className="text-app-text text-gray-800">{n.message}</span>
+                    <p className="text-app-text text-gray-400 mt-0.5">{new Date(n.timestamp).toLocaleString()}</p>
                   </div>
                   <div className="flex gap-2 mt-2">
                     {n.srd && (
                       <Link href={`/srd/${n.srd}`}>
-                        <button className="text-xs text-blue-600 hover:underline">View SRD</button>
+                        <button className="text-app-text text-blue-600 hover:underline">View SRD</button>
                       </Link>
                     )}
                     {!n.read && (
-                      <button onClick={() => markOneAsRead(n._id)} className="text-xs text-gray-500 hover:text-gray-700">
+                      <button onClick={() => markOneAsRead(n._id)} className="text-app-text text-gray-500 hover:text-gray-700">
                         Mark read
                       </button>
                     )}
@@ -125,23 +125,23 @@ export default function Header({ headerContent }) {
         <Popover>
           <PopoverTrigger asChild>
             <button className="flex items-center gap-2 rounded-full pl-1 pr-3 py-1 hover:bg-gray-100 transition-colors">
-              <span className="h-8 w-8 rounded-full bg-blue-600 text-white text-sm font-semibold flex items-center justify-center shrink-0">
+              <span className="h-8 w-8 rounded-full bg-blue-600 text-white text-app-heading font-semibold flex items-center justify-center shrink-0">
                 {userInitial}
               </span>
               <div className="hidden sm:block text-left">
-                <p className="text-xs font-semibold text-gray-800 leading-tight">{session?.user?.name}</p>
+                <p className="text-app-heading font-semibold text-gray-800 leading-tight">{session?.user?.name}</p>
                 <p className="text-[10px] text-gray-400 leading-tight">{userRole}</p>
               </div>
             </button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-48 p-1 shadow-lg">
             <div className="px-3 py-2 border-b mb-1">
-              <p className="text-sm font-semibold text-gray-800">{session?.user?.name}</p>
-              <p className="text-xs text-gray-400">{userRole}</p>
+              <p className="text-app-heading font-semibold text-gray-800">{session?.user?.name}</p>
+              <p className="text-app-text text-gray-400">{userRole}</p>
             </div>
             <button
               onClick={() => signOut({ callbackUrl: '/login' })}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 text-app-text text-red-600 hover:bg-red-50 rounded-md transition-colors"
             >
               <LogOut className="h-4 w-4" />
               Sign out

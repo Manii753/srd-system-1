@@ -269,10 +269,10 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         {/* Section Header */}
         <div className="bg-gray-100 border-b border-gray-300 px-2 py-1.5 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-gray-800 uppercase">Dispatch Approval</span>
+            <span className="text-app-heading font-bold text-gray-800 uppercase">Dispatch Approval</span>
             <DispatchCardPrint srd={srd} />
           </div>
-          <span className={`text-xs font-medium ${srd.internalApproved ? 'text-green-600' : srd.internalApprovedDate ? 'text-red-600' : 'text-blue-600'}`}>
+          <span className={`text-app-text font-medium ${srd.internalApproved ? 'text-green-600' : srd.internalApprovedDate ? 'text-red-600' : 'text-blue-600'}`}>
             {srd.internalApproved ? `Approved by ${srd.internalApprovedBy}` : srd.internalApprovedDate ? `Rejected by ${srd.internalApprovedBy.name} | ${srd.internalApprovedBy.role}` : 'Pending Verification'}
           </span>
         </div>
@@ -281,7 +281,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         <div className="border-b border-gray-300">
           <div className="grid grid-cols-12">
             <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
-              <span className="text-xs font-semibold text-gray-700">Comments</span>
+              <span className="text-app-heading font-semibold text-gray-700">Comments</span>
             </div>
             <div className="col-span-10 px-2 py-1.5">
               <Textarea
@@ -289,7 +289,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                 value={internalComments}
                 onChange={(e) => setInternalComments(e.target.value)}
                 disabled={!canEdit || !!srd.internalApprovedDate}
-                className="text-xs resize-none h-12 border-gray-300 rounded-none"
+                className="text-app-text resize-none h-12 border-gray-300 rounded-none"
               />
             </div>
           </div>
@@ -299,11 +299,11 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
               <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5">
-                <span className="text-xs font-semibold text-gray-700">Rejection Reasons</span>
+                <span className="text-app-heading font-semibold text-gray-700">Rejection Reasons</span>
               </div>
               <div className="col-span-10 px-2 py-1.5 space-y-1">
                 {internalRejectedReasons.map((r, i) => (
-                  <div key={i} className="flex justify-between items-center bg-gray-50 px-2 py-0.5 text-xs border border-gray-200">
+                  <div key={i} className="flex justify-between items-center bg-gray-50 px-2 py-0.5 text-app-text border border-gray-200">
                     <div>
                       <span className="font-semibold text-gray-600 mr-2">{r.department.toUpperCase()}</span>
                       <span className="text-gray-700">{r.reason}</span>
@@ -324,11 +324,11 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
               <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5">
-                <span className="text-xs font-semibold text-gray-700">Add Reason</span>
+                <span className="text-app-heading font-semibold text-gray-700">Add Reason</span>
               </div>
               <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
                 <select
-                  className="h-7 px-2 text-xs border border-gray-300 bg-white rounded-none"
+                  className="h-7 px-2 text-app-text border border-gray-300 bg-white rounded-none"
                   value={newReason.department}
                   onChange={e => setNewReason({ ...newReason, department: e.target.value })}
                 >
@@ -338,14 +338,14 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   ))}
                 </select>
                 <Input
-                  className="h-7 text-xs flex-1 rounded-none border-gray-300"
+                  className="h-7 text-app-text flex-1 rounded-none border-gray-300"
                   value={newReason.reason}
                   onChange={e => setNewReason({ ...newReason, reason: e.target.value })}
                   placeholder="Reason..."
                 />
                 <Button
                   size="sm"
-                  className="h-7 px-2 text-xs bg-blue-600 hover:bg-blue-700 rounded-none"
+                  className="h-7 px-2 text-app-text bg-blue-600 hover:bg-blue-700 rounded-none"
                   onClick={() => {
                     if (newReason.department && newReason.reason) {
                       setInternalRejectedReasons([...internalRejectedReasons, newReason]);
@@ -367,14 +367,14 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               <Button 
                 onClick={() => handleInternalVerify(true)} 
                 disabled={loading} 
-                className="bg-green-600 hover:bg-green-700 text-white flex-1 h-8 text-xs font-medium rounded-none"
+                className="bg-green-600 hover:bg-green-700 text-white flex-1 h-8 text-app-text font-medium rounded-none"
               >
                 Approve for Dispatch
               </Button>
               <Button 
                 onClick={() => handleInternalVerify(false)} 
                 disabled={loading} 
-                className="bg-red-600 hover:bg-red-700 text-white flex-1 h-8 text-xs font-medium rounded-none"
+                className="bg-red-600 hover:bg-red-700 text-white flex-1 h-8 text-app-text font-medium rounded-none"
               >
                 Reject
               </Button>
@@ -388,10 +388,10 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           {/* Section Header */}
           <div className="bg-gray-100 border-b border-gray-300 px-2 py-1.5 flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-gray-800 uppercase">Dispatch Details</span>
+              <span className="text-app-heading font-bold text-gray-800 uppercase">Dispatch Details</span>
               {srd.DispatchDetails && <AirwayBillPrint srd={srd} />}
             </div>
-            <span className={`text-xs font-medium ${srd.DispatchDetails ? 'text-green-600' : 'text-yellow-600'}`}>
+            <span className={`text-app-text font-medium ${srd.DispatchDetails ? 'text-green-600' : 'text-yellow-600'}`}>
               {srd.DispatchDetails ? 'Details Saved' : 'Pending Details'}
             </span>
           </div>
@@ -400,11 +400,11 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
               <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
-                <span className="text-xs font-semibold text-gray-700">Buyer Selection</span>
+                <span className="text-app-heading font-semibold text-gray-700">Buyer Selection</span>
               </div>
               <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
                 <select
-                  className="h-7 px-2 text-xs border border-gray-300 bg-white flex-1 rounded-none"
+                  className="h-7 px-2 text-app-text border border-gray-300 bg-white flex-1 rounded-none"
                   value={selectedBuyer}
                   onChange={(e) => {
                     const bId = e.target.value;
@@ -420,7 +420,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   ))}
                 </select>
                 {canEdit && !srd.sampleDispatchedToBuyer && (
-                  <Button variant="outline" size="sm" className="h-7 text-xs rounded-none" onClick={() => setIsCreatingBuyer(!isCreatingBuyer)}>
+                  <Button variant="outline" size="sm" className="h-7 text-app-text rounded-none" onClick={() => setIsCreatingBuyer(!isCreatingBuyer)}>
                     {isCreatingBuyer ? 'Cancel' : 'Add New'}
                   </Button>
                 )}
@@ -432,7 +432,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
               <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
-                <span className="text-xs font-semibold text-gray-700">AWB Number</span>
+                <span className="text-app-heading font-semibold text-gray-700">AWB Number</span>
               </div>
               <div className="col-span-2 border-r border-gray-300 px-2 py-1.5">
                 <Input
@@ -440,11 +440,11 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   onChange={e => setDispatchAWB(e.target.value)}
                   placeholder="####"
                   disabled={!canEdit || srd.sampleDispatchedToBuyer}
-                  className="h-7 text-xs rounded-none border-gray-300"
+                  className="h-7 text-app-text rounded-none border-gray-300"
                 />
               </div>
               <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
-                <span className="text-xs font-semibold text-gray-700">Quantity</span>
+                <span className="text-app-heading font-semibold text-gray-700">Quantity</span>
               </div>
               <div className="col-span-2 border-r border-gray-300 px-2 py-1.5">
                 <Input
@@ -453,11 +453,11 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   onChange={e => setDispatchQty(e.target.value)}
                   placeholder="5"
                   disabled={!canEdit || srd.sampleDispatchedToBuyer}
-                  className="h-7 text-xs rounded-none border-gray-300"
+                  className="h-7 text-app-text rounded-none border-gray-300"
                 />
               </div>
               <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
-                <span className="text-xs font-semibold text-gray-700">Dispatch Date</span>
+                <span className="text-app-heading font-semibold text-gray-700">Dispatch Date</span>
               </div>
               <div className="col-span-2 px-2 py-1.5">
                 <Input
@@ -465,7 +465,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   value={dispatchDate}
                   onChange={e => setDispatchDate(e.target.value)}
                   disabled={!canEdit || srd.sampleDispatchedToBuyer}
-                  className="h-7 text-xs rounded-none border-gray-300"
+                  className="h-7 text-app-text rounded-none border-gray-300"
                 />
               </div>
             </div>
@@ -475,7 +475,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
               <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
-                <span className="text-xs font-semibold text-gray-700">Shipping Address</span>
+                <span className="text-app-heading font-semibold text-gray-700">Shipping Address</span>
               </div>
               <div className="col-span-10 px-2 py-1.5">
                 <Textarea
@@ -483,7 +483,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   onChange={e => setDispatchAddress(e.target.value)}
                   placeholder="USA"
                   disabled={!canEdit || srd.sampleDispatchedToBuyer}
-                  className="text-xs resize-none h-12 rounded-none border-gray-300"
+                  className="text-app-text resize-none h-12 rounded-none border-gray-300"
                 />
               </div>
             </div>
@@ -493,8 +493,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
               <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
-                <span className="text-xs font-semibold text-gray-700">Front Images</span>
-                <span className="text-xs text-gray-500 ml-2">({dispatchFrontImages.length})</span>
+                <span className="text-app-heading font-semibold text-gray-700">Front Images</span>
+                <span className="text-app-text text-gray-500 ml-2">({dispatchFrontImages.length})</span>
               </div>
               <div className="col-span-10 px-2 py-1.5">
                 <div className="flex flex-wrap gap-1.5">
@@ -527,8 +527,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
               <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
-                <span className="text-xs font-semibold text-gray-700">Back Images</span>
-                <span className="text-xs text-gray-500 ml-2">({dispatchBackImages.length})</span>
+                <span className="text-app-heading font-semibold text-gray-700">Back Images</span>
+                <span className="text-app-text text-gray-500 ml-2">({dispatchBackImages.length})</span>
               </div>
               <div className="col-span-10 px-2 py-1.5">
                 <div className="flex flex-wrap gap-1.5">
@@ -562,18 +562,18 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       {srd.DispatchDetails && !srd.sampleDispatchedToBuyer && (
         <div className="border border-gray-300 bg-white mt-2">
           <div className="bg-gray-100 border-b border-gray-300 px-2 py-1.5">
-            <span className="text-xs font-bold text-gray-800 uppercase">Dispatch Sample</span>
+            <span className="text-app-heading font-bold text-gray-800 uppercase">Dispatch Sample</span>
           </div>
           <div className="px-2 py-2">
             <div className="text-center py-3 bg-blue-50 border border-blue-200">
-              <p className="text-xs text-blue-700 mb-2">Sample details are ready. Click below to confirm physical dispatch.</p>
+              <p className="text-app-text text-blue-700 mb-2">Sample details are ready. Click below to confirm physical dispatch.</p>
               <div className="flex gap-2 justify-center">
                 {canEdit && (
-                  <Button onClick={handleSaveDispatchDetails} disabled={loading} className="bg-blue-600 hover:bg-blue-700 h-7 text-xs rounded-none">
+                  <Button onClick={handleSaveDispatchDetails} disabled={loading} className="bg-blue-600 hover:bg-blue-700 h-7 text-app-text rounded-none">
                     Save Dispatch Details
                   </Button>
                 )}
-                <Button onClick={handleDispatchToBuyer} disabled={loading} className="bg-blue-600 hover:bg-blue-700 h-7 text-xs rounded-none">
+                <Button onClick={handleDispatchToBuyer} disabled={loading} className="bg-blue-600 hover:bg-blue-700 h-7 text-app-text rounded-none">
                   Dispatch Sample to Buyer
                 </Button>
               </div>
@@ -584,8 +584,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
       <div className={`border border-gray-300 bg-white mt-2 ${!srd.sampleDispatchedToBuyer ? 'opacity-50 pointer-events-none' : ''}`}>
         <div className="bg-gray-100 border-b border-gray-300 px-2 py-1.5 flex justify-between items-center">
-          <span className="text-xs font-bold text-gray-800 uppercase">Buyer Approval</span>
-          <span className={`text-xs font-medium ${srd.BuyerApproved ? 'text-green-600' : srd.BuyerApprovedDate ? 'text-red-600' : srd.sampleDispatchedToBuyer ? 'text-yellow-600' : 'text-gray-500'}`}>
+          <span className="text-app-heading font-bold text-gray-800 uppercase">Buyer Approval</span>
+          <span className={`text-app-text font-medium ${srd.BuyerApproved ? 'text-green-600' : srd.BuyerApprovedDate ? 'text-red-600' : srd.sampleDispatchedToBuyer ? 'text-yellow-600' : 'text-gray-500'}`}>
             {srd.BuyerApproved ? 'Buyer Approved' : srd.BuyerApprovedDate ? 'Buyer Rejected' : srd.sampleDispatchedToBuyer ? 'Waiting for Buyer' : 'Not Dispatched'}
           </span>
         </div>
@@ -593,7 +593,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         <div className="border-b border-gray-300">
           <div className="grid grid-cols-12">
             <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
-              <span className="text-xs font-semibold text-gray-700">Comments</span>
+              <span className="text-app-heading font-semibold text-gray-700">Comments</span>
             </div>
             <div className="col-span-10 px-2 py-1.5">
               <Textarea
@@ -601,7 +601,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                 value={buyerComments}
                 onChange={(e) => setBuyerComments(e.target.value)}
                 disabled={!canEdit || !!srd.BuyerApprovedDate}
-                className="text-xs resize-none h-12 rounded-none border-gray-300"
+                className="text-app-text resize-none h-12 rounded-none border-gray-300"
               />
             </div>
           </div>
@@ -611,11 +611,11 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
               <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5">
-                <span className="text-xs font-semibold text-gray-700">Buyer Rejection Reasons</span>
+                <span className="text-app-heading font-semibold text-gray-700">Buyer Rejection Reasons</span>
               </div>
               <div className="col-span-10 px-2 py-1.5 space-y-1">
                 {buyerRejectedReasons.map((r, i) => (
-                  <div key={i} className="flex justify-between items-center bg-gray-50 px-2 py-0.5 text-xs border border-gray-200">
+                  <div key={i} className="flex justify-between items-center bg-gray-50 px-2 py-0.5 text-app-text border border-gray-200">
                     <div className="flex items-center gap-2">
                       {r.department && <span className="font-semibold text-gray-600">{r.department}</span>}
                       <span className="text-gray-700">{r.reason}</span>
@@ -639,24 +639,24 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
               <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5">
-                <span className="text-xs font-semibold text-gray-700">Add Reason</span>
+                <span className="text-app-heading font-semibold text-gray-700">Add Reason</span>
               </div>
               <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
                 <Input
-                  className="h-7 text-xs flex-1 rounded-none border-gray-300"
+                  className="h-7 text-app-text flex-1 rounded-none border-gray-300"
                   value={newReason.department}
                   onChange={e => setNewReason({ ...newReason, department: e.target.value.toUpperCase() })}
                   placeholder="Dept (Optional)"
                 />
                 <Input
-                  className="h-7 text-xs flex-[3] rounded-none border-gray-300"
+                  className="h-7 text-app-text flex-[3] rounded-none border-gray-300"
                   value={newReason.reason}
                   onChange={e => setNewReason({ ...newReason, reason: e.target.value })}
                   placeholder="Buyer's feedback..."
                 />
                 <Button
                   size="sm"
-                  className="h-7 px-2 text-xs bg-blue-600 hover:bg-blue-700 rounded-none"
+                  className="h-7 px-2 text-app-text bg-blue-600 hover:bg-blue-700 rounded-none"
                   onClick={() => {
                     if (newReason.reason) {
                       setBuyerRejectedReasons([...buyerRejectedReasons, { ...newReason, department: newReason.department || 'GENERAL' }]);
@@ -675,10 +675,10 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           <div className="grid grid-cols-12">
             <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
             <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
-              <Button onClick={() => handleBuyerApproval(true)} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white flex-1 h-8 text-xs font-medium rounded-none">
+              <Button onClick={() => handleBuyerApproval(true)} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white flex-1 h-8 text-app-text font-medium rounded-none">
                 Mark as Approved by Buyer
               </Button>
-              <Button onClick={() => handleBuyerApproval(false)} disabled={loading} className="bg-red-600 hover:bg-red-700 text-white flex-1 h-8 text-xs font-medium rounded-none">
+              <Button onClick={() => handleBuyerApproval(false)} disabled={loading} className="bg-red-600 hover:bg-red-700 text-white flex-1 h-8 text-app-text font-medium rounded-none">
                 Mark as Rejected by Buyer
               </Button>
             </div>

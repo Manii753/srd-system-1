@@ -85,7 +85,7 @@ export default function CADDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">CAD Portal</h1>
+            <h1 className="text-app-heading font-bold text-gray-900">CAD Portal</h1>
             <p className="text-gray-600 mt-1">Manage pattern development and CAD processes</p>
           </div>
           <Link href="/dashboard/cad/create">
@@ -100,63 +100,63 @@ export default function CADDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total SRDs</CardTitle>
+              <CardTitle className="text-app-text font-medium">Total SRDs</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs text-muted-foreground">Assigned to CAD</p>
+              <div className="text-app-heading font-bold">{stats.total}</div>
+              <p className="text-app-text text-muted-foreground">Assigned to CAD</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending</CardTitle>
+              <CardTitle className="text-app-text font-medium">Pending</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pending}</div>
-              <p className="text-xs text-muted-foreground">Awaiting start</p>
+              <div className="text-app-heading font-bold">{stats.pending}</div>
+              <p className="text-app-text text-muted-foreground">Awaiting start</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+              <CardTitle className="text-app-text font-medium">In Progress</CardTitle>
               <Scissors className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.inProgress}</div>
-              <p className="text-xs text-muted-foreground">Currently working</p>
+              <div className="text-app-heading font-bold">{stats.inProgress}</div>
+              <p className="text-app-text text-muted-foreground">Currently working</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed</CardTitle>
+              <CardTitle className="text-app-text font-medium">Completed</CardTitle>
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.approved}</div>
-              <p className="text-xs text-muted-foreground">Successfully completed</p>
+              <div className="text-app-heading font-bold">{stats.approved}</div>
+              <p className="text-app-text text-muted-foreground">Successfully completed</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Flagged</CardTitle>
+              <CardTitle className="text-app-text font-medium">Flagged</CardTitle>
               <AlertCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.flagged}</div>
-              <p className="text-xs text-muted-foreground">Issues flagged</p>
+              <div className="text-app-heading font-bold">{stats.flagged}</div>
+              <p className="text-app-text text-muted-foreground">Issues flagged</p>
             </CardContent>
           </Card>
         </div>
 
         {/* View Toggle */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">CAD SRDs</h2>
+          <h2 className="text-app-heading font-semibold">CAD SRDs</h2>
           <div className="flex items-center space-x-2">
             <Button
               variant={viewMode === 'cards' ? 'default' : 'outline'}
@@ -189,11 +189,12 @@ export default function CADDashboard() {
         {srds.length === 0 && (
           <div className="text-center py-12">
             <Package className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No SRDs assigned</h3>
-            <p className="mt-1 text-sm text-gray-500">New SRDs will appear here when assigned by VMD.</p>
+            <h3 className="mt-2 text-app-text font-medium text-gray-900">No SRDs assigned</h3>
+            <p className="mt-1 text-app-text text-gray-500">New SRDs will appear here when assigned by VMD.</p>
           </div>
         )}
       </div>
     </Layout>
   );
 }
+

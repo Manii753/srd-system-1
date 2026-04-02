@@ -267,18 +267,18 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
 
 
   return (
-    <div className="flex flex-col h-full w-full bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-white shadow-lg border border-gray-100 overflow-hidden">
       {/* Table */}
       <div className="w-full flex-1 overflow-y-auto relative custom-scrollbar">
         <table className="w-full border-separate border-spacing-0">
           <thead className="sticky top-0 z-10 bg-gray-50 shadow-sm">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-app-heading font-bold text-gray-600 uppercase tracking-wider">
                 <button
                   onClick={() => handleSort('createdAt')}
                   className="flex items-center space-x-2 hover:text-gray-800 transition-colors duration-200 group"
                 >
-                  <span>Date</span>
+                  <span className='text-app-heading'>Date</span>
                   {sortField === 'createdAt' && (
                     sortDirection === 'asc' ?
                       <ChevronUp className="h-4 w-4 text-blue-500" /> :
@@ -289,14 +289,14 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                   )}
                 </button>
               </th>
-              {/* <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Picture</th> */}
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Inquiry #</th>
-              <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">VMD</th>
-              <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">CAD</th>
-              <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">MMC</th>
-              <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">COM</th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Current Status Summary</th>
-              <th className="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
+              {/* <th className="px-6 py-4 text-left text-app-heading font-bold text-gray-600 uppercase tracking-wider">Picture</th> */}
+              <th className="px-6 py-4 text-left text-app-heading font-bold text-gray-600 uppercase tracking-wider">Inquiry #</th>
+              <th className="px-6 py-4 text-center text-app-heading font-bold text-gray-600 uppercase tracking-wider">VMD</th>
+              <th className="px-6 py-4 text-center text-app-heading font-bold text-gray-600 uppercase tracking-wider">CAD</th>
+              <th className="px-6 py-4 text-center text-app-heading font-bold text-gray-600 uppercase tracking-wider">MMC</th>
+              <th className="px-6 py-4 text-center text-app-heading font-bold text-gray-600 uppercase tracking-wider">COM</th>
+              <th className="px-6 py-4 text-left text-app-heading font-bold text-gray-600 uppercase tracking-wider">Current Status Summary</th>
+              <th className="px-6 py-4 text-center text-app-heading font-bold text-gray-600 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white">
@@ -313,13 +313,13 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                 <Fragment key={srd._id}>
                   <tr className="hover:bg-blue-50 transition-colors duration-200 group">
                     <td className="px-6 py-2 whitespace-nowrap border-b border-black/10">
-                      <div className="text-sm font-semibold text-gray-900">
+                      <div className="text-app-text text-gray-900">
                         {new Date(srd.createdAt).toLocaleDateString()}
                       </div>
                     </td>
                     <td className="px-6 py-2 whitespace-nowrap border-b border-black/10">
                       <div className="flex items-center">
-                        <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
+                        <div className="px-3 py-1 rounded-full text-app-text">
                           {srd.refNo}
                         </div>
                       </div>
@@ -331,11 +331,11 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                       return (
                         <td key={key} className="px-6 py-2 border-b border-black/10 text-center">
                           {isApproved && date ? (
-                            <span className="text-xs font-medium text-green-700">
+                            <span className="text-app-text font-medium text-green-700">
                               {new Date(date).toLocaleDateString()}
                             </span>
                           ) : (
-                            <span className="text-xs text-gray-400">Pending</span>
+                            <span className="text-app-text text-gray-400">Pending</span>
                           )}
                         </td>
                       );
@@ -347,7 +347,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                           const historyEntry = (srd.productionHistory || []).find(h => String(h.stage) === String(srd.currentProductionStage));
                           return (
                             <div className="flex flex-col">
-                              <span className="text-sm text-gray-700 font-medium">
+                              <span className="text-app-text text-gray-700 font-medium">
                                 {stage?.displayName || stage?.name || '—'}
                               </span>
                               {historyEntry?.startDate && (
@@ -358,7 +358,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                             </div>
                           );
                         })() : (
-                          <span className="text-sm text-gray-400">Pending</span>
+                          <span className="text-app-text text-gray-400">Pending</span>
                         )}
                         <button
                           onClick={() => toggleRow(srd._id)}
@@ -371,7 +371,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                         </button>
                       </div>
                     </td>
-                    <td className="justify-center align-middle px-6 py-2 whitespace-nowrap text-sm font-medium border-b border-black/10">
+                    <td className="justify-center align-middle px-6 py-2 whitespace-nowrap text-app-text font-medium border-b border-black/10">
                       <div className="flex gap-2 justify-center">
                         <Link href={`/srd/${srd._id}`}>
                           <Button
@@ -410,7 +410,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                     <tr className="bg-gray-50">
                       <td colSpan={8} className="px-6 py-3 border-b border-black/10">
                         {productionStages.length === 0 ? (
-                          <p className="text-xs text-gray-400 italic">No production stages configured.</p>
+                          <p className="text-app-text text-gray-400 italic">No production stages configured.</p>
                         ) : (
                           <>
                             {/* Production Stage Badges */}
@@ -500,12 +500,12 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
               }, [])
               .map((p, idx) =>
                 p === '...' ? (
-                  <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 text-sm">…</span>
+                  <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 text-app-text">…</span>
                 ) : (
                   <button
                     key={p}
                     onClick={() => setCurrentPage(p)}
-                    className={`w-7 h-7 rounded text-xs font-medium transition-colors ${currentPage === p
+                    className={`w-7 h-7 rounded text-app-text font-medium transition-colors ${currentPage === p
                       ? 'bg-blue-600 text-white'
                       : 'hover:bg-gray-200 text-gray-700'
                       }`}
@@ -568,7 +568,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                   <ChevronRight className="h-6 w-6 text-gray-800" />
                 </button>
 
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black bg-opacity-60 text-white px-4 py-2 rounded-full text-sm">
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black bg-opacity-60 text-white px-4 py-2 rounded-full text-app-text">
                   {currentImageIndex + 1} / {selectedImages.length}
                 </div>
               </>

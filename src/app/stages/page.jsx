@@ -157,7 +157,7 @@ export default function StagesPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Manage Stages</h1>
+                    <h1 className="text-app-heading font-bold text-gray-900">Manage Stages</h1>
                     <p className="text-gray-600 mt-1">Configure workflow stages for your SRD system.</p>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -181,39 +181,39 @@ export default function StagesPage() {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Departments</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">Order</th>
+                                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">Color</th>
+                                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">Departments</th>
+                                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-right text-app-text font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {stages.map((stage) => (
                                     <tr key={stage._id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{stage.order}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-app-text text-gray-900">{stage.order}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
                                                 <div 
                                                     className="w-3 h-3 rounded-full mr-2" 
                                                     style={{ backgroundColor: stage.color }}
                                                 />
-                                                <span className="text-sm text-gray-900">{stage.name}</span>
+                                                <span className="text-app-text text-gray-900">{stage.name}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stage.color}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">
+                                        <td className="px-6 py-4 whitespace-nowrap text-app-text text-gray-500">{stage.color}</td>
+                                        <td className="px-6 py-4 text-app-text text-gray-500">
                                             {stage.departments?.length > 0 
                                                 ? stage.departments.map(d => d.name).join(', ')
                                                 : 'All'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 py-1 text-xs rounded ${stage.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                            <span className={`px-2 py-1 text-app-text rounded ${stage.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                                                 {stage.isActive ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                                        <td className="px-6 py-4 whitespace-nowrap text-app-text font-medium text-right">
                                             <button
                                                 className="text-blue-600 hover:text-blue-900 mr-4"
                                                 onClick={() => openEdit(stage)}
@@ -250,11 +250,11 @@ export default function StagesPage() {
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                         <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl border border-gray-200 overflow-hidden max-h-[90vh] overflow-y-auto">
                             <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white">
-                                <h2 className="text-lg font-semibold">
+                                <h2 className="text-app-heading font-semibold">
                                     {editingId ? "Edit Stage" : "Add New Stage"}
                                 </h2>
                                 <button
-                                    className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
+                                    className="text-gray-500 hover:text-gray-800 text-app-text leading-none"
                                     onClick={() => setModalOpen(false)}
                                     aria-label="Close modal"
                                 >
@@ -265,7 +265,7 @@ export default function StagesPage() {
                             <form className="px-6 py-4 space-y-4" onSubmit={handleSubmit}>
                                 {/* Name */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-app-text font-medium text-gray-700 mb-1">
                                         Stage Name *
                                     </label>
                                     <input
@@ -279,7 +279,7 @@ export default function StagesPage() {
 
                                 {/* Slug */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-app-text font-medium text-gray-700 mb-1">
                                         Slug (auto-generated if empty)
                                     </label>
                                     <input
@@ -293,7 +293,7 @@ export default function StagesPage() {
 
                                 {/* Description */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-app-text font-medium text-gray-700 mb-1">
                                         Description
                                     </label>
                                     <textarea
@@ -307,7 +307,7 @@ export default function StagesPage() {
                                 {/* Color and Order */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label className="block text-app-text font-medium text-gray-700 mb-1">
                                             Color
                                         </label>
                                         <input
@@ -318,7 +318,7 @@ export default function StagesPage() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label className="block text-app-text font-medium text-gray-700 mb-1">
                                             Order
                                         </label>
                                         <input
@@ -332,7 +332,7 @@ export default function StagesPage() {
 
                                 {/* Icon */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-app-text font-medium text-gray-700 mb-1">
                                         Icon (Lucide icon name)
                                     </label>
                                     <input
@@ -346,7 +346,7 @@ export default function StagesPage() {
 
                                 {/* Departments */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-app-text font-medium text-gray-700 mb-2">
                                         Applicable Departments (leave empty for all)
                                     </label>
                                     <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded p-3">
@@ -358,7 +358,7 @@ export default function StagesPage() {
                                                     checked={values.departments.includes(dept._id)}
                                                     onChange={() => toggleDepartment(dept._id)}
                                                 />
-                                                <span className="text-sm text-gray-700">{dept.name}</span>
+                                                <span className="text-app-text text-gray-700">{dept.name}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -373,7 +373,7 @@ export default function StagesPage() {
                                             checked={values.isActive}
                                             onChange={(e) => setValues({ ...values, isActive: e.target.checked })}
                                         />
-                                        <span className="text-sm text-gray-700">Active</span>
+                                        <span className="text-app-text text-gray-700">Active</span>
                                     </div>
                                     <div className="flex items-center space-x-2">
                                         <input
@@ -382,7 +382,7 @@ export default function StagesPage() {
                                             checked={values.isAutomatic}
                                             onChange={(e) => setValues({ ...values, isAutomatic: e.target.checked })}
                                         />
-                                        <span className="text-sm text-gray-700">Automatic (system-controlled)</span>
+                                        <span className="text-app-text text-gray-700">Automatic (system-controlled)</span>
                                     </div>
                                 </div>
 
@@ -410,3 +410,4 @@ export default function StagesPage() {
         </Layout>
     );
 }
+

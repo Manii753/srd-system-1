@@ -174,7 +174,7 @@ export default function UploadImage({ onUploaded, srdId, fieldId }) {
         />
 
         {!canUpload && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-app-text text-amber-900">
             Create the SRD first, then upload images from the SRD editor.
           </div>
         )}
@@ -199,7 +199,7 @@ export default function UploadImage({ onUploaded, srdId, fieldId }) {
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center space-x-2">
                     <Button size="sm" onClick={(e) => removeFile(e, i)}>Remove</Button>
                   </div>
-                  {f.uploadedAsset && <div className="absolute right-1 top-1 text-xs text-green-700 bg-white/70 px-1 rounded">Done</div>}
+                  {f.uploadedAsset && <div className="absolute right-1 top-1 text-app-text text-green-700 bg-white/70 px-1 rounded">Done</div>}
                 </div>
               ))}
             </div>
@@ -207,7 +207,7 @@ export default function UploadImage({ onUploaded, srdId, fieldId }) {
             <div className="flex items-center justify-between">
               <div className="w-2/3">
                 <Progress value={overallProgress} className="h-2" />
-                <div className="text-sm text-gray-600 mt-1">{overallProgress}%</div>
+                <div className="text-app-text text-gray-600 mt-1">{overallProgress}%</div>
               </div>
               <div className="flex items-center space-x-2">
                 <Button type="button" onClick={uploadAll} disabled={uploading}>{uploading ? 'Uploading...' : 'Upload All'}</Button>

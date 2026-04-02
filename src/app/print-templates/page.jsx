@@ -186,7 +186,7 @@ function EditCustomElementModal({ element, onSave, onClose }) {
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4">
-          <h3 className="font-semibold text-lg flex items-center">
+          <h3 className="font-semibold text-app-heading flex items-center">
             <Edit3 className="h-5 w-5 mr-2" />
             Edit Element
           </h3>
@@ -194,7 +194,7 @@ function EditCustomElementModal({ element, onSave, onClose }) {
 
         <div className="p-6 space-y-4">
           <div>
-            <Label className="text-sm font-medium text-gray-700">
+            <Label className="text-app-text font-medium text-gray-700">
               {customType === 'custom-heading' ? 'Heading Text' :
                 customType === 'custom-text' ? 'Text Content' :
                   customType === 'custom-empty-field' ? 'Field Label' :
@@ -213,7 +213,7 @@ function EditCustomElementModal({ element, onSave, onClose }) {
 
           {(customType === 'custom-empty-field' || customType === 'custom-textarea') && (
             <div>
-              <Label className="text-sm font-medium text-gray-700">
+              <Label className="text-app-text font-medium text-gray-700">
                 Placeholder Text (optional)
               </Label>
               <Input
@@ -279,7 +279,7 @@ function DragOverlayContent({ cell }) {
     >
       <div className="flex items-center">
         <Move className="h-4 w-4 mr-2 text-gray-600" />
-        <span className="text-sm font-semibold truncate">{displayName}</span>
+        <span className="text-app-heading font-semibold truncate">{displayName}</span>
       </div>
     </div>
   );
@@ -368,12 +368,12 @@ function DraggableCustomElement({ elementType, onAddCustomElement, isSwapTarget,
     >
       <div className="flex items-center mb-1">
         <IconComponent className="h-4 w-4 mr-2" />
-        <span className="text-xs font-semibold">{elementType.label}</span>
+        <span className="text-app-heading font-semibold">{elementType.label}</span>
         {swapMode && isSwapTarget && (
-          <span className="ml-auto text-xs bg-green-500 text-white px-2 py-0.5 rounded">Swap</span>
+          <span className="ml-auto text-app-text bg-green-500 text-white px-2 py-0.5 rounded">Swap</span>
         )}
       </div>
-      <p className="text-xs text-gray-600">{elementType.description}</p>
+      <p className="text-app-text text-gray-600">{elementType.description}</p>
     </button>
   );
 }
@@ -439,22 +439,22 @@ function DraggableSidebarField({ field, onAddField, swapMode, isSwapTarget, onSw
     >
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <div className="font-semibold text-sm text-gray-900 mb-1 flex items-center">
+          <div className="font-semibold text-app-heading text-gray-900 mb-1 flex items-center">
             <span className="mr-2">{getFieldIcon(field.type)}</span>
             <span className="truncate">{field.name}</span>
             {field.isRequired && (
-              <span className="ml-2 text-red-500 text-xs">*</span>
+              <span className="ml-2 text-red-500 text-app-text">*</span>
             )}
           </div>
           <div className="flex items-center space-x-2 mt-2">
-            <span className="text-xs bg-white px-2 py-1 rounded-full font-medium border">
+            <span className="text-app-text bg-white px-2 py-1 rounded-full font-medium border">
               {field.type}
             </span>
-            <span className="text-xs font-bold text-gray-700">
+            <span className="text-app-heading font-bold text-gray-700">
               {field.department?.toUpperCase() || 'ALL'}
             </span>
             {field.parentHeading && (
-              <span className="text-gray-600 text-xs">{field.parentHeading.name}</span>
+              <span className="text-gray-600 text-app-text">{field.parentHeading.name}</span>
             )}
           </div>
         </div>
@@ -462,7 +462,7 @@ function DraggableSidebarField({ field, onAddField, swapMode, isSwapTarget, onSw
           <Move className="h-4 w-4 text-gray-600" />
         </div>
         {swapMode && isSwapTarget && (
-          <span className="ml-2 text-xs bg-green-500 text-white px-2 py-0.5 rounded">Click to Swap</span>
+          <span className="ml-2 text-app-text bg-green-500 text-white px-2 py-0.5 rounded">Click to Swap</span>
         )}
       </div>
     </button>
@@ -581,7 +581,7 @@ function SortableTemplateCell({
       {/* Drop indicator */}
       {isOverThis && (
         <div className="absolute inset-0 bg-blue-500/20 rounded-xl flex items-center justify-center z-20">
-          <div className="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+          <div className="bg-blue-500 text-white px-3 py-1 rounded-full text-app-heading font-semibold">
             Drop here
           </div>
         </div>
@@ -589,7 +589,7 @@ function SortableTemplateCell({
 
       {/* Swap source indicator */}
       {isSwapSource && (
-        <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-semibold z-30 flex items-center">
+        <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-app-heading font-semibold z-30 flex items-center">
           <ArrowLeftRight className="h-3 w-3 mr-1" />
           Select target
         </div>
@@ -597,7 +597,7 @@ function SortableTemplateCell({
 
       {/* Swap target indicator */}
       {swapMode && isSwapTarget && !isSwapSource && (
-        <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-semibold z-30">
+        <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-app-heading font-semibold z-30">
           Click to swap
         </div>
       )}
@@ -632,7 +632,7 @@ function SortableTemplateCell({
             )}
 
             <select
-              className="text-xs border rounded-md px-2 py-1 bg-white/90 backdrop-blur-sm font-medium"
+              className="text-app-text border rounded-md px-2 py-1 bg-white/90 backdrop-blur-sm font-medium"
               value={position.colSpan || 1}
               onChange={(e) => onResize(id, 'colSpan', parseFloat(e.target.value))}
               onClick={(e) => e.stopPropagation()}
@@ -644,7 +644,7 @@ function SortableTemplateCell({
             </select>
 
             <select
-              className="text-xs border rounded-md px-2 py-1 bg-white/90 backdrop-blur-sm font-medium"
+              className="text-app-text border rounded-md px-2 py-1 bg-white/90 backdrop-blur-sm font-medium"
               value={position.rowSpan || 1}
               onChange={(e) => onResize(id, 'rowSpan', parseInt(e.target.value))}
               onClick={(e) => e.stopPropagation()}
@@ -656,7 +656,7 @@ function SortableTemplateCell({
             </select>
 
             <select
-              className="text-xs border rounded-md px-2 py-1 bg-white/90 backdrop-blur-sm font-medium"
+              className="text-app-text border rounded-md px-2 py-1 bg-white/90 backdrop-blur-sm font-medium"
               value={position.height || 'auto'}
               onChange={(e) => onResize(id, 'height', e.target.value)}
               onClick={(e) => e.stopPropagation()}
@@ -695,7 +695,7 @@ function SortableTemplateCell({
           </div>
         </div>
 
-        <div className="text-sm font-semibold mb-2 flex items-center">
+        <div className="text-app-heading font-semibold mb-2 flex items-center">
           <span className="mr-2">{getFieldIcon(field?.type)}</span>
           <span className="truncate">{displayName}</span>
         </div>
@@ -703,32 +703,32 @@ function SortableTemplateCell({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             {isCustom ? (
-              <Badge variant="secondary" className="text-xs font-bold bg-white/80">
+              <Badge variant="secondary" className="text-app-heading font-bold bg-white/80">
                 CUSTOM
               </Badge>
             ) : (
-              <Badge variant="secondary" className="text-xs font-bold">
+              <Badge variant="secondary" className="text-app-heading font-bold">
                 {field?.department?.toUpperCase() || 'ALL'}
               </Badge>
             )}
-            <Badge variant="outline" className="text-xs bg-white/80">
+            <Badge variant="outline" className="text-app-text bg-white/80">
               {displayType}
             </Badge>
             {field?.parentHeading && (
-              <Badge variant="destructive" className="text-xs animate-pulse">
+              <Badge variant="destructive" className="text-app-text animate-pulse">
                 {field?.parentHeading?.name}
               </Badge>
             )}
           </div>
           {!isCustom && field?.isRequired && (
-            <Badge variant="destructive" className="text-xs animate-pulse">
+            <Badge variant="destructive" className="text-app-text animate-pulse">
               Required
             </Badge>
           )}
         </div>
 
         {customPlaceholder && (
-          <div className="mt-2 text-xs text-gray-600 truncate">
+          <div className="mt-2 text-app-text text-gray-600 truncate">
             Placeholder: {customPlaceholder}
           </div>
         )}
@@ -741,11 +741,11 @@ function SortableTemplateCell({
 function CustomElementsPanel({ onAddCustomElement, swapMode, onSwapSelect }) {
   return (
     <div className="bg-gradient-to-b from-indigo-50 to-white border-t border-indigo-100 p-4">
-      <h4 className="font-semibold text-gray-800 text-sm mb-3 flex items-center">
+      <h4 className="font-semibold text-gray-800 text-app-text mb-3 flex items-center">
         <Plus className="h-4 w-4 mr-2 text-indigo-600" />
         Add Custom Elements
       </h4>
-      <p className="text-xs text-gray-600 mb-3">
+      <p className="text-app-text text-gray-600 mb-3">
         Add custom elements that will appear on print but aren't tied to database fields
       </p>
 
@@ -824,7 +824,7 @@ function AvailableFieldsList({ allFields, onAddField, onAddCustomElement, filter
       <div className="flex border-b bg-white">
         <button
           onClick={() => setActiveTab('fields')}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${activeTab === 'fields'
+          className={`flex-1 px-4 py-3 text-app-text font-medium transition-colors ${activeTab === 'fields'
             ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
             : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
             }`}
@@ -834,7 +834,7 @@ function AvailableFieldsList({ allFields, onAddField, onAddCustomElement, filter
         </button>
         <button
           onClick={() => setActiveTab('custom')}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${activeTab === 'custom'
+          className={`flex-1 px-4 py-3 text-app-text font-medium transition-colors ${activeTab === 'custom'
             ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50'
             : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
             }`}
@@ -856,7 +856,7 @@ function AvailableFieldsList({ allFields, onAddField, onAddCustomElement, filter
         <>
           <div className="p-4 border-b bg-white shadow-sm space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-gray-900 text-lg">Available Fields</h3>
+              <h3 className="font-bold text-gray-900 text-app-text">Available Fields</h3>
               <Badge variant="outline" className="font-semibold">
                 {filteredFields.length} fields
               </Badge>
@@ -866,7 +866,7 @@ function AvailableFieldsList({ allFields, onAddField, onAddCustomElement, filter
               placeholder="🔍 Search fields..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="text-sm"
+              className="text-app-text"
             />
 
             <div className="flex items-center space-x-2">
@@ -874,7 +874,7 @@ function AvailableFieldsList({ allFields, onAddField, onAddCustomElement, filter
               <select
                 value={filterDepartment}
                 onChange={(e) => setFilterDepartment(e.target.value)}
-                className="flex-1 text-sm border border-gray-300 rounded-md px-3 py-2 bg-white"
+                className="flex-1 text-app-text border border-gray-300 rounded-md px-3 py-2 bg-white"
               >
                 <option value="all">All Departments</option>
                 {DEPARTMENTS.map(dept => (
@@ -890,7 +890,7 @@ function AvailableFieldsList({ allFields, onAddField, onAddCustomElement, filter
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="flex-1 text-sm border border-gray-300 rounded-md px-3 py-2 bg-white"
+                className="flex-1 text-app-text border border-gray-300 rounded-md px-3 py-2 bg-white"
               >
                 <option value="name">Sort by Name</option>
                 <option value="department">Sort by Department</option>
@@ -913,9 +913,9 @@ function AvailableFieldsList({ allFields, onAddField, onAddCustomElement, filter
 
             {filteredFields.length === 0 && (
               <div className="text-center py-12">
-                <div className="text-6xl mb-4">🔍</div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No fields found</h3>
-                <p className="text-gray-500 text-sm">
+                <div className="text-app-text mb-4">🔍</div>
+                <h3 className="text-app-text font-medium text-gray-900 mb-2">No fields found</h3>
+                <p className="text-gray-500 text-app-text">
                   Try adjusting your search or filter criteria
                 </p>
               </div>
@@ -1518,14 +1518,14 @@ export default function PrintTemplateDesigner() {
     switch (customType) {
       case 'custom-heading':
         return (
-          <div className="bg-gray-100 border border-gray-400 p-2 text-center font-bold text-sm uppercase">
+          <div className="bg-gray-100 border border-gray-400 p-2 text-center font-bold text-app-heading uppercase">
             {customValue}
           </div>
         );
 
       case 'custom-text':
         return (
-          <div className="p-2 text-sm">
+          <div className="p-2 text-app-text">
             {customValue}
           </div>
         );
@@ -1533,12 +1533,12 @@ export default function PrintTemplateDesigner() {
       case 'custom-empty-field':
         return (
           <div className="p-2">
-            <div className="text-xs font-medium text-gray-700 mb-1">
+            <div className="text-app-text font-medium text-gray-700 mb-1">
               {customValue}
             </div>
             <div className="border-b border-gray-400 min-h-[20px]">
               {customPlaceholder && (
-                <span className="text-xs text-gray-400 italic">{customPlaceholder}</span>
+                <span className="text-app-text text-gray-400 italic">{customPlaceholder}</span>
               )}
             </div>
           </div>
@@ -1547,12 +1547,12 @@ export default function PrintTemplateDesigner() {
       case 'custom-textarea':
         return (
           <div className="p-2 h-full">
-            <div className="text-xs font-medium text-gray-700 mb-1">
+            <div className="text-app-text font-medium text-gray-700 mb-1">
               {customValue}
             </div>
             <div className="border border-gray-400 min-h-[40px] h-full">
               {customPlaceholder && (
-                <span className="text-xs text-gray-400 italic p-1">{customPlaceholder}</span>
+                <span className="text-app-text text-gray-400 italic p-1">{customPlaceholder}</span>
               )}
             </div>
           </div>
@@ -1568,11 +1568,11 @@ export default function PrintTemplateDesigner() {
       case 'custom-table':
         return (
           <div className="p-2 h-full">
-            <div className="text-xs font-medium text-gray-700 mb-1">
+            <div className="text-app-text font-medium text-gray-700 mb-1">
               {customValue || 'Table'}
             </div>
             <div className="border border-gray-400 overflow-hidden">
-              <table className="w-full text-xs">
+              <table className="w-full text-app-text">
                 <thead className="bg-gray-100">
                   <tr>
                     <th className="border border-gray-300 p-1 text-left">Column 1</th>
@@ -1600,17 +1600,17 @@ export default function PrintTemplateDesigner() {
       case 'custom-signature':
         return (
           <div className="p-2 text-center">
-            <div className="text-xs font-bold text-gray-800 mb-2 uppercase">
+            <div className="text-app-heading font-bold text-gray-800 mb-2 uppercase">
               {customValue}
             </div>
             <div className="border-b border-dotted border-gray-400 min-h-[30px] mb-1"></div>
-            <div className="text-xs text-gray-500">SIGNATURE & DATE</div>
+            <div className="text-app-text text-gray-500">SIGNATURE & DATE</div>
           </div>
         );
 
       default:
         return (
-          <div className="p-2 text-xs text-gray-500">
+          <div className="p-2 text-app-text text-gray-500">
             Custom element
           </div>
         );
@@ -1624,11 +1624,11 @@ export default function PrintTemplateDesigner() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+              <h1 className="text-app-heading font-bold text-gray-900 flex items-center">
                 <Zap className="h-8 w-8 text-blue-600 mr-3" />
                 Print Template Designer
               </h1>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-app-text text-gray-600 mt-1">
                 Create unified print layouts with fields from all departments + custom elements
               </p>
             </div>
@@ -1665,11 +1665,11 @@ export default function PrintTemplateDesigner() {
             />
 
             <div className="flex items-center space-x-2">
-              <Label className="text-sm font-medium">Grid:</Label>
+              <Label className="text-app-text font-medium">Grid:</Label>
               <select
                 value={gridColumns}
                 onChange={(e) => setGridColumns(parseInt(e.target.value))}
-                className="border-2 border-gray-200 rounded-md px-3 py-2 text-sm font-medium bg-white"
+                className="border-2 border-gray-200 rounded-md px-3 py-2 text-app-text font-medium bg-white"
               >
                 {GRID_SIZES.map(size => (
                   <option key={size.value} value={size.value}>
@@ -1684,7 +1684,7 @@ export default function PrintTemplateDesigner() {
               <select
                 value={templateTheme}
                 onChange={(e) => setTemplateTheme(e.target.value)}
-                className="border-2 border-gray-200 rounded-md px-3 py-2 text-sm font-medium bg-white"
+                className="border-2 border-gray-200 rounded-md px-3 py-2 text-app-text font-medium bg-white"
               >
                 {TEMPLATE_THEMES.map(theme => (
                   <option key={theme.value} value={theme.value}>{theme.label}</option>
@@ -1735,20 +1735,20 @@ export default function PrintTemplateDesigner() {
 
           {/* Enhanced Stats */}
           <div className="flex items-center space-x-3">
-            <span className="text-sm font-medium text-gray-700">Elements:</span>
+            <span className="text-app-text font-medium text-gray-700">Elements:</span>
             {DEPARTMENTS.map(dept => (
               cellsByDepartment[dept] > 0 && (
-                <Badge key={dept} variant="secondary" className="text-xs font-bold">
+                <Badge key={dept} variant="secondary" className="text-app-heading font-bold">
                   {dept.toUpperCase()}: {cellsByDepartment[dept]}
                 </Badge>
               )
             ))}
             {cellsByDepartment['custom'] > 0 && (
-              <Badge variant="secondary" className="text-xs font-bold bg-indigo-100 text-indigo-800">
+              <Badge variant="secondary" className="text-app-heading font-bold bg-indigo-100 text-indigo-800">
                 CUSTOM: {cellsByDepartment['custom']}
               </Badge>
             )}
-            <Badge variant="default" className="text-xs font-bold bg-blue-600">
+            <Badge variant="default" className="text-app-heading font-bold bg-blue-600">
               Total: {templateCells.length}
             </Badge>
           </div>
@@ -1798,7 +1798,7 @@ export default function PrintTemplateDesigner() {
                       </Badge>
                     )}
                   </span>
-                  <div className="text-sm font-normal text-gray-600">
+                  <div className="text-app-text font-normal text-gray-600">
                     {templateCells.length} elements added • Drag to reorder • Click swap icon to swap
                   </div>
                 </CardTitle>
@@ -1808,13 +1808,13 @@ export default function PrintTemplateDesigner() {
                 {templateCells.length === 0 ? (
                   <div className="text-center py-12">
                     <Grid3x3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <h3 className="text-app-text font-medium text-gray-900 mb-2">
                       Start Building Your Template
                     </h3>
                     <p className="text-gray-600 mb-4">
                       Add database fields or custom elements from the left sidebar
                     </p>
-                    <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
+                    <div className="flex items-center justify-center space-x-4 text-app-text text-gray-500">
                       <div className="flex items-center space-x-1">
                         <div className="w-3 h-3 bg-blue-200 rounded"></div>
                         <span>VMD</span>
@@ -1882,7 +1882,7 @@ export default function PrintTemplateDesigner() {
             <h3 className="font-semibold text-gray-900 mb-4">Saved Templates</h3>
 
             {savedTemplates.length === 0 ? (
-              <div className="text-center py-8 text-gray-500 text-sm">
+              <div className="text-center py-8 text-gray-500 text-app-text">
                 No saved templates yet
               </div>
             ) : (
@@ -1898,12 +1898,12 @@ export default function PrintTemplateDesigner() {
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2">
-                          <div className="font-medium text-sm">{template.name}</div>
+                          <div className="font-medium text-app-text">{template.name}</div>
                           {activeTemplateId === template._id && (
                             <CheckCircle2 className="h-4 w-4 text-green-600" />
                           )}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-app-text text-gray-500 mt-1">
                           {template.cells?.length || 0} elements · {template.gridColumns} columns
                         </div>
                       </div>
@@ -1914,7 +1914,7 @@ export default function PrintTemplateDesigner() {
                         size="sm"
                         variant="outline"
                         onClick={() => loadTemplate(template)}
-                        className="flex-1 text-xs"
+                        className="flex-1 text-app-text"
                       >
                         <Copy className="h-3 w-3 mr-1" />
                         Load
@@ -1925,7 +1925,7 @@ export default function PrintTemplateDesigner() {
                           size="sm"
                           variant="outline"
                           onClick={() => setActiveTemplate(template._id)}
-                          className="flex-1 text-xs text-green-600 hover:bg-green-50"
+                          className="flex-1 text-app-text text-green-600 hover:bg-green-50"
                         >
                           <CheckCircle2 className="h-3 w-3 mr-1" />
                           Set Active
@@ -1936,7 +1936,7 @@ export default function PrintTemplateDesigner() {
                         size="sm"
                         variant="outline"
                         onClick={() => deleteTemplate(template._id)}
-                        className="text-xs text-red-600 hover:bg-red-50"
+                        className="text-app-text text-red-600 hover:bg-red-50"
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -1971,7 +1971,7 @@ export default function PrintTemplateDesigner() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-8">
           <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-auto">
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Print Preview - All Departments + Custom Elements</h2>
+              <h2 className="text-app-heading font-semibold">Print Preview - All Departments + Custom Elements</h2>
               <Button variant="outline" onClick={() => setShowPreview(false)}>
                 Close
               </Button>
@@ -1980,8 +1980,8 @@ export default function PrintTemplateDesigner() {
             <div className="p-8">
               <div className="bg-white border rounded-lg p-6">
                 <div className="text-center border-b pb-4 mb-4">
-                  <h1 className="text-2xl font-bold">Sample Request and Development Form</h1>
-                  <div className="grid grid-cols-4 gap-4 mt-3 text-sm">
+                  <h1 className="text-app-heading font-bold">Sample Request and Development Form</h1>
+                  <div className="grid grid-cols-4 gap-4 mt-3 text-app-text">
                     <div><strong>SRD REF:</strong> SAMPLE-001</div>
                     <div><strong>VMD:</strong> Pending</div>
                     <div><strong>CAD:</strong> Pending</div>
@@ -2013,13 +2013,13 @@ export default function PrintTemplateDesigner() {
                       ) : (
                         <div className="p-3">
                           <div className="flex items-center justify-between mb-1">
-                            <div className="text-sm font-medium text-gray-700">
+                            <div className="text-app-text font-medium text-gray-700">
                               {cell.field.name}
                               {cell.field.isRequired && (
                                 <span className="text-red-500 ml-1">*</span>
                               )}
                             </div>
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-app-text">
                               {cell.field.department?.toUpperCase()}
                             </Badge>
                           </div>
@@ -2030,21 +2030,21 @@ export default function PrintTemplateDesigner() {
                   ))}
                 </div>
 
-                <div className="mt-6 pt-4 border-t grid grid-cols-3 gap-6 text-sm">
+                <div className="mt-6 pt-4 border-t grid grid-cols-3 gap-6 text-app-text">
                   <div className="text-center">
                     <div className="font-bold mb-2">PREPARED BY:</div>
                     <div className="border-b border-dotted border-gray-400 h-8 mb-1"></div>
-                    <div className="text-xs">SIGNATURE & DATE</div>
+                    <div className="text-app-text">SIGNATURE & DATE</div>
                   </div>
                   <div className="text-center">
                     <div className="font-bold mb-2">REVIEWED BY:</div>
                     <div className="border-b border-dotted border-gray-400 h-8 mb-1"></div>
-                    <div className="text-xs">SIGNATURE & DATE</div>
+                    <div className="text-app-text">SIGNATURE & DATE</div>
                   </div>
                   <div className="text-center">
                     <div className="font-bold mb-2">APPROVED BY:</div>
                     <div className="border-b border-dotted border-gray-400 h-8 mb-1"></div>
-                    <div className="text-xs">SIGNATURE & DATE</div>
+                    <div className="text-app-text">SIGNATURE & DATE</div>
                   </div>
                 </div>
               </div>
@@ -2056,3 +2056,4 @@ export default function PrintTemplateDesigner() {
     </div >
   );
 }
+
