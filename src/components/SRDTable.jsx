@@ -341,68 +341,34 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                       );
                     })}
                     <td className="px-6 py-2 border-b border-black/10">
-                      <div className="flex flex-col gap-2">
-                        {/* Current Status */}
-                        <div className="flex items-center gap-2">
-                          {srd.inProduction && srd.currentProductionStage ? (() => {
-                            const stage = productionStages.find(s => String(s._id) === String(srd.currentProductionStage));
-                            const historyEntry = (srd.productionHistory || []).find(h => String(h.stage) === String(srd.currentProductionStage));
-                            return (
-                              <div className="flex flex-col">
-                                <span className="text-sm text-gray-700 font-medium">
-                                  {stage?.displayName || stage?.name || '—'}
+                      <div className="flex items-center gap-2">
+                        {srd.inProduction && srd.currentProductionStage ? (() => {
+                          const stage = productionStages.find(s => String(s._id) === String(srd.currentProductionStage));
+                          const historyEntry = (srd.productionHistory || []).find(h => String(h.stage) === String(srd.currentProductionStage));
+                          return (
+                            <div className="flex flex-col">
+                              <span className="text-sm text-gray-700 font-medium">
+                                {stage?.displayName || stage?.name || '—'}
+                              </span>
+                              {historyEntry?.startDate && (
+                                <span className="text-[11px] text-blue-500">
+                                  {new Date(historyEntry.startDate).toLocaleDateString()}
                                 </span>
-                                {historyEntry?.startDate && (
-                                  <span className="text-[11px] text-blue-500">
-                                    {new Date(historyEntry.startDate).toLocaleDateString()}
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })() : (
-                            <span className="text-sm text-gray-400">Pending</span>
-                          )}
-                          <button
-                            onClick={() => toggleRow(srd._id)}
-                            className="p-1 rounded hover:bg-gray-200 transition-colors shrink-0"
-                            title={isExpanded ? 'Collapse production stages' : 'Expand production stages'}
-                          >
-                            {isExpanded
-                              ? <ChevronUp className="h-3.5 w-3.5 text-gray-500" />
-                              : <ChevronDown className="h-3.5 w-3.5 text-gray-500" />}
-                          </button>
-                        </div>
-                        
-                        {/* Production Stage Badges */}
-                        {productionStages.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {[...productionStages].sort((a, b) => a.order - b.order).map((stage) => {
-                              const historyEntry = (srd.productionHistory || []).find(
-                                h => String(h.stage) === String(stage._id)
-                              );
-                              const isCompleted = historyEntry?.status === 'completed';
-                              const isCurrent = srd.inProduction && String(srd.currentProductionStage) === String(stage._id);
-                              
-                              return (
-                                <div
-                                  key={stage._id}
-                                  className={`px-2 py-0.5 rounded text-[10px] font-medium ${
-                                    isCompleted ? 'bg-green-100 text-green-700' :
-                                    isCurrent ? 'bg-blue-100 text-blue-700' :
-                                    'bg-gray-100 text-gray-500'
-                                  }`}
-                                >
-                                  {stage.displayName || stage.name}
-                                  {historyEntry?.endDate && (
-                                    <span className="ml-1 text-[9px]">
-                                      {new Date(historyEntry.endDate).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
+                              )}
+                            </div>
+                          );
+                        })() : (
+                          <span className="text-sm text-gray-400">Pending</span>
                         )}
+                        <button
+                          onClick={() => toggleRow(srd._id)}
+                          className="p-1 rounded hover:bg-gray-200 transition-colors shrink-0"
+                          title={isExpanded ? 'Collapse production stages' : 'Expand production stages'}
+                        >
+                          {isExpanded
+                            ? <ChevronUp className="h-3.5 w-3.5 text-gray-500" />
+                            : <ChevronDown className="h-3.5 w-3.5 text-gray-500" />}
+                        </button>
                       </div>
                     </td>
                     <td className="justify-center align-middle px-6 py-2 whitespace-nowrap text-sm font-medium border-b border-black/10">
@@ -441,60 +407,65 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
 
                   {/* Expanded production stage timeline */}
                   {isExpanded && (
-                    <div className="bg-gray-50 justify-end flex w-[100%]">
-                      <div colSpan={8} className="px-6 py-3 border-b border-black/10">
+                    <tr className="bg-gray-50">
+                      <td colSpan={8} className="px-6 py-3 border-b border-black/10">
                         {productionStages.length === 0 ? (
                           <p className="text-xs text-gray-400 italic">No production stages configured.</p>
                         ) : (
-                          <div className="flex items-start gap-0">
-                            {[...productionStages].sort((a, b) => a.order - b.order).map((stage, idx, arr) => {
-                              const historyEntry = (srd.productionHistory || []).find(
-                                h => String(h.stage) === String(stage._id)
-                              );
-                              const isCompleted = historyEntry?.status === 'completed';
-                              const isCurrent = srd.inProduction && String(srd.currentProductionStage) === String(stage._id);
-                              const isLast = idx === arr.length - 1;
+                          <>
+                            {/* Production Stage Badges */}
 
-                              return (
-                                <div key={stage._id} className="flex items-center">
-                                  <div className="flex flex-col items-center min-w-[80px]">
-                                    {/* Dot */}
-                                    <div className={`w-3 h-3 rounded-full border-2 border-white shadow ${
-                                      isCompleted ? 'bg-green-500' :
-                                      isCurrent ? 'bg-blue-500 ring-2 ring-blue-300 animate-pulse' :
-                                      'bg-gray-300'
-                                    }`} />
-                                    {/* Stage name */}
-                                    <div className="text-[10px] font-semibold text-gray-700 mt-1 text-center leading-tight">
-                                      {stage.displayName || stage.name}
+                            {/* Timeline */}
+                            <div className="flex items-start justify-end gap-0 mr-20">
+                              {[...productionStages].sort((a, b) => a.order - b.order).map((stage, idx, arr) => {
+                                const historyEntry = (srd.productionHistory || []).find(
+                                  h => String(h.stage) === String(stage._id)
+                                );
+                                const isCompleted = historyEntry?.status === 'completed';
+                                const isCurrent = srd.inProduction && String(srd.currentProductionStage) === String(stage._id);
+                                const isLast = idx === arr.length - 1;
+
+                                return (
+                                  <div key={stage._id} className="flex items-center">
+                                    <div className="flex flex-col items-center min-w-[80px]">
+                                      {/* Dot */}
+                                      <div className={`w-3 h-3 rounded-full border-2 border-white shadow ${
+                                        isCompleted ? 'bg-green-500' :
+                                        isCurrent ? 'bg-blue-500 ring-2 ring-blue-300 animate-pulse' :
+                                        'bg-gray-300'
+                                      }`} />
+                                      {/* Stage name */}
+                                      <div className="text-[10px] font-semibold text-gray-700 mt-1 text-center leading-tight">
+                                        {stage.displayName || stage.name}
+                                      </div>
+                                      {/* Date / indicator */}
+                                      {isCompleted && historyEntry.endDate ? (
+                                        <div className="text-[9px] text-green-600 text-center mt-0.5">
+                                          {new Date(historyEntry.endDate).toLocaleDateString()}
+                                        </div>
+                                      ) : isCurrent && historyEntry?.startDate ? (
+                                        <div className="flex flex-col items-center gap-0.5 mt-0.5">
+                                          <span className="text-[9px] text-blue-500 text-center">
+                                            {new Date(historyEntry.startDate).toLocaleDateString()}
+                                          </span>
+                                          <span className="text-[9px] bg-blue-100 text-blue-700 px-1 rounded font-medium">In Progress</span>
+                                        </div>
+                                      ) : (
+                                        <div className="text-[9px] text-gray-400 mt-0.5">—</div>
+                                      )}
                                     </div>
-                                    {/* Date / indicator */}
-                                    {isCompleted && historyEntry.endDate ? (
-                                      <div className="text-[9px] text-green-600 text-center mt-0.5">
-                                        {new Date(historyEntry.endDate).toLocaleDateString()}
-                                      </div>
-                                    ) : isCurrent && historyEntry?.startDate ? (
-                                      <div className="flex flex-col items-center gap-0.5 mt-0.5">
-                                        <span className="text-[9px] text-blue-500 text-center">
-                                          {new Date(historyEntry.startDate).toLocaleDateString()}
-                                        </span>
-                                        <span className="text-[9px] bg-blue-100 text-blue-700 px-1 rounded font-medium">In Progress</span>
-                                      </div>
-                                    ) : (
-                                      <div className="text-[9px] text-gray-400 mt-0.5">—</div>
+                                    {/* Connector line */}
+                                    {!isLast && (
+                                      <div className={`h-0.5 w-6 mb-6 ${isCompleted ? 'bg-green-400' : 'bg-gray-200'}`} />
                                     )}
                                   </div>
-                                  {/* Connector line */}
-                                  {!isLast && (
-                                    <div className={`h-0.5 w-6 mb-6 ${isCompleted ? 'bg-green-400' : 'bg-gray-200'}`} />
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
+                                );
+                              })}
+                            </div>
+                          </>
                         )}
-                      </div>
-                    </div>
+                      </td>
+                    </tr>
                   )}
                 </Fragment>
               );
