@@ -154,9 +154,9 @@ export default function VMDDashboard() {
           </select>
         </div>
         <div className="flex items-center gap-1 ml-auto">
-          <Button variant={viewMode === 'cards' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('cards')}>Cards</Button>
-          <Button variant={viewMode === 'table' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('table')}>Table</Button>
-          <Button size="sm" onClick={handleRaiseSrd} disabled={isCreating}>
+          <Button variant={viewMode === 'cards' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('cards')} className={viewMode === 'cards' ? 'text-white' : ''}>Cards</Button>
+          <Button variant={viewMode === 'table' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('table')}className={viewMode === 'table' ? 'text-white' : ''}>Table</Button>
+          <Button size="sm" onClick={handleRaiseSrd} disabled={isCreating} className="text-white">
             <Plus className="h-4 w-4 mr-1" />
             {isCreating ? 'Raising SRD...' : 'New SRD'}
           </Button>

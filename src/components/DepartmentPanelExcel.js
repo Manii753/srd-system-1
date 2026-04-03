@@ -1837,12 +1837,12 @@ export default function DepartmentPanelExcel({
                           {entry.author}
                         </span>
                         {entry.department && (
-                          <Badge variant="outline" className="mt-1 text-[10px] px-1.5 py-0 bg-gray-100">
+                          <Badge variant="outline" className="mt-1 text-app-text px-1.5 py-0 bg-gray-100">
                             {entry.department.toUpperCase()}
                           </Badge>
                         )}
                       </div>
-                      <span className="text-[10px] text-gray-500 whitespace-nowrap">
+                      <span className="text-app-text text-gray-500 whitespace-nowrap">
                         {new Date(entry.timestamp).toLocaleString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -1854,7 +1854,7 @@ export default function DepartmentPanelExcel({
                     <p className="text-gray-700 font-medium leading-tight">{entry.action}</p>
                     {relatedComment && (
                       <div className="mt-2 pl-2 border-l-2 border-gray-300 bg-gray-50 p-1.5 rounded-r">
-                        <p className="text-gray-600 italic text-[11px]">&ldquo;{relatedComment.text}&rdquo;</p>
+                        <p className="text-gray-600 italic text-app-text">&ldquo;{relatedComment.text}&rdquo;</p>
                       </div>
                     )}
                   </div>
