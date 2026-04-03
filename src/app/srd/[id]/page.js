@@ -76,13 +76,6 @@ export default function SRDDetailPage() {
           description: `${department.toUpperCase()} updated successfully`,
         });
 
-        // Refresh timeline
-        const timelineResponse = await fetch(`/api/srd/${params.id}/timeline`);
-        const timelineData = await timelineResponse.json();
-        if (timelineData.success) {
-          setTimeline(timelineData.data);
-        }
-
         return data.data;
       } else {
         toast({
