@@ -855,6 +855,8 @@ export default function Page() {
                       <option value="file">📎 File Upload</option>
                       <option value="image">🖼️ Image Upload</option>
                       <option value="createdAt">📅 Created At</option>
+                      <option value="refNo">🔖 Ref No (Auto)</option>
+                      <option value="old-refNo">🔗 Old Ref No (Redo Source)</option>
                     </select>
                   </div>
                 </div>

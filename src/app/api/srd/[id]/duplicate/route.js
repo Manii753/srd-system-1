@@ -88,6 +88,19 @@ export async function POST(request, { params }) {
     // Calculate new revision number
     const newRevision = (originalSrd.revision || 0) + 1;
 
+    // Auto-populate refNo and old-refNo typed dynamic fields
+    if (Array.isArray(restOfSrd.dynamicFields)) {
+      restOfSrd.dynamicFields = restOfSrd.dynamicFields.map(field => {
+        if (field.type === 'refNo') {
+          return { ...field, value: newRefNo };
+        }
+        if (field.type === 'old-refNo' && isRedo) {
+          return { ...field, value: originalSrd.refNo };
+        }
+        return field;
+      });
+    }
+
     const newSrd = new SRD({
       ...restOfSrd,
       refNo: newRefNo,

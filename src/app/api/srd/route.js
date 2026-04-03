@@ -266,6 +266,16 @@ export async function POST(request) {
       body.refNo = generateRefNo();
     }
 
+    // Auto-populate refNo-typed dynamic fields with the SRD's refNo
+    if (body.dynamicFields && Array.isArray(body.dynamicFields)) {
+      body.dynamicFields = body.dynamicFields.map(f => {
+        if (f.type === 'refNo') {
+          return { ...f, value: body.refNo };
+        }
+        return f;
+      });
+    }
+
     // --- Retry creation on duplicate refNo ---
     let newSRD;
     let attempts = 0;
@@ -285,6 +295,12 @@ export async function POST(request) {
         if (isDuplicateRef && attempts < maxAttempts) {
           attempts++;
           body.refNo = generateRefNo();
+          // Keep refNo-typed dynamic fields in sync with the new refNo
+          if (body.dynamicFields && Array.isArray(body.dynamicFields)) {
+            body.dynamicFields = body.dynamicFields.map(f =>
+              f.type === 'refNo' ? { ...f, value: body.refNo } : f
+            );
+          }
           continue;
         }
         throw err;
