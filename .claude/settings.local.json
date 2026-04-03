@@ -1,6 +1,12 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /c/Users/Manii/Desktop/refresh/srd-system-1/src/app/api/srd/[id]/)",
+      "Bash(grep -r MONGODB_URI /c/Users/Manii/Desktop/refresh/srd-system-1 --include=*.js --include=*.env*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "shadcn"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }

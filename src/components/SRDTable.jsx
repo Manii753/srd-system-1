@@ -267,7 +267,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
 
 
   return (
-    <div className="flex flex-col h-full w-full bg-white shadow-lg border border-gray-100 overflow-hidden">
+    <div className="flex flex-1 flex-col h-full w-full bg-white shadow-lg border border-gray-100 overflow-hidden">
       {/* Table */}
       <div className="w-full flex-1 overflow-y-auto relative custom-scrollbar">
         <table className="w-full border-separate border-spacing-0">

@@ -95,6 +95,7 @@ export default function AdminDashboard() {
 
   return (
     <Layout>
+      <div className="h-full overflow-y-auto">
       <div className="space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -255,6 +256,7 @@ export default function AdminDashboard() {
         ) : (
           <SRDTable srds={srds} department="admin" />
         )}
+      </div>
       </div>
     </Layout>
   );

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import SRD from '@/models/SRD';
+import '@/models/Buyer';
+import '@/models/Dispatch';
 
 export async function GET(request, { params }) {
   try {
