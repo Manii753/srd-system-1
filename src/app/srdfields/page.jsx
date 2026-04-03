@@ -642,7 +642,9 @@ export default function Page() {
   const headingOptions = fields.filter(f => f.type === 'heading');
 
   return (
+    
     <Layout>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -682,608 +684,610 @@ export default function Page() {
 
         </div>
       </div>
-
-      {/* Content Area */}
-      <div className="mt-8">
-        {saving && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <div className="text-blue-800">Saving field order...</div>
-          </div>
-        )}
-
-        {displayFields.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg">
-            <Folder className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-app-text font-medium text-gray-900">No fields yet</h3>
-            <p className="mt-1 text-app-text text-gray-500">Get started by creating your first field or section.</p>
-            <div className="mt-6 flex justify-center space-x-3">
-              <Button onClick={() => openNew()}>
-                <PlusCircleIcon className="h-4 w-4 mr-2" />
-                Add Field
-              </Button>
-              <Button variant="outline" onClick={() => openNew()}>
-                <Folder className="h-4 w-4 mr-2" />
-                Add Section
-              </Button>
+      <div className="h-full overflow-y-auto custom-scrollbar">      
+        {/* Content Area */}
+        <div className="mt-8">
+          {saving && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="text-blue-800">Saving field order...</div>
             </div>
-          </div>
-        ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={fields.map(f => f._id)}
-              strategy={verticalListSortingStrategy}
+          )}
+
+          {displayFields.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <Folder className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-app-text font-medium text-gray-900">No fields yet</h3>
+              <p className="mt-1 text-app-text text-gray-500">Get started by creating your first field or section.</p>
+              <div className="mt-6 flex justify-center space-x-3">
+                <Button onClick={() => openNew()}>
+                  <PlusCircleIcon className="h-4 w-4 mr-2" />
+                  Add Field
+                </Button>
+                <Button variant="outline" onClick={() => openNew()}>
+                  <Folder className="h-4 w-4 mr-2" />
+                  Add Section
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
             >
-              <div className="space-y-4">
-                {displayFields.map((field) => {
-                  if (field.type === 'heading') {
-                    const isExpanded = expandedSections.has(field._id);
-                    return (
-                      <div key={field._id} className="space-y-2">
-                        <SortableFieldItem
-                          field={field}
-                          onEdit={openEdit}
-                          onDelete={handleDelete}
-                          isHeading={true}
-                          isExpanded={isExpanded}
-                          onToggleExpanded={toggleSection}
-                        >
-                          {/* Render child fields inside the section */}
-                          {isExpanded && field.children && field.children.length > 0 && (
-                            <div className="space-y-2 mt-3">
-                              {field.children.map((childField) => (
-                                <SortableFieldItem
-                                  key={childField._id}
-                                  field={childField}
-                                  onEdit={openEdit}
-                                  onDelete={handleDelete}
-                                  isHeading={false}
-                                  level={1}
-                                  onToggleQuickDetails={handleToggleQuickDetails}
-                                  onToggleReport={handleToggleReport}
-                                  onToggleDispatchCard={handleToggleDispatchCard}
-                                />
-                              ))}
+              <SortableContext
+                items={fields.map(f => f._id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-4">
+                  {displayFields.map((field) => {
+                    if (field.type === 'heading') {
+                      const isExpanded = expandedSections.has(field._id);
+                      return (
+                        <div key={field._id} className="space-y-2">
+                          <SortableFieldItem
+                            field={field}
+                            onEdit={openEdit}
+                            onDelete={handleDelete}
+                            isHeading={true}
+                            isExpanded={isExpanded}
+                            onToggleExpanded={toggleSection}
+                          >
+                            {/* Render child fields inside the section */}
+                            {isExpanded && field.children && field.children.length > 0 && (
+                              <div className="space-y-2 mt-3">
+                                {field.children.map((childField) => (
+                                  <SortableFieldItem
+                                    key={childField._id}
+                                    field={childField}
+                                    onEdit={openEdit}
+                                    onDelete={handleDelete}
+                                    isHeading={false}
+                                    level={1}
+                                    onToggleQuickDetails={handleToggleQuickDetails}
+                                    onToggleReport={handleToggleReport}
+                                    onToggleDispatchCard={handleToggleDispatchCard}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </SortableFieldItem>
+
+                          {/* Add Field to Section Button */}
+                          {isExpanded && (
+                            <div className="ml-8">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openNew(field._id)}
+                                className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Field to &quot;{field.name}&quot;
+                              </Button>
                             </div>
                           )}
-                        </SortableFieldItem>
-
-                        {/* Add Field to Section Button */}
-                        {isExpanded && (
-                          <div className="ml-8">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openNew(field._id)}
-                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Add Field to &quot;{field.name}&quot;
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  } else {
-                    // Only render orphan fields (fields without parent heading) here
-                    if (!field.parentHeading) {
-                      return (
-                        <SortableFieldItem
-                          key={field._id}
-                          field={field}
-                          onEdit={openEdit}
-                          onDelete={handleDelete}
-                          isHeading={false}
-                          onToggleQuickDetails={handleToggleQuickDetails}
-                          onToggleReport={handleToggleReport}
-                          onToggleDispatchCard={handleToggleDispatchCard}
-                        />
+                        </div>
                       );
+                    } else {
+                      // Only render orphan fields (fields without parent heading) here
+                      if (!field.parentHeading) {
+                        return (
+                          <SortableFieldItem
+                            key={field._id}
+                            field={field}
+                            onEdit={openEdit}
+                            onDelete={handleDelete}
+                            isHeading={false}
+                            onToggleQuickDetails={handleToggleQuickDetails}
+                            onToggleReport={handleToggleReport}
+                            onToggleDispatchCard={handleToggleDispatchCard}
+                          />
+                        );
+                      }
+                      return null;
                     }
-                    return null;
-                  }
-                })}
-              </div>
-            </SortableContext>
-          </DndContext>
-        )}
-      </div>
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
+        </div>
 
-      {/* Modal */}
-      {modalOpen && (
-        <>
-          {/* Overlay */}
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-            onClick={() => setModalOpen(false)}
-          />
+        {/* Modal */}
+        {modalOpen && (
+          <>
+            {/* Overlay */}
+            <div
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+              onClick={() => setModalOpen(false)}
+            />
 
-          {/* Centered modal */}
-          <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:items-center sm:p-4">
-            <div className="bg-white rounded-lg sm:rounded-xl shadow-2xl w-full max-w-3xl border border-gray-200 overflow-hidden max-h-[calc(100vh-1rem)] sm:max-h-[90vh] flex flex-col">
-              <div className="flex items-start justify-between gap-4 px-4 py-3 border-b sm:px-6 sm:py-4 shrink-0">
-                <h2 className="text-app-text sm:text-app-heading font-semibold pr-4">
-                  {editingId ? "Edit SRD Field" : "Add New SRD Field"}
-                </h2>
-                <button
-                  className="text-gray-500 hover:text-gray-800 text-app-text leading-none shrink-0"
-                  onClick={() => setModalOpen(false)}
-                  aria-label="Close modal"
-                >
-                  ×
-                </button>
-              </div>
-
-              <form className="overflow-y-auto px-4 py-4 space-y-4 sm:px-6" onSubmit={handleSubmit}>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {/* Name */}
-                  <div>
-                    <label className="block text-app-text font-medium text-gray-700 mb-1">
-                      Field Name
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full p-2 border border-gray-300 rounded"
-                      value={values.name}
-                      onChange={(e) => setValues({ ...values, name: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  {/* Type */}
-                  <div>
-                    <label className="block text-app-text font-medium text-gray-700 mb-1">
-                      Field Type
-                    </label>
-                    <select
-                      className="w-full p-2 border border-gray-300 rounded"
-                      value={values.type}
-                      onChange={(e) => setValues((prev) => normalizeFieldTypeChange(prev, e.target.value))}
-                      required
-                    >
-                      <option value="">Select Type</option>
-                      <option value="heading">📁 Heading (Section Separator)</option>
-                      <option value="text">📝 Text</option>
-                      <option value="number">🔢 Number</option>
-                      <option value="date">📅 Date</option>
-                      <option value="boolean">☑️ Boolean (Yes/No)</option>
-                      <option value="textarea">📄 Textarea</option>
-                      <option value="table">📊 Table (Excel-like)</option>
-                      <option value="file">📎 File Upload</option>
-                      <option value="image">🖼️ Image Upload</option>
-                      <option value="createdAt">📅 Created At</option>
-                      <option value="refNo">🔖 Ref No (Auto)</option>
-                      <option value="old-refNo">🔗 Old Ref No (Redo Source)</option>
-                    </select>
-                  </div>
+            {/* Centered modal */}
+            <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:items-center sm:p-4">
+              <div className="bg-white rounded-lg sm:rounded-xl shadow-2xl w-full max-w-3xl border border-gray-200 overflow-hidden max-h-[calc(100vh-1rem)] sm:max-h-[90vh] flex flex-col">
+                <div className="flex items-start justify-between gap-4 px-4 py-3 border-b sm:px-6 sm:py-4 shrink-0">
+                  <h2 className="text-app-text sm:text-app-heading font-semibold pr-4">
+                    {editingId ? "Edit SRD Field" : "Add New SRD Field"}
+                  </h2>
+                  <button
+                    className="text-gray-500 hover:text-gray-800 text-app-text leading-none shrink-0"
+                    onClick={() => setModalOpen(false)}
+                    aria-label="Close modal"
+                  >
+                    ×
+                  </button>
                 </div>
 
-                {/* Boolean Display Type */}
-                {values.type === 'boolean' && (
-                  <div>
-                    <label className="block text-app-text font-medium text-gray-700 mb-1">
-                      Boolean Display Type
-                    </label>
-                    <select
-                      className="w-full p-2 border border-gray-300 rounded"
-                      value={values.booleanDisplayType || ''}
-                      onChange={(e) => setValues({ ...values, booleanDisplayType: e.target.value || null })}
-                    >
-                      <option value="">Default (Yes/No)</option>
-                      <option value="yes-no">Yes / No</option>
-                      <option value="instock-purchase">In Stock / Purchase</option>
-                    </select>
-                  </div>
-                )}
-
-                {/* Table Headers Customization */}
-                {values.type === 'table' && (
-                  <div className="border border-gray-200 rounded-md p-3 bg-gray-50/50">
-                    <label className="block text-app-heading font-semibold text-gray-700 mb-2">
-                      Custom Table Columns
-                    </label>
-                    <p className="text-app-text text-gray-500 mb-3">
-                      Define the default column headers for this table. Users can still add/remove columns inside individual SRDs.
-                    </p>
-
-                    <div className="space-y-2 mb-3">
-                      {values.tableHeaders?.map((header, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <span className="text-app-text text-gray-400 font-mono w-4">{idx + 1}.</span>
-                          <input
-                            type="text"
-                            className="flex-1 p-1.5 text-app-text border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                            value={header?.name || header || ''}
-                            onChange={(e) => {
-                              const newHeaders = [...values.tableHeaders];
-                              const currentHeader = newHeaders[idx];
-                              newHeaders[idx] = typeof currentHeader === 'string' 
-                                ? { name: e.target.value, owner: 'global' }
-                                : { ...currentHeader, name: e.target.value };
-                              setValues({ ...values, tableHeaders: newHeaders });
-                            }}
-                            placeholder={`Column ${idx + 1}`}
-                            required
-                          />
-                          <select
-                            className="p-1.5 text-app-text border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 bg-white"
-                            value={header?.owner || 'global'}
-                            onChange={(e) => {
-                              const newHeaders = [...values.tableHeaders];
-                              const currentHeader = newHeaders[idx];
-                              newHeaders[idx] = typeof currentHeader === 'string'
-                                ? { name: currentHeader, owner: e.target.value }
-                                : { ...currentHeader, owner: e.target.value };
-                              setValues({ ...values, tableHeaders: newHeaders });
-                            }}
-                          >
-                            <option value="global">Global</option>
-                            <option value="vmd">VMD</option>
-                            <option value="cad">CAD</option>
-                            <option value="commercial">Commercial</option>
-                            <option value="mmc">MMC</option>
-                          </select>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (values.tableHeaders.length > 1) {
-                                const newHeaders = values.tableHeaders.filter((_, i) => i !== idx);
-                                setValues({ ...values, tableHeaders: newHeaders });
-                              }
-                            }}
-                            className={cn(
-                              "p-1.5 rounded transition-colors",
-                              values.tableHeaders.length > 1
-                                ? "text-red-500 hover:bg-red-100"
-                                : "text-gray-300 cursor-not-allowed"
-                            )}
-                            disabled={values.tableHeaders.length <= 1}
-                            title={values.tableHeaders.length <= 1 ? "Minimum 1 column required" : "Remove column"}
-                          >
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      ))}
+                <form className="overflow-y-auto px-4 py-4 space-y-4 sm:px-6" onSubmit={handleSubmit}>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {/* Name */}
+                    <div>
+                      <label className="block text-app-text font-medium text-gray-700 mb-1">
+                        Field Name
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full p-2 border border-gray-300 rounded"
+                        value={values.name}
+                        onChange={(e) => setValues({ ...values, name: e.target.value })}
+                        required
+                      />
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setValues({
-                          ...values,
-                          tableHeaders: [...(values.tableHeaders || []), { name: `Column ${(values.tableHeaders?.length || 0) + 1}`, owner: 'global' }]
-                        });
-                      }}
-                      className="w-full py-1.5 border-2 border-dashed border-gray-300 text-gray-500 rounded text-app-heading font-semibold hover:border-blue-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-1"
-                    >
-                      <Plus className="h-3.5 w-3.5" /> Add Column
-                    </button>
-                    
-                    <div className="mt-4 pt-4 border-t border-gray-200">
+                    {/* Type */}
+                    <div>
                       <label className="block text-app-text font-medium text-gray-700 mb-1">
-                        Predefined Data Owner
+                        Field Type
                       </label>
-                      <p className="text-app-text text-gray-500 mb-2">
-                        Which department can edit the Predefined Data (OPD, ETD, Purchase Type) in this table?
-                      </p>
                       <select
                         className="w-full p-2 border border-gray-300 rounded"
-                        value={values.predefinedFieldsOwner || 'global'}
-                        onChange={(e) => setValues({ ...values, predefinedFieldsOwner: e.target.value })}
+                        value={values.type}
+                        onChange={(e) => setValues((prev) => normalizeFieldTypeChange(prev, e.target.value))}
+                        required
                       >
-                        <option value="global">Global (All Users)</option>
-                        <option value="vmd">VMD</option>
-                        <option value="cad">CAD</option>
-                        <option value="commercial">Commercial</option>
-                        <option value="mmc">MMC</option>
+                        <option value="">Select Type</option>
+                        <option value="heading">📁 Heading (Section Separator)</option>
+                        <option value="text">📝 Text</option>
+                        <option value="number">🔢 Number</option>
+                        <option value="date">📅 Date</option>
+                        <option value="boolean">☑️ Boolean (Yes/No)</option>
+                        <option value="textarea">📄 Textarea</option>
+                        <option value="table">📊 Table (Excel-like)</option>
+                        <option value="file">📎 File Upload</option>
+                        <option value="image">🖼️ Image Upload</option>
+                        <option value="createdAt">📅 Created At</option>
+                        <option value="refNo">🔖 Ref No (Auto)</option>
+                        <option value="old-refNo">🔗 Old Ref No (Redo Source)</option>
                       </select>
                     </div>
                   </div>
-                )}
 
-                {/* Parent Heading (only for non-heading fields) */}
-                {values.type !== 'heading' && headingOptions.length > 0 && (
-                  <div>
-                    <label className="block text-app-text font-medium text-gray-700 mb-1">
-                      Group Under Section (Optional)
-                    </label>
-                    <select
-                      className="w-full p-2 border border-gray-300 rounded"
-                      value={values.parentHeading || ''}
-                      onChange={(e) => setValues({ ...values, parentHeading: e.target.value || null })}
-                    >
-                      <option value="">No Grouping</option>
-                      {headingOptions.map((heading) => (
-                        <option key={heading._id} value={heading._id}>
-                          📁 {heading.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Department */}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="block text-app-text font-medium text-gray-700 mb-1">
-                      Department
-                    </label>
-                    <select
-                      className="w-full p-2 border border-gray-300 rounded"
-                      value={values.department}
-                      onChange={(e) => setValues({ ...values, department: e.target.value })}
-                    >
-                      {DEPARTMENTS.map((d) => (
-                        <option key={d} value={d}>
-                          {d.toUpperCase()}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {values.type === 'createdAt' && (
-                    <div className="flex items-end">
+                  {/* Boolean Display Type */}
+                  {values.type === 'boolean' && (
+                    <div>
                       <label className="block text-app-text font-medium text-gray-700 mb-1">
-                        This Will Be Set Automatically
+                        Boolean Display Type
                       </label>
+                      <select
+                        className="w-full p-2 border border-gray-300 rounded"
+                        value={values.booleanDisplayType || ''}
+                        onChange={(e) => setValues({ ...values, booleanDisplayType: e.target.value || null })}
+                      >
+                        <option value="">Default (Yes/No)</option>
+                        <option value="yes-no">Yes / No</option>
+                        <option value="instock-purchase">In Stock / Purchase</option>
+                      </select>
                     </div>
                   )}
-                </div>
-                {/* Placeholder */}
-                {values.type !== 'heading' && values.type !== 'createdAt' && (
-                  <div>
-                    <label className="block text-app-text font-medium text-gray-700 mb-1">
-                      Placeholder (optional)
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full p-2 border border-gray-300 rounded"
-                      value={values.placeholder}
-                      onChange={(e) => setValues({ ...values, placeholder: e.target.value })}
-                    />
-                  </div>
-                )}
 
-                {/* Required */}
-                {values.type !== 'heading' && (
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      className="form-checkbox h-4 w-4"
-                      checked={values.isRequired}
-                      onChange={(e) => setValues({ ...values, isRequired: e.target.checked })}
-                      disabled={values.isOptional}
-                    />
-                    <span className={cn("text-app-text text-gray-700", values.isOptional && "text-gray-400")}>Required</span>
-                  </div>
-                )}
+                  {/* Table Headers Customization */}
+                  {values.type === 'table' && (
+                    <div className="border border-gray-200 rounded-md p-3 bg-gray-50/50">
+                      <label className="block text-app-heading font-semibold text-gray-700 mb-2">
+                        Custom Table Columns
+                      </label>
+                      <p className="text-app-text text-gray-500 mb-3">
+                        Define the default column headers for this table. Users can still add/remove columns inside individual SRDs.
+                      </p>
 
-                {/* Optional Toggle */}
-                {values.type !== 'heading' && (
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      className="form-checkbox h-4 w-4"
-                      checked={values.isOptional}
-                      onChange={(e) => setValues({
-                        ...values,
-                        isOptional: e.target.checked,
-                        isRequired: e.target.checked ? false : values.isRequired
-                      })}
-                    />
-                    <span className="text-app-text text-gray-700">Show toggle in SRD panel</span>
-                  </div>
-                )}
+                      <div className="space-y-2 mb-3">
+                        {values.tableHeaders?.map((header, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <span className="text-app-text text-gray-400 font-mono w-4">{idx + 1}.</span>
+                            <input
+                              type="text"
+                              className="flex-1 p-1.5 text-app-text border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                              value={header?.name || header || ''}
+                              onChange={(e) => {
+                                const newHeaders = [...values.tableHeaders];
+                                const currentHeader = newHeaders[idx];
+                                newHeaders[idx] = typeof currentHeader === 'string' 
+                                  ? { name: e.target.value, owner: 'global' }
+                                  : { ...currentHeader, name: e.target.value };
+                                setValues({ ...values, tableHeaders: newHeaders });
+                              }}
+                              placeholder={`Column ${idx + 1}`}
+                              required
+                            />
+                            <select
+                              className="p-1.5 text-app-text border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 bg-white"
+                              value={header?.owner || 'global'}
+                              onChange={(e) => {
+                                const newHeaders = [...values.tableHeaders];
+                                const currentHeader = newHeaders[idx];
+                                newHeaders[idx] = typeof currentHeader === 'string'
+                                  ? { name: currentHeader, owner: e.target.value }
+                                  : { ...currentHeader, owner: e.target.value };
+                                setValues({ ...values, tableHeaders: newHeaders });
+                              }}
+                            >
+                              <option value="global">Global</option>
+                              <option value="vmd">VMD</option>
+                              <option value="cad">CAD</option>
+                              <option value="commercial">Commercial</option>
+                              <option value="mmc">MMC</option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (values.tableHeaders.length > 1) {
+                                  const newHeaders = values.tableHeaders.filter((_, i) => i !== idx);
+                                  setValues({ ...values, tableHeaders: newHeaders });
+                                }
+                              }}
+                              className={cn(
+                                "p-1.5 rounded transition-colors",
+                                values.tableHeaders.length > 1
+                                  ? "text-red-500 hover:bg-red-100"
+                                  : "text-gray-300 cursor-not-allowed"
+                              )}
+                              disabled={values.tableHeaders.length <= 1}
+                              title={values.tableHeaders.length <= 1 ? "Minimum 1 column required" : "Remove column"}
+                            >
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
 
-                {/* Show in Quick Details */}
-                {values.type !== 'heading' && (
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      className="form-checkbox h-4 w-4"
-                      checked={values.isShownInQuickDetails}
-                      onChange={(e) => setValues({ ...values, isShownInQuickDetails: e.target.checked })}
-                    />
-                    <span className="text-app-text text-gray-700">Show in Quick Details</span>
-                  </div>
-                )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setValues({
+                            ...values,
+                            tableHeaders: [...(values.tableHeaders || []), { name: `Column ${(values.tableHeaders?.length || 0) + 1}`, owner: 'global' }]
+                          });
+                        }}
+                        className="w-full py-1.5 border-2 border-dashed border-gray-300 text-gray-500 rounded text-app-heading font-semibold hover:border-blue-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-1"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Add Column
+                      </button>
+                      
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <label className="block text-app-text font-medium text-gray-700 mb-1">
+                          Predefined Data Owner
+                        </label>
+                        <p className="text-app-text text-gray-500 mb-2">
+                          Which department can edit the Predefined Data (OPD, ETD, Purchase Type) in this table?
+                        </p>
+                        <select
+                          className="w-full p-2 border border-gray-300 rounded"
+                          value={values.predefinedFieldsOwner || 'global'}
+                          onChange={(e) => setValues({ ...values, predefinedFieldsOwner: e.target.value })}
+                        >
+                          <option value="global">Global (All Users)</option>
+                          <option value="vmd">VMD</option>
+                          <option value="cad">CAD</option>
+                          <option value="commercial">Commercial</option>
+                          <option value="mmc">MMC</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
 
-                {/* Show in Report */}
-                {values.type !== 'heading' && (
-                  <div className="space-y-2">
+                  {/* Parent Heading (only for non-heading fields) */}
+                  {values.type !== 'heading' && headingOptions.length > 0 && (
+                    <div>
+                      <label className="block text-app-text font-medium text-gray-700 mb-1">
+                        Group Under Section (Optional)
+                      </label>
+                      <select
+                        className="w-full p-2 border border-gray-300 rounded"
+                        value={values.parentHeading || ''}
+                        onChange={(e) => setValues({ ...values, parentHeading: e.target.value || null })}
+                      >
+                        <option value="">No Grouping</option>
+                        {headingOptions.map((heading) => (
+                          <option key={heading._id} value={heading._id}>
+                            📁 {heading.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Department */}
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="block text-app-text font-medium text-gray-700 mb-1">
+                        Department
+                      </label>
+                      <select
+                        className="w-full p-2 border border-gray-300 rounded"
+                        value={values.department}
+                        onChange={(e) => setValues({ ...values, department: e.target.value })}
+                      >
+                        {DEPARTMENTS.map((d) => (
+                          <option key={d} value={d}>
+                            {d.toUpperCase()}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {values.type === 'createdAt' && (
+                      <div className="flex items-end">
+                        <label className="block text-app-text font-medium text-gray-700 mb-1">
+                          This Will Be Set Automatically
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                  {/* Placeholder */}
+                  {values.type !== 'heading' && values.type !== 'createdAt' && (
+                    <div>
+                      <label className="block text-app-text font-medium text-gray-700 mb-1">
+                        Placeholder (optional)
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full p-2 border border-gray-300 rounded"
+                        value={values.placeholder}
+                        onChange={(e) => setValues({ ...values, placeholder: e.target.value })}
+                      />
+                    </div>
+                  )}
+
+                  {/* Required */}
+                  {values.type !== 'heading' && (
                     <div className="flex items-center space-x-2">
                       <input
                         type="checkbox"
                         className="form-checkbox h-4 w-4"
-                        checked={values.inReport}
-                        onChange={(e) => setValues({ ...values, inReport: e.target.checked })}
+                        checked={values.isRequired}
+                        onChange={(e) => setValues({ ...values, isRequired: e.target.checked })}
+                        disabled={values.isOptional}
                       />
-                      <span className="text-app-text text-gray-700">Show in Report</span>
+                      <span className={cn("text-app-text text-gray-700", values.isOptional && "text-gray-400")}>Required</span>
                     </div>
-                    {values.inReport && (
-                      <div className="ml-0 sm:ml-6">
-                        <label className="block text-app-text font-medium text-gray-600 mb-1">
-                          Report Column Order
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          className="w-24 p-1.5 text-app-text border border-gray-300 rounded"
-                          value={values.inReportOrder || 0}
-                          onChange={(e) => setValues({ ...values, inReportOrder: parseInt(e.target.value) || 0 })}
-                          placeholder="0"
-                        />
-                        <p className="text-app-text text-gray-500 mt-1">Lower numbers appear first</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
 
-                {/* Show in Dispatch Card */}
-                {values.type !== 'heading' && (
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      className="form-checkbox h-4 w-4"
-                      checked={values.inDispatchCard}
-                      onChange={(e) => setValues({ ...values, inDispatchCard: e.target.checked })}
-                    />
-                    <span className="text-app-text text-gray-700">Show in Dispatch Card</span>
-                  </div>
-                )}
-
-                {/* Connected Field Settings */}
-                {values.type !== 'heading' && (
-                  <div className="border-t pt-4 mt-4">
-                    <div className="flex items-center space-x-2 mb-3">
+                  {/* Optional Toggle */}
+                  {values.type !== 'heading' && (
+                    <div className="flex items-center space-x-2">
                       <input
                         type="checkbox"
                         className="form-checkbox h-4 w-4"
-                        checked={values.isConnectedTo}
+                        checked={values.isOptional}
                         onChange={(e) => setValues({
                           ...values,
-                          isConnectedTo: e.target.checked,
-                          connectedFieldId: e.target.checked ? values.connectedFieldId : null,
-                          connectionType: e.target.checked ? values.connectionType : null
+                          isOptional: e.target.checked,
+                          isRequired: e.target.checked ? false : values.isRequired
                         })}
                       />
-                      <span className="text-app-text font-medium text-gray-700">🔗 Connect to another field</span>
+                      <span className="text-app-text text-gray-700">Show toggle in SRD panel</span>
                     </div>
+                  )}
 
-                    {values.isConnectedTo && (
-                      <div className="space-y-3 pl-4 sm:pl-6 border-l-2 border-blue-200">
-                        {/* Select Connected Field */}
-                        <div className="relative">
-                          <label className="block text-app-text font-medium text-gray-700 mb-1">
-                            Connected Field
+                  {/* Show in Quick Details */}
+                  {values.type !== 'heading' && (
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        className="form-checkbox h-4 w-4"
+                        checked={values.isShownInQuickDetails}
+                        onChange={(e) => setValues({ ...values, isShownInQuickDetails: e.target.checked })}
+                      />
+                      <span className="text-app-text text-gray-700">Show in Quick Details</span>
+                    </div>
+                  )}
+
+                  {/* Show in Report */}
+                  {values.type !== 'heading' && (
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          className="form-checkbox h-4 w-4"
+                          checked={values.inReport}
+                          onChange={(e) => setValues({ ...values, inReport: e.target.checked })}
+                        />
+                        <span className="text-app-text text-gray-700">Show in Report</span>
+                      </div>
+                      {values.inReport && (
+                        <div className="ml-0 sm:ml-6">
+                          <label className="block text-app-text font-medium text-gray-600 mb-1">
+                            Report Column Order
                           </label>
                           <input
-                            type="text"
-                            className="w-full p-2 border border-gray-300 rounded"
-                            placeholder="Click to search fields..."
-                            value={connectedFieldSearch}
-                            onChange={(e) => setConnectedFieldSearch(e.target.value)}
-                            onFocus={() => setShowFieldDropdown(true)}
+                            type="number"
+                            min="0"
+                            className="w-24 p-1.5 text-app-text border border-gray-300 rounded"
+                            value={values.inReportOrder || 0}
+                            onChange={(e) => setValues({ ...values, inReportOrder: parseInt(e.target.value) || 0 })}
+                            placeholder="0"
                           />
-                          {values.connectedFieldId && (
-                            <div className="mt-1 text-app-text text-blue-600 flex items-center justify-between">
-                              <span>✓ Selected: {allFields.find(f => f._id?.toString() === values.connectedFieldId?.toString())?.name || 'Unknown'}</span>
-                              <button
-                                type="button"
-                                className="text-red-500 text-app-text hover:underline"
-                                onClick={() => setValues({ ...values, connectedFieldId: null })}
-                              >
-                                Clear
-                              </button>
-                            </div>
-                          )}
-                          {showFieldDropdown && (
-                            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-52 sm:max-h-64 overflow-y-auto">
-                              <div className="sticky top-0 bg-gray-100 px-3 py-2 border-b flex justify-between items-center">
-                                <span className="text-app-text font-medium text-gray-500">Available Fields</span>
+                          <p className="text-app-text text-gray-500 mt-1">Lower numbers appear first</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Show in Dispatch Card */}
+                  {values.type !== 'heading' && (
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        className="form-checkbox h-4 w-4"
+                        checked={values.inDispatchCard}
+                        onChange={(e) => setValues({ ...values, inDispatchCard: e.target.checked })}
+                      />
+                      <span className="text-app-text text-gray-700">Show in Dispatch Card</span>
+                    </div>
+                  )}
+
+                  {/* Connected Field Settings */}
+                  {values.type !== 'heading' && (
+                    <div className="border-t pt-4 mt-4">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <input
+                          type="checkbox"
+                          className="form-checkbox h-4 w-4"
+                          checked={values.isConnectedTo}
+                          onChange={(e) => setValues({
+                            ...values,
+                            isConnectedTo: e.target.checked,
+                            connectedFieldId: e.target.checked ? values.connectedFieldId : null,
+                            connectionType: e.target.checked ? values.connectionType : null
+                          })}
+                        />
+                        <span className="text-app-text font-medium text-gray-700">🔗 Connect to another field</span>
+                      </div>
+
+                      {values.isConnectedTo && (
+                        <div className="space-y-3 pl-4 sm:pl-6 border-l-2 border-blue-200">
+                          {/* Select Connected Field */}
+                          <div className="relative">
+                            <label className="block text-app-text font-medium text-gray-700 mb-1">
+                              Connected Field
+                            </label>
+                            <input
+                              type="text"
+                              className="w-full p-2 border border-gray-300 rounded"
+                              placeholder="Click to search fields..."
+                              value={connectedFieldSearch}
+                              onChange={(e) => setConnectedFieldSearch(e.target.value)}
+                              onFocus={() => setShowFieldDropdown(true)}
+                            />
+                            {values.connectedFieldId && (
+                              <div className="mt-1 text-app-text text-blue-600 flex items-center justify-between">
+                                <span>✓ Selected: {allFields.find(f => f._id?.toString() === values.connectedFieldId?.toString())?.name || 'Unknown'}</span>
                                 <button
                                   type="button"
-                                  className="text-gray-500 hover:text-gray-700 text-app-text leading-none"
-                                  onClick={() => setShowFieldDropdown(false)}
+                                  className="text-red-500 text-app-text hover:underline"
+                                  onClick={() => setValues({ ...values, connectedFieldId: null })}
                                 >
-                                  ×
+                                  Clear
                                 </button>
                               </div>
-                              {allFields
-                                .filter(f => f.type !== 'heading' && f._id !== editingId)
-                                .filter(f => {
+                            )}
+                            {showFieldDropdown && (
+                              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-52 sm:max-h-64 overflow-y-auto">
+                                <div className="sticky top-0 bg-gray-100 px-3 py-2 border-b flex justify-between items-center">
+                                  <span className="text-app-text font-medium text-gray-500">Available Fields</span>
+                                  <button
+                                    type="button"
+                                    className="text-gray-500 hover:text-gray-700 text-app-text leading-none"
+                                    onClick={() => setShowFieldDropdown(false)}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                                {allFields
+                                  .filter(f => f.type !== 'heading' && f._id !== editingId)
+                                  .filter(f => {
+                                    if (!connectedFieldSearch) return true;
+                                    const searchLower = connectedFieldSearch.toLowerCase();
+                                    const headingName = f.parentHeading?.name || '';
+                                    return f.name.toLowerCase().includes(searchLower) ||
+                                      f.department?.toLowerCase().includes(searchLower) ||
+                                      headingName.toLowerCase().includes(searchLower);
+                                  })
+                                  .map((f) => (
+                                    <div
+                                      key={f._id}
+                                      className={`px-3 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-100 last:border-b-0 ${values.connectedFieldId?.toString() === f._id?.toString() ? 'bg-blue-100' : ''}`}
+                                      onClick={() => {
+                                        setValues({ ...values, connectedFieldId: f._id });
+                                        setShowFieldDropdown(false);
+                                        setConnectedFieldSearch('');
+                                      }}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-medium text-gray-900">{f.name}</span>
+                                        <span className="text-app-text bg-gray-200 px-2 py-0.5 rounded">{f.department?.toUpperCase()}</span>
+                                      </div>
+                                      {f.parentHeading?.name && (
+                                        <div className="text-app-text text-gray-500 mt-0.5">📁 {f.parentHeading.name}</div>
+                                      )}
+                                    </div>
+                                  ))}
+                                {allFields.filter(f => f.type !== 'heading' && f._id !== editingId).filter(f => {
                                   if (!connectedFieldSearch) return true;
                                   const searchLower = connectedFieldSearch.toLowerCase();
-                                  const headingName = f.parentHeading?.name || '';
-                                  return f.name.toLowerCase().includes(searchLower) ||
-                                    f.department?.toLowerCase().includes(searchLower) ||
-                                    headingName.toLowerCase().includes(searchLower);
-                                })
-                                .map((f) => (
-                                  <div
-                                    key={f._id}
-                                    className={`px-3 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-100 last:border-b-0 ${values.connectedFieldId?.toString() === f._id?.toString() ? 'bg-blue-100' : ''}`}
-                                    onClick={() => {
-                                      setValues({ ...values, connectedFieldId: f._id });
-                                      setShowFieldDropdown(false);
-                                      setConnectedFieldSearch('');
-                                    }}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <span className="font-medium text-gray-900">{f.name}</span>
-                                      <span className="text-app-text bg-gray-200 px-2 py-0.5 rounded">{f.department?.toUpperCase()}</span>
-                                    </div>
-                                    {f.parentHeading?.name && (
-                                      <div className="text-app-text text-gray-500 mt-0.5">📁 {f.parentHeading.name}</div>
-                                    )}
-                                  </div>
-                                ))}
-                              {allFields.filter(f => f.type !== 'heading' && f._id !== editingId).filter(f => {
-                                if (!connectedFieldSearch) return true;
-                                const searchLower = connectedFieldSearch.toLowerCase();
-                                return f.name.toLowerCase().includes(searchLower) || f.department?.toLowerCase().includes(searchLower);
-                              }).length === 0 && (
-                                  <div className="px-3 py-4 text-center text-gray-500 text-app-text">No fields found</div>
-                                )}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Connection Type */}
-                        <div>
-                          <label className="block text-app-text font-medium text-gray-700 mb-1">
-                            Connection Type
-                          </label>
-                          <select
-                            className="w-full p-2 border border-gray-300 rounded"
-                            value={values.connectionType || ''}
-                            onChange={(e) => setValues({ ...values, connectionType: e.target.value || null })}
-                          >
-                            <option value="">Select connection type</option>
-                            <option value="auto-true">Auto-True (When this field is true, connected field becomes true)</option>
-                            <option value="toggle-active">Toggle-Active (This field is active only when connected field is false)</option>
-                            {values.type === 'image' && (
-                              <option value="is-attached">Is Attached (Show this image field as attached on the connected field)</option>
+                                  return f.name.toLowerCase().includes(searchLower) || f.department?.toLowerCase().includes(searchLower);
+                                }).length === 0 && (
+                                    <div className="px-3 py-4 text-center text-gray-500 text-app-text">No fields found</div>
+                                  )}
+                              </div>
                             )}
-                          </select>
-                          {values.connectionType === 'is-attached' && (
-                            <p className="mt-1 text-app-text text-blue-600">
-                              The connected field will show &quot;{values.name || 'This image field'} attached&quot; when images are uploaded.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                          </div>
 
-                {/* Buttons */}
-                <div className="flex flex-col-reverse gap-2 pt-3 border-t border-gray-200 sm:flex-row sm:justify-end">
-                  <button
-                    type="button"
-                    className="bg-gray-200 text-gray-700 px-4 py-2 rounded w-full sm:w-auto"
-                    onClick={() => setModalOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full sm:w-auto"
-                  >
-                    {editingId ? "Save changes" : "Save"}
-                  </button>
-                </div>
-              </form>
+                          {/* Connection Type */}
+                          <div>
+                            <label className="block text-app-text font-medium text-gray-700 mb-1">
+                              Connection Type
+                            </label>
+                            <select
+                              className="w-full p-2 border border-gray-300 rounded"
+                              value={values.connectionType || ''}
+                              onChange={(e) => setValues({ ...values, connectionType: e.target.value || null })}
+                            >
+                              <option value="">Select connection type</option>
+                              <option value="auto-true">Auto-True (When this field is true, connected field becomes true)</option>
+                              <option value="toggle-active">Toggle-Active (This field is active only when connected field is false)</option>
+                              {values.type === 'image' && (
+                                <option value="is-attached">Is Attached (Show this image field as attached on the connected field)</option>
+                              )}
+                            </select>
+                            {values.connectionType === 'is-attached' && (
+                              <p className="mt-1 text-app-text text-blue-600">
+                                The connected field will show &quot;{values.name || 'This image field'} attached&quot; when images are uploaded.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Buttons */}
+                  <div className="flex flex-col-reverse gap-2 pt-3 border-t border-gray-200 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      className="bg-gray-200 text-gray-700 px-4 py-2 rounded w-full sm:w-auto"
+                      onClick={() => setModalOpen(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full sm:w-auto"
+                    >
+                      {editingId ? "Save changes" : "Save"}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
-          </div>
-        </>
-      )
-      }
+          </>
+        )
+        }
+      </div>
     </Layout >
+    
   );
 }
 

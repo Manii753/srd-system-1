@@ -124,10 +124,14 @@ export default function DepartmentPanelExcel({
   const [statusToUpdate, setStatusToUpdate] = useState('approved');
   const [updateComment, setUpdateComment] = useState('');
 
-  // Auto-save functionality
-  const autoSaveTimeoutsRef = useRef({});
-  const lastSavedFieldsRef = useRef(JSON.stringify(fields));
-  const isSavingInProgressRef = useRef(false);
+  // Manual save + idle auto-save
+  const idleTimerRef = useRef(null);
+  const isSavingRef = useRef(false);
+  const fieldsRef = useRef(fields);
+  fieldsRef.current = fields;
+  const saveAllChangesRef = useRef(null);
+  const srdRef = useRef(srd);
+  srdRef.current = srd;
 
   // Check if user can edit a specific field based on its department
   const canEditField = useCallback((fieldDepartment) => {
@@ -195,7 +199,6 @@ export default function DepartmentPanelExcel({
 
   useEffect(() => {
     setFields(srd.dynamicFields || []);
-    lastSavedFieldsRef.current = JSON.stringify(srd.dynamicFields || []);
   }, [srd?.dynamicFields]);
 
   // Process template cells into sections based on pagination settings
@@ -232,69 +235,61 @@ export default function DepartmentPanelExcel({
     setSections(chunks.length > 0 ? chunks : [{ name: 'Page 1', cells: allCells, includeApprovals: true }]);
   }, [activeTemplate, formPagination]);
 
-  // Auto-save function with debouncing - saves per department
-  const debouncedAutoSave = useCallback(async (fieldsToSave, department) => {
-    if (autoSaveTimeoutsRef.current[department]) {
-      clearTimeout(autoSaveTimeoutsRef.current[department]);
+  // Save all pending changes in a single PATCH call
+  const saveAllChanges = useCallback(async () => {
+    const currentFields = fieldsRef.current;
+    if (isSavingRef.current || !currentFields.length) return;
+
+    setIsAutoSaving(true);
+    isSavingRef.current = true;
+    try {
+      const body = { dynamicFields: currentFields };
+
+      // If refNo field was changed, include it at the top level
+      const refNoField = currentFields.find(f => f.type === 'refNo');
+      if (refNoField) body.refNo = refNoField.value;
+
+      const res = await fetch(`/api/srd/${srdRef.current._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        onSrdUpdate?.(data.data);
+        setHasUnsavedChanges(false);
+        toast({ title: 'Saved', description: 'All changes saved', duration: 2000 });
+      } else {
+        throw new Error(data.error || 'Save failed');
+      }
+    } catch (error) {
+      console.error('[Save] Failed:', error);
+      toast({
+        title: 'Save failed',
+        description: 'Failed to save changes. Please try again.',
+        variant: 'destructive',
+        duration: 3000,
+      });
+    } finally {
+      setIsAutoSaving(false);
+      isSavingRef.current = false;
     }
+  }, [onSrdUpdate, toast]);
+  saveAllChangesRef.current = saveAllChanges;
 
-    autoSaveTimeoutsRef.current[department] = setTimeout(async () => {
-      // If a save is already in progress, delay this save a bit to avoid VersionError
-      if (isSavingInProgressRef.current) {
-        debouncedAutoSave(fieldsToSave, department);
-        return;
-      }
+  // Reset idle timer whenever fields change
+  const resetIdleTimer = useCallback(() => {
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    idleTimerRef.current = setTimeout(() => {
+      saveAllChangesRef.current?.();
+    }, 15000);
+  }, []);
 
-      const deptFields = fieldsToSave.filter(f => f.department === department);
-
-      if (deptFields.length > 0) {
-        setIsAutoSaving(true);
-        isSavingInProgressRef.current = true;
-        try {
-          const updateData = {
-            status: (srd.status || []).find(s => s.department === department)?.value || 'pending',
-            fields: deptFields,
-          };
-
-          // If any refNo field was changed, include the new refNo value for srd-level update
-          const refNoField = deptFields.find(f => f.type === 'refNo');
-          if (refNoField) {
-            updateData.refNo = refNoField.value;
-          }
-
-          await onUpdate(department, updateData, false);
-
-          lastSavedFieldsRef.current = JSON.stringify(fieldsToSave);
-          setHasUnsavedChanges(false);
-
-          toast({
-            title: 'Auto-saved',
-            description: `${department.toUpperCase()} changes saved`,
-            duration: 2000,
-          });
-
-        } catch (error) {
-          console.error('[Auto-save] Failed:', error);
-          toast({
-            title: 'Auto-save failed',
-            description: 'Please try saving manually',
-            variant: 'destructive',
-            duration: 3000,
-          });
-        } finally {
-          setIsAutoSaving(false);
-          isSavingInProgressRef.current = false;
-          delete autoSaveTimeoutsRef.current[department];
-        }
-      }
-    }, 1500);
-  }, [srd.status, onUpdate, toast]);
-
+  // Cleanup idle timer on unmount
   useEffect(() => {
-    const timeoutsRef = autoSaveTimeoutsRef;
     return () => {
-      const activeTimeouts = timeoutsRef.current;
-      Object.values(activeTimeouts).forEach(timeout => clearTimeout(timeout));
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     };
   }, []);
 
@@ -487,25 +482,18 @@ export default function DepartmentPanelExcel({
                 isOptionalEnabled: true,
               };
 
-              // Trigger auto-save for the connected field's department if different
-              if (connectedField.department !== resolvedDepartment) {
-                debouncedAutoSave(newFields, connectedField.department);
-              }
+              // Connected field changed — idle timer will handle saving
             }
           }
         }
-      }
-
-      // Trigger auto-save for this department
-      if (resolvedDepartment) {
-        debouncedAutoSave(newFields, resolvedDepartment);
       }
 
       return newFields;
     });
 
     setHasUnsavedChanges(true);
-  }, [allFieldDefs, buildFieldState, debouncedAutoSave, findFieldIndex, normalizeFieldId]);
+    resetIdleTimer();
+  }, [allFieldDefs, buildFieldState, resetIdleTimer, findFieldIndex, normalizeFieldId]);
 
   // Handle field change with department tracking
   const handleFieldChange = useCallback((fieldId, name, value, department, fieldDef = null) => {
@@ -577,7 +565,7 @@ export default function DepartmentPanelExcel({
       handleFieldChange(fieldId, name, updatedImages, department);
       toast({
         title: 'Image removed',
-        description: 'Changes will be saved automatically',
+        description: 'Click Save to apply changes',
       });
     } else {
       toast({
@@ -598,7 +586,7 @@ export default function DepartmentPanelExcel({
     handleFieldChange(fieldId, name, reorderedImages, department);
     toast({
       title: 'Cover image set',
-      description: 'Changes will be saved automatically',
+      description: 'Click Save to apply changes',
     });
   }, [getFieldValue, handleFieldChange, toast]);
 
@@ -685,11 +673,20 @@ export default function DepartmentPanelExcel({
         >
           {isPrinting ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Wait...</> : <><Printer className="h-3 w-3 mr-1" />Print SRD</>}
         </Button>
-        {hasUnsavedChanges && (
-          <div className="flex items-center text-app-text text-amber-600">
-            <div className="animate-pulse w-1.5 h-1.5 bg-amber-400 rounded-full mr-1" />
-            Saving...
-          </div>
+        <Button
+          onClick={() => saveAllChangesRef.current?.()}
+          size="sm"
+          variant={hasUnsavedChanges ? "default" : "outline"}
+          className={cn("h-7 px-3 text-app-text", hasUnsavedChanges && "bg-blue-600 hover:bg-blue-700 text-white")}
+          disabled={isAutoSaving || !hasUnsavedChanges}
+        >
+          {isAutoSaving ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Saving...</> : <><DiscIcon className="h-3 w-3 mr-1" />Save</>}
+        </Button>
+        {hasUnsavedChanges && !isAutoSaving && (
+          <span className="text-xs text-amber-600 font-medium flex items-center">
+            <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-1" />
+            Unsaved changes
+          </span>
         )}
         <div className="flex items-center gap-1 ml-2">
           {['vmd', 'cad', 'commercial', 'mmc'].map(dept => {
@@ -712,7 +709,8 @@ export default function DepartmentPanelExcel({
         </div>
       </div>
     );
-  }, [onHeaderContent, srd, isPrinting, hasUnsavedChanges, handlePrint]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onHeaderContent, srd._id, srd.refNo, JSON.stringify(srd.status), isPrinting, hasUnsavedChanges, isAutoSaving, handlePrint]);
 
   // Render input cell based on field type
   const renderCellInput = useCallback((fieldDef, fieldId, canEdit) => {
@@ -1441,8 +1439,8 @@ export default function DepartmentPanelExcel({
   // Loading state
   if (isLoading) {
     return (
-      <div className="bg-white border border-gray-200 rounded-lg p-8">
-        <div className="flex flex-col items-center justify-center">
+      <div className="flex h-full bg-white border border-gray-200 rounded-lg p-8">
+        <div className="flex flex-1 h-full flex-col items-center justify-center">
           <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-2" />
           <p className="text-app-text text-gray-500">Loading template...</p>
         </div>
@@ -1498,7 +1496,7 @@ export default function DepartmentPanelExcel({
   }
 
   return (
-    <div className="flex gap-0 bg-white rounded-lg overflow-hidden flex-1 min-h-0">
+    <div className="flex gap-0 bg-white rounded-lg overflow-hidden flex-1 min-h-0 p-1">
       {/* Main Form Area */}
       <div className="flex flex-col flex-1 min-h-0 overflow-y-hidden">
 

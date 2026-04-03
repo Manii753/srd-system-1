@@ -104,248 +104,250 @@ export default function ReportsPage() {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-app-heading font-bold text-gray-900">SRD Reports</h1>
-          <p className="text-gray-600 mt-1">Generate detailed reports with filters</p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center mb-4">
-            <Filter className="h-5 w-5 mr-2 text-gray-600" />
-            <h2 className="text-app-heading font-semibold">Filters</h2>
+      <div className="h-full overflow-y-auto custom-scrollbar p-2">
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-app-heading font-bold text-gray-900">SRD Reports</h1>
+            <p className="text-gray-600 mt-1">Generate detailed reports with filters</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-app-text font-medium text-gray-700 mb-1">
-                Start Date
-              </label>
-              <input
-                type="date"
-                className="w-full p-2 border border-gray-300 rounded"
-                value={filters.startDate}
-                onChange={(event) => setFilters({ ...filters, startDate: event.target.value })}
-              />
+          <div className="bg-white rounded-lg shadow p-3">
+            <div className="flex items-center mb-2">
+              <Filter className="h-5 w-5 mr-2 text-gray-600" />
+              <h2 className="text-app-heading font-semibold">Filters</h2>
             </div>
 
-            <div>
-              <label className="block text-app-text font-medium text-gray-700 mb-1">
-                End Date
-              </label>
-              <input
-                type="date"
-                className="w-full p-2 border border-gray-300 rounded"
-                value={filters.endDate}
-                onChange={(event) => setFilters({ ...filters, endDate: event.target.value })}
-              />
-            </div>
-
-            <div>
-              <label className="block text-app-text font-medium text-gray-700 mb-1">
-                Department
-              </label>
-              <select
-                className="w-full p-2 border border-gray-300 rounded"
-                value={filters.department}
-                onChange={(event) => setFilters({ ...filters, department: event.target.value })}
-              >
-                <option value="">All Departments</option>
-                <option value="vmd">VMD</option>
-                <option value="cad">CAD</option>
-                <option value="commercial">Commercial</option>
-                <option value="mmc">MMC</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-app-text font-medium text-gray-700 mb-1">
-                Status
-              </label>
-              <select
-                className="w-full p-2 border border-gray-300 rounded"
-                value={filters.status}
-                onChange={(event) => setFilters({ ...filters, status: event.target.value })}
-              >
-                <option value="">All Status</option>
-                <option value="pre-production">Pre-Production</option>
-                <option value="in-production">In Production</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-app-text font-medium text-gray-700 mb-1">
-                Brand
-              </label>
-              <input
-                type="text"
-                className="w-full p-2 border border-gray-300 rounded"
-                placeholder="Filter by brand..."
-                value={filters.brand}
-                onChange={(event) => setFilters({ ...filters, brand: event.target.value })}
-              />
-            </div>
-
-            <div>
-              <label className="block text-app-text font-medium text-gray-700 mb-1">
-                Sample Type
-              </label>
-              <input
-                type="text"
-                className="w-full p-2 border border-gray-300 rounded"
-                placeholder="Filter by sample type..."
-                value={filters.sampleType}
-                onChange={(event) => setFilters({ ...filters, sampleType: event.target.value })}
-              />
-            </div>
-          </div>
-
-          <div className="mt-4 flex justify-end">
-            <Button
-              variant="outline"
-              onClick={() => setFilters({
-                startDate: '',
-                endDate: '',
-                department: '',
-                status: '',
-                brand: '',
-                sampleType: '',
-              })}
-            >
-              Clear Filters
-            </Button>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <div className="flex items-center">
-                <LayoutList className="h-5 w-5 mr-2 text-purple-600" />
-                <h2 className="text-app-heading font-semibold">Dynamic Report Template</h2>
-              </div>
-              <p className="text-app-text text-gray-500 mt-2">
-                Manage the ordered columns for the dynamic report in the dedicated template designer.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => router.push('/srdfields')}>
-                <Settings2 className="h-4 w-4 mr-2" />
-                Manage Fields
-              </Button>
-              <Button onClick={() => router.push('/reports/templates')}>
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Template Designer
-              </Button>
-            </div>
-          </div>
-
-          <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
-            {loadingTemplate ? (
-              <div className="text-app-text text-gray-500">Loading active template...</div>
-            ) : activeTemplate ? (
-              <div className="space-y-2">
-                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <div className="font-semibold text-gray-900">{activeTemplate.name}</div>
-                    <div className="text-app-text text-gray-500">
-                      {dynamicColumnCount} column{dynamicColumnCount === 1 ? '' : 's'} in the active template
-                    </div>
-                  </div>
-                  <span className="inline-flex w-fit rounded-full bg-green-100 px-3 py-1 text-app-text font-medium text-green-700">
-                    Active Template
-                  </span>
-                </div>
-
-                <div className="text-app-text text-gray-600">
-                  {dynamicColumnCount > 0
-                    ? `Columns: ${activeLabelsPreview}${dynamicColumnCount > 8 ? ' ...' : ''}`
-                    : 'This template has no columns yet.'}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="font-medium text-gray-800">No active dynamic report template</div>
-                <div className="text-app-text text-gray-500">
-                  Open the template designer to create or activate a report template.
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center mb-4">
-              <Calendar className="h-8 w-8 text-green-600 mr-3" />
-              <div>
-                <h3 className="text-app-heading font-semibold">Summary Report</h3>
-                <p className="text-app-text text-gray-600">Choose any saved template without changing the active one</p>
-              </div>
-            </div>
-            <div className="mb-4 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
               <div>
                 <label className="block text-app-text font-medium text-gray-700 mb-1">
-                  Template
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  className="w-full p-2 border border-gray-300 rounded"
+                  value={filters.startDate}
+                  onChange={(event) => setFilters({ ...filters, startDate: event.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-app-text font-medium text-gray-700 mb-1">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  className="w-full p-2 border border-gray-300 rounded"
+                  value={filters.endDate}
+                  onChange={(event) => setFilters({ ...filters, endDate: event.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-app-text font-medium text-gray-700 mb-1">
+                  Department
                 </label>
                 <select
                   className="w-full p-2 border border-gray-300 rounded"
-                  value={selectedSummaryTemplateId}
-                  onChange={(event) => setSelectedSummaryTemplateId(event.target.value)}
-                  disabled={loadingTemplate || reportTemplates.length === 0}
+                  value={filters.department}
+                  onChange={(event) => setFilters({ ...filters, department: event.target.value })}
                 >
-                  {reportTemplates.length === 0 ? (
-                    <option value="">No templates available</option>
-                  ) : (
-                    reportTemplates.map((template) => (
-                      <option key={template._id} value={template._id}>
-                        {template.name}{template.isActive ? ' (Active)' : ''}
-                      </option>
-                    ))
-                  )}
+                  <option value="">All Departments</option>
+                  <option value="vmd">VMD</option>
+                  <option value="cad">CAD</option>
+                  <option value="commercial">Commercial</option>
+                  <option value="mmc">MMC</option>
                 </select>
               </div>
-              <div className="text-app-text text-gray-600">
-                {loadingTemplate
-                  ? 'Loading templates...'
-                  : selectedSummaryTemplate && summaryTemplateColumnCount > 0
-                    ? `Template: ${selectedSummaryTemplate.name}. Columns: ${summaryLabelsPreview}${summaryTemplateColumnCount > 8 ? ' ...' : ''}`
-                    : 'Select a saved template to print this report.'}
+
+              <div>
+                <label className="block text-app-text font-medium text-gray-700 mb-1">
+                  Status
+                </label>
+                <select
+                  className="w-full p-2 border border-gray-300 rounded"
+                  value={filters.status}
+                  onChange={(event) => setFilters({ ...filters, status: event.target.value })}
+                >
+                  <option value="">All Status</option>
+                  <option value="pre-production">Pre-Production</option>
+                  <option value="in-production">In Production</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-app-text font-medium text-gray-700 mb-1">
+                  Brand
+                </label>
+                <input
+                  type="text"
+                  className="w-full p-2 border border-gray-300 rounded"
+                  placeholder="Filter by brand..."
+                  value={filters.brand}
+                  onChange={(event) => setFilters({ ...filters, brand: event.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-app-text font-medium text-gray-700 mb-1">
+                  Sample Type
+                </label>
+                <input
+                  type="text"
+                  className="w-full p-2 border border-gray-300 rounded"
+                  placeholder="Filter by sample type..."
+                  value={filters.sampleType}
+                  onChange={(event) => setFilters({ ...filters, sampleType: event.target.value })}
+                />
               </div>
             </div>
-            <Button
-              className="w-full bg-green-600 hover:bg-green-700"
-              onClick={() => generateReport('summary', selectedSummaryTemplateId)}
-              disabled={summaryTemplateDisabled || loadingTemplate}
-            >
-              Generate Summary Report
-            </Button>
+
+            <div className="mt-4 flex justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setFilters({
+                  startDate: '',
+                  endDate: '',
+                  department: '',
+                  status: '',
+                  brand: '',
+                  sampleType: '',
+                })}
+              >
+                Clear Filters
+              </Button>
+            </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow border-2 border-purple-100">
-            <div className="flex items-center mb-4">
-              <LayoutList className="h-8 w-8 text-purple-600 mr-3" />
+          <div className="bg-white rounded-lg shadow p-3">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <h3 className="text-app-heading font-semibold">Dynamic Report</h3>
-                <p className="text-app-text text-gray-600">Uses the active dynamic report template</p>
+                <div className="flex items-center">
+                  <LayoutList className="h-5 w-5 mr-2 text-purple-600" />
+                  <h2 className="text-app-heading font-semibold">Dynamic Report Template</h2>
+                </div>
+                <p className="text-app-text text-gray-500 mt-2">
+                  Manage the ordered columns for the dynamic report in the dedicated template designer.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => router.push('/srdfields')}>
+                  <Settings2 className="h-4 w-4 mr-2" />
+                  Manage Fields
+                </Button>
+                <Button onClick={() => router.push('/reports/templates')}>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Template Designer
+                </Button>
               </div>
             </div>
-            <div className="mb-4 text-app-text text-gray-600">
-              {loadingTemplate
-                ? 'Loading active template...'
-                : activeTemplate && dynamicColumnCount > 0
-                  ? `Template: ${activeTemplate.name}. Columns: ${activeLabelsPreview}${dynamicColumnCount > 8 ? ' ...' : ''}`
-                  : 'No active template with columns is available yet. Configure it in the template designer.'}
+
+            <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
+              {loadingTemplate ? (
+                <div className="text-app-text text-gray-500">Loading active template...</div>
+              ) : activeTemplate ? (
+                <div className="space-y-2">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <div className="font-semibold text-gray-900">{activeTemplate.name}</div>
+                      <div className="text-app-text text-gray-500">
+                        {dynamicColumnCount} column{dynamicColumnCount === 1 ? '' : 's'} in the active template
+                      </div>
+                    </div>
+                    <span className="inline-flex w-fit rounded-full bg-green-100 px-3 py-1 text-app-text font-medium text-green-700">
+                      Active Template
+                    </span>
+                  </div>
+
+                  <div className="text-app-text text-gray-600">
+                    {dynamicColumnCount > 0
+                      ? `Columns: ${activeLabelsPreview}${dynamicColumnCount > 8 ? ' ...' : ''}`
+                      : 'This template has no columns yet.'}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="font-medium text-gray-800">No active dynamic report template</div>
+                  <div className="text-app-text text-gray-500">
+                    Open the template designer to create or activate a report template.
+                  </div>
+                </div>
+              )}
             </div>
-            <Button
-              className="w-full bg-purple-600 hover:bg-purple-700"
-              onClick={() => generateReport('dynamic')}
-              disabled={dynamicReportDisabled || loadingTemplate}
-            >
-              Generate Dynamic Report
-            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-center mb-4">
+                <Calendar className="h-8 w-8 text-green-600 mr-3" />
+                <div>
+                  <h3 className="text-app-heading font-semibold">Summary Report</h3>
+                  <p className="text-app-text text-gray-600">Choose any saved template without changing the active one</p>
+                </div>
+              </div>
+              <div className="mb-4 space-y-3">
+                <div>
+                  <label className="block text-app-text font-medium text-gray-700 mb-1">
+                    Template
+                  </label>
+                  <select
+                    className="w-full p-2 border border-gray-300 rounded"
+                    value={selectedSummaryTemplateId}
+                    onChange={(event) => setSelectedSummaryTemplateId(event.target.value)}
+                    disabled={loadingTemplate || reportTemplates.length === 0}
+                  >
+                    {reportTemplates.length === 0 ? (
+                      <option value="">No templates available</option>
+                    ) : (
+                      reportTemplates.map((template) => (
+                        <option key={template._id} value={template._id}>
+                          {template.name}{template.isActive ? ' (Active)' : ''}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+                <div className="text-app-text text-gray-600">
+                  {loadingTemplate
+                    ? 'Loading templates...'
+                    : selectedSummaryTemplate && summaryTemplateColumnCount > 0
+                      ? `Template: ${selectedSummaryTemplate.name}. Columns: ${summaryLabelsPreview}${summaryTemplateColumnCount > 8 ? ' ...' : ''}`
+                      : 'Select a saved template to print this report.'}
+                </div>
+              </div>
+              <Button
+                className="w-full bg-green-600 hover:bg-green-700"
+                onClick={() => generateReport('summary', selectedSummaryTemplateId)}
+                disabled={summaryTemplateDisabled || loadingTemplate}
+              >
+                Generate Summary Report
+              </Button>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow border-2 border-purple-100">
+              <div className="flex items-center mb-4">
+                <LayoutList className="h-8 w-8 text-purple-600 mr-3" />
+                <div>
+                  <h3 className="text-app-heading font-semibold">Dynamic Report</h3>
+                  <p className="text-app-text text-gray-600">Uses the active dynamic report template</p>
+                </div>
+              </div>
+              <div className="mb-4 text-app-text text-gray-600">
+                {loadingTemplate
+                  ? 'Loading active template...'
+                  : activeTemplate && dynamicColumnCount > 0
+                    ? `Template: ${activeTemplate.name}. Columns: ${activeLabelsPreview}${dynamicColumnCount > 8 ? ' ...' : ''}`
+                    : 'No active template with columns is available yet. Configure it in the template designer.'}
+              </div>
+              <Button
+                className="w-full bg-purple-600 hover:bg-purple-700"
+                onClick={() => generateReport('dynamic')}
+                disabled={dynamicReportDisabled || loadingTemplate}
+              >
+                Generate Dynamic Report
+              </Button>
+            </div>
           </div>
         </div>
       </div>

@@ -167,7 +167,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Quick Links */}
-                <div className="mt-8 bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 rounded-lg p-6">
+                {/* <div className="mt-8 bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 rounded-lg p-6">
                     <h2 className="text-app-heading font-semibold text-gray-900 mb-4">Quick Start</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -186,7 +186,7 @@ export default function SettingsPage() {
                             </ul>
                         </div>
                     </div>
-                </div>
+                </div> */}
             </div>
         </Layout>
     );
