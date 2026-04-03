@@ -230,6 +230,7 @@ const AirwayBillPrint = ({ srd }) => {
       <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;">Dispatch Qty</td>
       <td style="border:1px solid #000;padding:4px 8px;">${dispatchQty}</td>
       <td style="border:1px solid #000;padding:4px 8px;font-weight:bold;">Buyer</td>
+      <td style="border:1px solid #000;padding:4px 8px;">${buyerName}</td>
     </tr>
 
     ${contactRows || `<tr>
@@ -252,16 +253,7 @@ const AirwayBillPrint = ({ srd }) => {
     </tr>`}
   </table>
 
-  <!-- Stages Section -->
-  ${stages.length > 0 ? `
-  <table>
-    <tr>
-      <td class="section-header" colspan="4">Stages</td>
-    </tr>
-    
-    ${stageRows}
-  </table>
-  ` : ''}
+
 
   <script>window.onload = () => window.print();</script>
 </body>

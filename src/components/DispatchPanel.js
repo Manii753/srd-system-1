@@ -16,6 +16,7 @@ import DepartmentPanelExcel from './DepartmentPanelExcel';
 import UploadImage from './UploadImage';
 import Image from 'next/image';
 import { X, Plus } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   const { data: session } = useSession();
@@ -45,6 +46,11 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     phone: '',
     contactPerson: [{ name: '', phone: '' }]
   });
+
+  // Approval dialog states
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [approvalDialogType, setApprovalDialogType] = useState(null); // 'approve' or 'reject'
+  const [approverName, setApproverName] = useState('');
 
   // Dispatch details states
   const [dispatchAWB, setDispatchAWB] = useState('');
@@ -199,11 +205,23 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     }
   };
 
-  const handleInternalVerify = (approved) => {
+  const openApprovalDialog = (type) => {
+    setApprovalDialogType(type);
+    setApproverName('');
+    setApprovalDialogOpen(true);
+  };
+
+  const handleInternalVerify = () => {
+    if (!approverName.trim()) {
+      toast({ title: 'Error', description: 'Please enter the approver name', variant: 'destructive' });
+      return;
+    }
+    const approved = approvalDialogType === 'approve';
+    setApprovalDialogOpen(false);
     handleAction('internal_approval', {
       internalApproved: approved,
       internalComments,
-      internalApprovedBy: session?.user?.name + ' | ' + session.user?.role,
+      internalApprovedBy: approverName.trim(),
       internalRejectedReasons: !approved ? internalRejectedReasons : [],
     });
   };
@@ -269,7 +287,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         {/* Section Header */}
         <div className="bg-gray-100 border-b border-gray-300 px-2 py-1.5 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <span className="text-app-heading font-bold text-gray-800 uppercase">Dispatch Approval</span>
+            <span className="text-app-heading font-bold text-gray-800 uppercase">Conditions</span>
             <DispatchCardPrint srd={srd} />
           </div>
           <span className={`text-app-text font-medium ${srd.internalApproved ? 'text-green-600' : srd.internalApprovedDate ? 'text-red-600' : 'text-blue-600'}`}>
@@ -364,16 +382,16 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           <div className="grid grid-cols-12">
             <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
             <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
-              <Button 
-                onClick={() => handleInternalVerify(true)} 
-                disabled={loading} 
+              <Button
+                onClick={() => openApprovalDialog('approve')}
+                disabled={loading}
                 className="bg-green-600 hover:bg-green-700 text-white flex-1 h-8 text-app-text font-medium rounded-none"
               >
                 Approve for Dispatch
               </Button>
-              <Button 
-                onClick={() => handleInternalVerify(false)} 
-                disabled={loading} 
+              <Button
+                onClick={() => openApprovalDialog('reject')}
+                disabled={loading}
                 className="bg-red-600 hover:bg-red-700 text-white flex-1 h-8 text-app-text font-medium rounded-none"
               >
                 Reject
@@ -388,7 +406,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           {/* Section Header */}
           <div className="bg-gray-100 border-b border-gray-300 px-2 py-1.5 flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <span className="text-app-heading font-bold text-gray-800 uppercase">Dispatch Details</span>
+              <span className="text-app-heading font-bold text-gray-800 uppercase">Sample Dispatch</span>
               {srd.DispatchDetails && <AirwayBillPrint srd={srd} />}
             </div>
             <span className={`text-app-text font-medium ${srd.DispatchDetails ? 'text-green-600' : 'text-yellow-600'}`}>
@@ -427,6 +445,103 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               </div>
             </div>
           </div>
+
+          {/* Buyer Creation / Edit Form */}
+          {isCreatingBuyer && (
+            <div className="border-b border-gray-300">
+              <div className="grid grid-cols-12">
+                <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5">
+                  <span className="text-app-heading font-semibold text-gray-700">{isEditingBuyer ? 'Edit Buyer' : 'New Buyer'}</span>
+                </div>
+                <div className="col-span-10 px-2 py-1.5 space-y-1.5">
+                  <div className="flex gap-1.5">
+                    <Input
+                      className="h-7 text-app-text flex-1 rounded-none border-gray-300"
+                      value={newBuyer.name}
+                      onChange={e => setNewBuyer({ ...newBuyer, name: e.target.value })}
+                      placeholder="Buyer Name *"
+                    />
+                    <Input
+                      className="h-7 text-app-text flex-1 rounded-none border-gray-300"
+                      value={newBuyer.email}
+                      onChange={e => setNewBuyer({ ...newBuyer, email: e.target.value })}
+                      placeholder="Email (comma separated)"
+                    />
+                    <Input
+                      className="h-7 text-app-text flex-1 rounded-none border-gray-300"
+                      value={newBuyer.phone}
+                      onChange={e => setNewBuyer({ ...newBuyer, phone: e.target.value })}
+                      placeholder="Phone (comma separated)"
+                    />
+                  </div>
+                  {newBuyer.contactPerson.map((cp, i) => (
+                    <div key={i} className="flex gap-1.5 items-center">
+                      <Input
+                        className="h-7 text-app-text flex-1 rounded-none border-gray-300"
+                        value={cp.name}
+                        onChange={e => {
+                          const updated = [...newBuyer.contactPerson];
+                          updated[i] = { ...updated[i], name: e.target.value };
+                          setNewBuyer({ ...newBuyer, contactPerson: updated });
+                        }}
+                        placeholder="Contact Person Name"
+                      />
+                      <Input
+                        className="h-7 text-app-text flex-1 rounded-none border-gray-300"
+                        value={cp.phone}
+                        onChange={e => {
+                          const updated = [...newBuyer.contactPerson];
+                          updated[i] = { ...updated[i], phone: e.target.value };
+                          setNewBuyer({ ...newBuyer, contactPerson: updated });
+                        }}
+                        placeholder="Contact Phone"
+                      />
+                      {newBuyer.contactPerson.length > 1 && (
+                        <button
+                          onClick={() => setNewBuyer({ ...newBuyer, contactPerson: newBuyer.contactPerson.filter((_, idx) => idx !== i) })}
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <div className="flex gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-app-text rounded-none"
+                      onClick={() => setNewBuyer({ ...newBuyer, contactPerson: [...newBuyer.contactPerson, { name: '', phone: '' }] })}
+                    >
+                      <Plus className="h-3 w-3 mr-1" /> Add Contact
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-7 text-app-text bg-blue-600 hover:bg-blue-700 rounded-none"
+                      onClick={isEditingBuyer ? handleUpdateBuyer : handleCreateBuyer}
+                      disabled={loading}
+                    >
+                      {isEditingBuyer ? 'Update Buyer' : 'Create Buyer'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Buyer Button */}
+          {selectedBuyer && !isCreatingBuyer && canEdit && !srd.sampleDispatchedToBuyer && (
+            <div className="border-b border-gray-300">
+              <div className="grid grid-cols-12">
+                <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
+                <div className="col-span-10 px-2 py-1">
+                  <Button variant="outline" size="sm" className="h-6 text-app-text rounded-none text-xs" onClick={handleStartEdit}>
+                    Edit Selected Buyer
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* AWB, Quantity, Dispatch Date */}
           <div className="border-b border-gray-300">
@@ -556,29 +671,23 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {srd.DispatchDetails && !srd.sampleDispatchedToBuyer && (
-        <div className="border border-gray-300 bg-white mt-2">
-          <div className="bg-gray-100 border-b border-gray-300 px-2 py-1.5">
-            <span className="text-app-heading font-bold text-gray-800 uppercase">Dispatch Sample</span>
-          </div>
-          <div className="px-2 py-2">
-            <div className="text-center py-3 bg-blue-50 border border-blue-200">
-              <p className="text-app-text text-blue-700 mb-2">Sample details are ready. Click below to confirm physical dispatch.</p>
-              <div className="flex gap-2 justify-center">
-                {canEdit && (
-                  <Button onClick={handleSaveDispatchDetails} disabled={loading} className="bg-blue-600 hover:bg-blue-700 h-7 text-app-text rounded-none">
-                    Save Dispatch Details
+          {/* Save & Dispatch Buttons */}
+          {canEdit && !srd.sampleDispatchedToBuyer && (
+            <div className="grid grid-cols-12">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
+              <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
+                <Button onClick={handleSaveDispatchDetails} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white flex-1 h-8 text-app-text font-medium rounded-none">
+                  Save Dispatch Details
+                </Button>
+                {srd.DispatchDetails && (
+                  <Button onClick={handleDispatchToBuyer} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white flex-1 h-8 text-app-text font-medium rounded-none">
+                    Dispatch Sample to Buyer
                   </Button>
                 )}
-                <Button onClick={handleDispatchToBuyer} disabled={loading} className="bg-blue-600 hover:bg-blue-700 h-7 text-app-text rounded-none">
-                  Dispatch Sample to Buyer
-                </Button>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -685,6 +794,40 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           </div>
         )}
       </div>
+
+      {/* Approval Dialog */}
+      <Dialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {approvalDialogType === 'approve' ? 'Approve SRD' : 'Reject SRD'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="approverName">Who approved / rejected this SRD?</Label>
+            <Input
+              id="approverName"
+              placeholder="Enter name..."
+              value={approverName}
+              onChange={(e) => setApproverName(e.target.value)}
+              className="border-gray-300"
+              autoFocus
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setApprovalDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleInternalVerify}
+              disabled={loading}
+              className={approvalDialogType === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+            >
+              {approvalDialogType === 'approve' ? 'Confirm Approval' : 'Confirm Rejection'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
