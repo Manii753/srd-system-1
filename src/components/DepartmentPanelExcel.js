@@ -695,14 +695,14 @@ export default function DepartmentPanelExcel({
               <span
                 key={dept}
                 className={cn(
-                  "inline-flex items-center rounded-full px-2 py-0.5 text-app-text font-medium",
+                  "inline-flex items-center rounded-full px-2 py-0.5 text-app-heading font-medium",
                   val === 'approved' && 'bg-green-100 text-green-800',
                   val === 'in-progress' && 'bg-blue-100 text-blue-800',
                   val === 'flagged' && 'bg-red-100 text-red-800',
                   val === 'pending' && 'bg-gray-100 text-gray-800'
                 )}
               >
-                {dept.toUpperCase()}: {val}
+                {dept}
               </span>
             );
           })}

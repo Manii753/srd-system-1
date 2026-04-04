@@ -155,11 +155,11 @@ export default function UploadImage({ onUploaded, srdId, fieldId }) {
   const overallProgress = files.length ? Math.round(files.reduce((acc, f) => acc + (f.progress || 0), 0) / files.length) : 0;
 
   return (
-    <div>
+    <div className='h-full flex flex-col'>
       <div
         onDrop={onDrop}
         onDragOver={onDragOver}
-        className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer"
+        className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer flex-1 flex flex-col"
         onClick={() => canUpload && inputRef.current && inputRef.current.click()}
         onPaste={handlePaste}
       >
@@ -180,8 +180,8 @@ export default function UploadImage({ onUploaded, srdId, fieldId }) {
         )}
 
         {canUpload && files.length === 0 && (
-          <div>
-            <p className="text-gray-600">Drag & drop images here, or click to select files</p>
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <p className="text-gray-600 text-app-text">Drag & drop images here, or click to select files</p>
             <div className="mt-3">
               <Button type="button" variant="outline" onClick={(e) => { e.stopPropagation(); inputRef.current && inputRef.current.click(); }}>
                 Choose Images
@@ -191,11 +191,11 @@ export default function UploadImage({ onUploaded, srdId, fieldId }) {
         )}
 
         {canUpload && files.length > 0 && (
-          <div className="space-y-3">
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+          <div className="flex-1 flex flex-col gap-3 min-h-0">
+            <div className="flex-1 grid grid-cols-3 md:grid-cols-6 gap-3 overflow-y-auto custom-scrollbar content-start">
               {files.map((f, i) => (
-                <div key={i} className="relative group">
-                  <Image src={f.preview} alt={`preview-${i}`} width={96} height={96} className="w-full h-24 object-cover rounded" />
+                <div key={i} className="relative group h-24">
+                  <Image src={f.preview} alt={`preview-${i}`} width={96} height={96} className="w-full h-full object-cover rounded" />
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center space-x-2">
                     <Button size="sm" onClick={(e) => removeFile(e, i)}>Remove</Button>
                   </div>
@@ -204,7 +204,7 @@ export default function UploadImage({ onUploaded, srdId, fieldId }) {
               ))}
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pt-2 border-t border-gray-200">
               <div className="w-2/3">
                 <Progress value={overallProgress} className="h-2" />
                 <div className="text-app-text text-gray-600 mt-1">{overallProgress}%</div>
