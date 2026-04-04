@@ -155,11 +155,11 @@ export default function UploadImage({ onUploaded, srdId, fieldId }) {
   const overallProgress = files.length ? Math.round(files.reduce((acc, f) => acc + (f.progress || 0), 0) / files.length) : 0;
 
   return (
-    <div className='h-full flex flex-col'>
+    <div className='h-full flex flex-col p-4 '>
       <div
         onDrop={onDrop}
         onDragOver={onDragOver}
-        className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer flex-1 flex flex-col"
+        className="text-center cursor-pointer flex-1 flex flex-col"
         onClick={() => canUpload && inputRef.current && inputRef.current.click()}
         onPaste={handlePaste}
       >

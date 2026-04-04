@@ -33,10 +33,11 @@ import { Send } from 'lucide-react';
 import { checkCustomRoutes } from 'next/dist/lib/load-custom-routes';
 
 // Debounced input: keeps local state while typing so parent re-renders don't revert the value
-function DebouncedInput({ value, onDebouncedChange, delay = 400, onKeyDown: parentKeyDown, onBlur: parentBlur, ...props }) {
+function DebouncedInput({ value, onDebouncedChange, delay = 400, onKeyDown: parentKeyDown, onBlur: parentBlur, maxLength, showCharLimitToast, ...props }) {
   const [local, setLocal] = React.useState(value ?? '');
   const timerRef = React.useRef(null);
   const typingRef = React.useRef(false);
+  const toastShownRef = React.useRef(false);
 
   React.useEffect(() => {
     if (!typingRef.current) setLocal(value ?? '');
@@ -52,10 +53,19 @@ function DebouncedInput({ value, onDebouncedChange, delay = 400, onKeyDown: pare
     <input
       {...props}
       value={local}
+      maxLength={maxLength}
       onChange={(e) => {
         const v = e.target.value;
         setLocal(v);
         typingRef.current = true;
+        
+        // Show toast when approaching or at character limit
+        if (maxLength && v.length >= maxLength && !toastShownRef.current && showCharLimitToast) {
+          showCharLimitToast();
+          toastShownRef.current = true;
+          setTimeout(() => { toastShownRef.current = false; }, 3000);
+        }
+        
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => flush(v), delay);
       }}
@@ -137,6 +147,16 @@ export default function DepartmentPanelExcel({
   const canEditField = useCallback((fieldDepartment) => {
     return userRole === 'admin' || userRole === 'vmd' || userRole === fieldDepartment;
   }, [userRole]);
+
+  // Show character limit toast
+  const showCharLimitToast = useCallback(() => {
+    toast({
+      title: 'Character Limit Reached',
+      description: 'Maximum 20 characters allowed',
+      variant: 'destructive',
+      duration: 3000,
+    });
+  }, [toast]);
 
 
   // Fetch active template and all field definitions
@@ -751,15 +771,13 @@ export default function DepartmentPanelExcel({
                 required={isRequired}
                 disabled={!canEdit || isAutoField}
                 maxLength={20}
+                showCharLimitToast={showCharLimitToast}
                 className={cn(
-                  "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-app-text py-0 px-0 h-6",
+                  "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-app-text py-0 px-0 h-5",
                   !canEdit && "cursor-not-allowed text-gray-500",
                   isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
                 )}
               />
-              {String(displayValue || '').length >= 20 && (
-                <span className="absolute left-full top-1/2 -translate-y-1/2 -translate-x-[145px] ml-2 whitespace-nowrap text-[10px] text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 z-20 pointer-events-none">Cannot add more letters</span>
-              )}
             </div>
           </div>
         );
@@ -783,9 +801,6 @@ export default function DepartmentPanelExcel({
                   isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
                 )}
               />
-              {String(fieldValue || '').length >= 20 && (
-                <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap text-[10px] text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 z-20 pointer-events-none">Cannot add more letters</span>
-              )}
             </div>
           </div>
         );
@@ -932,10 +947,8 @@ export default function DepartmentPanelExcel({
                                   )}
                                   disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
                                   maxLength={20}
+                                  showCharLimitToast={showCharLimitToast}
                                 />
-                                {(row[idx] || '').length >= 20 && (
-                                  <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap text-[10px] text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 z-20 pointer-events-none">Cannot add more letters</span>
-                                )}
                               </div>
                             </div>
                           ))}
@@ -962,10 +975,8 @@ export default function DepartmentPanelExcel({
                                     )}
                                     disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
                                     maxLength={20}
+                                    showCharLimitToast={showCharLimitToast}
                                   />
-                                  {(row[idx] || '').length >= 20 && (
-                                    <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap text-[10px] text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 z-20 pointer-events-none">Cannot add more letters</span>
-                                  )}
                                 </div>
                               </div>
                             ))
@@ -992,12 +1003,12 @@ export default function DepartmentPanelExcel({
                           <tbody>
                             <tr className='group/row hover:bg-blue-50/30 transition-colors duration-100'>
                               <td className='border border-gray-200 p-0'>
-                                <div className="flex items-center justify-center gap-1 py-0.5">
+                                <div className="flex items-center justify-center gap-1 py-0">
                                   <button
                                     onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
                                     disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                                     className={cn(
-                                      "px-1.5 py-0.5 rounded text-[10px] font-medium border",
+                                      "px-1.5 py-0 rounded text-[10px] font-medium border",
                                       !isInStock ? "bg-blue-600 text-white border-blue-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-blue-400"
                                     )}
                                   >Purchase</button>
@@ -1005,7 +1016,7 @@ export default function DepartmentPanelExcel({
                                     onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'instock')}
                                     disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                                     className={cn(
-                                      "px-1.5 py-0.5 rounded text-[10px] font-medium border",
+                                      "px-1.5 py-0 rounded text-[10px] font-medium border",
                                       isInStock ? "bg-emerald-600 text-white border-emerald-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-emerald-400"
                                     )}
                                   >InStock</button>
@@ -1058,13 +1069,23 @@ export default function DepartmentPanelExcel({
             <div className="border border-gray-200 overflow-hidden">
               <table className="w-full text-app-text border-collapse table-fixed">
                 <thead>
-                  <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
+                  <tr className="bg-gradient-to-r from-gray-50 to-gray-100 h-5">
                     {tableData.headers?.map((header, colIdx) => {
                       const headerName = typeof header === 'object' ? header.name : header;
                       const headerOwner = typeof header === 'object' ? header.owner : 'global';
                       const canEditColumn = canEditField(headerOwner);
+                      
+                      // Apply department background color to table headers
+                      const headerDeptBgColor = {
+                        vmd: 'bg-gray-100',
+                        cad: 'bg-amber-200',
+                        commercial: 'bg-emerald-100',
+                        mmc: 'bg-sky-200',
+                      };
+                      const headerBg = headerDeptBgColor[headerOwner] || 'bg-gray-50';
+                      
                       return (
-                        <th key={colIdx} className="border border-gray-200 p-0 relative group/col">
+                        <th key={colIdx} className={cn("border border-gray-200 p-0 relative group/col", headerBg)}>
                           <div className="flex items-center">
                             {canEditColumn ? (
                               <div className="flex-1 relative">
@@ -1076,17 +1097,15 @@ export default function DepartmentPanelExcel({
                                     newHeaders[colIdx] = typeof header === 'object' ? { ...header, name: val } : { name: val, owner: 'global' };
                                     handleFieldChange(fieldId, name, { ...tableData, headers: newHeaders }, department, fieldDef);
                                   }}
-                                  className="w-full border-none focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-2 py-1.5 font-semibold text-center text-gray-700"
+                                  className="w-full border-none focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-1.5 py-0 font-semibold text-center text-gray-700 leading-none h-4"
                                   placeholder={`Column ${colIdx + 1}`}
                                   disabled={!canEditColumn}
                                   maxLength={20}
+                                  showCharLimitToast={showCharLimitToast}
                                 />
-                                {String(headerName || '').length >= 20 && (
-                                  <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap text-[10px] text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 z-20 pointer-events-none">Cannot add more letters</span>
-                                )}
                               </div>
                             ) : (
-                              <span className="font-semibold flex-1 text-center text-gray-700 px-2 py-1.5">{headerName}</span>
+                              <span className="font-semibold flex-1 text-center text-gray-700 px-1.5 py-0">{headerName}</span>
                             )}
                             {/* {canEditColumn && tableData.headers.length > 1 && (
                               <button
@@ -1123,13 +1142,13 @@ export default function DepartmentPanelExcel({
                     )}
                     {/* Predefined locked headers */}
                     <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
-                      <span className="font-semibold text-center text-indigo-700 px-2 py-1.5 block text-[11px]">Purchase/Stock</span>
+                      <span className="font-semibold text-center text-indigo-700 px-1.5 py-0 block text-[11px]">Purchase/Stock</span>
                     </th>
                     <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
-                      <span className="font-semibold text-center text-indigo-700 px-2 py-1.5 block text-[11px]">OPD</span>
+                      <span className="font-semibold text-center text-indigo-700 px-1.5 py-0 block text-[11px]">OPD</span>
                     </th>
                     <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
-                      <span className="font-semibold text-center text-indigo-700 px-2 py-1.5 block text-[11px]">ETD</span>
+                      <span className="font-semibold text-center text-indigo-700 px-1.5 py-0 block text-[11px]">ETD</span>
                     </th>
                   </tr>
                 </thead>
@@ -1139,14 +1158,24 @@ export default function DepartmentPanelExcel({
                     const isInStock = rowPredefined.purchaseType === 'instock';
 
                     return (
-                      <tr key={rowIdx} className="group/row hover:bg-blue-50/30 transition-colors duration-100">
+                      <tr key={rowIdx} className="hover:bg-blue-50/30 transition-colors duration-100 h-5">
                         {row.map((cell, colIdx) => {
                           const colOwner = typeof tableData.headers[colIdx] === 'object' ? tableData.headers[colIdx].owner : 'global';
                           const canEditColumn = canEditField(colOwner);
+                          
+                          // Apply department background color to table cells
+                          const cellDeptBgColor = {
+                            vmd: 'bg-gray-100',
+                            cad: 'bg-amber-200',
+                            commercial: 'bg-emerald-100',
+                            mmc: 'bg-sky-200',
+                          };
+                          const cellBg = cellDeptBgColor[colOwner] || 'bg-white';
+                          
                           return (
-                            <td key={colIdx} className="border border-gray-200 p-0 relative">
+                            <td key={colIdx} className={cn("border border-gray-200 p-0 relative", cellBg)}>
                               {canEditColumn ? (
-                                <>
+                                <div>
                                   <DebouncedInput
                                     type="text"
                                     value={cell}
@@ -1170,18 +1199,16 @@ export default function DepartmentPanelExcel({
                                       }
                                     }}
                                     className={cn(
-                                      "w-full h-full px-2 py-1.5 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 bg-transparent transition-all duration-300",
+                                      "w-full h-4 px-1.5 py-0 leading-none border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 bg-transparent transition-all duration-300",
                                       isFieldHighlighted(fieldId, { ...fieldDef, department: colOwner }, cell) && "highlight-empty-field"
                                     )}
                                     disabled={!canEditColumn}
                                     maxLength={20}
+                                    showCharLimitToast={showCharLimitToast}
                                   />
-                                  {String(cell || '').length >= 20 && (
-                                    <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap text-[10px] text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 z-20 pointer-events-none">Cannot add more letters</span>
-                                  )}
-                                </>
+                                </div>
                               ) : (
-                                <span className="px-2 py-1.5 block text-app-text">{cell}</span>
+                                <span className="px-1.5 py-0 block text-app-text">{cell}</span>
                               )}
                             </td>
                           )
@@ -1198,7 +1225,7 @@ export default function DepartmentPanelExcel({
                                   predefinedData: newPredefined.length > 0 ? newPredefined : [{ purchaseType: 'purchase', opd: '', etd: '' }]
                                 }, department, fieldDef);
                               }}
-                              className="w-full h-full flex items-center justify-center py-1.5 opacity-0 group-hover/row:opacity-100 transition-opacity duration-150 text-red-400 hover:text-red-600 hover:bg-red-50"
+                              className="w-full flex items-center justify-center py-0 opacity-0 group-hover/row:opacity-100 transition-opacity duration-150 text-red-400 hover:text-red-600 hover:bg-red-50"
                               title="Delete row"
                             >
                               <Trash2 className="h-3 w-3" />
@@ -1207,12 +1234,12 @@ export default function DepartmentPanelExcel({
                         )}
                         {/* Predefined Purchase/Stock toggle */}
                         <td className="border border-gray-200 p-0 bg-indigo-50/30">
-                          <div className="flex items-center justify-center gap-1 px-1 py-1">
+                          <div className="flex items-center justify-center gap-0.5 px-0.5 py-0">
                             <button
                               onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
                               disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                               className={cn(
-                                "px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-150 border",
+                                "px-1 py-0 rounded text-[9px] leading-none font-medium transition-all duration-150 border h-4",
                                 !isInStock
                                   ? "bg-blue-600 text-white border-blue-600 shadow-sm"
                                   : "bg-white text-gray-500 border-gray-300 hover:border-blue-400 hover:text-blue-600",
@@ -1225,7 +1252,7 @@ export default function DepartmentPanelExcel({
                               onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'instock')}
                               disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                               className={cn(
-                                "px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-150 border",
+                                "px-1 py-0 rounded text-[9px] leading-none font-medium transition-all duration-150 border h-4",
                                 isInStock
                                   ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
                                   : "bg-white text-gray-500 border-gray-300 hover:border-emerald-400 hover:text-emerald-600",
@@ -1244,7 +1271,7 @@ export default function DepartmentPanelExcel({
                             onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
                             disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                             className={cn(
-                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 text-app-text transition-all duration-300",
+                              "w-full h-full px-1.5 py-0 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 text-app-text transition-all duration-300",
                               !isInStock && isFieldHighlighted(fieldId, { ...fieldDef, department: fieldDef.predefinedFieldsOwner || 'global' }, rowPredefined.opd) && "highlight-empty-field",
                               isInStock && "opacity-40 cursor-not-allowed"
                             )}
@@ -1258,7 +1285,7 @@ export default function DepartmentPanelExcel({
                             onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
                             disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                             className={cn(
-                              "w-full h-full px-1.5 py-1 border-none focus:outline-none focus:ring-2 focus:ring-blue-400  text-app-text transition-all duration-300",
+                              "w-full h-full px-1.5 py-0 border-none focus:outline-none focus:ring-2 focus:ring-blue-400  text-app-text transition-all duration-300",
                               !isInStock && isFieldHighlighted(fieldId, { ...fieldDef, department: fieldDef.predefinedFieldsOwner || 'global' }, rowPredefined.etd) && "highlight-empty-field",
                               isInStock && "opacity-40 cursor-not-allowed"
                             )}
@@ -1339,7 +1366,7 @@ export default function DepartmentPanelExcel({
 
         return (
           <div className={cn(
-            "space-y-1 p-1 rounded transition-all duration-300",
+            "h-full  transition-all duration-300 border-2 border-dashed border-gray-300 rounded-lg ",
             isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
           )}>
             {canEdit && (
@@ -1361,7 +1388,7 @@ export default function DepartmentPanelExcel({
               />
             )}
 
-            {allImages.length > 0 ? (
+            {/* {allImages.length > 0 ? (
               <div className="grid grid-cols-3 gap-1">
                 {allImages.slice(0, 6).map((asset, idx) => {
                   const isCover = idx === 0;
@@ -1423,7 +1450,7 @@ export default function DepartmentPanelExcel({
               </div>
             ) : (
               <></>
-            )}
+            )} */}
           </div>
         );
 
@@ -1607,9 +1634,10 @@ export default function DepartmentPanelExcel({
               const isHidden = isFieldHidden(fieldDef);
               const isOptionalEnabled = isOptionalFieldEnabled(fieldIdStr, fieldDef);
               const attachmentLabels = getAttachmentLabels(fieldIdStr);
+              
               const deptBgColor = {
                 vmd: 'bg-gray-100',
-                cad: 'bg-amber-100',
+                cad: 'bg-amber-200',
                 commercial: 'bg-emerald-100',
                 mmc: 'bg-sky-200',
               };
@@ -1640,11 +1668,12 @@ export default function DepartmentPanelExcel({
                   key={cellIndex}
                   className={cn(
                     "border-b border-gray-200",
-                    isHeading ? "bg-gray-50" : "bg-white"
+                    isHeading ? "bg-gray-50" : deptBg
                   )}
                   style={{
                     gridColumn: `span ${colSpan} `,
                     gridRow: `span ${rowSpan} `,
+                    backgroundColor: !isHeading && fieldDef.department === 'cad' ? '#fef3c7' : undefined,
                   }}
                 >
                   <div
@@ -1700,7 +1729,7 @@ export default function DepartmentPanelExcel({
           <>
             {/* Status Update Section - Hidden in readOnly mode */}
             {!readOnly && (
-              <div className="bg-gray-50 border-t border-gray-200 p-3">
+              <div className=" border-transparent p-3">
                 <div className="grid grid-cols-6 gap-2 items-end">
                   {/* Department display/selector */}
                   <div>
