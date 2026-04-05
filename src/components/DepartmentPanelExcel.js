@@ -929,8 +929,10 @@ export default function DepartmentPanelExcel({
                       <div className="pl-1 grid grid-cols-1 md:grid-cols-3 gap-1">
                         {/* Col 1: First 4 fields */}
                         <div className="flex flex-col gap-0">
-                          {col1Indexes.map(idx => (
-                            <div key={idx} className="flex items-center text-app-text border-b border-gray-100">
+                          {col1Indexes.map(idx => {
+                            const colOwner = typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global';
+                            return (
+                            <div key={idx} className={cn("flex items-center text-app-text border-b border-gray-100", colOwner === 'cad' && "bg-amber-50")}>
                               <span className="w-20 flex-shrink-0 font-semibold min-w-[140px] text-gray-700 whitespace-nowrap capitalize break-words pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
                               <div className="flex-1 min-w-0 relative">
                                 <DebouncedInput
@@ -951,14 +953,17 @@ export default function DepartmentPanelExcel({
                                 />
                               </div>
                             </div>
-                          ))}
+                          );
+                          })}
                         </div>
 
                         {/* Col 2: Remaining fields */}
                         <div className="flex flex-col gap-0">
                           {col2Indexes.length > 0 ? (
-                            col2Indexes.map(idx => (
-                              <div key={idx} className="flex items-center text-app-text border-b border-gray-100">
+                            col2Indexes.map(idx => {
+                            const colOwner = typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global';
+                            return (
+                              <div key={idx} className={cn("flex items-center text-app-text border-b border-gray-100", colOwner === 'cad' && "bg-amber-50")}>
                                 <span className="w-20 flex-shrink-0  min-w-[140px] font-semibold text-gray-700 capitalize break-words whitespace-nowrap pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
                                 <div className="flex-1 min-w-0 relative">
                                   <DebouncedInput
@@ -979,7 +984,8 @@ export default function DepartmentPanelExcel({
                                   />
                                 </div>
                               </div>
-                            ))
+                          );
+                          })
                           ) : (
                             <div className="text-gray-400 italic text-app-text h-full flex items-center justify-center">-</div>
                           )}
