@@ -49,7 +49,7 @@ export default function SRDLookupModal({ moduleKey, moduleLabel, onClose, onFoun
           </button>
         </div>
 
-        <h2 className="text-xl font-bold text-gray-900 mb-5">Enter SRD Reference No.</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-5">Enter SR Code.</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div className="relative">
@@ -90,7 +90,7 @@ export default function SRDLookupModal({ moduleKey, moduleLabel, onClose, onFoun
                 Loading SRD…
               </>
             ) : (
-              'Open SRD'
+              'Open SR'
             )}
           </button>
         </form>

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import SRDLookupModal from './SRDLookupModal';
 import { signOut } from 'next-auth/react';
+import css from 'styled-jsx/css';
 
 const MODULES = [
   {
@@ -28,7 +29,8 @@ const MODULES = [
     key: 'sample-management',
     label: 'Sample Management',
     description: 'Track and manage samples',
-    icon: FlaskConical,
+    icon: "/icons/cutting.png",
+    css: "translate-x-0.5",
     color: 'bg-emerald-500',
     lightColor: 'bg-emerald-50',
     textColor: 'text-emerald-600',
@@ -104,7 +106,8 @@ export default function MobileHome() {
       <div className="flex-1 px-4 py-5 overflow-y-auto pb-10">
         <div className="grid grid-cols-2 gap-3">
           {MODULES.map((mod) => {
-            const Icon = mod.icon;
+            const isImagePath = typeof mod.icon === 'string';
+            const Icon = isImagePath ? null : mod.icon;
             return (
               <button
                 key={mod.key}
@@ -112,7 +115,11 @@ export default function MobileHome() {
                 className={`aspect-square flex flex-col items-center justify-center gap-3 ${mod.lightColor} rounded-2xl shadow-sm border border-gray-100 active:scale-[0.96] transition-transform p-4`}
               >
                 <div className={`w-14 h-14 ${mod.color} rounded-2xl flex items-center justify-center shadow-sm`}>
-                  <Icon size={26} className="text-white" />
+                  {isImagePath ? (
+                    <img src={mod.icon} alt={mod.label} className="w-7 h-7 object-contain" />
+                  ) : (
+                    <Icon size={26} className="text-white" />
+                  )}
                 </div>
                 <p className={`font-semibold text-xs text-center leading-tight ${mod.textColor}`}>
                   {mod.label}
