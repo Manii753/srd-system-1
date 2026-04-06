@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,11 @@ import { AlertCircle, Mail, Lock } from 'lucide-react';
 
 
 
+function isMobileBrowser() {
+  if (typeof navigator === 'undefined') return false;
+  return /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
 export default function LoginPage() {
   const { data: session } = useSession();
   const [email, setEmail] = useState('');
@@ -21,21 +26,33 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (session) {
       if (session?.user?.role) {
+        // Honour explicit callbackUrl first (e.g. /mobile redirect from mobile layout)
+        const callbackUrl = searchParams.get('callbackUrl');
+        if (callbackUrl) {
+          router.push(callbackUrl);
+          return;
+        }
+
+        // Auto-redirect mobile browsers to the mobile app
+        if (isMobileBrowser()) {
+          router.push('/mobile');
+          return;
+        }
 
         const role = session.user.role;
         if (role === 'admin') {
           router.push('/dashboard/admin');
-        }
-        else {
+        } else {
           router.push(`/dashboard/${role}`);
         }
       }
     }
-  }, [session, router]);
+  }, [session, router, searchParams]);
 
 
 
