@@ -6,7 +6,7 @@ import DynamicSidebar from './DynamicSidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
-export default function Layout({ children, headerContent }) {
+export default function Layout({ children, headerContent, headerRightContent }) {
   const { status } = useSession();
 
   if (status === 'loading') {
@@ -22,7 +22,7 @@ export default function Layout({ children, headerContent }) {
       <DynamicSidebar />
       <SidebarInset>
         <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-          <Header headerContent={headerContent} />
+          <Header headerContent={headerContent} headerRightContent={headerRightContent} />
           <main className="flex-1 min-h-0 overflow-hidden">
             {children}
           </main>

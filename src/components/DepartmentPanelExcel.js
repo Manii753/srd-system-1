@@ -113,6 +113,7 @@ export default function DepartmentPanelExcel({
   onSrdUpdate,
   readOnly = false,
   onHeaderContent,
+  onHeaderRightContent,
 }) {
   const { toast } = useToast();
   const [activeTemplate, setActiveTemplate] = useState(null);
@@ -731,6 +732,26 @@ export default function DepartmentPanelExcel({
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onHeaderContent, srd._id, srd.refNo, JSON.stringify(srd.status), isPrinting, hasUnsavedChanges, isAutoSaving, handlePrint]);
+
+  // Activity Console toggle button — injected into the header right slot (before notifications)
+  useEffect(() => {
+    if (!onHeaderRightContent) return;
+    if (!srd.audit || srd.audit.length === 0) { onHeaderRightContent(null); return; }
+    onHeaderRightContent(
+      <Button
+        onClick={() => setShowActivityConsole(prev => !prev)}
+        size="sm"
+        variant={showActivityConsole ? "default" : "outline"}
+        className={cn("h-8 px-3 text-app-text gap-1.5", showActivityConsole && "bg-gray-800 hover:bg-gray-900 text-white")}
+      >
+        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+        Activity
+      </Button>
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onHeaderRightContent, showActivityConsole, srd.audit?.length]);
 
   // Render input cell based on field type
   const renderCellInput = useCallback((fieldDef, fieldId, canEdit) => {
@@ -1850,66 +1871,56 @@ export default function DepartmentPanelExcel({
 
       {/* Activity Sidebar Console */}
       {srd.audit && srd.audit.length > 0 && (
-        <div className={`border-l border-gray-300 bg-gray-50 flex flex-col h-full transition-all duration-300 ${showActivityConsole ? 'w-80' : 'w-12'}`}>
-          <div className="px-3 py-3 border-b border-gray-300 bg-gray-100 flex-shrink-0 flex items-center justify-between">
-            {showActivityConsole && <h4 className="text-app-heading font-bold text-gray-800 uppercase tracking-wide">Activity Console</h4>}
-            <button
-              onClick={() => setShowActivityConsole(!showActivityConsole)}
-              className="p-1 hover:bg-gray-200 rounded transition-colors"
-              aria-label={showActivityConsole ? "Hide activity console" : "Show activity console"}
-            >
-              {showActivityConsole ? (
-                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              )}
-            </button>
+        <div
+          className="border-gray-300 bg-gray-50 flex flex-col h-full overflow-hidden"
+          style={{
+            width: showActivityConsole ? '320px' : '0px',
+            borderLeftWidth: showActivityConsole ? '1px' : '0px',
+            transition: 'width 300ms ease, border-left-width 300ms ease',
+          }}
+        >
+          <div className="px-3 py-3 border-b border-gray-300 bg-gray-100 flex-shrink-0 flex items-center justify-between" style={{ minWidth: '320px' }}>
+            <h4 className="text-app-heading font-bold text-gray-800 uppercase tracking-wide">Activity Console</h4>
           </div>
-          {showActivityConsole && (
-            <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-              {srd.audit.slice().reverse().map((entry, idx) => {
-                // Find comment with matching timestamp (within 1 second tolerance)
-                const relatedComment = srd.comments?.find(comment =>
-                  Math.abs(new Date(comment.date) - new Date(entry.timestamp)) < 1000
-                );
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar" style={{ minWidth: '320px' }}>
+            {srd.audit.slice().reverse().map((entry, idx) => {
+              // Find comment with matching timestamp (within 1 second tolerance)
+              const relatedComment = srd.comments?.find(comment =>
+                Math.abs(new Date(comment.date) - new Date(entry.timestamp)) < 1000
+              );
 
-                return (
-                  <div key={idx} className="bg-white border border-gray-200 rounded p-2 text-app-text hover:shadow-sm transition-shadow">
-                    <div className="flex items-start justify-between mb-1 gap-2">
-                      <div className="flex-1">
-                        <span className="font-semibold text-gray-900 block">
-                          {entry.author}
-                        </span>
-                        {entry.department && (
-                          <Badge variant="outline" className="mt-1 text-app-text px-1.5 py-0 bg-gray-100">
-                            {entry.department.toUpperCase()}
-                          </Badge>
-                        )}
-                      </div>
-                      <span className="text-app-text text-gray-500 whitespace-nowrap">
-                        {new Date(entry.timestamp).toLocaleString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+              return (
+                <div key={idx} className="bg-white border border-gray-200 rounded p-2 text-app-text hover:shadow-sm transition-shadow">
+                  <div className="flex items-start justify-between mb-1 gap-2">
+                    <div className="flex-1">
+                      <span className="font-semibold text-gray-900 block">
+                        {entry.author}
                       </span>
+                      {entry.department && (
+                        <Badge variant="outline" className="mt-1 text-app-text px-1.5 py-0 bg-gray-100">
+                          {entry.department.toUpperCase()}
+                        </Badge>
+                      )}
                     </div>
-                    <p className="text-gray-700 font-medium leading-tight">{entry.action}</p>
-                    {relatedComment && (
-                      <div className="mt-2 pl-2 border-l-2 border-gray-300 bg-gray-50 p-1.5 rounded-r">
-                        <p className="text-gray-600 italic text-app-text">&ldquo;{relatedComment.text}&rdquo;</p>
-                      </div>
-                    )}
+                    <span className="text-app-text text-gray-500 whitespace-nowrap">
+                      {new Date(entry.timestamp).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <p className="text-gray-700 font-medium leading-tight">{entry.action}</p>
+                  {relatedComment && (
+                    <div className="mt-2 pl-2 border-l-2 border-gray-300 bg-gray-50 p-1.5 rounded-r">
+                      <p className="text-gray-600 italic text-app-text">&ldquo;{relatedComment.text}&rdquo;</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

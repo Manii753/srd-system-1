@@ -19,6 +19,7 @@ export default function SRDDetailPage() {
   const [loading, setLoading] = useState(true);
   const [excelHeaderContent, setExcelHeaderContent] = useState(null);
   const [productionHeaderContent, setProductionHeaderContent] = useState(null);
+  const [excelHeaderRightContent, setExcelHeaderRightContent] = useState(null);
 
 
   useEffect(() => {
@@ -143,12 +144,15 @@ export default function SRDDetailPage() {
   }
 
   return (
-    <Layout headerContent={
-      <div className="flex items-center gap-2 w-full">
-        {excelHeaderContent}
-        {productionHeaderContent}
-      </div>
-    }>
+    <Layout
+      headerContent={
+        <div className="flex items-center gap-2 w-full">
+          {excelHeaderContent}
+          {productionHeaderContent}
+        </div>
+      }
+      headerRightContent={excelHeaderRightContent}
+    >
       <div className="h-full flex flex-col min-h-0">
         {/* Production Control - Only for VMD/Admin */}
         {(userRole === 'vmd' || userRole === 'admin') && (
@@ -166,6 +170,7 @@ export default function SRDDetailPage() {
           onUpdate={(department, data, shouldRefresh) => handleDepartmentUpdate(department, data, shouldRefresh)}
           onSrdUpdate={setSrd}
           onHeaderContent={setExcelHeaderContent}
+          onHeaderRightContent={setExcelHeaderRightContent}
         />
       </div>
     </Layout>

@@ -10,7 +10,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 
-export default function Header({ headerContent }) {
+export default function Header({ headerContent, headerRightContent }) {
   const { data: session } = useSession();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState([]);
@@ -72,6 +72,8 @@ export default function Header({ headerContent }) {
 
       {/* Right side */}
       <div className="flex items-center gap-2 shrink-0">
+        {/* Page-specific right content (e.g. Activity Console toggle) */}
+        {headerRightContent ?? null}
         {/* Notifications */}
         <Popover>
           <PopoverTrigger asChild>
