@@ -8,6 +8,8 @@ const paginationPageSchema = {
 const CompanySchema = new mongoose.Schema({
   name: { type: String, required: true },
   logo: { type: String, default: '' },
+  CurrentSRDPrefix: { type: String, default: 'SRD-' },
+  currentSRDNumber: { type: Number, default: 1000 },
   paginationSettings: {
     // SRD list table (all pages that use SRDTable)
     srdList: { ...paginationPageSchema },

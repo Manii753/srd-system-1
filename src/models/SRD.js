@@ -12,6 +12,7 @@ const auditSchema = new mongoose.Schema({
   action: String,
   department: String,
   author: String,
+  role: String,
   timestamp: { type: Date, default: Date.now },
   details: Object
 });
@@ -89,7 +90,7 @@ const srdSchema = new mongoose.Schema({
 
   status:[{
     department: String,
-    value: { type: String, enum: ['approved', 'rejected', 'flagged', 'pending'], default: 'pending' },
+    value: { type: String, enum: ['approved', 'rejected', 'flagged','in-progress', 'pending'], default: 'pending' },
     updatedAt: { type: Date, default: Date.now }
   }],
 

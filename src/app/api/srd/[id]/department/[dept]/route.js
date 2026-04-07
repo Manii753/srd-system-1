@@ -4,6 +4,8 @@ import SRD from '@/models/SRD';
 import User from '@/models/User';
 import Notification from '@/models/Notification';
 import pusher from '@/lib/pusher-server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 function normalizeFieldId(fieldId) {
   if (!fieldId) return null;
@@ -16,6 +18,13 @@ function normalizeFieldId(fieldId) {
 }
 
 export async function PATCH(request, context) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
+  console.log("-------------------------",session)
+
   try {
     await dbConnect();
     const params = await context.params;
@@ -115,7 +124,7 @@ export async function PATCH(request, context) {
         if (body.comment && body.comment.text) {
           srd.comments.push({
             department: dept,
-            author: body.comment.author,
+            author: `${body.comment.author}`,
             role: body.comment.role,
             text: body.comment.text,
             date: new Date(),
@@ -124,17 +133,18 @@ export async function PATCH(request, context) {
 
         // Add audit record with detailed action description
         const actionDescription = body.status === 'flagged'
-          ? `Flagged issue in ${dept.toUpperCase()}`
+          ? `Flagged issue in ${dept.toUpperCase()} by ${session.user.name}`
           : body.status === 'approved'
-            ? `Approved by ${dept.toUpperCase()}`
+            ? `Approved`
             : body.status === 'in-progress'
-              ? `Updated to In Progress by ${dept.toUpperCase()}`
-              : `Updated status to ${body.status} by ${dept.toUpperCase()}`;
+              ? `Updated to In Progress`
+              : `Updated status to ${body.status}`;
 
         srd.audit.push({
           department: dept,
-          author: body.comment?.author || 'System',
+          author: session.user.name || 'System',
           action: actionDescription,
+          role: session.user.role,
           comment: body.comment?.text,
           date: new Date(),
         });
