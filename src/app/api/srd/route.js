@@ -7,6 +7,7 @@ import Notification from '@/models/Notification';
 import Field from '@/models/Field';
 import pusher from '@/lib/pusher-server';
 import mongoose from 'mongoose';
+import { sendPushToUsers } from '@/lib/send-push';
 
 function hasMeaningfulFieldValue(value, type) {
   if (value === null || value === undefined) return false;
@@ -289,6 +290,13 @@ export async function POST(request) {
       })
     );
     await Promise.all(notificationPromises);
+
+    // Send browser/Windows push notifications
+    await sendPushToUsers(users, {
+      title: 'New SRD Created',
+      body: `New SRD created: ${newSRD.refNo}`,
+      url: `/srd/${newSRD._id}`,
+    }).catch((e) => console.error('Push notification error:', e));
 
     // --- Trigger Pusher event (non-blocking, optional) ---
     try {

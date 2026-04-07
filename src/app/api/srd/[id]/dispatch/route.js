@@ -6,6 +6,7 @@ import Notification from '@/models/Notification';
 import pusher from '@/lib/pusher-server';
 import Dispatch from '@/models/Dispatch';
 import Buyer from '@/models/Buyer';
+import { sendPushToUsers } from '@/lib/send-push';
 
 export async function PATCH(request, context) {
   try {
@@ -142,6 +143,13 @@ export async function PATCH(request, context) {
         })
       );
       await Promise.all(notificationPromises);
+
+      // Send browser/Windows push notifications
+      await sendPushToUsers(users, {
+        title: 'Dispatch Update',
+        body: notificationMessage,
+        url: `/srd/${freshSRD._id}`,
+      });
     } catch (notifError) {
       console.error('Error creating notifications:', notifError);
     }

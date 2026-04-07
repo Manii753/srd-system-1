@@ -9,12 +9,14 @@ import { initializePusher, bindPusherEvents } from '@/lib/pusher';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { usePushNotifications } from '@/lib/usePushNotifications';
 
 export default function Header({ headerContent, headerRightContent }) {
   const { data: session } = useSession();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  usePushNotifications();
 
   const fetchNotifications = useCallback(async () => {
     try {

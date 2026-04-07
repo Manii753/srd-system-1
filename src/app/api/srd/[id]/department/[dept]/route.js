@@ -6,6 +6,7 @@ import Notification from '@/models/Notification';
 import pusher from '@/lib/pusher-server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { sendPushToUsers } from '@/lib/send-push';
 
 function normalizeFieldId(fieldId) {
   if (!fieldId) return null;
@@ -191,6 +192,13 @@ export async function PATCH(request, context) {
         })
       );
       await Promise.all(notificationPromises);
+
+      // Send browser/Windows push notifications
+      await sendPushToUsers(users, {
+        title: 'SRD Update',
+        body: notificationMessage,
+        url: `/srd/${freshSRD._id}`,
+      });
     } catch (notifError) {
       console.error('Error creating notifications:', notifError);
     }
