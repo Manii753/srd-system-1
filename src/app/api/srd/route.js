@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import SRD from '@/models/SRD';
+import Company from '@/models/Company';
 import User from '@/models/User';
 import Notification from '@/models/Notification';
 import Field from '@/models/Field';
@@ -252,18 +253,17 @@ export async function POST(request) {
         .map(dept => ({ department: dept.slug.toLowerCase(), value: 'pending', updatedAt: new Date() }));
     }
 
-    // --- Generate unique refNo if not provided ---
-    const generateRefNo = () => {
-      const d = new Date();
-      const pad = (n, l = 2) => String(n).padStart(l, '0');
-      const ts = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(
-        d.getMinutes()
-      )}${pad(d.getSeconds())}-${d.getMilliseconds()}`;
-      return `SRD${ts}-${Math.floor(Math.random() * 9000) + 1000}`;
-    };
-
+    // --- Generate sequential refNo from Company counter ---
     if (!body.refNo || !String(body.refNo).trim()) {
-      body.refNo = generateRefNo();
+      // Atomically claim the current number and increment for the next SRD
+      const company = await Company.findOneAndUpdate(
+        {},
+        { $inc: { currentSRDNumber: 1 } },
+        { new: false } // return pre-increment value so we use the current number
+      );
+      const prefix = company?.CurrentSRDPrefix ?? 'SRD-';
+      const number = company?.currentSRDNumber ?? 1000;
+      body.refNo = `${prefix}${number}`;
     }
 
     // Auto-populate refNo-typed dynamic fields with the SRD's refNo
@@ -276,36 +276,8 @@ export async function POST(request) {
       });
     }
 
-    // --- Retry creation on duplicate refNo ---
-    let newSRD;
-    let attempts = 0;
-    const maxAttempts = 5;
-
-    while (true) {
-      try {
-        newSRD = await SRD.create(body);
-        break;
-      } catch (err) {
-        const isDuplicateRef =
-          err &&
-          (err.code === 11000 || (err.name === 'MongoServerError' && err.code === 11000)) &&
-          err.message &&
-          err.message.includes('refNo');
-
-        if (isDuplicateRef && attempts < maxAttempts) {
-          attempts++;
-          body.refNo = generateRefNo();
-          // Keep refNo-typed dynamic fields in sync with the new refNo
-          if (body.dynamicFields && Array.isArray(body.dynamicFields)) {
-            body.dynamicFields = body.dynamicFields.map(f =>
-              f.type === 'refNo' ? { ...f, value: body.refNo } : f
-            );
-          }
-          continue;
-        }
-        throw err;
-      }
-    }
+    // --- Create SRD ---
+    const newSRD = await SRD.create(body);
 
     // --- Create notifications for all users ---
     const users = await User.find({});

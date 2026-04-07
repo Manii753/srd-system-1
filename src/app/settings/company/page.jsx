@@ -12,13 +12,18 @@ export default function CompanySettingsPage() {
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [logo, setLogo] = useState('');
+  const [srdPrefix, setSrdPrefix] = useState('SRD-');
+  const [srdNumber, setSrdNumber] = useState(1000);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingCounter, setSavingCounter] = useState(false);
 
   useEffect(() => {
     fetch('/api/company').then(r => r.json()).then(data => {
       if (data.name) setName(data.name);
       if (data.logo) setLogo(data.logo);
+      if (data.CurrentSRDPrefix !== undefined) setSrdPrefix(data.CurrentSRDPrefix);
+      if (data.currentSRDNumber !== undefined) setSrdNumber(data.currentSRDNumber);
     });
   }, []);
 
@@ -51,9 +56,25 @@ export default function CompanySettingsPage() {
     toast({ title: 'Saved', description: 'Company info updated.' });
   };
 
+  const handleSaveCounter = async () => {
+    const num = parseInt(srdNumber, 10);
+    if (isNaN(num) || num < 0) {
+      toast({ title: 'Invalid number', description: 'SRD number must be a non-negative integer.', variant: 'destructive' });
+      return;
+    }
+    setSavingCounter(true);
+    await fetch('/api/company', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ CurrentSRDPrefix: srdPrefix, currentSRDNumber: num }),
+    });
+    setSavingCounter(false);
+    toast({ title: 'Saved', description: `Next SRD will be: ${srdPrefix}${num}` });
+  };
+
   return (
     <Layout>
-      <div className="max-w-lg mx-auto mt-8">
+      <div className="max-w-lg mx-auto mt-8 space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Company Registration</CardTitle>
@@ -75,6 +96,40 @@ export default function CompanySettingsPage() {
             </div>
             <Button onClick={handleSave} disabled={saving || !name}>
               {saving ? 'Saving...' : 'Save'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>SRD Numbering</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-gray-500">
+              The next SRD created will be: <span className="font-mono font-semibold text-gray-800">{srdPrefix}{srdNumber}</span>
+            </p>
+            <div>
+              <Label>Prefix</Label>
+              <Input
+                value={srdPrefix}
+                onChange={e => setSrdPrefix(e.target.value)}
+                placeholder="e.g. SRD-"
+                className="mt-1 font-mono"
+              />
+            </div>
+            <div>
+              <Label>Next Number</Label>
+              <Input
+                type="number"
+                min={0}
+                value={srdNumber}
+                onChange={e => setSrdNumber(e.target.value)}
+                placeholder="e.g. 1000"
+                className="mt-1 font-mono"
+              />
+            </div>
+            <Button onClick={handleSaveCounter} disabled={savingCounter}>
+              {savingCounter ? 'Saving...' : 'Save Numbering'}
             </Button>
           </CardContent>
         </Card>

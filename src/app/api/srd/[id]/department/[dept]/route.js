@@ -23,7 +23,7 @@ export async function PATCH(request, context) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  console.log("-------------------------",session)
+ 
 
   try {
     await dbConnect();
