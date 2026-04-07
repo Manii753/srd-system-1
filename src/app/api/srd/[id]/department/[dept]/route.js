@@ -177,10 +177,10 @@ export async function PATCH(request, context) {
     try {
       const users = await User.find({});
       const notificationMessage = body.status === 'flagged'
-        ? `🚩 ${dept.toUpperCase()} flagged an issue in SRD ${freshSRD.refNo}`
+        ? `🚩 ${session.user.name} flagged an issue in SRD ${freshSRD.refNo}`
         : body.status === 'approved'
-          ? `✅ ${dept.toUpperCase()} approved SRD ${freshSRD.refNo}`
-          : `📝 ${dept.toUpperCase()} updated SRD ${freshSRD.refNo} to ${body.status}`;
+          ? `✅ ${session.user.name} approved SRD ${freshSRD.refNo}`
+          : `📝 ${session.user.name} updated SRD ${freshSRD.refNo} to ${body.status}`;
 
       const notificationPromises = users.map(user =>
         Notification.create({
