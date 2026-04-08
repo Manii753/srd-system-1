@@ -23,7 +23,7 @@ import {
   getAssetUrl,
   normalizeAssetEntries,
 } from '@/lib/assetUtils';
-import { getAttachedImageLabels } from '@/lib/fieldConnectionUtils';
+import { getAttachedImageLabels, getAttachedFieldInfos } from '@/lib/fieldConnectionUtils';
 import DispatchCardPrint from '@/app/dispatch/components/DispatchCardPrint';
 // Dynamically import DispatchPanel to avoid circular dependency
 const DispatchPanel = dynamic(() => import('./DispatchPanel'), {
@@ -103,6 +103,81 @@ function DebouncedTextarea({ value, onDebouncedChange, delay = 400, onBlur: pare
       }}
       onBlur={(e) => { flush(local); parentBlur?.(e); }}
     />
+  );
+}
+
+function CompactUploadButton({ info, srdId, onUploaded, label }) {
+  const inputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
+
+  const handleFileSelected = useCallback(async (e) => {
+    const selected = Array.from(e.target.files || []);
+    if (!selected.length || !srdId) return;
+    setUploading(true);
+    const uploaded = [];
+    const isImage = info.type === 'image';
+    const assetKind = isImage ? 'image' : 'file';
+
+    for (const file of selected) {
+      const fileData = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => resolve(ev.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      await new Promise((resolve) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/uploads');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = () => {
+          try {
+            const res = JSON.parse(xhr.responseText);
+            const asset = normalizeAssetEntries(res?.asset || res?.url, { kind: assetKind })[0] || null;
+            if (res?.success && asset) uploaded.push(asset);
+            else toast({ title: 'Upload failed', description: res?.error || 'Unknown error', variant: 'destructive' });
+          } catch { toast({ title: 'Upload failed', description: 'Could not parse response', variant: 'destructive' }); }
+          resolve();
+        };
+        xhr.onerror = () => { toast({ title: 'Upload failed', description: 'Network error', variant: 'destructive' }); resolve(); };
+        xhr.send(JSON.stringify({ fileName: file.name, fileData, srdId, fieldId: info.sourceFieldId, fieldType: assetKind, mimeType: file.type, size: file.size }));
+      });
+    }
+
+    setUploading(false);
+    if (inputRef.current) inputRef.current.value = '';
+    if (uploaded.length) onUploaded(uploaded.length === 1 && !isImage ? uploaded[0] : uploaded);
+  }, [info, srdId, onUploaded, toast]);
+
+  const isImage = info.type === 'image';
+
+  const isPlus = label === '+';
+
+  return (
+    <button
+      type="button"
+      disabled={uploading}
+      className={cn(
+        "inline-flex items-center gap-1 rounded disabled:opacity-50",
+        isPlus
+          ? "h-4 w-4 justify-center bg-emerald-100 hover:bg-emerald-200 text-emerald-700"
+          : "border border-gray-300 bg-white hover:bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-600"
+      )}
+      onClick={() => inputRef.current?.click()}
+      title={`Attach ${info.name}`}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept={isImage ? 'image/*' : undefined}
+        multiple={isImage}
+        className="hidden"
+        onChange={handleFileSelected}
+      />
+      {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : (isPlus ? <Plus className="h-3 w-3" /> : <Upload className="h-3 w-3" />)}
+      {!isPlus && (label || info.name)}
+    </button>
   );
 }
 
@@ -397,6 +472,14 @@ export default function DepartmentPanelExcel({
     });
   }, [allFieldDefs, fields]);
 
+  const getAttachmentInfos = useCallback((fieldId) => {
+    return getAttachedFieldInfos({
+      targetFieldId: fieldId,
+      fieldDefs: allFieldDefs,
+      dynamicFields: fields,
+    });
+  }, [allFieldDefs, fields]);
+
   const buildFieldState = useCallback((fieldId, fieldDef, department, overrides = {}) => {
     const normalizedFieldId = normalizeFieldId(fieldId);
     const parentHeadingName = fieldDef?.parentHeading
@@ -554,8 +637,13 @@ export default function DepartmentPanelExcel({
     return !hasMeaningfulValue(fieldValue, fieldDef.type);
   }, [userRole, readOnly, getFieldValue, hasMeaningfulValue]);
 
-  // Check if a field should be hidden based on toggle-active connection
+  // Check if a field should be hidden based on connection type
   const isFieldHidden = useCallback((fieldDef) => {
+    // Hide is-attached source fields (upload UI is shown inline on the target field)
+    if (fieldDef.isConnectedTo && fieldDef.connectionType === 'is-attached') {
+      return true;
+    }
+
     if (!fieldDef.isConnectedTo || fieldDef.connectionType !== 'toggle-active') {
       return false;
     }
@@ -610,6 +698,35 @@ export default function DepartmentPanelExcel({
       description: 'Click Save to apply changes',
     });
   }, [getFieldValue, handleFieldChange, toast]);
+
+  const handleAttachmentUploaded = useCallback((info, assets) => {
+    const sourceFieldDef = info.fieldDef;
+    if (!sourceFieldDef) return;
+
+    if (info.type === 'image') {
+      const imageArray = normalizeAssetEntries(assets, { kind: 'image' });
+      if (imageArray.length > 0) {
+        const currentValue = getFieldValue(info.sourceFieldId, sourceFieldDef);
+        const currentImages = normalizeAssetEntries(currentValue, { kind: 'image' });
+        const updatedImages = [...currentImages, ...imageArray];
+        handleFieldChange(info.sourceFieldId, sourceFieldDef.name, updatedImages, sourceFieldDef.department, sourceFieldDef);
+        toast({ title: 'Images uploaded', description: `${imageArray.length} image(s) uploaded.` });
+      }
+    } else {
+      const asset = Array.isArray(assets) ? assets[0] : assets;
+      if (asset) {
+        handleFieldChange(info.sourceFieldId, sourceFieldDef.name, asset, sourceFieldDef.department, sourceFieldDef);
+        toast({ title: 'File uploaded', description: 'File uploaded successfully.' });
+      }
+    }
+  }, [getFieldValue, handleFieldChange, toast]);
+
+  const handleAttachmentRemove = useCallback((info) => {
+    const sourceFieldDef = info.fieldDef;
+    if (!sourceFieldDef) return;
+    handleFieldChange(info.sourceFieldId, sourceFieldDef.name, info.type === 'image' ? [] : null, sourceFieldDef.department, sourceFieldDef);
+    toast({ title: 'Attachment removed', description: 'Click Save to apply changes.' });
+  }, [handleFieldChange, toast]);
 
   // Handle status update for a department
   const handleStatusUpdate = useCallback(async () => {
@@ -1660,7 +1777,7 @@ export default function DepartmentPanelExcel({
               const isHeading = fieldDef.type === 'heading';
               const isHidden = isFieldHidden(fieldDef);
               const isOptionalEnabled = isOptionalFieldEnabled(fieldIdStr, fieldDef);
-              const attachmentLabels = getAttachmentLabels(fieldIdStr);
+              const attachmentInfos = getAttachmentInfos(fieldIdStr);
               
               const deptBgColor = {
                 vmd: 'bg-gray-100',
@@ -1730,16 +1847,53 @@ export default function DepartmentPanelExcel({
                         renderCellInput(fieldDef, fieldIdStr, canEdit)
                       )}
                     </div>
-                    {attachmentLabels.length > 0 && (
-                      <div className="mt-1 space-x-1 flex flex-row flex-wrap justify-start">
-                        {attachmentLabels.map((label, index) => (
-                          <div
-                            key={`${label}-${index}`}
-                            className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"
-                          >
-                            {label}
-                          </div>
-                        ))}
+                    {attachmentInfos.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1 px-1">
+                        {attachmentInfos.map((info) => {
+                          const hasAssets = info.assetCount > 0;
+                          const sourceFieldDef = info.fieldDef;
+                          const canUploadToSource = readOnly
+                            ? false
+                            : (canEditField(sourceFieldDef?.department) && sourceFieldDef?.active !== false);
+
+                          if (hasAssets) {
+                            return (
+                              <div key={info.sourceFieldId} className="flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5">
+                                <span className="text-[10px] font-medium text-emerald-700">
+                                  {info.name} attached
+                                </span>
+                                {canUploadToSource && (
+                                  <>
+                                    <CompactUploadButton
+                                      info={info}
+                                      srdId={srd?._id}
+                                      onUploaded={(assets) => handleAttachmentUploaded(info, assets)}
+                                      label="+"
+                                    />
+                                    <button
+                                      type="button"
+                                      className="h-4 w-4 inline-flex items-center justify-center rounded bg-red-100 hover:bg-red-200 text-red-600"
+                                      onClick={() => handleAttachmentRemove(info)}
+                                      title={`Remove ${info.name}`}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          if (!canUploadToSource) return null;
+                          return (
+                            <CompactUploadButton
+                              key={info.sourceFieldId}
+                              info={info}
+                              srdId={srd?._id}
+                              onUploaded={(assets) => handleAttachmentUploaded(info, assets)}
+                            />
+                          );
+                        })}
                       </div>
                     )}
                   </div>

@@ -40,7 +40,7 @@ export function findDynamicFieldState(dynamicFields, fieldId, fieldDef = null) {
   }) || null;
 }
 
-export function getAttachedImageLabels({ targetFieldId, fieldDefs, dynamicFields }) {
+export function getAttachedFieldInfos({ targetFieldId, fieldDefs, dynamicFields }) {
   const normalizedTargetFieldId = normalizeFieldId(targetFieldId);
   if (!normalizedTargetFieldId) {
     return [];
@@ -50,7 +50,7 @@ export function getAttachedImageLabels({ targetFieldId, fieldDefs, dynamicFields
   const seenSourceIds = new Set();
 
   toFieldDefinitionsArray(fieldDefs)
-    .filter((fieldDef) => fieldDef?.type === 'image')
+    .filter((fieldDef) => fieldDef?.type === 'image' || fieldDef?.type === 'file')
     .filter((fieldDef) => fieldDef?.isConnectedTo && fieldDef?.connectionType === 'is-attached')
     .forEach((fieldDef) => {
       const sourceFieldId = normalizeFieldId(fieldDef._id || fieldDef.originalFieldId || fieldDef.field);
@@ -61,17 +61,17 @@ export function getAttachedImageLabels({ targetFieldId, fieldDefs, dynamicFields
       }
 
       const sourceFieldState = findDynamicFieldState(dynamicFields, sourceFieldId, fieldDef);
-      const imageCount = normalizeAssetEntries(sourceFieldState?.value, { kind: 'image' }).length;
-
-      if (!imageCount) {
-        return;
-      }
+      const assetKind = fieldDef.type === 'file' ? 'file' : 'image';
+      const assetCount = normalizeAssetEntries(sourceFieldState?.value, { kind: assetKind }).length;
 
       seenSourceIds.add(sourceFieldId);
       attachmentCandidates.push({
         sourceFieldId,
-        name: fieldDef.name || 'Image',
+        name: fieldDef.name || (assetKind === 'file' ? 'File' : 'Image'),
+        type: fieldDef.type,
+        assetCount,
         order: typeof fieldDef.order === 'number' ? fieldDef.order : Number.MAX_SAFE_INTEGER,
+        fieldDef,
       });
     });
 
@@ -80,6 +80,11 @@ export function getAttachedImageLabels({ targetFieldId, fieldDefs, dynamicFields
       left.order - right.order ||
       left.name.localeCompare(right.name) ||
       left.sourceFieldId.localeCompare(right.sourceFieldId)
-    )
-    .map((fieldDef) => `${fieldDef.name} attached`);
+    );
+}
+
+export function getAttachedImageLabels({ targetFieldId, fieldDefs, dynamicFields }) {
+  return getAttachedFieldInfos({ targetFieldId, fieldDefs, dynamicFields })
+    .filter((info) => info.assetCount > 0)
+    .map((info) => `${info.name} attached`);
 }

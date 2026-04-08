@@ -44,7 +44,7 @@ function normalizeFieldTypeChange(previousValues, nextType) {
     type: nextType,
   };
 
-  if (nextType !== 'image' && previousValues.connectionType === 'is-attached') {
+  if (nextType !== 'image' && nextType !== 'file' && previousValues.connectionType === 'is-attached') {
     nextValues.isConnectedTo = false;
     nextValues.connectedFieldId = null;
     nextValues.connectionType = null;
@@ -1248,13 +1248,13 @@ export default function Page() {
                               <option value="">Select connection type</option>
                               <option value="auto-true">Auto-True (When this field is true, connected field becomes true)</option>
                               <option value="toggle-active">Toggle-Active (This field is active only when connected field is false)</option>
-                              {values.type === 'image' && (
-                                <option value="is-attached">Is Attached (Show this image field as attached on the connected field)</option>
+                              {(values.type === 'image' || values.type === 'file') && (
+                                <option value="is-attached">Is Attached (Show this field as attached on the connected field)</option>
                               )}
                             </select>
                             {values.connectionType === 'is-attached' && (
                               <p className="mt-1 text-app-text text-blue-600">
-                                The connected field will show &quot;{values.name || 'This image field'} attached&quot; when images are uploaded.
+                                The connected field will show &quot;{values.name || 'This field'} attached&quot; when {values.type === 'file' ? 'files are uploaded' : 'images are uploaded'}.
                               </p>
                             )}
                           </div>

@@ -57,8 +57,8 @@ async function validateConnectedFieldPayload(fieldPayload, currentFieldId = null
         throw createClientError('Heading fields cannot be used as connected targets.');
     }
 
-    if (fieldPayload.connectionType === 'is-attached' && fieldPayload.type !== 'image') {
-        throw createClientError('Is Attached connections can only be used on image fields.');
+    if (fieldPayload.connectionType === 'is-attached' && fieldPayload.type !== 'image' && fieldPayload.type !== 'file') {
+        throw createClientError('Is Attached connections can only be used on image or file fields.');
     }
 }
 
