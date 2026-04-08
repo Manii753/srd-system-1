@@ -151,73 +151,79 @@ export default function UploadFile({ onUploaded, srdId, fieldId, accept = ".xlsx
   const overallProgress = files.length ? Math.round(files.reduce((acc, f) => acc + (f.progress || 0), 0) / files.length) : 0;
 
   return (
-    <div className="w-full">
-      <div
-        onDrop={onDrop}
-        onDragOver={onDragOver}
-        className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-        onClick={() => canUpload && inputRef.current && inputRef.current.click()}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept={accept}
-          multiple={maxFiles > 1}
-          className="hidden"
-          onChange={(e) => handleFiles(e.target.files)}
-          disabled={!canUpload}
-        />
+    <div className="w-full flex items-start gap-2">
+      <label className="text-app-text text-gray-700 font-medium whitespace-nowrap pt-2">
+        Attach size chart:
+      </label>
+      
+      <div className="flex-1">
+        <div
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          className="border-b border-gray-300 py-2 cursor-pointer hover:border-gray-400 transition-colors"
+          onClick={() => canUpload && inputRef.current && inputRef.current.click()}
+        >
+          <input
+            ref={inputRef}
+            type="file"
+            accept={accept}
+            multiple={maxFiles > 1}
+            className="hidden"
+            onChange={(e) => handleFiles(e.target.files)}
+            disabled={!canUpload}
+          />
 
-        {!canUpload && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-app-text text-amber-900">
-            Create the SRD first, then upload files from the SRD editor.
-          </div>
-        )}
+          {!canUpload && (
+            <div className="text-app-text text-amber-600 text-sm">
+              Create the SRD first
+            </div>
+          )}
 
-        {canUpload && files.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-2">
-            <Upload className="h-6 w-6 text-gray-400 mb-2" />
-            <p className="text-app-text text-gray-600">Click to upload Excel file</p>
-          </div>
-        )}
+          {canUpload && files.length === 0 && (
+            <div className="flex items-center gap-2">
+              <Upload className="h-4 w-4 text-gray-400" />
+              <span className="text-app-text text-gray-500 text-sm">Click to upload file</span>
+            </div>
+          )}
 
-        {canUpload && files.length > 0 && (
-          <div className="space-y-2">
-            {files.map((f, i) => (
-              <div key={i} className="flex items-center justify-between bg-white p-2 rounded border border-gray-200 text-app-text">
-                <div className="flex items-center space-x-2 overflow-hidden">
-                  <FileSpreadsheet className="h-4 w-4 text-green-600 flex-shrink-0" />
-                  <span className="truncate max-w-[150px]" title={f.name}>{f.name}</span>
+          {canUpload && files.length > 0 && (
+            <div className="space-y-2">
+              {files.map((f, i) => (
+                <div key={i} className="flex items-center justify-between text-app-text">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <FileSpreadsheet className="h-4 w-4 text-green-600 flex-shrink-0" />
+                    <span className="truncate text-sm" title={f.name}>{f.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {f.uploadedAsset ? (
+                       <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <span className="text-gray-500 text-xs">{f.progress}%</span>
+                    )}
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-5 w-5" 
+                      onClick={(e) => removeFile(e, i)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  {f.uploadedAsset ? (
-                     <Check className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <span className="text-gray-500">{f.progress}%</span>
-                  )}
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    className="h-6 w-6" 
-                    onClick={(e) => removeFile(e, i)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              ))}
 
-            {!uploading && files.some(f => !f.uploadedAsset) && (
-              <Button size="sm" onClick={uploadAll} className="w-full h-7 text-app-text mt-2">
-                Upload Files
-              </Button>
-            )}
-            
-            {uploading && (
-               <Progress value={overallProgress} className="h-1 mt-2" />
-            )}
-          </div>
-        )}
+              {!uploading && files.some(f => !f.uploadedAsset) && (
+                <Button size="sm" onClick={uploadAll} className="h-7 text-app-text mt-2">
+                  Upload
+                </Button>
+              )}
+              
+              {uploading && (
+                 <Progress value={overallProgress} className="h-1 mt-2" />
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

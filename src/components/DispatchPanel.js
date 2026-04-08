@@ -693,7 +693,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
       <div className={`border border-gray-300 bg-white mt-2 ${!srd.sampleDispatchedToBuyer ? 'opacity-50 pointer-events-none' : ''}`}>
         <div className="bg-gray-100 border-b border-gray-300 px-2 py-1.5 flex justify-between items-center">
-          <span className="text-app-heading font-bold text-gray-800 uppercase">Buyer Approval</span>
+          <span className="text-app-heading font-bold text-gray-800 uppercase">Buyer's Comment</span>
           <span className={`text-app-text font-medium ${srd.BuyerApproved ? 'text-green-600' : srd.BuyerApprovedDate ? 'text-red-600' : srd.sampleDispatchedToBuyer ? 'text-yellow-600' : 'text-gray-500'}`}>
             {srd.BuyerApproved ? 'Buyer Approved' : srd.BuyerApprovedDate ? 'Buyer Rejected' : srd.sampleDispatchedToBuyer ? 'Waiting for Buyer' : 'Not Dispatched'}
           </span>

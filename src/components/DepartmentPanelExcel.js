@@ -716,7 +716,7 @@ export default function DepartmentPanelExcel({
               <span
                 key={dept}
                 className={cn(
-                  "inline-flex items-center rounded-full px-2 py-0.5 text-app-heading font-medium",
+                  "inline-flex items-center rounded-full px-2 py-0.5 text-app-heading font-medium capitalize",
                   val === 'approved' && 'bg-green-100 text-green-800',
                   val === 'in-progress' && 'bg-blue-100 text-blue-800',
                   val === 'flagged' && 'bg-red-100 text-red-800',
@@ -1550,9 +1550,9 @@ export default function DepartmentPanelExcel({
   }
 
   return (
-    <div className="flex gap-0 bg-white rounded-lg overflow-hidden flex-1 min-h-0 p-1">
+    <div className="flex gap-0 bg-[#FBFCFE] rounded-lg overflow-hidden flex-1 min-h-0 p-1">
       {/* Main Form Area */}
-      <div className="flex flex-col flex-1 min-h-0 overflow-y-hidden">
+      <div className="flex flex-col flex-1 min-h-0 overflow-y-hidden pb-10 shadow-lg">
 
       {/* Section header row — always aligned */}
       {headerCells.length > 0 && (
@@ -1755,10 +1755,9 @@ export default function DepartmentPanelExcel({
         {currentSection?.includeApprovals && (
           <>
             {/* Status Update Section - Hidden in readOnly mode */}
-            {!readOnly && (
+            {/* {!readOnly && (
               <div className=" border-transparent p-3">
                 <div className="grid grid-cols-6 gap-2 items-end">
-                  {/* Department display/selector */}
                   <div>
                     <Label className="text-app-text font-medium text-gray-700">Department</Label>
                     {userRole === 'admin' || userRole === 'vmd' ? (
@@ -1820,7 +1819,7 @@ export default function DepartmentPanelExcel({
                   Field changes auto-save. Use button for status/comments only.
                 </p>
               </div>
-            )}
+            )} */}
 
             {/* Render Dispatch Panel if applicable - Hidden in readOnly mode to avoid circular display */}
             {!readOnly && (srd?.inDispatch) && (
