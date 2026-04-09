@@ -11,7 +11,7 @@ export async function POST(request, context) {
     const body = await request.json();
     const { stageName, stageId, completedBy, notes } = body;
 
-    const srd = await SRD.findById(id);
+    const srd = await SRD.findById(id).populate('productionStages');
     if (!srd) {
       return NextResponse.json({ success: false, error: 'SRD not found' }, { status: 404 });
     }
@@ -88,14 +88,11 @@ export async function POST(request, context) {
       });
     }
 
-    // Get next stage
-    const nextStage = await ProductionStage.findOne({
-      order: currentStage.order + 1,
-      isActive: true
-    }).sort({ order: 1 });
-
-    // Get total number of active stages for progress calculation
-    const totalStages = await ProductionStage.countDocuments({ isActive: true });
+    // Get next stage from SRD's own stages
+    const sortedSrdStages = (srd.productionStages || []).slice().sort((a, b) => a.order - b.order);
+    const currentIdx = sortedSrdStages.findIndex(s => String(s._id) === String(currentStage._id));
+    const nextStage = currentIdx >= 0 ? (sortedSrdStages[currentIdx + 1] || null) : null;
+    const totalStages = sortedSrdStages.length;
 
     if (nextStage) {
       // Move to next stage

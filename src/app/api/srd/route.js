@@ -5,6 +5,7 @@ import Company from '@/models/Company';
 import User from '@/models/User';
 import Notification from '@/models/Notification';
 import Field from '@/models/Field';
+import ProductionStage from '@/models/ProductionStage';
 import pusher from '@/lib/pusher-server';
 import mongoose from 'mongoose';
 
@@ -275,6 +276,12 @@ export async function POST(request) {
         return f;
       });
     }
+    // -- IN Future If user wants to add the productionstages through body he can do it --
+    // --- Populate production stages ---
+    if (!body.productionStages || body.productionStages.length === 0) {
+      const activeStages = await ProductionStage.find({ isActive: true }).sort({ order: 1 }).lean();
+      body.productionStages = activeStages.map(stage => stage._id);
+    }
 
     // --- Create SRD ---
     const newSRD = await SRD.create(body);
@@ -285,7 +292,7 @@ export async function POST(request) {
       Notification.create({
         user: user._id,
         srd: newSRD._id,
-        message: `New SRD created: ${newSRD.refNo}`,
+        message: `New SRD created: ${newSRD.refNo} `,
       })
     );
     await Promise.all(notificationPromises);

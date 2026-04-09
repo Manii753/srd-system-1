@@ -22,7 +22,11 @@ export default function SRDTracker({ srd }) {
       const response = await fetch('/api/production-stages');
       const data = await response.json();
       if (data.success) {
-        setProductionStages(data.data.filter(stage => stage.isActive).sort((a, b) => a.order - b.order));
+        const srdStageIds = new Set((srd.productionStages || []).map(id => String(id)));
+        const filtered = srdStageIds.size > 0
+          ? data.data.filter(stage => stage.isActive && srdStageIds.has(String(stage._id)))
+          : data.data.filter(stage => stage.isActive);
+        setProductionStages(filtered.sort((a, b) => a.order - b.order));
       }
     } catch (error) {
       console.error('Error fetching production stages:', error);

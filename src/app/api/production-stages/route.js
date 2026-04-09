@@ -17,9 +17,12 @@ export async function POST(request) {
   await dbConnect();
   try {
     const body = await request.json();
-    
+
     if (!body.slug) {
       body.slug = body.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    }
+    if (!body.displayName) {
+      body.displayName = body.name;
     }
 
     const newStage = await ProductionStage.create(body);

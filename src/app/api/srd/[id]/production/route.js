@@ -25,11 +25,13 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Get first production stage
-    const firstStage = await ProductionStage.findOne({ isActive: true }).sort({ order: 1 });
+    // Get first production stage from SRD's own stages
+    await srd.populate('productionStages');
+    const sortedStages = (srd.productionStages || []).slice().sort((a, b) => a.order - b.order);
+    const firstStage = sortedStages[0];
     if (!firstStage) {
       return NextResponse.json(
-        { success: false, error: 'No production stages configured' },
+        { success: false, error: 'No production stages configured for this SRD' },
         { status: 400 }
       );
     }
@@ -104,12 +106,13 @@ export async function PATCH(request, { params }) {
       srd.productionHistory[currentHistoryIndex].completedBy = completedBy || 'Unknown';
       srd.productionHistory[currentHistoryIndex].notes = notes;
 
-      // Get next stage
+      // Get next stage from SRD's own stages
       const currentStage = await ProductionStage.findById(srd.currentProductionStage);
-      const nextStage = await ProductionStage.findOne({
-        isActive: true,
-        order: { $gt: currentStage.order }
-      }).sort({ order: 1 });
+      await srd.populate('productionStages');
+      const sortedSrdStages = (srd.productionStages || []).slice().sort((a, b) => a.order - b.order);
+      const currentIdx = sortedSrdStages.findIndex(s => String(s._id) === String(currentStage._id));
+      const nextStage = currentIdx >= 0 ? sortedSrdStages[currentIdx + 1] : null;
+      const totalStages = sortedSrdStages.length;
 
       if (nextStage) {
         // Move to next stage
@@ -123,7 +126,6 @@ export async function PATCH(request, { params }) {
         });
 
         // Calculate progress
-        const totalStages = await ProductionStage.countDocuments({ isActive: true });
         const completedStages = srd.productionHistory.filter(h => h.status === 'completed').length;
         srd.productionProgress = Math.round((completedStages / totalStages) * 100);
 
@@ -205,7 +207,8 @@ export async function GET(request, { params }) {
   try {
     const srd = await SRD.findById(id)
       .populate('currentProductionStage')
-      .populate('productionHistory.stage');
+      .populate('productionHistory.stage')
+      .populate('productionStages');
 
     if (!srd) {
       return NextResponse.json(
@@ -214,8 +217,8 @@ export async function GET(request, { params }) {
       );
     }
 
-    // Get all production stages for reference
-    const allStages = await ProductionStage.find({ isActive: true }).sort({ order: 1 });
+    // Use the SRD's own stages, sorted by order
+    const allStages = (srd.productionStages || []).slice().sort((a, b) => a.order - b.order);
 
     return NextResponse.json({
       success: true,

@@ -11,7 +11,6 @@ import {
   UserCheck
 } from 'lucide-react';
 import dbConnect from '@/lib/db';
-import ProductionStage from '@/models/ProductionStage';
 import SRD from '@/models/SRD';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -357,8 +356,9 @@ export default async function SRDDetailsPage({ params }) {
   const srd = await SRD.findById(resolvedParams.id)
     .populate('currentProductionStage')
     .populate('productionHistory.stage')
+    .populate('productionStages')
     .lean();
-  const productionStages = await ProductionStage.find({ isActive: true }).sort({ order: 1 }).lean();
+  const productionStages = (srd?.productionStages || []).slice().sort((a, b) => a.order - b.order);
 
   if (!srd) {
     notFound();

@@ -8,7 +8,7 @@ const productionStageSchema = new mongoose.Schema({
   },
   displayName: {
     type: String,
-    required: true
+    
   },
   order: {
     type: Number,
@@ -32,6 +32,10 @@ const productionStageSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  duration : {
+    type: Number, // Duration in hours
+    default: 0
   }
 });
 

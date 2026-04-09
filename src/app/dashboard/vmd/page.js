@@ -42,7 +42,7 @@ export default function VMDDashboard() {
 
   const fetchSRDs = async () => {
     try {
-      const response = await fetch('/api/srd?department=vmd');
+      const response = await fetch('/api/srd');
       const data = await response.json();
       if (data.success) {
         setSRDs(data.data);

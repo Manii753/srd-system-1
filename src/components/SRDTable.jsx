@@ -417,7 +417,12 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
 
                             {/* Timeline */}
                             <div className="flex items-start justify-end gap-0 mr-20">
-                              {[...productionStages].sort((a, b) => a.order - b.order).map((stage, idx, arr) => {
+                              {(() => {
+                                const srdStageIds = new Set((srd.productionStages || []).map(id => String(id)));
+                                return srdStageIds.size > 0
+                                  ? [...productionStages].filter(s => srdStageIds.has(String(s._id))).sort((a, b) => a.order - b.order)
+                                  : [...productionStages].sort((a, b) => a.order - b.order);
+                              })().map((stage, idx, arr) => {
                                 const historyEntry = (srd.productionHistory || []).find(
                                   h => String(h.stage) === String(stage._id)
                                 );

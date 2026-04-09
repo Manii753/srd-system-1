@@ -1909,7 +1909,7 @@ export default function DepartmentPanelExcel({
         {currentSection?.includeApprovals && (
           <>
             {/* Status Update Section - Hidden in readOnly mode */}
-            {/* {!readOnly && (
+            {!readOnly && (
               <div className=" border-transparent p-3">
                 <div className="grid grid-cols-6 gap-2 items-end">
                   <div>
@@ -1973,7 +1973,7 @@ export default function DepartmentPanelExcel({
                   Field changes auto-save. Use button for status/comments only.
                 </p>
               </div>
-            )} */}
+            )}
 
             {/* Render Dispatch Panel if applicable - Hidden in readOnly mode to avoid circular display */}
             {!readOnly && (srd?.inDispatch) && (

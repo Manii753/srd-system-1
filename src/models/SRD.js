@@ -42,6 +42,11 @@ const srdSchema = new mongoose.Schema({
   // Production tracking
   productionStartDate: { type: Date },
   productionEndDate: { type: Date },
+  
+  productionStages : {
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'ProductionStage' }],
+    default: []
+  },
   currentProductionStage: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ProductionStage'
