@@ -293,6 +293,11 @@ export async function printDepartmentPanelExcel({
         return;
       }
 
+      // is-attached source fields: skip entirely (shown on attachments page)
+      if (fieldDef.isConnectedTo && fieldDef.connectionType === 'is-attached') {
+        return;
+      }
+
       // Check if field is active OR hidden dynamically
       // If so, render a placeholder to preserve layout
       if (fieldDef.active === false || isFieldHidden(fieldDef)) {
@@ -586,6 +591,11 @@ export async function printDepartmentPanelExcel({
         return result;
       }
 
+      // Skip is-attached fields — they are rendered on the attachments page
+      if (fieldDef?.isConnectedTo && fieldDef?.connectionType === 'is-attached') {
+        return result;
+      }
+
       const fileAssets = normalizeAssetEntries(field.value, { kind: 'file' });
       fileAssets.forEach((asset) => {
         result.push({
@@ -595,6 +605,49 @@ export async function printDepartmentPanelExcel({
       });
       return result;
     }, []);
+
+    // Collect all is-attached source fields (files and images) for the second page
+    const attachedFiles = [];
+    const attachedImages = [];
+    const allFieldDefsArray = Object.values(allFieldDefsMap);
+    allFieldDefsArray
+      .filter(fd => fd?.isConnectedTo && fd?.connectionType === 'is-attached')
+      .forEach(fd => {
+        const sourceFieldId = normalizeFieldId(fd._id);
+        if (!sourceFieldId) return;
+        if (fd.isOptional && !isOptionalFieldEnabled(fields, sourceFieldId, fd)) return;
+        if (fd.active === false) return;
+
+        const fieldState = findFieldState(fields, sourceFieldId, fd);
+        const value = fieldState?.value;
+        if (!value) return;
+
+        // Find the target field name for labelling
+        const targetFieldId = normalizeFieldId(fd.connectedFieldId);
+        const targetDef = targetFieldId ? allFieldDefsMap[targetFieldId] : null;
+        const label = fd.name || (targetDef ? `${targetDef.name} attachment` : 'Attachment');
+
+        if (fd.type === 'file') {
+          const fileAssets = normalizeAssetEntries(value, { kind: 'file' });
+          fileAssets.forEach(asset => {
+            attachedFiles.push({
+              label,
+              name: getAssetLabel(asset, label),
+              url: asset.url,
+            });
+          });
+        } else if (fd.type === 'image') {
+          const imageUrls = normalizeAssetUrls(value);
+          if (imageUrls.length > 0) {
+            attachedImages.push({
+              label,
+              images: imageUrls,
+            });
+          }
+        }
+      });
+
+    const hasAttachments = attachedFiles.length > 0 || attachedImages.length > 0;
 
     const srdId = normalizeFieldId(srd?._id || srd?.id);
     const qrBaseUrl = window.location.origin;
@@ -609,7 +662,7 @@ export async function printDepartmentPanelExcel({
 <html>
 <head>
   <title>SRD Complete Form - ${srd.refNo}</title>
-  ${excelFiles.length > 0 ? '<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>' : ''}
+  ${(excelFiles.length > 0 || attachedFiles.length > 0) ? '<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>' : ''}
   <style>
     @page {
       size: A4;
@@ -1214,6 +1267,140 @@ export async function printDepartmentPanelExcel({
       font-size: 8px;
     }
 
+    /* Attachments second page */
+    .attachments-page {
+      page-break-before: always;
+      padding: 10px 0;
+    }
+
+    .attachments-header {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+      padding-bottom: 2px;
+      margin-bottom: 10px;
+    }
+
+    .attachments-flex {
+      display: flex;
+      gap: 16px;
+      width: 100%;
+      align-items: flex-start;
+    }
+
+    .attachments-col {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .attachments-col-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #333;
+      text-transform: uppercase;
+      padding: 4px 6px;
+      background: #f3f4f6;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 6px;
+    }
+
+    .attached-file-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 6px;
+      border-bottom: 0.5px solid #e5e7eb;
+    }
+
+    .attached-file-icon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .attached-file-info {
+      min-width: 0;
+    }
+
+    .attached-file-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #333;
+      text-transform: capitalize;
+    }
+
+    .attached-file-name {
+      font-size: 9px;
+      color: #666;
+      word-break: break-all;
+    }
+
+    .attached-image-group {
+      margin-bottom: 8px;
+    }
+
+    .attached-image-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #333;
+      text-transform: capitalize;
+      padding: 2px 6px;
+      background: #f9fafb;
+      border-bottom: 0.5px solid #ddd;
+      margin-bottom: 4px;
+    }
+
+    .attached-image-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 4px;
+      padding: 0 4px;
+    }
+
+    .attached-img-wrapper {
+      border: 0.5px solid #ddd;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+    }
+
+    .attached-img {
+      max-width: 100%;
+      max-height: 100%;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .attached-file-type {
+      font-size: 8px;
+      font-weight: 700;
+      color: #2563eb;
+      background: #eff6ff;
+      border: 0.5px solid #bfdbfe;
+      border-radius: 2px;
+      padding: 0 3px;
+      text-transform: uppercase;
+      display: inline-block;
+      margin-left: 4px;
+    }
+
+    .attachments-empty {
+      font-size: 9px;
+      color: #999;
+      font-style: italic;
+      padding: 8px 6px;
+    }
+
     @media print {
       body { 
         -webkit-print-color-adjust: exact !important;
@@ -1229,12 +1416,21 @@ export async function printDepartmentPanelExcel({
         background-color: #f3f4f6 !important;
       }
       
-      .img-print {
+      .img-print,
+      .attached-img {
         -webkit-print-color-adjust: exact !important;
         color-adjust: exact !important;
       }
 
-     
+      .attachments-page {
+        page-break-before: always;
+      }
+
+      .attachments-col-title {
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        background-color: #f3f4f6 !important;
+      }
     }
   </style>
 </head>
@@ -1249,22 +1445,62 @@ export async function printDepartmentPanelExcel({
     ${fieldsHTML}
   </div>
 
-  <div id="excel-sections"></div>
-
-     ${srdQrUrl ? `
-      <div class="header-qr">
+  ${hasAttachments ? `
+  <div class="attachments-page">
+    <div class="attachments-header">Attachments - ${srd.refNo || ''}</div>
+    <div class="attachments-flex">
+      <div class="attachments-col attachments-col-files">
+        <div class="attachments-col-title">Files</div>
+        ${attachedFiles.length > 0 ? attachedFiles.map(f => {
+          const ext = f.name.includes('.') ? f.name.split('.').pop().toUpperCase() : '';
+          return `
+          <div class="attached-file-item">
+            <div class="attached-file-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="attached-file-info">
+              <div class="attached-file-label">${escapeHtmlAttribute(f.label)}${ext ? ` <span class="attached-file-type">.${ext}</span>` : ''}</div>
+              <div class="attached-file-name">${escapeHtmlAttribute(f.name)}</div>
+            </div>
+          </div>
+        `}).join('') : '<div class="attachments-empty">No file attachments</div>'}
+        <div id="attached-excel-sections"></div>
+      </div>
+      <div class="attachments-col attachments-col-images">
+        <div class="attachments-col-title">Images</div>
+        ${attachedImages.length > 0 ? attachedImages.map(group => `
+          <div class="attached-image-group">
+            <div class="attached-image-label">${escapeHtmlAttribute(group.label)}</div>
+            <div class="attached-image-grid">
+              ${group.images.map((img, idx) => `
+                <div class="attached-img-wrapper">
+                  <img src="${escapeHtmlAttribute(img)}" class="attached-img" alt="${escapeHtmlAttribute(group.label + ' ' + (idx + 1))}" data-print-image loading="eager" decoding="sync" />
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('') : '<div class="attachments-empty">No image attachments</div>'}
+      </div>
+    </div>
+    <div id="excel-sections"></div>
+    ${srdQrUrl ? `
+      <div class="header-qr" style="margin-top: 12px;">
         <div class="header-qr-frame">
-          <img
-            src="${srdQrUrl}"
-            alt="SRD detail QR code"
-            class="header-qr-image"
-            data-srd-qr
-            loading="eager"
-            decoding="sync"
-          />
+          <img src="${srdQrUrl}" alt="SRD detail QR code" class="header-qr-image" data-srd-qr loading="eager" decoding="sync" />
         </div>
       </div>
     ` : ''}
+  </div>
+  ` : `
+    <div id="excel-sections"></div>
+    ${srdQrUrl ? `
+      <div class="header-qr">
+        <div class="header-qr-frame">
+          <img src="${srdQrUrl}" alt="SRD detail QR code" class="header-qr-image" data-srd-qr loading="eager" decoding="sync" />
+        </div>
+      </div>
+    ` : ''}
+  `}
 
   <script>
     async function waitForImages(selector, timeoutMs = 5000) {
@@ -1302,39 +1538,35 @@ export async function printDepartmentPanelExcel({
       }, delay);
     }
 
-    async function loadExcelFiles() {
-      const files = ${JSON.stringify(excelFiles)};
-      const container = document.getElementById('excel-sections');
-      
-      for (const file of files) {
+    function renderExcelToContainer(files, container, titlePrefix) {
+      return Promise.all(files.map(async (file) => {
         try {
           const response = await fetch(file.url);
           const arrayBuffer = await response.arrayBuffer();
           const data = new Uint8Array(arrayBuffer);
           const workbook = XLSX.read(data, { type: 'array' });
-          
+
           const section = document.createElement('div');
           section.className = 'excel-container';
-          
+
           const title = document.createElement('div');
           title.className = 'excel-title';
-          title.textContent = 'ATTACHED EXCEL: ' + file.name;
+          title.textContent = titlePrefix + file.name;
           section.appendChild(title);
 
           const sheetsRow = document.createElement('div');
           sheetsRow.className = 'excel-sheets-row';
           const totalSheets = workbook.SheetNames.length;
-          
+
           workbook.SheetNames.forEach(sheetName => {
             const sheet = workbook.Sheets[sheetName];
-            
-            // Recalculate sheet range to ignore trailing/leading empty rows and columns
+
             if (sheet['!ref']) {
               const range = XLSX.utils.decode_range(sheet['!ref']);
               let maxRow = range.s.r, maxCol = range.s.c;
               let minRow = range.e.r, minCol = range.e.c;
               let hasData = false;
-              
+
               for(let R = range.s.r; R <= range.e.r; ++R) {
                 for(let C = range.s.c; C <= range.e.c; ++C) {
                   const cellRef = XLSX.utils.encode_cell({c: C, r: R});
@@ -1348,29 +1580,27 @@ export async function printDepartmentPanelExcel({
                   }
                 }
               }
-              
+
               if (hasData) {
                 sheet['!ref'] = XLSX.utils.encode_range({
                   s: { c: minCol, r: minRow },
                   e: { c: maxCol, r: maxRow }
                 });
               } else {
-                return; // Skip empty sheet completely
+                return;
               }
             }
 
             const htmlTable = XLSX.utils.sheet_to_html(sheet);
-            
+
             const sheetTitle = document.createElement('div');
             sheetTitle.className = 'excel-sheet-title';
             sheetTitle.textContent = sheetName;
-             
+
             const wrapper = document.createElement('div');
             wrapper.className = 'excel-table-wrapper';
             wrapper.innerHTML = htmlTable;
 
-            // DOM Cleanup for internal empty rows and columns
-            // Remove empty rows
             const rows = wrapper.querySelectorAll('tr');
             rows.forEach(row => {
               let isEmpty = true;
@@ -1386,7 +1616,6 @@ export async function printDepartmentPanelExcel({
               }
             });
 
-            // Remove empty columns only if there are no merged cells to avoid structure breakage
             const table = wrapper.querySelector('table');
             if (table && !table.querySelector('[colspan], [rowspan]')) {
               const rowsList = Array.from(table.rows);
@@ -1394,7 +1623,7 @@ export async function printDepartmentPanelExcel({
               rowsList.forEach(row => {
                 if (row.cells.length > maxCols) maxCols = row.cells.length;
               });
-              
+
               const emptyCols = [];
               for (let i = 0; i < maxCols; i++) {
                 let isEmpty = true;
@@ -1412,8 +1641,7 @@ export async function printDepartmentPanelExcel({
                   emptyCols.push(i);
                 }
               }
-              
-              // Remove empty columns from right to left
+
               for (let i = emptyCols.length - 1; i >= 0; i--) {
                 const colIndex = emptyCols[i];
                 for (let j = 0; j < rowsList.length; j++) {
@@ -1423,8 +1651,7 @@ export async function printDepartmentPanelExcel({
                 }
               }
             }
-             
-            // Only append the sheet if it still has data after cleanup
+
             if (wrapper.querySelectorAll('tr').length > 0 && wrapper.querySelectorAll('td, th').length > 0) {
               const sheetCard = document.createElement('div');
               sheetCard.className = 'excel-sheet-card';
@@ -1445,14 +1672,37 @@ export async function printDepartmentPanelExcel({
         } catch (err) {
           console.error('Error loading excel:', err);
         }
+      }));
+    }
+
+    async function loadAllExcel() {
+      const excelFiles = ${JSON.stringify(excelFiles)};
+      const attachedExcelFiles = ${JSON.stringify(attachedFiles.filter(f => {
+        const ext = f.name.includes('.') ? f.name.split('.').pop().toLowerCase() : '';
+        return ['xlsx', 'xls', 'csv'].includes(ext);
+      }))};
+
+      const tasks = [];
+
+      if (excelFiles.length > 0) {
+        const container = document.getElementById('excel-sections');
+        if (container) tasks.push(renderExcelToContainer(excelFiles, container, 'ATTACHED EXCEL: '));
       }
-      
-      // Notify parent that we are ready or just print
+
+      if (attachedExcelFiles.length > 0) {
+        const container = document.getElementById('attached-excel-sections');
+        if (container) tasks.push(renderExcelToContainer(attachedExcelFiles, container, ''));
+      }
+
+      if (tasks.length > 0) {
+        await Promise.all(tasks);
+      }
+
       printWhenReady(1000);
     }
-    
-    if (${excelFiles.length} > 0) {
-      loadExcelFiles();
+
+    if (${excelFiles.length} > 0 || ${attachedFiles.length} > 0) {
+      loadAllExcel();
     } else {
       printWhenReady(500);
     }
