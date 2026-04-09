@@ -6,10 +6,12 @@ import { useEffect, useState } from "react";
 
 export default function DepartmentsPage() {
     const [modalOpen, setModalOpen] = useState(false);
-    const [values, setValues] = useState({ 
-        name: "", 
+    const [values, setValues] = useState({
+        name: "",
         slug: "",
-        description: ""
+        description: "",
+        type: "support",
+        accessLevel: "canEditOnlyOwnDepartmentFields"
     });
     const [departments, setDepartments] = useState([]);
     const [editingId, setEditingId] = useState(null);
@@ -32,16 +34,18 @@ export default function DepartmentsPage() {
     }
 
     function openNew() {
-        setValues({ name: "", slug: "", description: "" });
+        setValues({ name: "", slug: "", description: "", type: "support", accessLevel: "canEditOnlyOwnDepartmentFields" });
         setEditingId(null);
         setModalOpen(true);
     }
 
     function openEdit(dept) {
-        setValues({ 
-            name: dept.name || '', 
+        setValues({
+            name: dept.name || '',
             slug: dept.slug || '',
-            description: dept.description || ''
+            description: dept.description || '',
+            type: dept.type || 'support',
+            accessLevel: dept.accessLevel || 'canEditOnlyOwnDepartmentFields'
         });
         setEditingId(dept._id);
         setModalOpen(true);
@@ -145,6 +149,8 @@ export default function DepartmentsPage() {
                                 <tr>
                                     <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                     <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">Slug</th>
+                                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                    <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">Access Level</th>
                                     <th className="px-6 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">Description</th>
                                     <th className="px-6 py-3 text-right text-app-text font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -154,6 +160,12 @@ export default function DepartmentsPage() {
                                     <tr key={dept._id}>
                                         <td className="px-6 py-4 whitespace-nowrap text-app-text font-medium text-gray-900">{dept.name}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-app-text text-gray-500">{dept.slug}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-app-text font-medium ${dept.type === 'support' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}`}>
+                                                {dept.type || '-'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-app-text text-gray-500 text-xs">{dept.accessLevel || '-'}</td>
                                         <td className="px-6 py-4 text-app-text text-gray-500">{dept.description || '-'}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-app-text font-medium text-right">
                                             <button
@@ -231,6 +243,39 @@ export default function DepartmentsPage() {
                                         onChange={(e) => setValues({ ...values, slug: e.target.value })}
                                         placeholder="e.g., visual-merchandising"
                                     />
+                                </div>
+
+                                {/* Type */}
+                                <div>
+                                    <label className="block text-app-text font-medium text-gray-700 mb-1">
+                                        Type *
+                                    </label>
+                                    <select
+                                        className="w-full p-2 border border-gray-300 rounded bg-white"
+                                        value={values.type}
+                                        onChange={(e) => setValues({ ...values, type: e.target.value })}
+                                        required
+                                    >
+                                        <option value="support">Support — requires SRD approval</option>
+                                        <option value="production">Production — handles manufacturing stages</option>
+                                    </select>
+                                </div>
+
+                                {/* Access Level */}
+                                <div>
+                                    <label className="block text-app-text font-medium text-gray-700 mb-1">
+                                        Access Level *
+                                    </label>
+                                    <select
+                                        className="w-full p-2 border border-gray-300 rounded bg-white"
+                                        value={values.accessLevel}
+                                        onChange={(e) => setValues({ ...values, accessLevel: e.target.value })}
+                                        required
+                                    >
+                                        <option value="canEditOnlyOwnDepartmentFields">Own Fields Only — can edit own department fields</option>
+                                        <option value="canEditAllDepartmentFields">All Fields — can edit all fields &amp; raise SRDs</option>
+                                        <option value="admin">Admin — full access</option>
+                                    </select>
                                 </div>
 
                                 {/* Description */}
