@@ -252,6 +252,11 @@ export async function POST(request) {
       body.status = allDepartments
         .filter(dept => !excludedRoles.includes(dept.slug))
         .map(dept => ({ department: dept.slug.toLowerCase(), value: 'pending', updatedAt: new Date() }));
+
+      // Capture support departments at creation time
+      body.supportDepartments = allDepartments
+        .filter(dept => dept.type === 'support')
+        .map(dept => dept.slug.toLowerCase());
     }
 
     // --- Generate sequential refNo from Company counter ---

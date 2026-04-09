@@ -249,21 +249,18 @@ export default function DepartmentPanelExcel({
         const template = await templateRes.json();
         setActiveTemplate(template);
 
-        // Fetch all field definitions from all departments
+        // Fetch all field definitions (dynamic — not limited to hardcoded departments)
         const fieldDefsMap = {};
-        for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
-          try {
-            const res = await fetch(`/api/newField?department=${dept}`);
-            const data = await res.json();
-            if (Array.isArray(data)) {
-              data.forEach(f => {
-                // Use string ID as key for consistent lookup
-                fieldDefsMap[f._id.toString()] = f;
-              });
-            }
-          } catch (err) {
-            console.error(`Failed to fetch ${dept} fields:`, err);
+        try {
+          const res = await fetch('/api/newField');
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            data.forEach(f => {
+              fieldDefsMap[f._id.toString()] = f;
+            });
           }
+        } catch (err) {
+          console.error('Failed to fetch field definitions:', err);
         }
         setAllFieldDefs(fieldDefsMap);
 
@@ -827,7 +824,7 @@ export default function DepartmentPanelExcel({
           </span>
         )}
         <div className="flex items-center gap-1 ml-2">
-          {['vmd', 'cad', 'commercial', 'mmc'].map(dept => {
+          {(srd.supportDepartments?.length > 0 ? srd.supportDepartments : ['vmd', 'cad', 'commercial', 'mmc']).map(dept => {
             const val = (srd.status || []).find(s => s.department === dept)?.value || 'pending';
             return (
               <span
@@ -1921,7 +1918,7 @@ export default function DepartmentPanelExcel({
                         className="mt-1 px-1 py-1 text-app-text border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
                         disabled={isSubmitting}
                       >
-                        {['vmd', 'cad', 'commercial', 'mmc'].map(dept => (
+                        {(srd.supportDepartments?.length > 0 ? srd.supportDepartments : ['vmd', 'cad', 'commercial', 'mmc']).map(dept => (
                           <option key={dept} value={dept}>{dept.toUpperCase()}</option>
                         ))}
                       </select>

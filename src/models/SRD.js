@@ -121,20 +121,30 @@ const srdSchema = new mongoose.Schema({
     originalFieldId: { type: String } // Store original field ID for reference
   }],
 
+  // Support departments captured at SRD creation time (slugs of type:'support' depts)
+  supportDepartments: [{ type: String }],
+
   comments: [commentSchema],
   audit: [auditSchema],
 });
 
-const REQUIRED_DEPTS = ['vmd', 'cad', 'commercial', 'mmc'];
-
 srdSchema.pre('save', function (next) {
   if (this.isModified('status')) {
     const statusArray = this.status || [];
-    const allApproved = REQUIRED_DEPTS.every(dept =>
-      statusArray.find(s => s.department === dept)?.value === 'approved'
-    );
-    if (allApproved) {
-      this.readyForProduction = true;
+    const depts = this.supportDepartments;
+
+    if (depts && depts.length > 0) {
+      const allApproved = depts.every(slug =>
+        statusArray.find(s => s.department === slug)?.value === 'approved'
+      );
+      if (allApproved) this.readyForProduction = true;
+    } else {
+      // Fallback for SRDs created before supportDepartments was added
+      const fallback = ['vmd', 'cad', 'commercial', 'mmc'];
+      const allApproved = fallback.every(dept =>
+        statusArray.find(s => s.department === dept)?.value === 'approved'
+      );
+      if (allApproved) this.readyForProduction = true;
     }
   }
   next();

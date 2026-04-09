@@ -19,6 +19,11 @@ const DepartmentSchema = new mongoose.Schema({
     enum: ['production', 'support'],
     
   },
+  accessLevel: {
+    type: String,
+    enum: ['canEditOnlyOwnDepartmentFields', 'canEditAllDepartmentFields', 'admin'],
+    default: 'canEditOnlyOwnDepartmentFields'
+  },
   createdAt: {
     type: Date,
     default: Date.now,

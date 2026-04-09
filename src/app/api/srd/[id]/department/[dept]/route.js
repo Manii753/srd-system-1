@@ -68,9 +68,15 @@ export async function PATCH(request, context) {
         }
         srd.markModified('status');
 
-        // Progress calculation
-        const excludedDepts = ['admin', 'production-manager', 'vmd'];
-        const relevantEntries = srd.status.filter(s => !excludedDepts.includes(s.department));
+        // Progress calculation — use supportDepartments if available, else fall back
+        const supportDepts = srd.supportDepartments?.length > 0
+          ? srd.supportDepartments
+          : null;
+
+        const relevantEntries = supportDepts
+          ? srd.status.filter(s => supportDepts.includes(s.department))
+          : srd.status.filter(s => !['admin', 'production-manager', 'vmd'].includes(s.department));
+
         const approvedCount = relevantEntries.filter(s => s.value === 'approved').length;
 
         if (relevantEntries.length > 0) {

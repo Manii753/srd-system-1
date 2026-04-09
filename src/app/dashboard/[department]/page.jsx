@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Plus, FileText, Clock, CheckCircle, AlertCircle,
-  TrendingUp, Users, Package, Settings
+  TrendingUp, Package, Settings
 } from 'lucide-react';
 import Link from 'next/link';
 import ProductionStageDashboard from '@/components/ProductionStageDashboard';
@@ -41,6 +41,12 @@ export default function DynamicDepartmentDashboard() {
       return;
     }
 
+    // Redirect if the user is trying to view another department's dashboard
+    if (session.user.role !== 'admin' && session.user.role !== departmentSlug) {
+      router.push(`/dashboard/${session.user.role}`);
+      return;
+    }
+
     fetchDashboardData();
   }, [session, status, router, departmentSlug]);
 
@@ -58,8 +64,8 @@ export default function DynamicDepartmentDashboard() {
         setDepartment(dept);
       }
 
-      // Fetch SRDs for this department
-      const srdResponse = await fetch(`/api/srd?department=${departmentSlug}`);
+      // Fetch all SRDs — support departments need to see and approve all SRDs
+      const srdResponse = await fetch('/api/srd');
       const srdData = await srdResponse.json();
       if (srdData.success) {
         setSRDs(srdData.data);
@@ -123,11 +129,6 @@ export default function DynamicDepartmentDashboard() {
 
   const stats = getStats();
 
-  const getStageColor = (stageSlug) => {
-    const stage = stages.find(s => s.slug === stageSlug);
-    return stage?.color || '#6B7280';
-  };
-
   const getStageIcon = (stageSlug) => {
     const iconMap = {
       'pending': Clock,
@@ -155,7 +156,9 @@ export default function DynamicDepartmentDashboard() {
   }
 
   const departmentName = department?.name || (departmentSlug === 'admin' ? 'Admin' : departmentSlug.toUpperCase());
-  const canCreate = ['vmd', 'cad', 'commercial', 'mmc', 'admin'].includes(departmentSlug);
+  const canCreate = departmentSlug === 'admin'
+    || department?.accessLevel === 'admin'
+    || department?.accessLevel === 'canEditAllDepartmentFields';
 
   return (
     <Layout>
