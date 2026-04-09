@@ -1189,7 +1189,7 @@ export async function printDepartmentPanelExcel({
 
     /* Excel Print Styles */
     .excel-container {
-      margin-top: 20px;
+      
       
     }
 
@@ -1270,22 +1270,14 @@ export async function printDepartmentPanelExcel({
     /* Attachments second page */
     .attachments-page {
       page-break-before: always;
-      padding: 10px 0;
+      
     }
 
-    .attachments-header {
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: #1a1a1a;
-      border-bottom: 1px solid #1a1a1a;
-      padding-bottom: 2px;
-      margin-bottom: 10px;
-    }
+  
 
     .attachments-flex {
       display: flex;
-      gap: 16px;
+      gap: 8px;
       width: 100%;
       align-items: flex-start;
     }
@@ -1357,13 +1349,13 @@ export async function printDepartmentPanelExcel({
 
     .attached-image-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(1, 1fr);
       gap: 4px;
       padding: 0 4px;
     }
 
     .attached-img-wrapper {
-      border: 0.5px solid #ddd;
+      
       background: #fff;
       display: flex;
       align-items: center;
@@ -1431,6 +1423,11 @@ export async function printDepartmentPanelExcel({
         color-adjust: exact !important;
         background-color: #f3f4f6 !important;
       }
+
+      .attachments-col-files{
+        flex: 2;
+      }
+     
     }
   </style>
 </head>
@@ -1447,27 +1444,18 @@ export async function printDepartmentPanelExcel({
 
   ${hasAttachments ? `
   <div class="attachments-page">
-    <div class="attachments-header">Attachments - ${srd.refNo || ''}</div>
     <div class="attachments-flex">
       <div class="attachments-col attachments-col-files">
-        <div class="attachments-col-title">Files</div>
+        
         ${attachedFiles.length > 0 ? attachedFiles.map(f => {
           const ext = f.name.includes('.') ? f.name.split('.').pop().toUpperCase() : '';
           return `
-          <div class="attached-file-item">
-            <div class="attached-file-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            </div>
-            <div class="attached-file-info">
-              <div class="attached-file-label">${escapeHtmlAttribute(f.label)}${ext ? ` <span class="attached-file-type">.${ext}</span>` : ''}</div>
-              <div class="attached-file-name">${escapeHtmlAttribute(f.name)}</div>
-            </div>
-          </div>
+          
         `}).join('') : '<div class="attachments-empty">No file attachments</div>'}
         <div id="attached-excel-sections"></div>
       </div>
       <div class="attachments-col attachments-col-images">
-        <div class="attachments-col-title">Images</div>
+        
         ${attachedImages.length > 0 ? attachedImages.map(group => `
           <div class="attached-image-group">
             <div class="attached-image-label">${escapeHtmlAttribute(group.label)}</div>
