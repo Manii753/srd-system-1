@@ -155,7 +155,7 @@ export default function UploadImage({ onUploaded, srdId, fieldId }) {
   const overallProgress = files.length ? Math.round(files.reduce((acc, f) => acc + (f.progress || 0), 0) / files.length) : 0;
 
   return (
-    <div className='h-full flex flex-col p-4 '>
+    <div className={`${fieldId ==='dispatchBack' || fieldId ==='dispatchFront'?'h-6 p-0':'h-full flex flex-col p-4'}`}>
       <div
         onDrop={onDrop}
         onDragOver={onDragOver}
@@ -183,9 +183,10 @@ export default function UploadImage({ onUploaded, srdId, fieldId }) {
           <div className="flex-1 flex flex-col items-center justify-center">
             <p className="text-gray-600 text-app-text">Drag & drop images here, or click to select files</p>
             <div className="mt-3">
+              {fieldId !=='dispatchBack' && fieldId !=='dispatchFront' &&
               <Button type="button" variant="outline" onClick={(e) => { e.stopPropagation(); inputRef.current && inputRef.current.click(); }}>
                 Choose Images
-              </Button>
+              </Button>}
             </div>
           </div>
         )}

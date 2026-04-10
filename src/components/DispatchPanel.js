@@ -285,7 +285,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       {/* Dispatch Approval - Excel Style */}
       <div className="border border-gray-300 bg-white mt-2">
         {/* Section Header */}
-        <div className="bg-gray-100 border-b border-gray-300 px-2 py-1.5 flex justify-between items-center">
+        <div className="bg-gray-100 border-b border-gray-300 px-2 py-0 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <span className="text-app-heading font-bold text-gray-800 uppercase">Conditions</span>
             <DispatchCardPrint srd={srd} />
@@ -298,16 +298,16 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         {/* Grid Content */}
         <div className="border-b border-gray-300">
           <div className="grid grid-cols-12">
-            <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
+            <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0 flex items-center">
               <span className="text-app-heading font-semibold text-gray-700">Comments</span>
             </div>
-            <div className="col-span-10 px-2 py-1.5">
-              <Textarea
+            <div className="col-span-10 px-2 py-0">
+              <Input
                 placeholder="Good Work"
                 value={internalComments}
                 onChange={(e) => setInternalComments(e.target.value)}
                 disabled={!canEdit || !!srd.internalApprovedDate}
-                className="text-app-text resize-none h-12 border-gray-300 rounded-none"
+                className="text-app-text resize-none h-6 border-gray-300 rounded-none"
               />
             </div>
           </div>
@@ -316,12 +316,12 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         {!srd.internalApproved && internalRejectedReasons.length > 0 && (
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
-              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0">
                 <span className="text-app-heading font-semibold text-gray-700">Rejection Reasons</span>
               </div>
-              <div className="col-span-10 px-2 py-1.5 space-y-1">
+              <div className="col-span-10 px-2 py-0 space-y-0">
                 {internalRejectedReasons.map((r, i) => (
-                  <div key={i} className="flex justify-between items-center bg-gray-50 px-2 py-0.5 text-app-text border border-gray-200">
+                  <div key={i} className="flex justify-between items-center bg-gray-50 px-2 py-0 text-app-text border border-gray-200">
                     <div>
                       <span className="font-semibold text-gray-600 mr-2">{r.department.toUpperCase()}</span>
                       <span className="text-gray-700">{r.reason}</span>
@@ -341,12 +341,12 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         {!srd.internalApproved && canEdit && !srd.internalApprovedDate && (
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
-              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0">
                 <span className="text-app-heading font-semibold text-gray-700">Add Reason</span>
               </div>
-              <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
+              <div className="col-span-10 px-2 py-0 flex gap-1.5 items-center">
                 <select
-                  className="h-7 px-2 text-app-text border border-gray-300 bg-white rounded-none"
+                  className="h-6 px-2 py-0 text-app-text border border-gray-300 bg-white rounded-none"
                   value={newReason.department}
                   onChange={e => setNewReason({ ...newReason, department: e.target.value })}
                 >
@@ -356,14 +356,14 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   ))}
                 </select>
                 <Input
-                  className="h-7 text-app-text flex-1 rounded-none border-gray-300"
+                  className="h-6 text-app-text flex-1 rounded-none border-gray-300"
                   value={newReason.reason}
                   onChange={e => setNewReason({ ...newReason, reason: e.target.value })}
                   placeholder="Reason..."
                 />
                 <Button
                   size="sm"
-                  className="h-7 px-2 text-app-text bg-blue-600 hover:bg-blue-700 rounded-none"
+                  className="h-6 px-2 text-app-text bg-blue-600 hover:bg-blue-700 rounded-none"
                   onClick={() => {
                     if (newReason.department && newReason.reason) {
                       setInternalRejectedReasons([...internalRejectedReasons, newReason]);
@@ -373,38 +373,39 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                 >
                   Add
                 </Button>
+                {canEdit && !srd.internalApprovedDate && (
+                  <div className="grid grid-cols-12">
+                    <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
+                    <div className="col-span-10 px-2 py-0 gap-1.5">
+                      <Button
+                        onClick={() => openApprovalDialog('approve')}
+                        disabled={loading}
+                        className="bg-green-600 hover:bg-green-700 text-white flex-1 h-6 text-app-text font-medium rounded-none"
+                      >
+                        Approve for Dispatch
+                      </Button>
+                      <Button
+                        onClick={() => openApprovalDialog('reject')}
+                        disabled={loading}
+                        className="bg-red-600 hover:bg-red-700 text-white flex-1 h-6 text-app-text font-medium rounded-none"
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
 
-        {canEdit && !srd.internalApprovedDate && (
-          <div className="grid grid-cols-12">
-            <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
-            <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
-              <Button
-                onClick={() => openApprovalDialog('approve')}
-                disabled={loading}
-                className="bg-green-600 hover:bg-green-700 text-white flex-1 h-8 text-app-text font-medium rounded-none"
-              >
-                Approve for Dispatch
-              </Button>
-              <Button
-                onClick={() => openApprovalDialog('reject')}
-                disabled={loading}
-                className="bg-red-600 hover:bg-red-700 text-white flex-1 h-8 text-app-text font-medium rounded-none"
-              >
-                Reject
-              </Button>
-            </div>
-          </div>
-        )}
+
       </div>
 
       {srd.internalApproved && (
         <div className="border border-gray-300 bg-white mt-2">
           {/* Section Header */}
-          <div className="bg-gray-100 border-b border-gray-300 px-2 py-1.5 flex justify-between items-center">
+          <div className="bg-gray-100 border-b border-gray-300 px-2 py-0.5 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <span className="text-app-heading font-bold text-gray-800 uppercase">Sample Dispatch</span>
               {srd.DispatchDetails && <AirwayBillPrint srd={srd} />}
@@ -417,12 +418,12 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           {/* Buyer Selection */}
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
-              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0 flex items-center">
                 <span className="text-app-heading font-semibold text-gray-700">Buyer Selection</span>
               </div>
-              <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
+              <div className="col-span-10 px-2 py-0 flex gap-1.5">
                 <select
-                  className="h-7 px-2 text-app-text border border-gray-300 bg-white flex-1 rounded-none"
+                  className="h-6 px-2 text-app-text border border-gray-300 bg-white flex-1 rounded-none"
                   value={selectedBuyer}
                   onChange={(e) => {
                     const bId = e.target.value;
@@ -432,13 +433,13 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   }}
                   disabled={!canEdit || srd.sampleDispatchedToBuyer}
                 >
-                  <option value="">Denim</option>
+                  <option value="">Select Buyer</option>
                   {buyers.map(b => (
                     <option key={b._id} value={b._id}>{b.name}</option>
                   ))}
                 </select>
                 {canEdit && !srd.sampleDispatchedToBuyer && (
-                  <Button variant="outline" size="sm" className="h-7 text-app-text rounded-none" onClick={() => setIsCreatingBuyer(!isCreatingBuyer)}>
+                  <Button variant="outline" size="sm" className="h-6 text-app-text rounded-none" onClick={() => setIsCreatingBuyer(!isCreatingBuyer)}>
                     {isCreatingBuyer ? 'Cancel' : 'Add New'}
                   </Button>
                 )}
@@ -450,25 +451,25 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           {isCreatingBuyer && (
             <div className="border-b border-gray-300">
               <div className="grid grid-cols-12">
-                <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5">
+                <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0">
                   <span className="text-app-heading font-semibold text-gray-700">{isEditingBuyer ? 'Edit Buyer' : 'New Buyer'}</span>
                 </div>
-                <div className="col-span-10 px-2 py-1.5 space-y-1.5">
+                <div className="col-span-10 px-2 py-1.5 space-y-1">
                   <div className="flex gap-1.5">
                     <Input
-                      className="h-7 text-app-text flex-1 rounded-none border-gray-300"
+                      className="h-6 text-app-text flex-1 rounded-none border-gray-300"
                       value={newBuyer.name}
                       onChange={e => setNewBuyer({ ...newBuyer, name: e.target.value })}
                       placeholder="Buyer Name *"
                     />
                     <Input
-                      className="h-7 text-app-text flex-1 rounded-none border-gray-300"
+                      className="h-6 text-app-text flex-1 rounded-none border-gray-300"
                       value={newBuyer.email}
                       onChange={e => setNewBuyer({ ...newBuyer, email: e.target.value })}
                       placeholder="Email (comma separated)"
                     />
                     <Input
-                      className="h-7 text-app-text flex-1 rounded-none border-gray-300"
+                      className="h-6 text-app-text flex-1 rounded-none border-gray-300"
                       value={newBuyer.phone}
                       onChange={e => setNewBuyer({ ...newBuyer, phone: e.target.value })}
                       placeholder="Phone (comma separated)"
@@ -477,7 +478,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   {newBuyer.contactPerson.map((cp, i) => (
                     <div key={i} className="flex gap-1.5 items-center">
                       <Input
-                        className="h-7 text-app-text flex-1 rounded-none border-gray-300"
+                        className="h-6 text-app-text flex-1 rounded-none border-gray-300"
                         value={cp.name}
                         onChange={e => {
                           const updated = [...newBuyer.contactPerson];
@@ -487,7 +488,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                         placeholder="Contact Person Name"
                       />
                       <Input
-                        className="h-7 text-app-text flex-1 rounded-none border-gray-300"
+                        className="h-6 text-app-text flex-1 rounded-none border-gray-300"
                         value={cp.phone}
                         onChange={e => {
                           const updated = [...newBuyer.contactPerson];
@@ -534,7 +535,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <div className="border-b border-gray-300">
               <div className="grid grid-cols-12">
                 <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
-                <div className="col-span-10 px-2 py-1">
+                <div className="col-span-10 px-2 py-0">
                   <Button variant="outline" size="sm" className="h-6 text-app-text rounded-none text-xs" onClick={handleStartEdit}>
                     Edit Selected Buyer
                   </Button>
@@ -546,41 +547,41 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           {/* AWB, Quantity, Dispatch Date */}
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
-              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0 flex items-center">
                 <span className="text-app-heading font-semibold text-gray-700">AWB Number</span>
               </div>
-              <div className="col-span-2 border-r border-gray-300 px-2 py-1.5">
+              <div className="col-span-2 border-r border-gray-300 px-2 py-0">
                 <Input
                   value={dispatchAWB}
                   onChange={e => setDispatchAWB(e.target.value)}
                   placeholder="####"
                   disabled={!canEdit || srd.sampleDispatchedToBuyer}
-                  className="h-7 text-app-text rounded-none border-gray-300"
+                  className="h-6 text-app-text rounded-none border-gray-300"
                 />
               </div>
-              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0 flex items-center">
                 <span className="text-app-heading font-semibold text-gray-700">Quantity</span>
               </div>
-              <div className="col-span-2 border-r border-gray-300 px-2 py-1.5">
+              <div className="col-span-2 border-r border-gray-300 px-2 py-0">
                 <Input
                   type="number"
                   value={dispatchQty}
                   onChange={e => setDispatchQty(e.target.value)}
                   placeholder="5"
                   disabled={!canEdit || srd.sampleDispatchedToBuyer}
-                  className="h-7 text-app-text rounded-none border-gray-300"
+                  className="h-6 text-app-text rounded-none border-gray-300"
                 />
               </div>
-              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0 flex items-center">
                 <span className="text-app-heading font-semibold text-gray-700">Dispatch Date</span>
               </div>
-              <div className="col-span-2 px-2 py-1.5">
+              <div className="col-span-2 px-2 py-0">
                 <Input
                   type="date"
                   value={dispatchDate}
                   onChange={e => setDispatchDate(e.target.value)}
                   disabled={!canEdit || srd.sampleDispatchedToBuyer}
-                  className="h-7 text-app-text rounded-none border-gray-300"
+                  className="h-6 text-app-text rounded-none border-gray-300"
                 />
               </div>
             </div>
@@ -589,16 +590,16 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           {/* Shipping Address */}
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
-              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0 flex items-center">
                 <span className="text-app-heading font-semibold text-gray-700">Shipping Address</span>
               </div>
-              <div className="col-span-10 px-2 py-1.5">
-                <Textarea
+              <div className="col-span-10 px-2 py-0">
+                <Input
                   value={dispatchAddress}
                   onChange={e => setDispatchAddress(e.target.value)}
                   placeholder="USA"
                   disabled={!canEdit || srd.sampleDispatchedToBuyer}
-                  className="text-app-text resize-none h-12 rounded-none border-gray-300"
+                  className="text-app-text resize-none h-6 rounded-none border-gray-300"
                 />
               </div>
             </div>
@@ -607,110 +608,99 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           {/* Front Images */}
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
-              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
-                <span className="text-app-heading font-semibold text-gray-700">Front Images</span>
-                <span className="text-app-text text-gray-500 ml-2">({dispatchFrontImages.length})</span>
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0 flex items-center">
+                <span className="text-app-heading font-semibold text-gray-700">Front and Back Images</span>
+                <span className="text-app-text text-gray-500 ml-2">({dispatchFrontImages.length + dispatchBackImages.length})</span>
               </div>
-              <div className="col-span-10 px-2 py-1.5">
-                <div className="flex flex-wrap gap-1.5">
-                  {dispatchFrontImages.map((url, i) => (
-                    <div key={i} className="relative group w-20 h-20">
-                      <Image src={url} alt="Front" width={80} height={80} className="w-full h-full object-cover border border-gray-300" />
-                      {!srd.sampleDispatchedToBuyer && canEdit && (
-                        <button
-                          onClick={() => setDispatchFrontImages(prev => prev.filter((_, idx) => idx !== i))}
-                          className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  {!srd.sampleDispatchedToBuyer && canEdit && (
-                    <UploadImage
-                      srdId={srd._id}
-                      fieldId="dispatchFront"
-                      onUploaded={(assets) => setDispatchFrontImages(prev => [...prev, ...assets.map(a => a.url)])}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Back Images */}
-          <div className="border-b border-gray-300">
-            <div className="grid grid-cols-12">
-              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
-                <span className="text-app-heading font-semibold text-gray-700">Back Images</span>
-                <span className="text-app-text text-gray-500 ml-2">({dispatchBackImages.length})</span>
-              </div>
-              <div className="col-span-10 px-2 py-1.5">
-                <div className="flex flex-wrap gap-1.5">
-                  {dispatchBackImages.map((url, i) => (
-                    <div key={i} className="relative group w-20 h-20">
-                      <Image src={url} alt="Back" width={80} height={80} className="w-full h-full object-cover border border-gray-300" />
-                      {!srd.sampleDispatchedToBuyer && canEdit && (
-                        <button
-                          onClick={() => setDispatchBackImages(prev => prev.filter((_, idx) => idx !== i))}
-                          className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  {!srd.sampleDispatchedToBuyer && canEdit && (
-                    <UploadImage
-                      srdId={srd._id}
-                      fieldId="dispatchBack"
-                      onUploaded={(assets) => setDispatchBackImages(prev => [...prev, ...assets.map(a => a.url)])}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Save & Dispatch Buttons */}
-          {canEdit && !srd.sampleDispatchedToBuyer && (
-            <div className="grid grid-cols-12">
-              <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
-              <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
-                <Button onClick={handleSaveDispatchDetails} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white flex-1 h-8 text-app-text font-medium rounded-none">
-                  Save Dispatch Details
-                </Button>
-                {srd.DispatchDetails && (
-                  <Button onClick={handleDispatchToBuyer} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white flex-1 h-8 text-app-text font-medium rounded-none">
-                    Dispatch Sample to Buyer
-                  </Button>
+              <div className="flex w-100 gap-1.5 col-span-3 px-2">
+                <span>Front Images</span>
+                {dispatchFrontImages.map((url, i) => (
+                  <div key={i} className="relative h-6">
+                    <Image src={url} alt="Front" width={80} height={80} className=" h-6 object-cover border border-gray-300" />
+                    {!srd.sampleDispatchedToBuyer && canEdit && (
+                      <button
+                        onClick={() => setDispatchFrontImages(prev => prev.filter((_, idx) => idx !== i))}
+                        className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {!srd.sampleDispatchedToBuyer && canEdit && (
+                  <UploadImage
+                    srdId={srd._id}
+                    fieldId="dispatchFront"
+                    onUploaded={(assets) => setDispatchFrontImages(prev => [...prev, ...assets.map(a => a.url)])}
+                  />
                 )}
               </div>
+              <div className="flex gap-1.5 col-span-3 px-2">
+                <span>Back Images</span>
+                {dispatchBackImages.map((url, i) => (
+                  <div key={i} className="relative group w-20 h-6">
+                    <Image src={url} alt="Back" width={80} height={80} className="w-full h-6 object-cover border border-gray-300" />
+                    {!srd.sampleDispatchedToBuyer && canEdit && (
+                      <button
+                        onClick={() => setDispatchBackImages(prev => prev.filter((_, idx) => idx !== i))}
+                        className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {!srd.sampleDispatchedToBuyer && canEdit && (
+                  <UploadImage
+                    srdId={srd._id}
+                    fieldId="dispatchBack"
+                    onUploaded={(assets) => setDispatchBackImages(prev => [...prev, ...assets.map(a => a.url)])}
+                  />
+                )}
+              </div>
+              {/* Save & Dispatch Buttons */}
+              {canEdit && !srd.sampleDispatchedToBuyer && (
+                <div className="">
+                  <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
+                  <div className="col-span-10 px-2 py-0 flex gap-1.5">
+                    <Button onClick={handleSaveDispatchDetails} disabled={loading} variant='sm' className="bg-blue-600 hover:bg-blue-700 text-[white!important] flex-1 h-6 text-app-text font-medium rounded-none">
+                      <span className='text-white'>Save Dispatch Details</span>
+                    </Button>
+                    {srd.DispatchDetails && (
+                      <Button onClick={handleDispatchToBuyer} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white flex-1 h-6 text-app-text font-medium rounded-none">
+                        <span className='text-white'>Dispatch Sample to Buyer</span>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+
         </div>
       )}
 
       <div className={`border border-gray-300 bg-white mt-2 ${!srd.sampleDispatchedToBuyer ? 'opacity-50 pointer-events-none' : ''}`}>
-        <div className="bg-gray-100 border-b border-gray-300 px-2 py-1.5 flex justify-between items-center">
+        <div className="bg-gray-100 border-b border-gray-300 px-2 py-0.5 flex justify-between items-center">
           <span className="text-app-heading font-bold text-gray-800 uppercase">Buyer's Comment</span>
           <span className={`text-app-text font-medium ${srd.BuyerApproved ? 'text-green-600' : srd.BuyerApprovedDate ? 'text-red-600' : srd.sampleDispatchedToBuyer ? 'text-yellow-600' : 'text-gray-500'}`}>
             {srd.BuyerApproved ? 'Buyer Approved' : srd.BuyerApprovedDate ? 'Buyer Rejected' : srd.sampleDispatchedToBuyer ? 'Waiting for Buyer' : 'Not Dispatched'}
           </span>
         </div>
-        
+
         <div className="border-b border-gray-300">
           <div className="grid grid-cols-12">
-            <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5 flex items-center">
+            <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0 flex items-center">
               <span className="text-app-heading font-semibold text-gray-700">Comments</span>
             </div>
-            <div className="col-span-10 px-2 py-1.5">
-              <Textarea
+            <div className="col-span-10 px-2 py-0">
+              <Input
                 placeholder="Enter buyer comments..."
                 value={buyerComments}
                 onChange={(e) => setBuyerComments(e.target.value)}
                 disabled={!canEdit || !!srd.BuyerApprovedDate}
-                className="text-app-text resize-none h-12 rounded-none border-gray-300"
+                className="text-app-text resize-none h-6 rounded-none border-gray-300"
               />
             </div>
           </div>
@@ -747,25 +737,25 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         {!srd.BuyerApproved && srd.sampleDispatchedToBuyer && canEdit && !srd.BuyerApprovedDate && (
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
-              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5">
+              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0">
                 <span className="text-app-heading font-semibold text-gray-700">Add Reason</span>
               </div>
-              <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
+              <div className="col-span-10 px-2 py-0 flex gap-1.5">
                 <Input
-                  className="h-7 text-app-text flex-1 rounded-none border-gray-300"
+                  className="h-6 text-app-text flex-1 rounded-none border-gray-300"
                   value={newReason.department}
                   onChange={e => setNewReason({ ...newReason, department: e.target.value.toUpperCase() })}
                   placeholder="Dept (Optional)"
                 />
                 <Input
-                  className="h-7 text-app-text flex-[3] rounded-none border-gray-300"
+                  className="h-6 text-app-text flex-[3] rounded-none border-gray-300"
                   value={newReason.reason}
                   onChange={e => setNewReason({ ...newReason, reason: e.target.value })}
                   placeholder="Buyer's feedback..."
                 />
                 <Button
                   size="sm"
-                  className="h-7 px-2 text-app-text bg-blue-600 hover:bg-blue-700 rounded-none"
+                  className="h-6 px-2 text-app-text bg-blue-600 hover:bg-blue-700 rounded-none"
                   onClick={() => {
                     if (newReason.reason) {
                       setBuyerRejectedReasons([...buyerRejectedReasons, { ...newReason, department: newReason.department || 'GENERAL' }]);
@@ -773,26 +763,26 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                     }
                   }}
                 >
-                  Add
+                  <span className='text-white'>Add</span>
                 </Button>
+                {canEdit && srd.sampleDispatchedToBuyer && !srd.BuyerApprovedDate && (
+                  <div className="grid grid-cols-12">
+                    <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
+                    <div className="col-span-10 px-2 py-0 flex gap-1.5">
+                      <Button onClick={() => handleBuyerApproval(true)} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white flex-1 h-6 text-app-text font-medium rounded-none">
+                        <span className='text-white'>Mark as Approved by Buyer</span>
+                      </Button>
+                      <Button onClick={() => handleBuyerApproval(false)} disabled={loading} className="bg-red-600 hover:bg-red-700 text-white flex-1 h-6 text-app-text font-medium rounded-none">
+                        <span className='text-white'>Mark as Rejected by Buyer</span>
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
 
-        {canEdit && srd.sampleDispatchedToBuyer && !srd.BuyerApprovedDate && (
-          <div className="grid grid-cols-12">
-            <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
-            <div className="col-span-10 px-2 py-1.5 flex gap-1.5">
-              <Button onClick={() => handleBuyerApproval(true)} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white flex-1 h-8 text-app-text font-medium rounded-none">
-                Mark as Approved by Buyer
-              </Button>
-              <Button onClick={() => handleBuyerApproval(false)} disabled={loading} className="bg-red-600 hover:bg-red-700 text-white flex-1 h-8 text-app-text font-medium rounded-none">
-                Mark as Rejected by Buyer
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Approval Dialog */}

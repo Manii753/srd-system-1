@@ -1910,7 +1910,7 @@ export default function DepartmentPanelExcel({
           <>
             {/* Status Update Section - Hidden in readOnly mode */}
             {!readOnly && (
-              <div className=" border-transparent p-3">
+              <div className=" border-transparent p-3 hidden">
                 <div className="grid grid-cols-6 gap-2 items-end">
                   <div>
                     <Label className="text-app-text font-medium text-gray-700">Department</Label>
