@@ -878,7 +878,7 @@ export default function DepartmentPanelExcel({
     switch (type) {
       case 'heading':
         return (
-          <div className="font-semibold text-gray-800 text-app-text px-1 py-0.5">
+          <div className="font-semibold text-app-text px-1 py-0.5">
             {name}
           </div>
         );
@@ -1048,7 +1048,7 @@ export default function DepartmentPanelExcel({
         if (totalCols >= 10) {
           return (
             <div className="p-0 flex flex-col w-full">
-              <span className="text-[11px] font-bold text-gray-700 uppercase px-1 pb-1">{name}</span>
+              <span className="text-app-text font-semibold text-gray-700 uppercase px-1 pb-1">{name}</span>
               {/* Data Cards */}
               <div className="flex flex-col gap-1">
                 {tableData.rows?.map((row, rowIdx) => {
@@ -1152,7 +1152,7 @@ export default function DepartmentPanelExcel({
                                     onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
                                     disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                                     className={cn(
-                                      "px-1.5 py-0 rounded text-[10px] font-medium border",
+                                      "px-1.5 py-0 rounded text-app-text font-medium border",
                                       !isInStock ? "bg-blue-600 text-white border-blue-600 shadow-sm" : "bg-white text-gray-500 border-gray-300 hover:border-blue-400"
                                     )}
                                   >Purchase</button>
@@ -1209,7 +1209,7 @@ export default function DepartmentPanelExcel({
         // Standard Interactive Table Layout
         return (
           <div className="space-y-1 p-0 overflow-auto max-h-96 flex flex-col w-full">
-            <span className="text-[11px] font-bold text-gray-700 uppercase px-1 pb-1">{name}</span>
+            <span className="text-app-text font-semibold uppercase px-1 pb-1">{name}</span>
             <div className="border border-gray-200 overflow-hidden">
               <table className="w-full text-app-text border-collapse table-fixed">
                 <thead>
