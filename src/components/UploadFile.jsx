@@ -1,13 +1,11 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { FileSpreadsheet, X, Check, Upload } from 'lucide-react';
 import { useToast } from '@/lib/use-toast';
 import { normalizeAssetEntries } from '@/lib/assetUtils';
 
-export default function UploadFile({ onUploaded, srdId, fieldId, accept = ".xlsx", maxFiles = 1 }) {
+export default function UploadFile({ onUploaded, srdId, fieldId, accept = ".xlsx", maxFiles = 1, label = "Attach size chart" }) {
   const { toast } = useToast();
   const [files, setFiles] = useState([]); // { file, name, uploadedAsset, progress }
   const [uploading, setUploading] = useState(false);
@@ -151,80 +149,63 @@ export default function UploadFile({ onUploaded, srdId, fieldId, accept = ".xlsx
   const overallProgress = files.length ? Math.round(files.reduce((acc, f) => acc + (f.progress || 0), 0) / files.length) : 0;
 
   return (
-    <div className="w-full flex items-start gap-2">
-      <label className="text-app-text text-gray-700 font-medium whitespace-nowrap pt-2">
-        Attach size chart:
-      </label>
-      
-      <div className="flex-1">
-        <div
+    <div className="w-full">
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        multiple={maxFiles > 1}
+        className="hidden"
+        onChange={(e) => handleFiles(e.target.files)}
+        disabled={!canUpload}
+      />
+
+      {!canUpload && (
+        <div className="text-app-text text-amber-600 text-xs px-1">
+          Create the SRD first
+        </div>
+      )}
+
+      {canUpload && files.length === 0 && (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
           onDrop={onDrop}
           onDragOver={onDragOver}
-          className="border-b border-gray-300 py-2 cursor-pointer hover:border-gray-400 transition-colors"
-          onClick={() => canUpload && inputRef.current && inputRef.current.click()}
+          className="inline-flex items-center gap-1 border border-gray-300 bg-white hover:bg-gray-50 px-1.5 py-0.5 rounded text-[10px] font-medium text-gray-600"
         >
-          <input
-            ref={inputRef}
-            type="file"
-            accept={accept}
-            multiple={maxFiles > 1}
-            className="hidden"
-            onChange={(e) => handleFiles(e.target.files)}
-            disabled={!canUpload}
-          />
+          <Upload className="h-3 w-3" />
+          {label}
+        </button>
+      )}
 
-          {!canUpload && (
-            <div className="text-app-text text-amber-600 text-sm">
-              Create the SRD first
-            </div>
-          )}
-
-          {canUpload && files.length === 0 && (
-            <div className="flex items-center gap-2">
-              <Upload className="h-4 w-4 text-gray-400" />
-              <span className="text-app-text text-gray-500 text-sm">Click to upload file</span>
-            </div>
-          )}
-
-          {canUpload && files.length > 0 && (
-            <div className="space-y-2">
-              {files.map((f, i) => (
-                <div key={i} className="flex items-center justify-between text-app-text">
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <FileSpreadsheet className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="truncate text-sm" title={f.name}>{f.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {f.uploadedAsset ? (
-                       <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <span className="text-gray-500 text-xs">{f.progress}%</span>
-                    )}
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="h-5 w-5" 
-                      onClick={(e) => removeFile(e, i)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-
-              {!uploading && files.some(f => !f.uploadedAsset) && (
-                <Button size="sm" onClick={uploadAll} className="h-7 text-app-text mt-2">
-                  Upload
-                </Button>
+      {canUpload && files.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1">
+          {files.map((f, i) => (
+            <div key={i} className="inline-flex items-center gap-1 border border-gray-200 bg-gray-50 px-1.5 py-0.5 rounded text-[10px]">
+              <FileSpreadsheet className="h-3 w-3 text-green-600 flex-shrink-0" />
+              <span className="truncate max-w-[100px]" title={f.name}>{f.name}</span>
+              {f.uploadedAsset ? (
+                <Check className="h-3 w-3 text-green-600" />
+              ) : (
+                <span className="text-gray-500">{f.progress}%</span>
               )}
-              
-              {uploading && (
-                 <Progress value={overallProgress} className="h-1 mt-2" />
-              )}
+              <button onClick={(e) => removeFile(e, i)} className="text-gray-400 hover:text-red-500">
+                <X className="h-3 w-3" />
+              </button>
             </div>
+          ))}
+          {!uploading && files.some(f => !f.uploadedAsset) && (
+            <button
+              onClick={uploadAll}
+              className="inline-flex items-center gap-1 border border-blue-300 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded text-[10px] font-medium text-blue-700"
+            >
+              Upload
+            </button>
           )}
+          {uploading && <Progress value={overallProgress} className="h-1 w-16" />}
         </div>
-      </div>
+      )}
     </div>
   );
 }

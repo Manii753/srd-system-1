@@ -922,7 +922,7 @@ export default function DepartmentPanelExcel({
 
       case 'textarea':
         return (
-          <div className="flex items-start gap-2 w-full px-1 py-0">
+          <div className="flex items-start gap-2 w-full px-1 py-0 my-1">
             <span className="text-[12px] text-gray-700 font-semibold shrink-0 min-w-[140px]">{name}</span>
             <div className="flex-1 min-w-0 relative">
               <DebouncedTextarea
@@ -1464,7 +1464,7 @@ export default function DepartmentPanelExcel({
         const fileLabel = getAssetLabel(fileAsset, 'Download Excel');
         return (
           <div className={cn(
-            "space-y-1 p-1 rounded transition-all duration-300",
+            "px-1 py-0.5 transition-all duration-300",
             isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
           )}>
             {canEdit && (
@@ -1669,7 +1669,7 @@ export default function DepartmentPanelExcel({
   return (
     <div className="flex gap-0 bg-[#FBFCFE] rounded-lg overflow-hidden flex-1 min-h-0 p-1">
       {/* Main Form Area */}
-      <div className="flex flex-col flex-1 min-h-0 overflow-y-hidden pb-10 shadow-lg">
+      <div className="flex flex-col flex-1 min-h-0 overflow-y-hidden pb-2 shadow-lg">
 
       {/* Section header row — always aligned */}
       {headerCells.length > 0 && (
@@ -1791,7 +1791,7 @@ export default function DepartmentPanelExcel({
                 return (
                   <div
                     key={cellIndex}
-                    className="p-1 bg-gray-50"
+                    className=""
                     style={{
                       gridColumn: `span ${colSpan} `,
                       gridRow: `span ${rowSpan} `,
@@ -1848,7 +1848,7 @@ export default function DepartmentPanelExcel({
                       )}
                     </div>
                     {attachmentInfos.length > 0 && (
-                      <div className="mt-1 flex flex-wrap gap-1 px-1">
+                      <div className="flex flex-wrap gap-1 px-1 my-1 pb-0.5">
                         {attachmentInfos.map((info) => {
                           const hasAssets = info.assetCount > 0;
                           const sourceFieldDef = info.fieldDef;

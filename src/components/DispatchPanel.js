@@ -255,7 +255,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   };
 
   return (
-    <div className="space-y-2 mt-2">
+    <div className="space-y-2">
       {/* uncomment this if u want to see sr data in dipatch module */}
       {/* <div className="flex flex-col space-y-2">
         <Button
@@ -283,10 +283,10 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       </div> */}
 
       {/* Dispatch Approval - Excel Style */}
-      <div className="border border-gray-300 bg-white mt-2">
+      <div className="border border-gray-300 bg-white">
         {/* Section Header */}
-        <div className="bg-gray-100 border-b border-gray-300 px-2 py-0.5 flex justify-between items-center">
-          <div className="flex items-center gap-2">
+        <div className="grid grid-cols-12 bg-gray-100 border-b border-gray-300 px-2 py-0.5 items-center">
+          <div className="col-span-10">
             <span className="text-app-text font-semibold uppercase">Conditions</span>
           </div>
           <span className={`text-app-text font-medium ${srd.internalApproved ? 'text-green-600' : srd.internalApprovedDate ? 'text-red-600' : 'text-blue-600'}`}>
@@ -312,7 +312,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           </div>
         </div> */}
 
-        {internalRejectedReasons.length > 0 && (
+        {internalRejectedReasons.length > 0 && false && (
           <div className="border-b border-gray-300">
             <div className="grid grid-cols-12">
               <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0">
@@ -339,64 +339,123 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
         {(
           <div className="border-b border-gray-300">
-            <div className="grid grid-cols-12">
-              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0">
-
-                <Button
-                  onClick={() => openApprovalDialog('approve')}
-                  disabled={loading}
-                  className="bg-green-600 hover:bg-green-700 text-white flex-1 h-6 text-app-text font-medium rounded-none"
-                >
-                  Dispatch Aproval
-                </Button>
+            {/* Row 1: Approved For Dispatch */}
+            <div className="grid grid-cols-12 border-b border-gray-300">
+              <div className="col-span-3 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
+                <span className="text-app-text text-gray-700">1. Approved For Dispatch</span>
               </div>
-              <div className="col-span-10 px-2 py-0 flex gap-1.5 items-center">
-                <select
-                  className="h-6 px-2 py-0 text-app-text border border-gray-300 bg-white rounded-none"
-                  value={newReason.department}
-                  onChange={e => setNewReason({ ...newReason, department: e.target.value })}
-                  disabled={srd.internalApprovedBy || srd.internalRejectedReasons}
-                >
-                  <option value="">Select Dept</option>
-                  {['vmd', 'cad', 'commercial', 'mmc', 'sewing', 'cutting', 'pattern', 'washing', 'finishing'].map(d => (
-                    <option key={d} value={d}>{d.toUpperCase()}</option>
-                  ))}
-                </select>
+              <div className="col-span-2 border-r border-gray-300 px-2 py-0.5 flex items-center">
+                <span className="text-app-text font-semibold text-gray-700">Approved By</span>
+              </div>
+              <div className="col-span-3 px-2 py-0.5 flex gap-1.5 items-center">
                 <Input
-                  className="h-6 text-app-text flex-1 rounded-none border-gray-300"
-                  value={newReason.reason}
-                  onChange={e => setNewReason({ ...newReason, reason: e.target.value })}
-                  placeholder="Reason..."
-                  disabled={srd.internalApprovedBy || srd.internalRejectedReasons}
+                  id="approverName"
+                  placeholder="Enter name..."
+                  value={approverName}
+                  onChange={(e) => setApproverName(e.target.value)}
+                  disabled={srd.internalApprovedBy}
+                  className="border-gray-300 rounded-none h-6 flex-1"
                 />
                 <Button
-                  size="sm"
-                  className="h-6 px-2 text-app-text bg-blue-600 hover:bg-blue-700 rounded-none"
                   onClick={() => {
-                    if (newReason.department && newReason.reason) {
-                      setInternalRejectedReasons([...internalRejectedReasons, newReason]);
-                      setNewReason({ department: '', reason: '' });
+                    if (!approverName.trim()) {
+                      toast({ title: 'Error', description: 'Please enter the approver name', variant: 'destructive' });
+                      return;
                     }
+                    handleAction('internal_approval', {
+                      internalApproved: true,
+                      internalComments,
+                      internalApprovedBy: approverName.trim(),
+                      internalRejectedReasons: [],
+                    });
                   }}
-                  disabled={srd.internalApprovedBy || srd.internalRejectedReasons}
-                >
-                  Add
-                </Button>
-              </div>
-              
-            </div>
-            {/* Next Section */}
-            <div className="grid grid-cols-12">
-              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0">
-                                <Button
-                  onClick={() => openApprovalDialog('reject')}
                   disabled={loading}
-                  className="bg-red-600 hover:bg-red-700 text-white flex-1 h-6 text-app-text font-medium rounded-none"
+                  className="bg-green-600 hover:bg-green-700 text-white h-6 rounded-none text-app-text"
                 >
-                  Reject
+                  Confirm Approval
                 </Button>
               </div>
-              
+            </div>
+
+            {/* Row 2: Internal Rejected */}
+            <div className="grid grid-cols-12">
+              <div className="col-span-3 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
+                <span className="text-app-text text-gray-700">2. Internal Rejected</span>
+              </div>
+              <div className="col-span-2 border-r border-gray-300 px-2 py-0.5 flex items-center">
+                <span className="text-app-text font-semibold text-gray-800">Reasons</span>
+              </div>
+              {/* Numbered reasons + add new */}
+              <div className="col-span-7 flex items-stretch">
+                {internalRejectedReasons.map((r, i) => (
+                  <div key={i} className="flex items-center border-r">
+                    <span className="px-2 font-bold text-gray-800 text-app-text">{i + 1}</span>
+                    <span className="pr-2 text-app-text text-gray-800">{r.reason}</span>
+                    {canEdit && !srd.internalApprovedDate && (
+                      <button onClick={() => setInternalRejectedReasons(prev => prev.filter((_, idx) => idx !== i))} className="text-gray-600 hover:text-red-600 pr-1">
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {/* "plus" dropdown to add new reason */}
+                {canEdit && !srd.internalApprovedDate && (
+                  <div className="flex items-center gap-1 px-2 border-r">
+                    <select
+                      className="h-6 px-1 text-app-text border rounded-none text-sm"
+                      value={newReason.department}
+                      onChange={e => setNewReason({ ...newReason, department: e.target.value })}
+                    >
+                      <option value="">Select Reason</option>
+                      {['vmd', 'cad', 'commercial', 'mmc', 'sewing', 'cutting', 'pattern', 'washing', 'finishing'].map(d => (
+                        <option key={d} value={d}>{d.toUpperCase()}</option>
+                      ))}
+                    </select>
+                    <Input
+                      className="h-6 text-app-text w-28 rounded-none text-sm"
+                      value={newReason.reason}
+                      onChange={e => setNewReason({ ...newReason, reason: e.target.value })}
+                      placeholder="New Reason"
+                    />
+                    <Button
+                      size="sm"
+                      className="h-6 px-2 text-app-text text-gray-900 rounded-none border"
+                      onClick={() => {
+                        if (newReason.department && newReason.reason) {
+                          setInternalRejectedReasons([...internalRejectedReasons, newReason]);
+                          setNewReason({ department: '', reason: '' });
+                        }
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                )}
+                {/* Reject button */}
+                {canEdit && !srd.internalApprovedDate && internalRejectedReasons.length > 0 && (
+                  <div className="flex items-center px-2">
+                    <Button
+                      size="sm"
+                      className="h-6 px-2 text-app-text bg-red-600 hover:bg-red-700 text-white rounded-none"
+                      onClick={() => {
+                        if (!approverName.trim()) {
+                          toast({ title: 'Error', description: 'Please enter the approver name above', variant: 'destructive' });
+                          return;
+                        }
+                        handleAction('internal_approval', {
+                          internalApproved: false,
+                          internalComments,
+                          internalApprovedBy: approverName.trim(),
+                          internalRejectedReasons,
+                        });
+                      }}
+                      disabled={loading}
+                    >
+                      Confirm Rejection
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -405,7 +464,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       </div>
 
       {srd.internalApproved && (
-        <div className="border border-gray-300 bg-white mt-2">
+        <div className="border border-gray-300 bg-white">
           {/* Section Header */}
           <div className="bg-gray-100 border-b border-gray-300 px-2 py-0.5 flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -683,7 +742,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         </div>
       )}
 
-      <div className={`border border-gray-300 bg-white mt-2 ${!srd.sampleDispatchedToBuyer ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className={`border border-gray-300 bg-white ${!srd.sampleDispatchedToBuyer ? 'hidden' : ''}`}>
         <div className="bg-gray-100 border-b border-gray-300 px-2 py-0.5 flex justify-between items-center">
           <span className="text-app-text font-semibold uppercase">Buyer's Comment</span>
           <span className={`text-app-text font-medium ${srd.BuyerApproved ? 'text-green-600' : srd.BuyerApprovedDate ? 'text-red-600' : srd.sampleDispatchedToBuyer ? 'text-yellow-600' : 'text-gray-500'}`}>
@@ -810,13 +869,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <Button variant="outline" onClick={() => setApprovalDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleInternalVerify}
-              disabled={loading}
-              className={approvalDialogType === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
-            >
-              {approvalDialogType === 'approve' ? 'Confirm Approval' : 'Confirm Rejection'}
-            </Button>
+
           </DialogFooter>
         </DialogContent>
       </Dialog>
