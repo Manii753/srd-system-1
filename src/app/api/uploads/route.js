@@ -68,3 +68,22 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(request) {
+  try {
+    const { url } = await request.json();
+    if (!url) return NextResponse.json({ success: false, error: 'Missing url' }, { status: 400 });
+
+    // url is like /uploads/filename.ext — map to public/uploads/filename.ext
+    const relativePath = url.startsWith('/') ? url.slice(1) : url;
+    const absolutePath = `${process.cwd()}/public/${relativePath}`;
+
+    if (fs.existsSync(absolutePath)) {
+      fs.unlinkSync(absolutePath);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}

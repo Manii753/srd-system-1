@@ -44,10 +44,23 @@ export default function UploadImage({ onUploaded, srdId, fieldId }) {
     e.stopPropagation();
   };
 
-  const removeFile = useCallback((e, index) => {
+  const removeFile = useCallback(async (e, index) => {
     e.stopPropagation();
+    const f = files[index];
+    // If already uploaded to server, delete it
+    if (f.uploadedAsset?.url) {
+      try {
+        await fetch('/api/uploads', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: f.uploadedAsset.url }),
+        });
+      } catch (err) {
+        console.error('Failed to delete uploaded file', err);
+      }
+    }
     setFiles((prev) => prev.filter((_, i) => i !== index));
-  }, []);
+  }, [files]);
 
   // Handle paste (Ctrl+V) for images (screenshots)
   const handlePaste = useCallback(async (e) => {
@@ -193,16 +206,21 @@ export default function UploadImage({ onUploaded, srdId, fieldId }) {
 
         {canUpload && files.length > 0 && (
           <div className="flex-1 flex flex-col gap-3 min-h-0">
-            <div className="flex-1 grid grid-cols-3 md:grid-cols-6 gap-3 overflow-y-auto custom-scrollbar content-start">
-              {files.map((f, i) => (
-                <div key={i} className="relative group h-24">
-                  <Image src={f.preview} alt={`preview-${i}`} width={96} height={96} className="w-full h-full object-cover rounded" />
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center space-x-2">
-                    <Button size="sm" onClick={(e) => removeFile(e, i)}>Remove</Button>
+            <div className="flex-1 flex items-center justify-center overflow-y-auto custom-scrollbar">
+              <div className="flex flex-wrap gap-3 items-center justify-center">
+                {files.map((f, i) => (
+                  <div key={i} className="relative group h-24 w-24">
+                    <Image src={f.preview} alt={`preview-${i}`} width={96} height={96} className="w-full h-full object-cover rounded" />
+                    <button
+                      onClick={(e) => removeFile(e, i)}
+                      className="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full h-4 w-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                    >
+                      <span className="text-[10px] leading-none">✕</span>
+                    </button>
+                    {f.uploadedAsset && <div className="absolute bottom-1 right-1 text-[10px] text-green-700 bg-white/80 px-1 rounded">✓</div>}
                   </div>
-                  {f.uploadedAsset && <div className="absolute right-1 top-1 text-app-text text-green-700 bg-white/70 px-1 rounded">Done</div>}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-gray-200">
@@ -212,7 +230,21 @@ export default function UploadImage({ onUploaded, srdId, fieldId }) {
               </div>
               <div className="flex items-center space-x-2">
                 <Button type="button" onClick={uploadAll} disabled={uploading}>{uploading ? 'Uploading...' : 'Upload All'}</Button>
-                <Button type="button" variant="ghost" onClick={(e) => { e.stopPropagation(); setFiles([]); if (onUploaded) onUploaded([]); }}>Clear</Button>
+                <Button type="button" variant="ghost" onClick={async (e) => {
+                  e.stopPropagation();
+                  // Delete all uploaded files from server
+                  await Promise.all(
+                    files
+                      .filter(f => f.uploadedAsset?.url)
+                      .map(f => fetch('/api/uploads', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: f.uploadedAsset.url }),
+                      }).catch(() => {}))
+                  );
+                  setFiles([]);
+                  if (onUploaded) onUploaded([]);
+                }}>Clear</Button>
               </div>
             </div>
           </div>

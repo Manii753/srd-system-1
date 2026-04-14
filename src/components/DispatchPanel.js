@@ -290,7 +290,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <span className="text-app-text font-semibold uppercase">Conditions</span>
           </div>
           <span className={`text-app-text font-medium ${srd.internalApproved ? 'text-green-600' : srd.internalApprovedDate ? 'text-red-600' : 'text-blue-600'}`}>
-            {srd.internalApproved ? `Approved by ${srd.internalApprovedBy}` : srd.internalApprovedDate ? `Rejected by ${srd.internalApprovedBy.name} | ${srd.internalApprovedBy.role}` : 'Pending Verification'}
+            {srd.internalApproved ? `Approved by ${srd.internalApprovedBy}` : srd.internalApprovedDate ? `Rejected | ${(srd.internalRejectedReasons || []).map(r => r.reason).join(', ')}` : 'Pending Verification'}
           </span>
         </div>
 
@@ -369,7 +369,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                       internalRejectedReasons: [],
                     });
                   }}
-                  disabled={loading}
+                  disabled={srd.internalApprovedBy}
                   className="bg-green-600 hover:bg-green-700 text-white h-6 rounded-none text-app-text"
                 >
                   Confirm Approval
@@ -403,55 +403,58 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   <div className="flex items-center gap-1 px-2 border-r">
                     <select
                       className="h-6 px-1 text-app-text border rounded-none text-sm"
-                      value={newReason.department}
-                      onChange={e => setNewReason({ ...newReason, department: e.target.value })}
+                      value={newReason.reason}
+                      onChange={e => setNewReason({ ...newReason, reason: e.target.value, customReason: '' })}
                     >
                       <option value="">Select Reason</option>
-                      {['vmd', 'cad', 'commercial', 'mmc', 'sewing', 'cutting', 'pattern', 'washing', 'finishing'].map(d => (
-                        <option key={d} value={d}>{d.toUpperCase()}</option>
+                      {['Vmd', 'Pattern or Specs', 'Sewing', 'Washing', 'Finishing', 'Cad', 'Commercial', 'Mmc', 'Cutting'].map(d => (
+                        <option key={d} value={d}>{d}</option>
                       ))}
                     </select>
                     <Input
                       className="h-6 text-app-text w-28 rounded-none text-sm"
-                      value={newReason.reason}
-                      onChange={e => setNewReason({ ...newReason, reason: e.target.value })}
+                      value={newReason.customReason || ''}
+                      onChange={e => setNewReason({ ...newReason, customReason: e.target.value })}
                       placeholder="New Reason"
                     />
                     <Button
                       size="sm"
                       className="h-6 px-2 text-app-text text-gray-900 rounded-none border"
                       onClick={() => {
-                        if (newReason.department && newReason.reason) {
-                          setInternalRejectedReasons([...internalRejectedReasons, newReason]);
-                          setNewReason({ department: '', reason: '' });
-                        }
+                        const finalReason = newReason.customReason?.trim() || newReason.reason;
+                        if (!finalReason) return;
+                        setInternalRejectedReasons([...internalRejectedReasons, { department: '', reason: finalReason }]);
+                        setNewReason({ department: '', reason: '', customReason: '' });
                       }}
                     >
                       Add
                     </Button>
-                  </div>
-                )}
-                {/* Reject button */}
-                {canEdit && !srd.internalApprovedDate && internalRejectedReasons.length > 0 && (
-                  <div className="flex items-center px-2">
                     <Button
-                      size="sm"
-                      className="h-6 px-2 text-app-text bg-red-600 hover:bg-red-700 text-white rounded-none"
                       onClick={() => {
+                        const finalReason = newReason.customReason?.trim() || newReason.reason;
+                        const pendingReason = finalReason ? { department: '', reason: finalReason } : null;
+                        const reasons = pendingReason
+                          ? [...internalRejectedReasons, pendingReason]
+                          : internalRejectedReasons;
+                        if (!reasons.length) {
+                          toast({ title: 'Error', description: 'Please select at least one rejection reason', variant: 'destructive' });
+                          return;
+                        }
                         if (!approverName.trim()) {
-                          toast({ title: 'Error', description: 'Please enter the approver name above', variant: 'destructive' });
+                          toast({ title: 'Error', description: 'Please enter the approver name', variant: 'destructive' });
                           return;
                         }
                         handleAction('internal_approval', {
                           internalApproved: false,
                           internalComments,
                           internalApprovedBy: approverName.trim(),
-                          internalRejectedReasons,
+                          internalRejectedReasons: reasons,
                         });
                       }}
                       disabled={loading}
+                      className="bg-red-600 hover:bg-red-700 h-6 rounded-none text-app-text"
                     >
-                      Confirm Rejection
+                      <span className='text-white'>Reject</span>
                     </Button>
                   </div>
                 )}
