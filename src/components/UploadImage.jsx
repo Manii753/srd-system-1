@@ -209,8 +209,8 @@ export default function UploadImage({ onUploaded, srdId, fieldId }) {
             <div className="flex-1 flex items-center justify-center overflow-y-auto custom-scrollbar">
               <div className="flex flex-wrap gap-3 items-center justify-center">
                 {files.map((f, i) => (
-                  <div key={i} className="relative group h-24 w-24">
-                    <Image src={f.preview} alt={`preview-${i}`} width={96} height={96} className="w-full h-full object-cover rounded" />
+                  <div key={i} className="relative group h-44 w-44">
+                    <Image src={f.preview} alt={`preview-${i}`} width={160} height={160} className="w-full h-full object-cover rounded" />
                     <button
                       onClick={(e) => removeFile(e, i)}
                       className="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full h-4 w-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"

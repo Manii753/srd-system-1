@@ -106,6 +106,44 @@ function DebouncedTextarea({ value, onDebouncedChange, delay = 400, onBlur: pare
   );
 }
 
+function AttachmentPreview({ urls }) {
+  const [open, setOpen] = useState(false);
+  const [idx, setIdx] = useState(0);
+  if (!urls.length) return null;
+  return (
+    <>
+      <button
+        type="button"
+        className="h-4 w-4 inline-flex items-center justify-center rounded bg-blue-100 hover:bg-blue-200 text-blue-600"
+        onClick={() => { setIdx(0); setOpen(true); }}
+        title="Preview"
+      >
+        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        </svg>
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center" onClick={() => setOpen(false)}>
+          <div className="relative max-w-3xl max-h-[90vh] flex flex-col items-center gap-2" onClick={e => e.stopPropagation()}>
+            <img src={urls[idx]} alt="preview" className="max-h-[80vh] max-w-full object-contain rounded shadow-xl" />
+            {urls.length > 1 && (
+              <div className="flex items-center gap-2">
+                <button onClick={() => setIdx(i => Math.max(0, i - 1))} disabled={idx === 0} className="bg-white/80 rounded-full px-2 py-0.5 text-sm disabled:opacity-30">‹</button>
+                <span className="text-white text-xs">{idx + 1} / {urls.length}</span>
+                <button onClick={() => setIdx(i => Math.min(urls.length - 1, i + 1))} disabled={idx === urls.length - 1} className="bg-white/80 rounded-full px-2 py-0.5 text-sm disabled:opacity-30">›</button>
+              </div>
+            )}
+            <button onClick={() => setOpen(false)} className="absolute top-1 right-1 bg-white/80 hover:bg-white rounded-full p-1">
+              <svg className="h-4 w-4 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function CompactUploadButton({ info, srdId, onUploaded, label }) {
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
@@ -1857,11 +1895,16 @@ export default function DepartmentPanelExcel({
                             : (canEditField(sourceFieldDef?.department) && sourceFieldDef?.active !== false);
 
                           if (hasAssets) {
+                            const sourceFieldState = findFieldState(info.sourceFieldId, info.fieldDef);
+                            const previewUrls = info.type === 'image'
+                              ? normalizeAssetEntries(sourceFieldState?.value, { kind: 'image' }).map(a => getAssetUrl(a)).filter(Boolean)
+                              : [];
                             return (
                               <div key={info.sourceFieldId} className="flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5">
                                 <span className="text-[10px] font-medium text-emerald-700">
                                   {info.name} attached
                                 </span>
+                                {previewUrls.length > 0 && <AttachmentPreview urls={previewUrls} />}
                                 {canUploadToSource && (
                                   <>
                                     <CompactUploadButton
