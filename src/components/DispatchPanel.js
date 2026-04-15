@@ -154,6 +154,9 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   const [newReason, setNewReason] = useState({ department: '', reason: '' });
   const [reasonOptions, setReasonOptions] = useState(['Vmd', 'Pattern or Specs', 'Sewing', 'Washing', 'Finishing', 'Cad', 'Commercial', 'Mmc', 'Cutting']);
   const [activeAction, setActiveAction] = useState(null); // null | 'approve' | 'reject'
+  const [buyerActiveAction, setBuyerActiveAction] = useState(null); // null | 'approved' | 'approved-comments' | 'rejected'
+  const [buyerReasonOptions, setBuyerReasonOptions] = useState(['Vmd', 'Pattern or Specs', 'Sewing', 'Washing', 'Finishing', 'Cad', 'Commercial', 'Mmc', 'Cutting']);
+  const [buyerNewReason, setBuyerNewReason] = useState('');
 
   // Buyer selection states
   const [buyers, setBuyers] = useState([]);
@@ -910,107 +913,152 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       )}
 
       <div className={`border border-gray-300 bg-white ${!srd.sampleDispatchedToBuyer ? 'hidden' : ''}`}>
-        <div className="bg-gray-100 border-b border-gray-300 px-2 py-0.5 flex justify-between items-center">
-          <span className="text-app-text font-semibold uppercase">Buyer's Comment</span>
-          <span className={`text-app-text font-medium ${srd.BuyerApproved ? 'text-green-600' : srd.BuyerApprovedDate ? 'text-red-600' : srd.sampleDispatchedToBuyer ? 'text-yellow-600' : 'text-gray-500'}`}>
-            {srd.BuyerApproved ? 'Buyer Approved' : srd.BuyerApprovedDate ? 'Buyer Rejected' : srd.sampleDispatchedToBuyer ? 'Waiting for Buyer' : 'Not Dispatched'}
+        {/* Header */}
+        <div className="grid grid-cols-12 bg-gray-100 border-b border-gray-300 px-2 py-0.5 items-center">
+          <div className="col-span-10">
+            <span className="text-app-text font-semibold uppercase">Buyer Comments</span>
+          </div>
+          <span className={`text-app-text font-medium text-xs ${srd.BuyerApproved ? 'text-green-600' : srd.BuyerApprovedDate ? 'text-red-600' : 'text-yellow-600'}`}>
+            {srd.BuyerApproved ? `Approved${srd.BuyerComments ? ' with comments' : ''}` : srd.BuyerApprovedDate ? `Rejected | ${(srd.BuyerRejectedReasons || []).map(r => r.reason).join(', ')}` : 'Waiting for Buyer'}
           </span>
         </div>
 
-        <div className="border-b border-gray-300">
-          <div className="grid grid-cols-12">
-            <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0 flex items-center">
-              <span className="text-app-text font-semibold text-gray-700">Comments</span>
-            </div>
-            <div className="col-span-10 px-2 py-0">
-              <Input
-                placeholder="Enter buyer comments..."
-                value={buyerComments}
-                onChange={(e) => setBuyerComments(e.target.value)}
-                disabled={!canEdit || !!srd.BuyerApprovedDate}
-                className="text-app-text resize-none h-6 rounded-none border-gray-300"
-              />
-            </div>
+        {/* Row 1: Approved */}
+        <div className="grid grid-cols-12 border-b border-gray-300">
+          <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
+            <button
+              className="inline-flex items-center justify-center w-40 px-3 border border-green-400 bg-green-100 text-green-800 text-app-text font-medium hover:bg-green-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              disabled={!!srd.BuyerApprovedDate || !canEdit}
+              onClick={() => setBuyerActiveAction(buyerActiveAction === 'approved' ? null : 'approved')}
+            >
+              Approved
+            </button>
+          </div>
+          <div className="col-span-9 px-2 py-0.5 flex items-center">
+            {buyerActiveAction === 'approved' && !srd.BuyerApprovedDate && (
+              <div className="flex items-center gap-2">
+                <Button onClick={() => { handleBuyerApproval(true); setBuyerActiveAction(null); }} disabled={loading}
+                  className="bg-green-600 hover:bg-green-700 text-white h-6 rounded-none text-app-text">
+                  Confirm Approval
+                </Button>
+                <button onClick={() => setBuyerActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>
+              </div>
+            )}
+            {srd.BuyerApproved && !srd.BuyerComments && (
+              <span className="text-app-text text-green-700 font-medium">Approved by {srd.BuyerApprovedBy}</span>
+            )}
           </div>
         </div>
 
-        {!srd.BuyerApproved && srd.sampleDispatchedToBuyer && buyerRejectedReasons.length > 0 && (
-          <div className="border-b border-gray-300">
-            <div className="grid grid-cols-12">
-              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-1.5">
-                <span className="text-app-text font-semibold text-gray-700">Buyer Rejection Reasons</span>
+        {/* Row 2: Approved With Comments */}
+        <div className="grid grid-cols-12 border-b border-gray-300" style={{ backgroundColor: buyerActiveAction === 'approved-comments' ? '#fef08a' : 'white' }}>
+          <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
+            <button
+              className="inline-flex items-center justify-center w-40 px-3 border border-yellow-400 bg-yellow-100 text-yellow-800 text-app-text font-medium hover:bg-yellow-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              disabled={!!srd.BuyerApprovedDate || !canEdit}
+              onClick={() => setBuyerActiveAction(buyerActiveAction === 'approved-comments' ? null : 'approved-comments')}
+            >
+              Approved With Comments
+            </button>
+          </div>
+          <div className="col-span-9 px-2 py-0.5 flex items-center gap-2">
+            {buyerActiveAction === 'approved-comments' && !srd.BuyerApprovedDate && (
+              <div className="flex items-center gap-2 flex-1">
+                <Input
+                  placeholder="Enter comments..."
+                  value={buyerComments}
+                  onChange={e => setBuyerComments(e.target.value)}
+                  className="border-gray-300 rounded-none h-6 flex-1"
+                  autoFocus
+                />
+                <Button onClick={() => {
+                  if (!buyerComments.trim()) { toast({ title: 'Error', description: 'Enter a comment', variant: 'destructive' }); return; }
+                  handleBuyerApproval(true);
+                  setBuyerActiveAction(null);
+                }} disabled={loading} className="bg-yellow-500 hover:bg-yellow-600 text-white h-6 rounded-none text-app-text">
+                  Confirm
+                </Button>
+                <button onClick={() => setBuyerActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>
               </div>
-              <div className="col-span-10 px-2 py-1.5 space-y-1">
+            )}
+            {srd.BuyerApproved && srd.BuyerComments && (
+              <span className="text-app-text text-yellow-700 font-medium">{srd.BuyerComments}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Row 3: Rejected */}
+        <div className="grid grid-cols-12 border-b border-gray-300" style={{ backgroundColor: buyerActiveAction === 'rejected' || (srd.BuyerApprovedDate && !srd.BuyerApproved) ? '#fdba74' : 'white' }}>
+          <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
+            <button
+              className="inline-flex items-center justify-center w-40 px-3 border border-red-300 bg-red-50 text-red-700 text-app-text font-medium hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              disabled={!!srd.BuyerApprovedDate || !canEdit}
+              onClick={() => setBuyerActiveAction(buyerActiveAction === 'rejected' ? null : 'rejected')}
+            >
+              Rejected
+            </button>
+          </div>
+          <div className="col-span-9 px-2 py-0.5 flex items-center gap-2 flex-wrap">
+            {/* Show added reasons */}
+            {buyerRejectedReasons.length > 0 && (
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                 {buyerRejectedReasons.map((r, i) => (
-                  <div key={i} className="flex justify-between items-center bg-gray-50 px-2 py-0.5 text-app-text border border-gray-200">
-                    <div className="flex items-center gap-2">
-                      {r.department && <span className="font-semibold text-gray-600">{r.department}</span>}
-                      <span className="text-gray-700">{r.reason}</span>
-                    </div>
+                  <span key={i} className="text-app-text text-gray-800 text-sm">
+                    <span className="font-bold mr-1">{i + 1}</span>{r.reason}
                     {canEdit && !srd.BuyerApprovedDate && (
-                      <button
-                        onClick={() => setBuyerRejectedReasons(prev => prev.filter((_, idx) => idx !== i))}
-                        className="text-gray-400 hover:text-red-500"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                      <button onClick={() => setBuyerRejectedReasons(prev => prev.filter((_, idx) => idx !== i))} className="ml-1 text-gray-400 hover:text-red-600"><X className="h-2.5 w-2.5 inline" /></button>
                     )}
-                  </div>
+                  </span>
                 ))}
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        {!srd.BuyerApproved && srd.sampleDispatchedToBuyer && canEdit && !srd.BuyerApprovedDate && (
-          <div className="border-b border-gray-300">
-            <div className="grid grid-cols-12">
-              <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0">
-                <span className="text-app-text font-semibold text-gray-700">Add Reason</span>
-              </div>
-              <div className="col-span-10 px-2 py-0 flex gap-1.5">
-                <Input
-                  className="h-6 text-app-text flex-1 rounded-none border-gray-300"
-                  value={newReason.department}
-                  onChange={e => setNewReason({ ...newReason, department: e.target.value.toUpperCase() })}
-                  placeholder="Dept (Optional)"
-                />
-                <Input
-                  className="h-6 text-app-text flex-[3] rounded-none border-gray-300"
-                  value={newReason.reason}
-                  onChange={e => setNewReason({ ...newReason, reason: e.target.value })}
-                  placeholder="Buyer's feedback..."
-                />
-                <Button
-                  size="sm"
-                  className="h-6 px-2 text-app-text bg-blue-600 hover:bg-blue-700 rounded-none"
-                  onClick={() => {
-                    if (newReason.reason) {
-                      setBuyerRejectedReasons([...buyerRejectedReasons, { ...newReason, department: newReason.department || 'GENERAL' }]);
-                      setNewReason({ department: '', reason: '' });
-                    }
-                  }}
-                >
-                  <span className='text-white'>Add</span>
+            {buyerActiveAction === 'rejected' && !srd.BuyerApprovedDate && (
+              <div className="flex items-center gap-1.5">
+                {/* Combobox */}
+                <div className="relative flex items-center border border-gray-300 rounded h-6 bg-white overflow-hidden">
+                  <input
+                    className="h-full px-1.5 text-app-text text-sm bg-transparent focus:outline-none w-32"
+                    value={buyerNewReason}
+                    onChange={e => setBuyerNewReason(e.target.value)}
+                    placeholder="Reason..."
+                    autoFocus
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && buyerNewReason.trim()) {
+                        const val = buyerNewReason.trim();
+                        if (!buyerReasonOptions.includes(val)) setBuyerReasonOptions(prev => [...prev, val]);
+                        setBuyerRejectedReasons(prev => [...prev, { department: '', reason: val }]);
+                        setBuyerNewReason('');
+                      }
+                    }}
+                  />
+                  <select className="h-full w-6 border-l border-gray-300 bg-white text-gray-600 focus:outline-none cursor-pointer appearance-none text-center text-xs"
+                    value="" onChange={e => { if (e.target.value) setBuyerNewReason(e.target.value); }}>
+                    <option value="">▾</option>
+                    {buyerReasonOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+                <Button onClick={() => {
+                  const val = buyerNewReason.trim();
+                  const pending = val ? [{ department: '', reason: val }] : [];
+                  if (!buyerReasonOptions.includes(val) && val) setBuyerReasonOptions(prev => [...prev, val]);
+                  const reasons = [...buyerRejectedReasons, ...pending];
+                  if (!reasons.length) { toast({ title: 'Error', description: 'Add at least one reason', variant: 'destructive' }); return; }
+                  handleBuyerApproval(false);
+                  setBuyerActiveAction(null);
+                  setBuyerNewReason('');
+                }} disabled={loading} className="bg-red-600 hover:bg-red-700 text-white h-6 rounded-none text-app-text">
+                  Reject
                 </Button>
-                {canEdit && srd.sampleDispatchedToBuyer && !srd.BuyerApprovedDate && (
-                  <div className="grid grid-cols-12">
-                    <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
-                    <div className="col-span-10 px-2 py-0 flex gap-1.5">
-                      <Button onClick={() => handleBuyerApproval(true)} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white flex-1 h-6 text-app-text font-medium rounded-none">
-                        <span className='text-white'>Mark as Approved by Buyer</span>
-                      </Button>
-                      <Button onClick={() => handleBuyerApproval(false)} disabled={loading} className="bg-red-600 hover:bg-red-700 text-white flex-1 h-6 text-app-text font-medium rounded-none">
-                        <span className='text-white'>Mark as Rejected by Buyer</span>
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <button onClick={() => setBuyerActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
+            {srd.BuyerApprovedDate && !srd.BuyerApproved && (
+              <span className="text-app-text text-red-700 font-medium">Rejected by {srd.BuyerApprovedBy}</span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Approval Dialog */}
