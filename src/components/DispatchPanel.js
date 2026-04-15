@@ -465,7 +465,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <div className="grid grid-cols-12 border-b border-gray-300">
               <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
                 <button
-                  className="inline-flex items-center justify-center w-40 px-3 py-0.5 rounded border border-green-300 bg-green-50 text-green-700 text-app-text font-medium hover:bg-green-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center justify-center w-40 px-3 border border-green-300 bg-green-50 text-green-700 text-app-text font-medium hover:bg-green-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   disabled={!!srd.internalApprovedDate || !canEdit}
                   onClick={() => setActiveAction(activeAction === 'approve' ? null : 'approve')}
                 >
@@ -508,7 +508,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <div className="grid grid-cols-12">
               <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
                 <button
-                  className="inline-flex items-center justify-center w-40 px-3 py-0.5 rounded border border-red-300 bg-red-50 text-red-700 text-app-text font-medium hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center justify-center w-40 px-3 border border-red-300 bg-red-50 text-red-700 text-app-text font-medium hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   disabled={!!srd.internalApprovedDate || !canEdit}
                   onClick={() => setActiveAction(activeAction === 'reject' ? null : 'reject')}
                 >
