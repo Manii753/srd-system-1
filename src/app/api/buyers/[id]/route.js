@@ -15,6 +15,7 @@ export async function PATCH(request, context) {
         email: body.email,
         phone: body.phone,
         address: body.address,
+        department: body.department,
         contactPerson: body.contactPerson,
         updatedAt: Date.now(),
       },

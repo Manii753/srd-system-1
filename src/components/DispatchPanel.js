@@ -731,22 +731,50 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
           {/* Inline buyer form — always visible, pre-filled if buyer selected */}
           {(() => {
-            const b = selectedBuyer ? buyers.find(x => x._id === selectedBuyer) : null;
+            const b = selectedBuyer ? buyers.find(x => x._id?.toString() === selectedBuyer?.toString()) : null;
             const emails = b ? (Array.isArray(b.email) ? b.email : (b.email ? [b.email] : [])) : draftBuyer.email;
             const contacts = b ? (Array.isArray(b.contactPerson) ? b.contactPerson : []) : draftBuyer.contactPerson;
             const safeContacts = contacts.length > 0 ? contacts : [{ name: '', phone: '' }];
 
             const patchBuyer = async (patch) => {
               if (!b) return;
-              const res = await fetch(`/api/buyers/${b._id}`, {
+              const bId = b._id?.toString();
+              // Optimistic update first so value doesn't disappear on blur
+              setBuyers(prev => prev.map(x => x._id?.toString() === bId ? { ...x, ...patch } : x));
+              const res = await fetch(`/api/buyers/${bId}`, {
                 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(patch),
               });
               const data = await res.json();
-              if (data.success) setBuyers(prev => prev.map(x => x._id === b._id ? data.data : x));
+              if (data.success) setBuyers(prev => prev.map(x => x._id?.toString() === bId ? data.data : x));
             };
 
             const updateDraft = (patch) => setDraftBuyer(prev => ({ ...prev, ...patch }));
+
+            const createBuyerFromDraft = async (nameOverride) => {
+              const name = (nameOverride || draftBuyer.name).trim();
+              if (!name) return;
+              try {
+                const res = await fetch('/api/buyers', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    name,
+                    department: draftBuyer.department,
+                    address: draftBuyer.address,
+                    email: draftBuyer.email,
+                    contactPerson: draftBuyer.contactPerson.filter(cp => cp.name || cp.phone),
+                  }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                  setBuyers(prev => [...prev, data.data]);
+                  setSelectedBuyer(data.data._id);
+                }
+              } catch (e) {
+                console.error('Failed to create buyer', e);
+              }
+            };
 
             return (
               <>
@@ -763,6 +791,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                         placeholder="Enter buyer name..."
                         disabled={!canEdit || srd.sampleDispatchedToBuyer}
                         onChange={e => updateDraft({ name: e.target.value })}
+                        onBlur={e => e.target.value.trim() && createBuyerFromDraft(e.target.value.trim())}
                       />
                     </div>
                   </div>
@@ -784,7 +813,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                         disabled={!canEdit || srd.sampleDispatchedToBuyer}
                         onChange={e => {
                           const updated = safeContacts.map((c, j) => j === i ? { ...c, name: e.target.value } : c);
-                          if (b) setBuyers(prev => prev.map(x => x._id === b._id ? { ...x, contactPerson: updated } : x));
+                          if (b) setBuyers(prev => prev.map(x => x._id?.toString() === b._id?.toString() ? { ...x, contactPerson: updated } : x));
                           else updateDraft({ contactPerson: updated });
                         }}
                         onBlur={e => {
@@ -849,10 +878,13 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   <div className="col-span-10 px-2 py-0.5">
                     <input
                       className="w-full h-5 text-app-text border-0 border-b border-gray-300 bg-transparent focus:outline-none px-0 text-gray-700"
-                      value={b?.department || draftBuyer.department}
+                      value={b ? (b.department ?? '') : draftBuyer.department}
                       placeholder=""
                       disabled={!canEdit || srd.sampleDispatchedToBuyer}
-                      onChange={e => { if (b) setBuyers(prev => prev.map(x => x._id === b._id ? { ...x, department: e.target.value } : x)); else updateDraft({ department: e.target.value }); }}
+                      onChange={e => {
+                        if (b) setBuyers(prev => prev.map(x => x._id?.toString() === b._id?.toString() ? { ...x, department: e.target.value } : x));
+                        else updateDraft({ department: e.target.value });
+                      }}
                       onBlur={e => b && patchBuyer({ department: e.target.value })}
                     />
                   </div>
@@ -891,7 +923,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                           disabled={!canEdit || srd.sampleDispatchedToBuyer}
                           onChange={e => {
                             const updated = safeContacts.map((c, j) => j === i ? { ...c, phone: e.target.value } : c);
-                            if (b) setBuyers(prev => prev.map(x => x._id === b._id ? { ...x, contactPerson: updated } : x));
+                            if (b) setBuyers(prev => prev.map(x => x._id?.toString() === b._id?.toString() ? { ...x, contactPerson: updated } : x));
                             else updateDraft({ contactPerson: updated });
                           }}
                           onBlur={e => {
