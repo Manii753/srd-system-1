@@ -152,10 +152,10 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   const [internalRejectedReasons, setInternalRejectedReasons] = useState(srd.internalRejectedReasons || []);
   const [buyerRejectedReasons, setBuyerRejectedReasons] = useState(srd.BuyerRejectedReasons || []);
   const [newReason, setNewReason] = useState({ department: '', reason: '' });
-  const [reasonOptions, setReasonOptions] = useState(['Vmd', 'Pattern or Specs', 'Sewing', 'Washing', 'Finishing', 'Cad', 'Commercial', 'Mmc', 'Cutting']);
+  const [reasonOptions, setReasonOptions] = useState(['Vmd', 'Pattern or Specs', 'Sewing', 'Washing',]);
   const [activeAction, setActiveAction] = useState(null); // null | 'approve' | 'reject'
   const [buyerActiveAction, setBuyerActiveAction] = useState(null); // null | 'approved' | 'approved-comments' | 'rejected'
-  const [buyerReasonOptions, setBuyerReasonOptions] = useState(['Vmd', 'Pattern or Specs', 'Sewing', 'Washing', 'Finishing', 'Cad', 'Commercial', 'Mmc', 'Cutting']);
+  const [buyerReasonOptions, setBuyerReasonOptions] = useState(['Vmd', 'Pattern or Specs', 'Sewing', 'Washing',]);
   const [buyerNewReason, setBuyerNewReason] = useState('');
 
   // Buyer selection states
