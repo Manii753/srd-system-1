@@ -132,7 +132,7 @@ function AddEmailRow({ onAdd }) {
         onClick={async () => { if (val.trim()) { await onAdd(val.trim()); setVal(''); } }}
         className="text-xs text-blue-600 hover:text-blue-800 px-1"
       >
-        Add
+        +
       </button>
     </div>
   );
@@ -507,7 +507,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <div className="grid grid-cols-12 border-b border-gray-300">
               <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
                 <button
-                  className="inline-flex items-center justify-center w-40 px-3 border border-green-300 bg-green-50 text-green-700 text-app-text font-medium hover:bg-green-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center justify-center w-36 px-2 border border-green-400 bg-green-500 text-green-700 text-app-text font-medium hover:bg-green-100 disabled:opacity-40 disabled:cursor-not-allowed"
                   disabled={!!srd.internalApprovedDate || !canEdit}
                   onClick={() => setActiveAction(activeAction === 'approve' ? null : 'approve')}
                 >
@@ -526,17 +526,17 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                       className="border-gray-300 rounded-none h-6 w-40"
                       autoFocus
                     />
-                    <Button
+                    <button
                       onClick={() => {
                         if (!approverName.trim()) { toast({ title: 'Error', description: 'Enter approver name', variant: 'destructive' }); return; }
                         handleAction('internal_approval', { internalApproved: true, internalComments, internalApprovedBy: approverName.trim(), internalRejectedReasons: [] });
                         setActiveAction(null);
                       }}
                       disabled={loading}
-                      className="bg-green-600 hover:bg-green-700 text-white h-6 rounded-none text-app-text"
+                      className="inline-flex items-center justify-center w-36 px-2 border border-green-400 bg-green-500 text-black text-app-text font-medium hover:bg-green-600 disabled:opacity-40"
                     >
                       Confirm
-                    </Button>
+                    </button>
                     <button onClick={() => setActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>
                   </div>
                 )}
@@ -550,7 +550,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <div className="grid grid-cols-12">
               <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
                 <button
-                  className="inline-flex items-center justify-center w-40 px-3 border border-red-300 bg-red-50 text-red-700 text-app-text font-medium hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center justify-center w-36 px-2 border border-red-400 bg-red-500 text-red-700 text-app-text font-medium hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed"
                   disabled={!!srd.internalApprovedDate || !canEdit}
                   onClick={() => setActiveAction(activeAction === 'reject' ? null : 'reject')}
                 >
@@ -602,7 +602,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                       </select>
                     </div>
 
-                    <Button
+                    <button
                       onClick={() => {
                         const val = newReason.reason.trim();
                         const pending = val ? [{ department: '', reason: val }] : [];
@@ -614,10 +614,10 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                         setNewReason({ department: '', reason: '' });
                       }}
                       disabled={loading}
-                      className="bg-red-600 hover:bg-red-700 text-white h-6 rounded-none text-app-text"
+                      className="inline-flex items-center justify-center w-36 px-2 border border-red-400 bg-red-500 text-black text-app-text font-medium hover:bg-red-600 disabled:opacity-40"
                     >
                       Reject
-                    </Button>
+                    </button>
                     <button onClick={() => setActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>
                   </div>
                 )}
@@ -754,14 +754,15 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   </div>
                 )}
 
-                {/* Contact Person rows */}
+                {/* Contact Person rows — email beside name, phones in single row */}
                 {safeContacts.map((cp, i) => (
                   <div key={i} className="grid grid-cols-12 border-b border-gray-300">
                     <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
                       <span className="text-app-text font-semibold text-gray-700">{i === 0 ? 'Contact Person' : ''}</span>
                     </div>
-                    <div className="col-span-5 border-r border-gray-300 px-2 py-0.5 flex items-center gap-1">
-                      <span className="text-app-text text-gray-500 text-xs shrink-0">Mr. / Ms.</span>
+                    {/* Name */}
+                    <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center gap-1">
+                      <span className="text-app-text text-gray-500 text-xs shrink-0">Mr./Ms.</span>
                       <input
                         className="flex-1 h-5 text-app-text border-0 border-b border-gray-300 bg-transparent focus:outline-none px-0 text-gray-700"
                         value={cp.name || ''}
@@ -769,7 +770,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                         disabled={!canEdit || srd.sampleDispatchedToBuyer}
                         onChange={e => {
                           const updated = safeContacts.map((c, j) => j === i ? { ...c, name: e.target.value } : c);
-                          if (b) { setBuyers(prev => prev.map(x => x._id === b._id ? { ...x, contactPerson: updated } : x)); }
+                          if (b) setBuyers(prev => prev.map(x => x._id === b._id ? { ...x, contactPerson: updated } : x));
                           else updateDraft({ contactPerson: updated });
                         }}
                         onBlur={e => {
@@ -779,14 +780,40 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                         }}
                       />
                     </div>
-                    <div className="col-span-5 px-2 py-0.5 flex items-center gap-1">
+                    {/* Email beside name */}
+                    <div className="col-span-5 border-r border-gray-300 px-2 py-0.5 flex flex-col justify-center">
+                      {i === 0 && (
+                        <>
+                          {emails.map((em, idx) => (
+                            <div key={idx} className="flex items-center gap-1">
+                              <span className="text-gray-400 text-xs w-3">{idx + 1}</span>
+                              <a href={`mailto:${em}`} className="text-blue-600 hover:underline flex-1 text-app-text text-xs">{em}</a>
+                              {canEdit && !srd.sampleDispatchedToBuyer && (
+                                <button onClick={() => {
+                                  const updated = emails.filter((_, j) => j !== idx);
+                                  if (b) patchBuyer({ email: updated }); else updateDraft({ email: updated });
+                                }} className="text-gray-300 hover:text-red-500"><X className="h-3 w-3" /></button>
+                              )}
+                            </div>
+                          ))}
+                          {canEdit && !srd.sampleDispatchedToBuyer && (
+                            <AddEmailRow onAdd={em => {
+                              const updated = [...emails, em];
+                              if (b) patchBuyer({ email: updated }); else updateDraft({ email: updated });
+                            }} />
+                          )}
+                        </>
+                      )}
+                    </div>
+                    {/* Add/remove contact */}
+                    <div className="col-span-2 px-2 py-0.5 flex items-center gap-1">
                       {i === safeContacts.length - 1 && canEdit && !srd.sampleDispatchedToBuyer && (
                         <button className="text-xs text-blue-600 hover:text-blue-800 shrink-0"
                           onClick={() => {
                             const updated = [...safeContacts, { name: '', phone: '' }];
                             if (b) patchBuyer({ contactPerson: updated });
                             else updateDraft({ contactPerson: updated });
-                          }}>+ Add</button>
+                          }}>+</button>
                       )}
                       {safeContacts.length > 1 && canEdit && !srd.sampleDispatchedToBuyer && (
                         <button className="text-gray-300 hover:text-red-500 ml-auto"
@@ -834,45 +861,19 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   </div>
                 </div>
 
-                {/* Email rows */}
-                <div className="grid grid-cols-12 border-b border-gray-300">
-                  <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
-                    <span className="text-app-text font-semibold text-gray-700">Email</span>
-                  </div>
-                  <div className="col-span-10 px-2 py-0.5">
-                    {emails.map((em, idx) => (
-                      <div key={idx} className="flex items-center gap-1">
-                        <span className="text-gray-400 text-xs w-3">{idx + 1}</span>
-                        <a href={`mailto:${em}`} className="text-blue-600 hover:underline flex-1 text-app-text">{em}</a>
-                        {canEdit && !srd.sampleDispatchedToBuyer && (
-                          <button onClick={() => {
-                            const updated = emails.filter((_, j) => j !== idx);
-                            if (b) patchBuyer({ email: updated }); else updateDraft({ email: updated });
-                          }} className="text-gray-300 hover:text-red-500"><X className="h-3 w-3" /></button>
-                        )}
-                      </div>
-                    ))}
-                    {canEdit && !srd.sampleDispatchedToBuyer && (
-                      <AddEmailRow onAdd={em => {
-                        const updated = [...emails, em];
-                        if (b) patchBuyer({ email: updated }); else updateDraft({ email: updated });
-                      }} />
-                    )}
-                  </div>
-                </div>
-
-                {/* Contact No */}
+                {/* Contact No — all phones in one row, comma separated */}
                 <div className="grid grid-cols-12 border-b border-gray-300">
                   <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
                     <span className="text-app-text font-semibold text-gray-700">Contact No.</span>
                   </div>
-                  <div className="col-span-10 px-2 py-0.5">
+                  <div className="col-span-10 px-2 py-0.5 flex items-center gap-1 flex-wrap">
                     {safeContacts.map((cp, i) => (
-                      <div key={i} className="flex items-center gap-1">
+                      <span key={i} className="flex items-center gap-0.5">
+                        {i > 0 && <span className="text-gray-400 mr-0.5">,</span>}
                         <input
-                          className="flex-1 h-5 text-app-text border-0 border-b border-gray-300 bg-transparent focus:outline-none px-0 text-gray-700"
+                          className="h-5 text-app-text border-0 border-b border-gray-300 bg-transparent focus:outline-none px-0 text-gray-700 w-28"
                           value={cp.phone || ''}
-                          placeholder="Phone number"
+                          placeholder="Phone"
                           disabled={!canEdit || srd.sampleDispatchedToBuyer}
                           onChange={e => {
                             const updated = safeContacts.map((c, j) => j === i ? { ...c, phone: e.target.value } : c);
@@ -885,7 +886,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                             patchBuyer({ contactPerson: updated });
                           }}
                         />
-                      </div>
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -927,7 +928,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         <div className="grid grid-cols-12 border-b border-gray-300">
           <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
             <button
-              className="inline-flex items-center justify-center w-40 px-3 border border-green-400 bg-green-100 text-green-800 text-app-text font-medium hover:bg-green-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center justify-center w-40 px-2 border border-green-400 bg-green-500 text-app-text font-medium hover:bg-green-100 disabled:opacity-40 disabled:cursor-not-allowed"
               disabled={!!srd.BuyerApprovedDate || !canEdit}
               onClick={() => setBuyerActiveAction(buyerActiveAction === 'approved' ? null : 'approved')}
             >
@@ -937,10 +938,10 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           <div className="col-span-9 px-2 py-0.5 flex items-center">
             {buyerActiveAction === 'approved' && !srd.BuyerApprovedDate && (
               <div className="flex items-center gap-2">
-                <Button onClick={() => { handleBuyerApproval(true); setBuyerActiveAction(null); }} disabled={loading}
-                  className="bg-green-600 hover:bg-green-700 text-white h-6 rounded-none text-app-text">
+                <button onClick={() => { handleBuyerApproval(true); setBuyerActiveAction(null); }} disabled={loading}
+                  className="inline-flex items-center justify-center w-36 px-2 border border-green-400 bg-green-500 text-black text-app-text font-medium hover:bg-green-600 disabled:opacity-40">
                   Confirm Approval
-                </Button>
+                </button>
                 <button onClick={() => setBuyerActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>
               </div>
             )}
@@ -951,17 +952,17 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         </div>
 
         {/* Row 2: Approved With Comments */}
-        <div className="grid grid-cols-12 border-b border-gray-300" style={{ backgroundColor: buyerActiveAction === 'approved-comments' ? '#fef08a' : 'white' }}>
-          <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
+        <div className="grid grid-cols-12 border-b border-gray-300">
+          <div className="col-span-3 border-r border-gray-300 px-2 flex items-center">
             <button
-              className="inline-flex items-center justify-center w-40 px-3 border border-yellow-400 bg-yellow-100 text-yellow-800 text-app-text font-medium hover:bg-yellow-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center justify-center w-40 px-0 border border-yellow-400 bg-yellow-500 text-app-text font-medium hover:bg-yellow-100 disabled:opacity-40 disabled:cursor-not-allowed"
               disabled={!!srd.BuyerApprovedDate || !canEdit}
               onClick={() => setBuyerActiveAction(buyerActiveAction === 'approved-comments' ? null : 'approved-comments')}
             >
               Approved With Comments
             </button>
           </div>
-          <div className="col-span-9 px-2 py-0.5 flex items-center gap-2">
+          <div className="col-span-9 px-2 flex items-center gap-2">
             {buyerActiveAction === 'approved-comments' && !srd.BuyerApprovedDate && (
               <div className="flex items-center gap-2 flex-1">
                 <Input
@@ -971,13 +972,13 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   className="border-gray-300 rounded-none h-6 flex-1"
                   autoFocus
                 />
-                <Button onClick={() => {
+                <button onClick={() => {
                   if (!buyerComments.trim()) { toast({ title: 'Error', description: 'Enter a comment', variant: 'destructive' }); return; }
                   handleBuyerApproval(true);
                   setBuyerActiveAction(null);
-                }} disabled={loading} className="bg-yellow-500 hover:bg-yellow-600 text-white h-6 rounded-none text-app-text">
+                }} disabled={loading} className="inline-flex items-center justify-center w-36 px-2 border border-yellow-400 bg-yellow-500 text-black text-app-text font-medium hover:bg-yellow-600 disabled:opacity-40">
                   Confirm
-                </Button>
+                </button>
                 <button onClick={() => setBuyerActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>
               </div>
             )}
@@ -988,10 +989,10 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         </div>
 
         {/* Row 3: Rejected */}
-        <div className="grid grid-cols-12 border-b border-gray-300" style={{ backgroundColor: buyerActiveAction === 'rejected' || (srd.BuyerApprovedDate && !srd.BuyerApproved) ? '#fdba74' : 'white' }}>
+        <div className="grid grid-cols-12 border-b border-gray-300">
           <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
             <button
-              className="inline-flex items-center justify-center w-40 px-3 border border-red-300 bg-red-50 text-red-700 text-app-text font-medium hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center justify-center w-40 px-2 border border-red-400 bg-red-500 text-app-text font-medium hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed"
               disabled={!!srd.BuyerApprovedDate || !canEdit}
               onClick={() => setBuyerActiveAction(buyerActiveAction === 'rejected' ? null : 'rejected')}
             >
@@ -1038,7 +1039,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                     {buyerReasonOptions.map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
                 </div>
-                <Button onClick={() => {
+                <button onClick={() => {
                   const val = buyerNewReason.trim();
                   const pending = val ? [{ department: '', reason: val }] : [];
                   if (!buyerReasonOptions.includes(val) && val) setBuyerReasonOptions(prev => [...prev, val]);
@@ -1047,9 +1048,9 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   handleBuyerApproval(false);
                   setBuyerActiveAction(null);
                   setBuyerNewReason('');
-                }} disabled={loading} className="bg-red-600 hover:bg-red-700 text-white h-6 rounded-none text-app-text">
+                }} disabled={loading} className="inline-flex items-center justify-center w-36 px-2 py-0.5 rounded border border-red-400 bg-red-500 text-black text-app-text font-medium hover:bg-red-600 disabled:opacity-40">
                   Reject
-                </Button>
+                </button>
                 <button onClick={() => setBuyerActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>
               </div>
             )}
