@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronDown, ChevronUp, Table, Upload } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -192,6 +192,15 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   const [dispatchDate, setDispatchDate] = useState('');
   const [dispatchFrontImages, setDispatchFrontImages] = useState([]);
   const [dispatchBackImages, setDispatchBackImages] = useState([]);
+  const autoSaveTimerRef = useRef(null);
+
+  const triggerAutoSave = useCallback((overrides = {}) => {
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      handleSaveDispatchDetailsRef.current?.(overrides);
+    }, 800);
+  }, []);
+  const handleSaveDispatchDetailsRef = useRef(null);
 
   // Sync state with srd prop
   useEffect(() => {
@@ -404,6 +413,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       images: [{ front: dispatchFrontImages, back: dispatchBackImages }]
     });
   };
+  // Keep ref in sync so triggerAutoSave can call the latest version
+  handleSaveDispatchDetailsRef.current = handleSaveDispatchDetails;
 
   const handleDispatchToBuyer = () => {
     handleAction('dispatch_to_buyer', {});
@@ -656,6 +667,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <div className="col-span-3 border-r border-gray-300 px-2 py-0.5">
               <Input type="date" value={dispatchDate} onChange={e => setDispatchDate(e.target.value)}
                 disabled={!canEdit || srd.sampleDispatchedToBuyer}
+                onBlur={() => selectedBuyer && triggerAutoSave()}
                 className="h-6 text-app-text rounded-none border-0 border-b border-gray-300 px-0 w-full" />
             </div>
             <div className="col-span-1 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
@@ -664,6 +676,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <div className="col-span-3 border-r border-gray-300 px-2 py-0.5">
               <Input value={dispatchAWB} onChange={e => setDispatchAWB(e.target.value)} placeholder="####"
                 disabled={!canEdit || srd.sampleDispatchedToBuyer}
+                onBlur={() => selectedBuyer && triggerAutoSave()}
                 className="h-6 text-app-text rounded-none border-0 border-b border-gray-300 px-0 w-full" />
             </div>
             <div className="col-span-3 px-2 py-0.5 flex items-center gap-1">
@@ -671,7 +684,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                 label="Front Pic"
                 images={dispatchFrontImages}
                 canEdit={canEdit && !srd.sampleDispatchedToBuyer}
-                onUploaded={(urls) => setDispatchFrontImages(prev => [...prev, ...urls])}
+                onUploaded={(urls) => { setDispatchFrontImages(prev => { const next = [...prev, ...urls]; triggerAutoSave(); return next; })}}
                 onRemove={(i) => setDispatchFrontImages(prev => prev.filter((_, idx) => idx !== i))}
               />
             </div>
@@ -683,8 +696,9 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               <span className="text-app-text font-semibold text-gray-700">Dispatch Qty</span>
             </div>
             <div className="col-span-3 border-r border-gray-300 px-2 py-0.5">
-              <Input type="number" value={dispatchQty} onChange={e => setDispatchQty(e.target.value)} placeholder="0"
+              <Input type="number" min="0" value={dispatchQty} onChange={e => setDispatchQty(Math.max(0, e.target.value))} placeholder="0"
                 disabled={!canEdit || srd.sampleDispatchedToBuyer}
+                onBlur={() => selectedBuyer && triggerAutoSave()}
                 className="h-6 text-app-text rounded-none border-0 border-b border-gray-300 px-0 w-full" />
             </div>
             <div className="col-span-4 border-r border-gray-300"></div>
@@ -693,7 +707,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                 label="Back Pic"
                 images={dispatchBackImages}
                 canEdit={canEdit && !srd.sampleDispatchedToBuyer}
-                onUploaded={(urls) => setDispatchBackImages(prev => [...prev, ...urls])}
+                onUploaded={(urls) => { setDispatchBackImages(prev => { const next = [...prev, ...urls]; triggerAutoSave(); return next; })}}
                 onRemove={(i) => setDispatchBackImages(prev => prev.filter((_, idx) => idx !== i))}
               />
             </div>
@@ -894,14 +908,12 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             );
           })()}
 
-          {/* Save & Dispatch Buttons */}
+          {/* Buttons row */}
           {canEdit && !srd.sampleDispatchedToBuyer && (
             <div className="grid grid-cols-12 border-b border-gray-300">
               <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
-              <div className="col-span-10 px-2 py-0.5 flex gap-1.5">
-                <Button onClick={handleSaveDispatchDetails} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white h-6 text-app-text rounded-none">
-                  Save Dispatch Details
-                </Button>
+              <div className="col-span-10 px-2 py-0.5 flex gap-1.5 items-center">
+                {selectedBuyer && <DispatchCardPrint srd={srd} />}
                 {srd.DispatchDetails && (
                   <Button onClick={handleDispatchToBuyer} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white h-6 text-app-text rounded-none">
                     Dispatch Sample to Buyer
