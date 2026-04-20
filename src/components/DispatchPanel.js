@@ -642,15 +642,6 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   <span className="text-app-text text-red-700 font-medium">Rejected by {srd.internalApprovedBy}</span>
                 )}
               </div>
-              <div className="col-span-3 px-2 py-0.5 flex items-center">
-                <DispatchImageCell
-                  label="Attach Image"
-                  images={internalCommentImages}
-                  canEdit={canEdit && !srd.internalApprovedDate}
-                  onUploaded={(urls) => setInternalCommentImages(prev => [...prev, ...urls])}
-                  onRemove={(i) => setInternalCommentImages(prev => prev.filter((_, idx) => idx !== i))}
-                />
-              </div>
             </div>
           </div>
         )}
@@ -1125,15 +1116,6 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             {srd.BuyerApprovedDate && !srd.BuyerApproved && (
               <span className="text-app-text text-red-700 font-medium">Rejected by {srd.BuyerApprovedBy}</span>
             )}
-          </div>
-          <div className="col-span-3 px-2 py-0.5 flex items-center">
-            <DispatchImageCell
-              label="Attach Image"
-              images={buyerCommentImages}
-              canEdit={canEdit && !srd.BuyerApprovedDate}
-              onUploaded={(urls) => setBuyerCommentImages(prev => [...prev, ...urls])}
-              onRemove={(i) => setBuyerCommentImages(prev => prev.filter((_, idx) => idx !== i))}
-            />
           </div>
         </div>
       </div>
