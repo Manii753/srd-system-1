@@ -77,9 +77,10 @@ const srdSchema = new mongoose.Schema({
   internalApprovedBy: { type: String },
   internalApprovedDate: { type: Date },
   internalComments: { type: String },
-  internalEmails: [String], // Kept this as it was not explicitly removed by the instruction
+  internalCommentImages: [{ type: String }],
+  internalEmails: [String],
   sampleDispatchedToBuyer: { type: Boolean, default: false },
-  sampleDipatchedtoBuyerDate: { type: Date }, // Kept original name as instruction had both 'sampleDispatchedToBuyer' and 'sampleDipatchedtoBuyerDate'
+  sampleDipatchedtoBuyerDate: { type: Date },
 
   BuyerApproved: { type: Boolean, default: false },
   BuyerRejectedReasons: [{
@@ -88,6 +89,7 @@ const srdSchema = new mongoose.Schema({
   }],
   BuyerApprovedBy: { type: String },
   BuyerComments: { type: String },
+  BuyerCommentImages: [{ type: String }],
   BuyerApprovedDate: { type: Date },
   BuyerDetails: { type: mongoose.Schema.Types.ObjectId, ref: 'Buyer' },
   DispatchDetails: { type: mongoose.Schema.Types.ObjectId, ref: 'Dispatch' },

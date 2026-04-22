@@ -147,6 +147,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   // Form states
   const [internalComments, setInternalComments] = useState(srd.internalComments || '');
   const [buyerComments, setBuyerComments] = useState(srd.BuyerComments || '');
+  const [internalCommentImages, setInternalCommentImages] = useState(srd.internalCommentImages || []);
+  const [buyerCommentImages, setBuyerCommentImages] = useState(srd.BuyerCommentImages || []);
 
   // Rejected reasons states
   const [internalRejectedReasons, setInternalRejectedReasons] = useState(srd.internalRejectedReasons || []);
@@ -206,6 +208,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   useEffect(() => {
     setInternalComments(srd.internalComments || '');
     setBuyerComments(srd.BuyerComments || '');
+    setInternalCommentImages(srd.internalCommentImages || []);
+    setBuyerCommentImages(srd.BuyerCommentImages || []);
     setInternalRejectedReasons(srd.internalRejectedReasons || []);
     setBuyerRejectedReasons(srd.BuyerRejectedReasons || []);
 
@@ -471,6 +475,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       BuyerApproved: approved,
       BuyerApprovedBy: session?.user?.name + ' | ' + session.user?.role,
       BuyerComments: buyerComments,
+      BuyerCommentImages: buyerCommentImages,
       BuyerRejectedReasons: !approved ? buyerRejectedReasons : [],
     });
   };
@@ -579,14 +584,14 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                       placeholder="Enter name..."
                       value={approverName}
                       onChange={e => setApproverName(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && approverName.trim() && handleAction('internal_approval', { internalApproved: true, internalComments, internalApprovedBy: approverName.trim(), internalRejectedReasons: [] })}
+                      onKeyDown={e => e.key === 'Enter' && approverName.trim() && handleAction('internal_approval', { internalApproved: true, internalComments, internalApprovedBy: approverName.trim(), internalRejectedReasons: [], internalCommentImages })}
                       className="border-gray-300 rounded-none h-6 w-40"
                       autoFocus
                     />
                     <button
                       onClick={() => {
                         if (!approverName.trim()) { toast({ title: 'Error', description: 'Enter approver name', variant: 'destructive' }); return; }
-                        handleAction('internal_approval', { internalApproved: true, internalComments, internalApprovedBy: approverName.trim(), internalRejectedReasons: [] });
+                        handleAction('internal_approval', { internalApproved: true, internalComments, internalApprovedBy: approverName.trim(), internalRejectedReasons: [], internalCommentImages });
                         setActiveAction(null);
                       }}
                       disabled={loading}
@@ -666,7 +671,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                         if (!reasonOptions.includes(val) && val) setReasonOptions(prev => [...prev, val]);
                         const reasons = [...internalRejectedReasons, ...pending];
                         if (!reasons.length) { toast({ title: 'Error', description: 'Add at least one reason', variant: 'destructive' }); return; }
-                        handleAction('internal_approval', { internalApproved: false, internalComments, internalApprovedBy: session?.user?.name || 'System', internalRejectedReasons: reasons });
+                        handleAction('internal_approval', { internalApproved: false, internalComments, internalApprovedBy: session?.user?.name || 'System', internalRejectedReasons: reasons, internalCommentImages });
                         setActiveAction(null);
                         setNewReason({ department: '', reason: '' });
                       }}
@@ -1025,7 +1030,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               Approved With Comments
             </button>
           </div>
-          <div className="col-span-9 px-2 flex items-center gap-2">
+          <div className="col-span-6 px-2 flex items-center gap-2 border-r border-gray-300">
             {buyerActiveAction === 'approved-comments' && !srd.BuyerApprovedDate && (
               <div className="flex items-center gap-2 flex-1">
                 <Input
@@ -1048,6 +1053,15 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             {srd.BuyerApproved && srd.BuyerComments && (
               <span className="text-app-text text-yellow-700 font-medium">{srd.BuyerComments}</span>
             )}
+          </div>
+          <div className="col-span-3 px-2 py-0.5 flex items-center">
+            <DispatchImageCell
+              label="Attach Comment"
+              images={buyerCommentImages}
+              canEdit={canEdit && !srd.BuyerApprovedDate}
+              onUploaded={(urls) => setBuyerCommentImages(prev => [...prev, ...urls])}
+              onRemove={(i) => setBuyerCommentImages(prev => prev.filter((_, idx) => idx !== i))}
+            />
           </div>
         </div>
 
