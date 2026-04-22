@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Layout from '@/components/layout/Layout';
 import DepartmentPanelExcel from '@/components/DepartmentPanelExcel';
 import ProductionControl from '@/components/ProductionControl';
@@ -20,6 +20,19 @@ export default function SRDDetailPage() {
   const [excelHeaderContent, setExcelHeaderContent] = useState(null);
   const [productionHeaderContent, setProductionHeaderContent] = useState(null);
   const [excelHeaderRightContent, setExcelHeaderRightContent] = useState(null);
+  const saveRef = useRef(null); // ref to trigger save from DepartmentPanelExcel
+
+  // Ctrl+S to save
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveRef.current?.();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
 
   useEffect(() => {
@@ -153,7 +166,7 @@ export default function SRDDetailPage() {
       }
       headerRightContent={excelHeaderRightContent}
     >
-      <div className="h-full flex flex-col min-h-0">
+      <div className="flex flex-col">
         {/* Production Control - Only for VMD/Admin */}
         {(userRole === 'vmd' || userRole === 'admin') && (
           <ProductionControl
@@ -171,7 +184,19 @@ export default function SRDDetailPage() {
           onSrdUpdate={setSrd}
           onHeaderContent={setExcelHeaderContent}
           onHeaderRightContent={setExcelHeaderRightContent}
+          onSaveRef={(fn) => { saveRef.current = fn; }}
         />
+
+        {/* Dispatch Panel — always visible for VMD/Admin */}
+        {/* {(userRole === 'vmd' || userRole === 'admin') && (
+          <div className="mt-2">
+            <DispatchPanel
+              srd={srd}
+              onUpdate={(data) => setSrd(data)}
+              canEdit={userRole === 'vmd' || userRole === 'admin'}
+            />
+          </div>
+        )} */}
       </div>
     </Layout>
   );

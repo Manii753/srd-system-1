@@ -231,10 +231,25 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       .then(data => {
         if (data.success) {
           setBuyers(data.data);
+          // Auto-select buyer if SRD has a Brand/Buyer field value
+          if (!selectedBuyer && srd.dynamicFields) {
+            const brandField = srd.dynamicFields.find(f =>
+              f.name === 'Brand' || f.name === 'Buyer'
+            );
+            if (brandField?.value) {
+              const match = data.data.find(b =>
+                b.name.toLowerCase() === brandField.value.toLowerCase()
+              );
+              if (match) {
+                setSelectedBuyer(match._id);
+                if (match.address) setDispatchAddress(match.address);
+              }
+            }
+          }
         }
       })
       .catch(err => console.error('Failed to fetch buyers', err));
-  }, []);
+  }, [srd._id, srd.dynamicFields]);
 
   const handleCreateBuyer = async () => {
     if (!newBuyer.name) {
@@ -347,6 +362,37 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     }
   };
 
+  // Re-match buyer when Brand field changes — create if doesn't exist
+  useEffect(() => {
+    if (!buyers.length && !srd.dynamicFields) return;
+    const brandField = srd.dynamicFields?.find(f => f.name === 'Brand' || f.name === 'Buyer');
+    const brandName = brandField?.value?.trim();
+    if (!brandName) return;
+
+    const match = buyers.find(b => b.name.toLowerCase() === brandName.toLowerCase());
+    if (match) {
+      if (match._id?.toString() !== selectedBuyer?.toString()) {
+        setSelectedBuyer(match._id);
+        if (match.address) setDispatchAddress(match.address);
+      }
+    } else {
+      // Brand doesn't exist — create it automatically
+      fetch('/api/buyers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: brandName }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            setBuyers(prev => [...prev, data.data]);
+            setSelectedBuyer(data.data._id);
+          }
+        })
+        .catch(e => console.error('Failed to create buyer', e));
+    }
+  }, [srd.dynamicFields, buyers.length]);
+
   const openApprovalDialog = (type) => {
     setApprovalDialogType(type);
     setApproverName('');
@@ -401,7 +447,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     }
 
     if (!buyerId) {
-      toast({ title: 'Error', description: 'Please select or enter a buyer name.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Please select or enter a Brand name.', variant: 'destructive' });
       return;
     }
     handleAction('save_dispatch_details', {
@@ -690,18 +736,43 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             </div>
           </div>
 
-          {/* Dispatch Qty | Attach Back Pic */}
+          {/* Dispatch Qty | Dispatch Date | Attach Back Pic */}
           <div className="grid grid-cols-12 border-b border-gray-300">
-            <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
+            <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0 flex items-center">
               <span className="text-app-text font-semibold text-gray-700">Dispatch Qty</span>
             </div>
-            <div className="col-span-3 border-r border-gray-300 px-2 py-0.5">
+            <div className="col-span-3 border-r border-gray-300 px-2 py-0">
               <Input type="number" min="0" value={dispatchQty} onChange={e => setDispatchQty(Math.max(0, e.target.value))} placeholder="0"
                 disabled={!canEdit || srd.sampleDispatchedToBuyer}
                 onBlur={() => selectedBuyer && triggerAutoSave()}
                 className="h-6 text-app-text rounded-none border-0 border-b border-gray-300 px-0 w-full" />
             </div>
-            <div className="col-span-4 border-r border-gray-300"></div>
+            <div className="col-span-1 bg-gray-50 border-r border-gray-300 px-2 py-0 flex items-center">
+              <span className="text-app-text font-semibold text-gray-700 text-xs">Dept</span>
+            </div>
+            <div className="col-span-3 border-r border-gray-300 px-2 py-0">
+              {(() => {
+                const b = selectedBuyer ? buyers.find(x => x._id?.toString() === selectedBuyer?.toString()) : null;
+                return (
+                  <input
+                    className="h-6 text-app-text rounded-none border-0 border-b border-gray-300 px-0 w-full bg-transparent focus:outline-none text-gray-700"
+                    value={b ? (b.department ?? '') : draftBuyer.department}
+                    placeholder=""
+                    disabled={!canEdit || srd.sampleDispatchedToBuyer}
+                    onChange={e => {
+                      if (b) setBuyers(prev => prev.map(x => x._id?.toString() === b._id?.toString() ? { ...x, department: e.target.value } : x));
+                      else setDraftBuyer(prev => ({ ...prev, department: e.target.value }));
+                    }}
+                    onBlur={async e => {
+                      if (!b) return;
+                      const bId = b._id?.toString();
+                      setBuyers(prev => prev.map(x => x._id?.toString() === bId ? { ...x, department: e.target.value } : x));
+                      await fetch(`/api/buyers/${bId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ department: e.target.value }) });
+                    }}
+                  />
+                );
+              })()}
+            </div>
             <div className="col-span-3 px-2 py-0.5 flex items-center gap-1">
               <DispatchImageCell
                 label="Back Pic"
@@ -713,33 +784,33 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             </div>
           </div>
 
-          {/* Buyer row */}
-          <div className="grid grid-cols-12 border-b border-gray-300">
+          {/* Buyer row — auto-matched, no dropdown */}
+          <div className="grid grid-cols-12 border-b border-gray-300 h-6 py-0.5">
             <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
-              <span className="text-app-text font-semibold text-gray-700">Buyer</span>
+              <span className="text-app-text font-semibold text-gray-700">Brand</span>
             </div>
-            <div className="col-span-10 px-2 py-0.5 flex gap-1.5 items-center">
-              <select className="h-6 px-1 text-app-text border-0 border-b border-gray-300 bg-transparent flex-1 rounded-none"
-                value={selectedBuyer}
-                onChange={(e) => { const bId = e.target.value; setSelectedBuyer(bId); const b = buyers.find(x => x._id === bId); if (b?.address) setDispatchAddress(b.address); }}
-                disabled={!canEdit || srd.sampleDispatchedToBuyer}>
-                <option value="">— New Buyer —</option>
-                {buyers.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
-              </select>
+            <div className="col-span-10 px-2 py-0.5 flex items-center gap-2">
+              {(() => {
+                const b = selectedBuyer ? buyers.find(x => x._id?.toString() === selectedBuyer?.toString()) : null;
+                const srdBuyerName = srd.dynamicFields?.find(f => f.name === 'Brand' || f.name === 'Buyer')?.value || '';
+                return b ? (
+                  <span className="text-app-text text-gray-800 font-medium">{b.name}</span>
+                ) : (
+                  <span className="text-app-text text-gray-400 italic">{srdBuyerName || 'No buyer matched'}</span>
+                );
+              })()}
             </div>
           </div>
 
-          {/* Inline buyer form — always visible, pre-filled if buyer selected */}
+          {/* Inline buyer form */}
           {(() => {
             const b = selectedBuyer ? buyers.find(x => x._id?.toString() === selectedBuyer?.toString()) : null;
-            const emails = b ? (Array.isArray(b.email) ? b.email : (b.email ? [b.email] : [])) : draftBuyer.email;
             const contacts = b ? (Array.isArray(b.contactPerson) ? b.contactPerson : []) : draftBuyer.contactPerson;
-            const safeContacts = contacts.length > 0 ? contacts : [{ name: '', phone: '' }];
+            const safeContacts = contacts.length > 0 ? contacts : [{ name: '', phone: '', email: '' }];
 
             const patchBuyer = async (patch) => {
               if (!b) return;
               const bId = b._id?.toString();
-              // Optimistic update first so value doesn't disappear on blur
               setBuyers(prev => prev.map(x => x._id?.toString() === bId ? { ...x, ...patch } : x));
               const res = await fetch(`/api/buyers/${bId}`, {
                 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -763,7 +834,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                     department: draftBuyer.department,
                     address: draftBuyer.address,
                     email: draftBuyer.email,
-                    contactPerson: draftBuyer.contactPerson.filter(cp => cp.name || cp.phone),
+                    contactPerson: draftBuyer.contactPerson.filter(cp => cp.name || cp.phone || cp.email),
                   }),
                 });
                 const data = await res.json();
@@ -771,14 +842,24 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   setBuyers(prev => [...prev, data.data]);
                   setSelectedBuyer(data.data._id);
                 }
-              } catch (e) {
-                console.error('Failed to create buyer', e);
-              }
+              } catch (e) { console.error('Failed to create buyer', e); }
+            };
+
+            const updateContact = (i, field, value) => {
+              const updated = safeContacts.map((c, j) => j === i ? { ...c, [field]: value } : c);
+              if (b) setBuyers(prev => prev.map(x => x._id?.toString() === b._id?.toString() ? { ...x, contactPerson: updated } : x));
+              else updateDraft({ contactPerson: updated });
+            };
+
+            const saveContact = (i, field, value) => {
+              if (!b) return;
+              const updated = safeContacts.map((c, j) => j === i ? { ...c, [field]: value } : c);
+              patchBuyer({ contactPerson: updated });
             };
 
             return (
               <>
-                {/* Buyer name row — only shown when no buyer selected */}
+                {/* Buyer name — only when no buyer matched */}
                 {!b && (
                   <div className="grid grid-cols-12 border-b border-gray-300">
                     <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
@@ -797,7 +878,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   </div>
                 )}
 
-                {/* Contact Person rows — email beside name, phones in single row */}
+                {/* Contact Person rows: Name | Email | Contact No. */}
                 {safeContacts.map((cp, i) => (
                   <div key={i} className="grid grid-cols-12 border-b border-gray-300">
                     <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
@@ -811,55 +892,44 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                         value={cp.name || ''}
                         placeholder="Name"
                         disabled={!canEdit || srd.sampleDispatchedToBuyer}
-                        onChange={e => {
-                          const updated = safeContacts.map((c, j) => j === i ? { ...c, name: e.target.value } : c);
-                          if (b) setBuyers(prev => prev.map(x => x._id?.toString() === b._id?.toString() ? { ...x, contactPerson: updated } : x));
-                          else updateDraft({ contactPerson: updated });
-                        }}
-                        onBlur={e => {
-                          if (!b) return;
-                          const updated = safeContacts.map((c, j) => j === i ? { ...c, name: e.target.value } : c);
-                          patchBuyer({ contactPerson: updated });
-                        }}
+                        onChange={e => updateContact(i, 'name', e.target.value)}
+                        onBlur={e => saveContact(i, 'name', e.target.value)}
                       />
                     </div>
-                    {/* Email beside name */}
-                    <div className="col-span-5 border-r border-gray-300 px-2 py-0.5 flex flex-col justify-center">
-                      {i === 0 && (
-                        <>
-                          {emails.map((em, idx) => (
-                            <div key={idx} className="flex items-center gap-1">
-                              <span className="text-gray-400 text-xs w-3">{idx + 1}</span>
-                              <a href={`mailto:${em}`} className="text-blue-600 hover:underline flex-1 text-app-text text-xs">{em}</a>
-                              {canEdit && !srd.sampleDispatchedToBuyer && (
-                                <button onClick={() => {
-                                  const updated = emails.filter((_, j) => j !== idx);
-                                  if (b) patchBuyer({ email: updated }); else updateDraft({ email: updated });
-                                }} className="text-gray-300 hover:text-red-500"><X className="h-3 w-3" /></button>
-                              )}
-                            </div>
-                          ))}
-                          {canEdit && !srd.sampleDispatchedToBuyer && (
-                            <AddEmailRow onAdd={em => {
-                              const updated = [...emails, em];
-                              if (b) patchBuyer({ email: updated }); else updateDraft({ email: updated });
-                            }} />
-                          )}
-                        </>
-                      )}
+                    {/* Email */}
+                    <div className="col-span-4 border-r border-gray-300 px-2 py-0.5 flex items-center gap-1">
+                      <input
+                        className="flex-1 h-5 text-app-text border-0 border-b border-gray-300 bg-transparent focus:outline-none px-0 text-gray-700"
+                        value={cp.email || ''}
+                        placeholder="Email"
+                        type="email"
+                        disabled={!canEdit || srd.sampleDispatchedToBuyer}
+                        onChange={e => updateContact(i, 'email', e.target.value)}
+                        onBlur={e => saveContact(i, 'email', e.target.value)}
+                      />
                     </div>
-                    {/* Add/remove contact */}
-                    <div className="col-span-2 px-2 py-0.5 flex items-center gap-1">
+                    {/* Contact No. + add/remove */}
+                    <div className="col-span-3 px-2 py-0.5 flex items-center gap-1">
+                      <input
+                        className="flex-1 h-5 text-app-text border-0 border-b border-gray-300 bg-transparent focus:outline-none px-0 text-gray-700"
+                        value={cp.phone || ''}
+                        placeholder="Phone"
+                        disabled={!canEdit || srd.sampleDispatchedToBuyer}
+                        onChange={e => updateContact(i, 'phone', e.target.value)}
+                        onBlur={e => saveContact(i, 'phone', e.target.value)}
+                      />
+                      {/* + to add new contact on last row */}
                       {i === safeContacts.length - 1 && canEdit && !srd.sampleDispatchedToBuyer && (
-                        <button className="text-xs text-blue-600 hover:text-blue-800 shrink-0"
+                        <button className="text-xs text-blue-600 hover:text-blue-800 shrink-0 ml-1"
                           onClick={() => {
-                            const updated = [...safeContacts, { name: '', phone: '' }];
+                            const updated = [...safeContacts, { name: '', phone: '', email: '' }];
                             if (b) patchBuyer({ contactPerson: updated });
                             else updateDraft({ contactPerson: updated });
                           }}>+</button>
                       )}
+                      {/* × to remove this contact */}
                       {safeContacts.length > 1 && canEdit && !srd.sampleDispatchedToBuyer && (
-                        <button className="text-gray-300 hover:text-red-500 ml-auto"
+                        <button className="text-gray-300 hover:text-red-500"
                           onClick={() => {
                             const updated = safeContacts.filter((_, j) => j !== i);
                             if (b) patchBuyer({ contactPerson: updated });
@@ -870,32 +940,12 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   </div>
                 ))}
 
-                {/* Department row */}
-                <div className="grid grid-cols-12 border-b border-gray-300">
-                  <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
-                    <span className="text-app-text font-semibold text-gray-700">Department</span>
-                  </div>
-                  <div className="col-span-10 px-2 py-0.5">
-                    <input
-                      className="w-full h-5 text-app-text border-0 border-b border-gray-300 bg-transparent focus:outline-none px-0 text-gray-700"
-                      value={b ? (b.department ?? '') : draftBuyer.department}
-                      placeholder=""
-                      disabled={!canEdit || srd.sampleDispatchedToBuyer}
-                      onChange={e => {
-                        if (b) setBuyers(prev => prev.map(x => x._id?.toString() === b._id?.toString() ? { ...x, department: e.target.value } : x));
-                        else updateDraft({ department: e.target.value });
-                      }}
-                      onBlur={e => b && patchBuyer({ department: e.target.value })}
-                    />
-                  </div>
-                </div>
-
                 {/* Address row */}
                 <div className="grid grid-cols-12 border-b border-gray-300">
-                  <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
+                  <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0 flex items-center">
                     <span className="text-app-text font-semibold text-gray-700">Address</span>
                   </div>
-                  <div className="col-span-10 px-2 py-0.5">
+                  <div className="col-span-10 px-2 py-0">
                     <input
                       className="w-full h-5 text-app-text border-0 border-b border-gray-300 bg-transparent focus:outline-none px-0 text-gray-700"
                       value={dispatchAddress}
@@ -904,36 +954,6 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                       onChange={e => { setDispatchAddress(e.target.value); if (!b) updateDraft({ address: e.target.value }); }}
                       onBlur={e => b && patchBuyer({ address: e.target.value })}
                     />
-                  </div>
-                </div>
-
-                {/* Contact No — all phones in one row, comma separated */}
-                <div className="grid grid-cols-12 border-b border-gray-300">
-                  <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
-                    <span className="text-app-text font-semibold text-gray-700">Contact No.</span>
-                  </div>
-                  <div className="col-span-10 px-2 py-0.5 flex items-center gap-1 flex-wrap">
-                    {safeContacts.map((cp, i) => (
-                      <span key={i} className="flex items-center gap-0.5">
-                        {i > 0 && <span className="text-gray-400 mr-0.5">,</span>}
-                        <input
-                          className="h-5 text-app-text border-0 border-b border-gray-300 bg-transparent focus:outline-none px-0 text-gray-700 w-28"
-                          value={cp.phone || ''}
-                          placeholder="Phone"
-                          disabled={!canEdit || srd.sampleDispatchedToBuyer}
-                          onChange={e => {
-                            const updated = safeContacts.map((c, j) => j === i ? { ...c, phone: e.target.value } : c);
-                            if (b) setBuyers(prev => prev.map(x => x._id?.toString() === b._id?.toString() ? { ...x, contactPerson: updated } : x));
-                            else updateDraft({ contactPerson: updated });
-                          }}
-                          onBlur={e => {
-                            if (!b) return;
-                            const updated = safeContacts.map((c, j) => j === i ? { ...c, phone: e.target.value } : c);
-                            patchBuyer({ contactPerson: updated });
-                          }}
-                        />
-                      </span>
-                    ))}
                   </div>
                 </div>
               </>
@@ -945,7 +965,6 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <div className="grid grid-cols-12 border-b border-gray-300">
               <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
               <div className="col-span-10 px-2 py-0.5 flex gap-1.5 items-center">
-                {selectedBuyer && <DispatchCardPrint srd={srd} />}
                 {srd.DispatchDetails && (
                   <Button onClick={handleDispatchToBuyer} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white h-6 text-app-text rounded-none">
                     Dispatch Sample to Buyer

@@ -8,7 +8,8 @@ const buyerSchema = new mongoose.Schema({
   address: { type: String },
   contactPerson:[{
       name: { type: String },
-      phone: { type: String },        
+      phone: { type: String },
+      email: { type: String },
   }],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

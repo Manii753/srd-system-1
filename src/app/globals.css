@@ -132,6 +132,18 @@
   transform: translateY(0);
 }
 
+/* Disabled cell — show not-allowed cursor on all children */
+.cursor-not-allowed * {
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+/* Red placeholder for unfilled fields after 80% threshold */
+.placeholder-red-500::placeholder {
+  color: #ef4444;
+  font-style: italic;
+}
+
 /* PWA Standalone Mode Styles */
 @media (display-mode: standalone) {
   body {

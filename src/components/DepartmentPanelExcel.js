@@ -58,14 +58,14 @@ function DebouncedInput({ value, onDebouncedChange, delay = 400, onKeyDown: pare
         const v = e.target.value;
         setLocal(v);
         typingRef.current = true;
-        
+
         // Show toast when approaching or at character limit
         if (maxLength && v.length >= maxLength && !toastShownRef.current && showCharLimitToast) {
           showCharLimitToast();
           toastShownRef.current = true;
           setTimeout(() => { toastShownRef.current = false; }, 3000);
         }
-        
+
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => flush(v), delay);
       }}
@@ -227,6 +227,7 @@ export default function DepartmentPanelExcel({
   readOnly = false,
   onHeaderContent,
   onHeaderRightContent,
+  onSaveRef,
 }) {
   const { toast } = useToast();
   const [activeTemplate, setActiveTemplate] = useState(null);
@@ -256,6 +257,11 @@ export default function DepartmentPanelExcel({
   const saveAllChangesRef = useRef(null);
   const srdRef = useRef(srd);
   srdRef.current = srd;
+  const allFieldDefsRef = useRef({});
+  allFieldDefsRef.current = allFieldDefs;
+  const hasMeaningfulValueRef = useRef(null);
+  const activeTemplateRef = useRef(null);
+  activeTemplateRef.current = activeTemplate;
 
   // Check if user can edit a specific field based on its department
   const canEditField = useCallback((fieldDepartment) => {
@@ -360,12 +366,12 @@ export default function DepartmentPanelExcel({
         includeApprovals: false, // Only last page will have approvals
       });
     }
-    
+
     // Mark the last page to include approval sections
     if (chunks.length > 0) {
       chunks[chunks.length - 1].includeApprovals = true;
     }
-    
+
     setSections(chunks.length > 0 ? chunks : [{ name: 'Page 1', cells: allCells, includeApprovals: true }]);
   }, [activeTemplate, formPagination]);
 
@@ -394,6 +400,84 @@ export default function DepartmentPanelExcel({
         onSrdUpdate?.(data.data);
         setHasUnsavedChanges(false);
         toast({ title: 'Saved', description: 'All changes saved', duration: 2000 });
+
+        // Auto-approve departments at 80% fill
+        // Use template cells to determine which fields/columns belong to each dept
+        const savedFields = currentFields;
+        const templateCells = activeTemplateRef.current?.cells || [];
+
+        for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
+          const currentStatus = (data.data?.status || []).find(s => s.department === dept)?.value;
+          if (currentStatus === 'approved') continue;
+
+          // Collect all field IDs that belong to this dept via template cells
+          const deptFieldIds = new Set();
+
+          for (const cell of templateCells) {
+            if (cell.isCustom) continue;
+            const fieldId = (cell.fieldId?._id || cell.fieldId)?.toString?.();
+            if (!fieldId) continue;
+            const fDef = allFieldDefsRef.current?.[fieldId];
+            if (!fDef || fDef.active === false) continue;
+
+            if (fDef.type === 'table') {
+              // For tables, check if any column belongs to this dept OR predefined data owner matches
+              const headers = Array.isArray(fDef.tableHeaders) ? fDef.tableHeaders : [];
+              const hasDeptCol = headers.some(h => (typeof h === 'object' ? h.owner : 'global') === dept);
+              const predefinedOwner = fDef.predefinedFieldsOwner || fDef.department;
+              if (hasDeptCol || predefinedOwner === dept) deptFieldIds.add(fieldId);
+            } else if (fDef.department === dept) {
+              deptFieldIds.add(fieldId);
+            }
+          }
+
+          if (!deptFieldIds.size) continue;
+
+          // Count filled fields for this dept
+          let filled = 0;
+          let total = 0;
+          for (const fId of deptFieldIds) {
+            const fDef = allFieldDefsRef.current?.[fId];
+            if (!fDef || fDef.isOptional || fDef.type === 'heading') continue;
+            total++;
+            const fieldState = savedFields.find(sf =>
+              (sf.originalFieldId?.toString() || sf.field?.toString()) === fId
+            );
+            if (fDef.type === 'table') {
+              // Check if dept's columns have data OR predefined data
+              const headers = Array.isArray(fDef.tableHeaders) ? fDef.tableHeaders : [];
+              const deptCols = headers.reduce((acc, h, i) => {
+                const owner = typeof h === 'object' ? h.owner : 'global';
+                if (owner === dept || (owner === 'global' && fDef.department === dept)) acc.push(i);
+                return acc;
+              }, []);
+              const predefinedOwner = fDef.predefinedFieldsOwner || fDef.department;
+              const predefined = Array.isArray(fieldState?.value?.predefinedData) ? fieldState.value.predefinedData : [];
+              const hasPredefined = predefinedOwner === dept && predefined.some(p =>
+                p?.purchaseType === 'instock' ||
+                (typeof p?.opd === 'string' && p.opd.trim() !== '') ||
+                (typeof p?.etd === 'string' && p.etd.trim() !== '')
+              );
+              const rows = fieldState?.value?.rows || [];
+              const hasRowData = rows.some(row => deptCols.some(i => { const v = row[i]; return typeof v === 'string' ? v.trim() !== '' : !!v; }));
+              if (hasPredefined || hasRowData) filled++;
+            } else {
+              if (hasMeaningfulValueRef.current?.(fieldState?.value, fDef.type)) filled++;
+            }
+          }
+
+          if (total > 0 && filled / total >= 0.8) {
+            try {
+              const r = await fetch(`/api/srd/${srdRef.current._id}/department/${dept}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'approved', fields: [] }),
+              });
+              const rd = await r.json();
+              if (rd.success) onSrdUpdate?.(rd.data);
+            } catch (e) { /* silent */ }
+          }
+        }
       } else {
         throw new Error(data.error || 'Save failed');
       }
@@ -411,6 +495,8 @@ export default function DepartmentPanelExcel({
     }
   }, [onSrdUpdate, toast]);
   saveAllChangesRef.current = saveAllChanges;
+  // Expose save function to parent (for Ctrl+S)
+  useEffect(() => { onSaveRef?.(saveAllChanges); }, [saveAllChanges, onSaveRef]);
 
   // Reset idle timer whenever fields change
   const resetIdleTimer = useCallback(() => {
@@ -470,6 +556,7 @@ export default function DepartmentPanelExcel({
 
     return false;
   }, []);
+  hasMeaningfulValueRef.current = hasMeaningfulValue;
 
   const findFieldIndex = useCallback((sourceFields, fieldId, fieldDef = null, department = null) => {
     const normalizedFieldId = normalizeFieldId(fieldId);
@@ -858,6 +945,38 @@ export default function DepartmentPanelExcel({
         >
           {isAutoSaving ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Saving...</> : <><DiscIcon className="h-3 w-3 mr-1" />Save</>}
         </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 w-7 p-0 text-app-text"
+          title="Redo"
+          onClick={async () => {
+            const res = await fetch(`/api/srd/${srd._id}/duplicate?action=redo`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) window.open(`/srd/${data.data._id}`, '_blank');
+            else toast({ title: 'Error', description: data.error, variant: 'destructive' });
+          }}
+        >
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 w-7 p-0 text-app-text"
+          title="Duplicate"
+          onClick={async () => {
+            const res = await fetch(`/api/srd/${srd._id}/duplicate`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) window.open(`/srd/${data.data._id}`, '_blank');
+            else toast({ title: 'Error', description: data.error, variant: 'destructive' });
+          }}
+        >
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+        </Button>
         {hasUnsavedChanges && !isAutoSaving && (
           <span className="text-xs text-amber-600 font-medium flex items-center">
             <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-1" />
@@ -867,11 +986,60 @@ export default function DepartmentPanelExcel({
         <div className="flex items-center gap-1 ml-2">
           {['vmd', 'cad', 'commercial', 'mmc'].map(dept => {
             const val = (srd.status || []).find(s => s.department === dept)?.value || 'pending';
+
+            // Check fill % using saved fields + allFieldDefs
+            // For tables: check column ownership; for regular fields: check department
+            let deptTotal = 0;
+            let deptFilled = 0;
+
+            for (const [fId, fDef] of Object.entries(allFieldDefs)) {
+              if (!fDef || fDef.active === false || fDef.isOptional || fDef.type === 'heading') continue;
+
+              let belongsToDept = false;
+              if (fDef.type === 'table') {
+                const headers = Array.isArray(fDef.tableHeaders) ? fDef.tableHeaders : [];
+                const hasDeptCol = headers.some(h => (typeof h === 'object' ? h.owner : 'global') === dept);
+                const predefinedOwner = fDef.predefinedFieldsOwner || fDef.department;
+                belongsToDept = hasDeptCol || predefinedOwner === dept;
+              } else {
+                belongsToDept = fDef.department === dept;
+              }
+              if (!belongsToDept) continue;
+
+              deptTotal++;
+              const fieldState = findFieldState(fId, fDef);
+
+              if (fDef.type === 'table') {
+                const headers = Array.isArray(fDef.tableHeaders) ? fDef.tableHeaders : [];
+                const deptCols = headers.reduce((acc, h, i) => {
+                  const owner = typeof h === 'object' ? h.owner : 'global';
+                  if (owner === dept) acc.push(i);
+                  return acc;
+                }, []);
+                const predefinedOwner = fDef.predefinedFieldsOwner || fDef.department;
+                const predefined = Array.isArray(fieldState?.value?.predefinedData) ? fieldState.value.predefinedData : [];
+                const hasPredefined = predefinedOwner === dept && predefined.some(p =>
+                  p?.purchaseType === 'instock' ||
+                  (typeof p?.opd === 'string' && p.opd.trim() !== '') ||
+                  (typeof p?.etd === 'string' && p.etd.trim() !== '')
+                );
+                const rows = Array.isArray(fieldState?.value?.rows) ? fieldState.value.rows : [];
+                const hasRowData = deptCols.length > 0 && rows.some(row =>
+                  deptCols.some(i => { const v = row[i]; return typeof v === 'string' ? v.trim() !== '' : !!v; })
+                );
+                if (hasPredefined || hasRowData) deptFilled++;
+              } else {
+                if (hasMeaningfulValue(fieldState?.value, fDef.type)) deptFilled++;
+              }
+            }
+
+            const hasPending = deptTotal > 0 && deptFilled < deptTotal;
+            const fillPct = deptTotal > 0 ? deptFilled / deptTotal : 0;
             return (
               <span
                 key={dept}
                 className={cn(
-                  "inline-flex items-center rounded-full px-2 py-0.5 text-app-heading font-medium capitalize",
+                  "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-app-heading font-medium capitalize",
                   val === 'approved' && 'bg-green-100 text-green-800',
                   val === 'in-progress' && 'bg-blue-100 text-blue-800',
                   val === 'flagged' && 'bg-red-100 text-red-800',
@@ -879,14 +1047,17 @@ export default function DepartmentPanelExcel({
                 )}
               >
                 {dept}
+                {hasPending && val !== 'approved' && (
+                  <span className="text-amber-500 font-bold leading-none" title="Has unfilled fields">!</span>
+                )}
               </span>
             );
           })}
         </div>
       </div>
     );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onHeaderContent, srd._id, srd.refNo, JSON.stringify(srd.status), isPrinting, hasUnsavedChanges, isAutoSaving, handlePrint]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onHeaderContent, srd._id, srd.refNo, JSON.stringify(srd.status), isPrinting, hasUnsavedChanges, isAutoSaving, handlePrint, fields, allFieldDefs, activeTemplate]);
 
   // Activity Console toggle button — injected into the header right slot (before notifications)
   useEffect(() => {
@@ -905,7 +1076,7 @@ export default function DepartmentPanelExcel({
         Activity
       </Button>
     );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onHeaderRightContent, showActivityConsole, srd.audit?.length]);
 
   // Render input cell based on field type
@@ -941,7 +1112,19 @@ export default function DepartmentPanelExcel({
             <div className="flex-1 min-w-0 relative">
               <DebouncedInput
                 type={type === 'createdAt' ? 'date' : (type === 'refNo' || type === 'old-refNo') ? 'text' : type}
-                placeholder={placeholder || ''}
+                placeholder={(() => {
+                  if (!canEdit) return placeholder || '';
+                  // Show red hint if dept is ≥80% filled but this field is empty
+                  const isEmpty = !hasMeaningfulValue(displayValue, type);
+                  if (isEmpty) {
+                    const deptDefs = Object.values(allFieldDefs).filter(f => f.department === department && f.active !== false && !f.isOptional && f.type !== 'heading');
+                    if (deptDefs.length) {
+                      const filled = deptDefs.filter(f => { const s = findFieldState(f._id?.toString(), f); return hasMeaningfulValue(s?.value, f.type); }).length;
+                      if (filled / deptDefs.length >= 0.8) return 'Please fill in this field';
+                    }
+                  }
+                  return placeholder || '';
+                })()}
                 value={displayValue}
                 onDebouncedChange={(val) => handleFieldChange(fieldId, name, val, department, fieldDef)}
                 required={isRequired}
@@ -951,7 +1134,15 @@ export default function DepartmentPanelExcel({
                 className={cn(
                   "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-app-text py-0 px-0 h-5",
                   !canEdit && "cursor-not-allowed text-gray-500",
-                  isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
+                  isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field",
+                  (() => {
+                    const isEmpty = !hasMeaningfulValue(displayValue, type);
+                    if (!isEmpty || !canEdit) return '';
+                    const deptDefs = Object.values(allFieldDefs).filter(f => f.department === department && f.active !== false && !f.isOptional && f.type !== 'heading');
+                    if (!deptDefs.length) return '';
+                    const filled = deptDefs.filter(f => { const s = findFieldState(f._id?.toString(), f); return hasMeaningfulValue(s?.value, f.type); }).length;
+                    return filled / deptDefs.length >= 0.8 ? 'placeholder-red-500' : '';
+                  })()
                 )}
               />
             </div>
@@ -989,29 +1180,29 @@ export default function DepartmentPanelExcel({
               "flex items-center gap-3 p-1 rounded transition-all",
               isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
             )}>
-              
-                <label className="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="radio"
-                    name={`field-${fieldId}`}
-                    checked={fieldValue === true}
-                    onChange={() => handleFieldChange(fieldId, name, true, department, fieldDef)}
-                    disabled={!canEdit}
+
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="radio"
+                  name={`field-${fieldId}`}
+                  checked={fieldValue === true}
+                  onChange={() => handleFieldChange(fieldId, name, true, department, fieldDef)}
+                  disabled={!canEdit}
                   className="border-b border-gray-400 focus:border-blue-500 focus:outline-none"
-                  />
-                  <span className="text-[11px] text-gray-700">Yes</span>
-                </label>
-                <label className="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="radio"
-                    name={`field-${fieldId}`}
-                    checked={fieldValue === false}
-                    onChange={() => handleFieldChange(fieldId, name, false, department, fieldDef)}
-                    disabled={!canEdit}
+                />
+                <span className="text-[11px] text-gray-700">Yes</span>
+              </label>
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="radio"
+                  name={`field-${fieldId}`}
+                  checked={fieldValue === false}
+                  onChange={() => handleFieldChange(fieldId, name, false, department, fieldDef)}
+                  disabled={!canEdit}
                   className="border-b border-gray-400 focus:border-blue-500 focus:outline-none"
-                  />
-                  <span className="text-[11px] text-gray-700">No</span>
-                </label>
+                />
+                <span className="text-[11px] text-gray-700">No</span>
+              </label>
             </div>
           </div>
         );
@@ -1108,39 +1299,8 @@ export default function DepartmentPanelExcel({
                           {col1Indexes.map(idx => {
                             const colOwner = typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global';
                             return (
-                            <div key={idx} className={cn("flex items-center text-app-text border-b border-gray-100", colOwner === 'cad' && "bg-amber-50")}>
-                              <span className="w-20 flex-shrink-0 font-semibold min-w-[140px] text-gray-700 whitespace-nowrap capitalize break-words pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
-                              <div className="flex-1 min-w-0 relative">
-                                <DebouncedInput
-                                  type="text"
-                                  value={row[idx] || ''}
-                                  onDebouncedChange={(val) => {
-                                    const newRows = [...tableData.rows];
-                                    newRows[rowIdx][idx] = val;
-                                    handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
-                                  }}
-                                  className={cn(
-                                    "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-app-text py-0 px-0 h-6",
-                                    isFieldHighlighted(fieldId, { ...fieldDef, department: typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global' }, row[idx]) && "highlight-empty-field"
-                                  )}
-                                  disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
-                                  maxLength={20}
-                                  showCharLimitToast={showCharLimitToast}
-                                />
-                              </div>
-                            </div>
-                          );
-                          })}
-                        </div>
-
-                        {/* Col 2: Remaining fields */}
-                        <div className="flex flex-col gap-0">
-                          {col2Indexes.length > 0 ? (
-                            col2Indexes.map(idx => {
-                            const colOwner = typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global';
-                            return (
                               <div key={idx} className={cn("flex items-center text-app-text border-b border-gray-100", colOwner === 'cad' && "bg-amber-50")}>
-                                <span className="w-20 flex-shrink-0  min-w-[140px] font-semibold text-gray-700 capitalize break-words whitespace-nowrap pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
+                                <span className="w-20 flex-shrink-0 font-semibold min-w-[140px] text-gray-700 whitespace-nowrap capitalize break-words pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
                                 <div className="flex-1 min-w-0 relative">
                                   <DebouncedInput
                                     type="text"
@@ -1160,8 +1320,39 @@ export default function DepartmentPanelExcel({
                                   />
                                 </div>
                               </div>
-                          );
-                          })
+                            );
+                          })}
+                        </div>
+
+                        {/* Col 2: Remaining fields */}
+                        <div className="flex flex-col gap-0">
+                          {col2Indexes.length > 0 ? (
+                            col2Indexes.map(idx => {
+                              const colOwner = typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global';
+                              return (
+                                <div key={idx} className={cn("flex items-center text-app-text border-b border-gray-100", colOwner === 'cad' && "bg-amber-50")}>
+                                  <span className="w-20 flex-shrink-0  min-w-[140px] font-semibold text-gray-700 capitalize break-words whitespace-nowrap pr-2">{(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].name : tableData.headers[idx]) || `Col ${idx + 1}`}:</span>
+                                  <div className="flex-1 min-w-0 relative">
+                                    <DebouncedInput
+                                      type="text"
+                                      value={row[idx] || ''}
+                                      onDebouncedChange={(val) => {
+                                        const newRows = [...tableData.rows];
+                                        newRows[rowIdx][idx] = val;
+                                        handleFieldChange(fieldId, name, { ...tableData, rows: newRows }, department, fieldDef);
+                                      }}
+                                      className={cn(
+                                        "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-app-text py-0 px-0 h-6",
+                                        isFieldHighlighted(fieldId, { ...fieldDef, department: typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global' }, row[idx]) && "highlight-empty-field"
+                                      )}
+                                      disabled={!canEditField(typeof tableData.headers[idx] === 'object' ? tableData.headers[idx].owner : 'global')}
+                                      maxLength={20}
+                                      showCharLimitToast={showCharLimitToast}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })
                           ) : (
                             <div className="text-gray-400 italic text-app-text h-full flex items-center justify-center">-</div>
                           )}
@@ -1256,7 +1447,7 @@ export default function DepartmentPanelExcel({
                       const headerName = typeof header === 'object' ? header.name : header;
                       const headerOwner = typeof header === 'object' ? header.owner : 'global';
                       const canEditColumn = canEditField(headerOwner);
-                      
+
                       // Apply department background color to table headers
                       const headerDeptBgColor = {
                         vmd: 'bg-gray-100',
@@ -1265,7 +1456,7 @@ export default function DepartmentPanelExcel({
                         mmc: 'bg-sky-200',
                       };
                       const headerBg = headerDeptBgColor[headerOwner] || 'bg-gray-50';
-                      
+
                       return (
                         <th key={colIdx} className={cn("border border-gray-200 p-0 relative group/col", headerBg)}>
                           <div className="flex items-center">
@@ -1344,7 +1535,7 @@ export default function DepartmentPanelExcel({
                         {row.map((cell, colIdx) => {
                           const colOwner = typeof tableData.headers[colIdx] === 'object' ? tableData.headers[colIdx].owner : 'global';
                           const canEditColumn = canEditField(colOwner);
-                          
+
                           // Apply department background color to table cells
                           const cellDeptBgColor = {
                             vmd: 'bg-gray-100',
@@ -1353,7 +1544,7 @@ export default function DepartmentPanelExcel({
                             mmc: 'bg-sky-200',
                           };
                           const cellBg = cellDeptBgColor[colOwner] || 'bg-white';
-                          
+
                           return (
                             <td key={colIdx} className={cn("border border-gray-200 p-0 relative", cellBg)}>
                               {canEditColumn ? (
@@ -1705,362 +1896,359 @@ export default function DepartmentPanelExcel({
   }
 
   return (
-    <div className="flex gap-0 bg-[#FBFCFE] rounded-lg overflow-hidden flex-1 min-h-0 p-1">
+    <div className="flex gap-0 bg-[#FBFCFE] rounded-lg p-1">
       {/* Main Form Area */}
-      <div className="flex flex-col flex-1 min-h-0 overflow-y-hidden pb-2 shadow-lg">
+      <div className="flex flex-col flex-1 pb-2 shadow-lg">
 
-      {/* Section header row — always aligned */}
-      {headerCells.length > 0 && (
-        <div
-          className="grid gap-0 border-b border-gray-300 bg-gray-50 sticky top-0 z-10"
-          style={{ gridTemplateColumns: `repeat(${gridColumns * 2}, minmax(0, 1fr))` }}
-        >
-          {headerCells.map((cell, i) => (
-            <div
-              key={i}
-              className="border-r border-gray-200 last:border-r-0 px-2 py-1"
-              style={{ gridColumn: `span ${(cell.position?.colSpan || 1) * 2}` }}
-            >
-              <span className="text-app-heading font-bold text-gray-700 uppercase tracking-wide">
-                {cell.customValue}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-      <div className='flex-1 overflow-y-auto custom-scrollbar min-h-0'>
-        {/* Grid based on template ------------------------------------------------------------*/}
-        <div className="p-0 ">
+        {/* Section header row — always aligned */}
+        {headerCells.length > 0 && (
           <div
-            className="grid gap-0"
+            className="grid gap-0 border-b border-gray-300 bg-gray-50 sticky top-0 z-10"
             style={{ gridTemplateColumns: `repeat(${gridColumns * 2}, minmax(0, 1fr))` }}
           >
-            {bodyCells.map((cell, cellIndex) => {
-              const colSpan = (cell.position?.colSpan || 1) * 2;
-              const rowSpan = cell.position?.rowSpan || 1;
-
-              // Handle custom elements
-              if (cell.isCustom) {
-                return (
-                  <div
-                    key={cellIndex}
-                    className="border-b border-gray-200 bg-gray-50"
-                    style={{
-                      gridColumn: `span ${colSpan} `,
-                      gridRow: `span ${rowSpan} `,
-                    }}
-                  >
-                    <div className="h-full px-1 py-0.5">
-                      {cell.customType === 'custom-heading' && (
-                        <div className="font-semibold text-gray-800 text-app-text">
-                          {cell.customValue}
-                        </div>
-                      )}
-                      {cell.customType === 'custom-text' && (
-                        <div className="text-gray-600 text-app-text">
-                          {cell.customValue}
-                        </div>
-                      )}
-                      {cell.customType === 'custom-separator' && (
-                        <div className="border-t border-gray-300 my-2"></div>
-                      )}
-                      {cell.customType === 'custom-empty-field' && (
-                        <div className="text-gray-400 text-app-text">
-                          {cell.customValue}<span className="italic">{cell.customPlaceholder}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
-
-              // Handle regular database fields
-              // Get fieldId - could be ObjectId, string, or populated object
-              let fieldIdStr = null;
-              let fieldDef = null;
-
-              if (cell.fieldId) {
-                // If fieldId is already populated (an object with _id), use it directly
-                if (typeof cell.fieldId === 'object' && cell.fieldId._id) {
-                  fieldDef = cell.fieldId;
-                  fieldIdStr = cell.fieldId._id.toString();
-                } else {
-                  // Otherwise look up in our map
-                  fieldIdStr = cell.fieldId.toString();
-                  fieldDef = allFieldDefs[fieldIdStr];
-                }
-              }
-              if (!fieldDef) {
-                return (
-                  <div
-                    key={cellIndex}
-                    className="p-1 bg-red-50"
-                    style={{
-                      gridColumn: `span ${colSpan} `,
-                      gridRow: `span ${rowSpan} `,
-                    }}
-                  >
-                    <div
-                      className="bg-red-50 border border-red-200 rounded p-2 text-app-text text-red-500 h-full"
-                    >
-                      Field not found
-                    </div>
-                  </div>
-                );
-              }
-
-              const isFieldActive = fieldDef.active !== false; // Active by default if property missing
-              // Allow all roles to edit table-type fields, unless in readOnly mode
-              const canEdit = readOnly ? false : (fieldDef.type === 'table' ? isFieldActive : (canEditField(fieldDef.department) && isFieldActive));
-              const isHeading = fieldDef.type === 'heading';
-              const isHidden = isFieldHidden(fieldDef);
-              const isOptionalEnabled = isOptionalFieldEnabled(fieldIdStr, fieldDef);
-              const attachmentInfos = getAttachmentInfos(fieldIdStr);
-              
-              const deptBgColor = {
-                vmd: 'bg-gray-100',
-                cad: 'bg-amber-200',
-                commercial: 'bg-emerald-100',
-                mmc: 'bg-sky-200',
-              };
-              const deptBg = deptBgColor[fieldDef.department] || 'bg-gray-100';
-
-              if (isHidden) {
-                return (
-                  <div
-                    key={cellIndex}
-                    className=""
-                    style={{
-                      gridColumn: `span ${colSpan} `,
-                      gridRow: `span ${rowSpan} `,
-                    }}
-                  >
-                    <div
-                      className="bg-gray-50 border border-gray-100 rounded h-full"
-                      style={{
-                        opacity: 0.5,
-                      }}
-                    ></div>
-                  </div>
-                );
-              }
-
-              return (
-                <div
-                  key={cellIndex}
-                  className={cn(
-                    "border-b border-gray-200",
-                    isHeading ? "bg-gray-50" : deptBg
-                  )}
-                  style={{
-                    gridColumn: `span ${colSpan} `,
-                    gridRow: `span ${rowSpan} `,
-                    backgroundColor: !isHeading && fieldDef.department === 'cad' ? '#fef3c7' : undefined,
-                  }}
-                >
-                  <div
-                    className={cn(
-                      "h-full flex flex-col justify-center",
-                      isHeading && "bg-gray-50",
-                      fieldDef.isOptional && !isOptionalEnabled && "opacity-60"
-                    )}
-                  >
-                    {/* Optional toggle */}
-                    {!isHeading && fieldDef.isOptional && (
-                      <div className="flex items-center justify-between px-1 py-0">
-                        { <span className="text-[11px] text-gray-600 shrink-0 min-w-[90px]">{(fieldDef.isOptional && !isOptionalEnabled)&& fieldDef.name}</span>}
-                        <Switch
-                          checked={isOptionalEnabled}
-                          onCheckedChange={(checked) => handleOptionalFieldToggle(fieldIdStr, fieldDef, checked)}
-                          disabled={!canEdit}
-                          aria-label={`Toggle ${fieldDef.name}`}
-                          className="scale-75"
-                        />
-                      </div>
-                    )}
-
-                    {/* Field input — only shown when optional is enabled (or field is not optional) */}
-                    <div className="flex-1">
-                      {fieldDef.isOptional && !isOptionalEnabled ? null : (
-                        renderCellInput(fieldDef, fieldIdStr, canEdit)
-                      )}
-                    </div>
-                    {attachmentInfos.length > 0 && (
-                      <div className="flex flex-wrap gap-1 px-1 my-1 pb-0.5">
-                        {attachmentInfos.map((info) => {
-                          const hasAssets = info.assetCount > 0;
-                          const sourceFieldDef = info.fieldDef;
-                          const canUploadToSource = readOnly
-                            ? false
-                            : (canEditField(sourceFieldDef?.department) && sourceFieldDef?.active !== false);
-
-                          if (hasAssets) {
-                            const sourceFieldState = findFieldState(info.sourceFieldId, info.fieldDef);
-                            const previewUrls = info.type === 'image'
-                              ? normalizeAssetEntries(sourceFieldState?.value, { kind: 'image' }).map(a => getAssetUrl(a)).filter(Boolean)
-                              : [];
-                            return (
-                              <div key={info.sourceFieldId} className="flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5">
-                                <span className="text-[10px] font-medium text-emerald-700">
-                                  {info.name} attached
-                                </span>
-                                {previewUrls.length > 0 && <AttachmentPreview urls={previewUrls} />}
-                                {canUploadToSource && (
-                                  <>
-                                    <CompactUploadButton
-                                      info={info}
-                                      srdId={srd?._id}
-                                      onUploaded={(assets) => handleAttachmentUploaded(info, assets)}
-                                      label="+"
-                                    />
-                                    <button
-                                      type="button"
-                                      className="h-4 w-4 inline-flex items-center justify-center rounded bg-red-100 hover:bg-red-200 text-red-600"
-                                      onClick={() => handleAttachmentRemove(info)}
-                                      title={`Remove ${info.name}`}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            );
-                          }
-
-                          if (!canUploadToSource) return null;
-                          return (
-                            <CompactUploadButton
-                              key={info.sourceFieldId}
-                              info={info}
-                              srdId={srd?._id}
-                              onUploaded={(assets) => handleAttachmentUploaded(info, assets)}
-                            />
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                </div>
-
-              );
-            })}
+            {headerCells.map((cell, i) => (
+              <div
+                key={i}
+                className="border-r border-gray-200 last:border-r-0 px-2 py-1"
+                style={{ gridColumn: `span ${(cell.position?.colSpan || 1) * 2}` }}
+              >
+                <span className="text-app-heading font-bold text-gray-700 uppercase tracking-wide">
+                  {cell.customValue}
+                </span>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
+        <div className='w-full'>
+          {/* Grid based on template ------------------------------------------------------------*/}
+          <div className="p-0 ">
+            <div
+              className="grid gap-0"
+              style={{ gridTemplateColumns: `repeat(${gridColumns * 2}, minmax(0, 1fr))` }}
+            >
+              {bodyCells.map((cell, cellIndex) => {
+                const colSpan = (cell.position?.colSpan || 1) * 2;
+                const rowSpan = cell.position?.rowSpan || 1;
 
-        {/* Approval Sections - Rendered inside grid on last page */}
-        {currentSection?.includeApprovals && (
-          <>
-            {/* Status Update Section - Hidden in readOnly mode */}
-            {!readOnly && (
-              <div className=" border-transparent p-3 hidden">
-                <div className="grid grid-cols-6 gap-2 items-end">
-                  <div>
-                    <Label className="text-app-text font-medium text-gray-700">Department</Label>
-                    {userRole === 'admin' || userRole === 'vmd' ? (
+                // Handle custom elements
+                if (cell.isCustom) {
+                  return (
+                    <div
+                      key={cellIndex}
+                      className="border-b border-gray-200 bg-gray-50"
+                      style={{
+                        gridColumn: `span ${colSpan} `,
+                        gridRow: `span ${rowSpan} `,
+                      }}
+                    >
+                      <div className="h-full px-1 py-0.5">
+                        {cell.customType === 'custom-heading' && (
+                          <div className="font-semibold text-gray-800 text-app-text">
+                            {cell.customValue}
+                          </div>
+                        )}
+                        {cell.customType === 'custom-text' && (
+                          <div className="text-gray-600 text-app-text">
+                            {cell.customValue}
+                          </div>
+                        )}
+                        {cell.customType === 'custom-separator' && (
+                          <div className="border-t border-gray-300 my-2"></div>
+                        )}
+                        {cell.customType === 'custom-empty-field' && (
+                          <div className="text-gray-400 text-app-text">
+                            {cell.customValue}<span className="italic">{cell.customPlaceholder}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Handle regular database fields
+                // Get fieldId - could be ObjectId, string, or populated object
+                let fieldIdStr = null;
+                let fieldDef = null;
+
+                if (cell.fieldId) {
+                  // If fieldId is already populated (an object with _id), use it directly
+                  if (typeof cell.fieldId === 'object' && cell.fieldId._id) {
+                    fieldDef = cell.fieldId;
+                    fieldIdStr = cell.fieldId._id.toString();
+                  } else {
+                    // Otherwise look up in our map
+                    fieldIdStr = cell.fieldId.toString();
+                    fieldDef = allFieldDefs[fieldIdStr];
+                  }
+                }
+                if (!fieldDef) {
+                  return (
+                    <div
+                      key={cellIndex}
+                      className="p-1 bg-red-50"
+                      style={{
+                        gridColumn: `span ${colSpan} `,
+                        gridRow: `span ${rowSpan} `,
+                      }}
+                    >
+                      <div
+                        className="bg-red-50 border border-red-200 rounded p-2 text-app-text text-red-500 h-full"
+                      >
+                        Field not found
+                      </div>
+                    </div>
+                  );
+                }
+
+                const isFieldActive = fieldDef.active !== false; // Active by default if property missing
+                // Allow all roles to edit table-type fields, unless in readOnly mode
+                const canEdit = readOnly ? false : (fieldDef.type === 'table' ? isFieldActive : (canEditField(fieldDef.department) && isFieldActive));
+                const isHeading = fieldDef.type === 'heading';
+                const isHidden = isFieldHidden(fieldDef);
+                const isOptionalEnabled = isOptionalFieldEnabled(fieldIdStr, fieldDef);
+                const attachmentInfos = getAttachmentInfos(fieldIdStr);
+
+                const deptBgColor = {
+                  vmd: 'bg-gray-100',
+                  cad: 'bg-amber-200',
+                  commercial: 'bg-emerald-100',
+                  mmc: 'bg-sky-200',
+                };
+                const deptBg = deptBgColor[fieldDef.department] || 'bg-gray-100';
+
+                if (isHidden) {
+                  return (
+                    <div
+                      key={cellIndex}
+                      className=""
+                      style={{
+                        gridColumn: `span ${colSpan} `,
+                        gridRow: `span ${rowSpan} `,
+                      }}
+                    >
+                      <div
+                        className="bg-gray-50 border border-gray-100 rounded h-full"
+                        style={{
+                          opacity: 0.5,
+                        }}
+                      ></div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={cellIndex}
+                    className={cn(
+                      "border-b border-gray-200",
+                      isHeading ? "bg-gray-50" : deptBg,
+                      !canEdit && !isHeading && "cursor-not-allowed"
+                    )}
+                    style={{
+                      gridColumn: `span ${colSpan} `,
+                      gridRow: `span ${rowSpan} `,
+                      backgroundColor: !isHeading && fieldDef.department === 'cad' ? '#fef3c7' : undefined,
+                    }}
+                    title={!canEdit && !isHeading ? `${fieldDef.department?.toUpperCase()} field — no edit access` : undefined}
+                  >
+                    <div
+                      className={cn(
+                        "h-full flex flex-col justify-center",
+                        isHeading && "bg-gray-50",
+                        fieldDef.isOptional && !isOptionalEnabled && "opacity-60"
+                      )}
+                    >
+                      {/* Optional toggle */}
+                      {!isHeading && fieldDef.isOptional && (
+                        <div className="flex items-center justify-between px-1 py-0">
+                          {<span className="text-[11px] text-gray-600 shrink-0 min-w-[90px]">{(fieldDef.isOptional && !isOptionalEnabled) && fieldDef.name}</span>}
+                          <Switch
+                            checked={isOptionalEnabled}
+                            onCheckedChange={(checked) => handleOptionalFieldToggle(fieldIdStr, fieldDef, checked)}
+                            disabled={!canEdit}
+                            aria-label={`Toggle ${fieldDef.name}`}
+                            className="scale-75"
+                          />
+                        </div>
+                      )}
+
+                      {/* Field input — only shown when optional is enabled (or field is not optional) */}
+                      <div className="flex-1">
+                        {fieldDef.isOptional && !isOptionalEnabled ? null : (
+                          renderCellInput(fieldDef, fieldIdStr, canEdit)
+                        )}
+                      </div>
+                      {attachmentInfos.length > 0 && (
+                        <div className="flex flex-wrap gap-1 px-1 my-1 pb-0.5">
+                          {attachmentInfos.map((info) => {
+                            const hasAssets = info.assetCount > 0;
+                            const sourceFieldDef = info.fieldDef;
+                            const canUploadToSource = readOnly
+                              ? false
+                              : (canEditField(sourceFieldDef?.department) && sourceFieldDef?.active !== false);
+
+                            if (hasAssets) {
+                              const sourceFieldState = findFieldState(info.sourceFieldId, info.fieldDef);
+                              const previewUrls = info.type === 'image'
+                                ? normalizeAssetEntries(sourceFieldState?.value, { kind: 'image' }).map(a => getAssetUrl(a)).filter(Boolean)
+                                : [];
+                              return (
+                                <div key={info.sourceFieldId} className="flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5">
+                                  <span className="text-[10px] font-medium text-emerald-700">
+                                    {info.name} attached
+                                  </span>
+                                  {previewUrls.length > 0 && <AttachmentPreview urls={previewUrls} />}
+                                  {canUploadToSource && (
+                                    <>
+                                      <CompactUploadButton
+                                        info={info}
+                                        srdId={srd?._id}
+                                        onUploaded={(assets) => handleAttachmentUploaded(info, assets)}
+                                        label="+"
+                                      />
+                                      <button
+                                        type="button"
+                                        className="h-4 w-4 inline-flex items-center justify-center rounded bg-red-100 hover:bg-red-200 text-red-600"
+                                        onClick={() => handleAttachmentRemove(info)}
+                                        title={`Remove ${info.name}`}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              );
+                            }
+
+                            if (!canUploadToSource) return null;
+                            return (
+                              <CompactUploadButton
+                                key={info.sourceFieldId}
+                                info={info}
+                                srdId={srd?._id}
+                                onUploaded={(assets) => handleAttachmentUploaded(info, assets)}
+                              />
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Approval Sections - Rendered inside grid on last page */}
+          {currentSection?.includeApprovals && (
+            <>
+              {/* Status Update Section - Hidden in readOnly mode */}
+              {!readOnly && (
+                <div className=" border-transparent p-3 hidden">
+                  <div className="grid grid-cols-6 gap-2 items-end">
+                    <div>
+                      <Label className="text-app-text font-medium text-gray-700">Department</Label>
+                      {userRole === 'admin' || userRole === 'vmd' ? (
+                        <select
+                          value={selectedDepartment}
+                          onChange={(e) => setSelectedDepartment(e.target.value)}
+                          className="mt-1 px-1 py-1 text-app-text border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
+                          disabled={isSubmitting}
+                        >
+                          {['vmd', 'cad', 'commercial', 'mmc'].map(dept => (
+                            <option key={dept} value={dept}>{dept.toUpperCase()}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="mt-1 px-2 py-1 text-app-text border border-gray-300 rounded bg-gray-100 h-7 flex items-center font-medium text-gray-700">
+                          {userRole?.toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-app-text font-medium text-gray-700">Status</Label>
                       <select
-                        value={selectedDepartment}
-                        onChange={(e) => setSelectedDepartment(e.target.value)}
+                        value={statusToUpdate}
+                        onChange={(e) => setStatusToUpdate(e.target.value)}
                         className="mt-1 px-1 py-1 text-app-text border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
                         disabled={isSubmitting}
                       >
-                        {['vmd', 'cad', 'commercial', 'mmc'].map(dept => (
-                          <option key={dept} value={dept}>{dept.toUpperCase()}</option>
-                        ))}
+                        <option value="pending">Pending</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="approved">Approved</option>
+                        <option value="flagged">Flag Issue</option>
                       </select>
-                    ) : (
-                      <div className="mt-1 px-2 py-1 text-app-text border border-gray-300 rounded bg-gray-100 h-7 flex items-center font-medium text-gray-700">
-                        {userRole?.toUpperCase()}
-                      </div>
-                    )}
+                    </div>
+                    <div className="col-span-3">
+                      <Label htmlFor="updateComment" className="text-app-text font-medium text-gray-700">
+                        Comment {statusToUpdate !== 'flagged' && <span className="text-gray-500">(Optional)</span>}
+                      </Label>
+                      <Input
+                        id="updateComment"
+                        value={updateComment}
+                        onChange={(e) => setUpdateComment(e.target.value)}
+                        placeholder={statusToUpdate === 'flagged' ? 'Describe issue...' : 'Add comment...'}
+                        required={statusToUpdate === 'flagged'}
+                        className="mt-1 text-app-text h-7 border border-gray-300 focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <Button
+                        onClick={handleStatusUpdate}
+                        disabled={isSubmitting || (statusToUpdate === 'flagged' && !updateComment.trim())}
+                        size="sm"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white text-app-text h-7"
+                      >
+                        {isSubmitting ? 'Updating...' : 'Update Status'}
+                      </Button>
+                    </div>
                   </div>
-                  <div>
-                    <Label className="text-app-text font-medium text-gray-700">Status</Label>
-                    <select
-                      value={statusToUpdate}
-                      onChange={(e) => setStatusToUpdate(e.target.value)}
-                      className="mt-1 px-1 py-1 text-app-text border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full bg-white h-7"
-                      disabled={isSubmitting}
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="in-progress">In Progress</option>
-                      <option value="approved">Approved</option>
-                      <option value="flagged">Flag Issue</option>
-                    </select>
-                  </div>
-                  <div className="col-span-3">
-                    <Label htmlFor="updateComment" className="text-app-text font-medium text-gray-700">
-                      Comment {statusToUpdate !== 'flagged' && <span className="text-gray-500">(Optional)</span>}
-                    </Label>
-                    <Input
-                      id="updateComment"
-                      value={updateComment}
-                      onChange={(e) => setUpdateComment(e.target.value)}
-                      placeholder={statusToUpdate === 'flagged' ? 'Describe issue...' : 'Add comment...'}
-                      required={statusToUpdate === 'flagged'}
-                      className="mt-1 text-app-text h-7 border border-gray-300 focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <Button
-                      onClick={handleStatusUpdate}
-                      disabled={isSubmitting || (statusToUpdate === 'flagged' && !updateComment.trim())}
-                      size="sm"
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white text-app-text h-7"
-                    >
-                      {isSubmitting ? 'Updating...' : 'Update Status'}
-                    </Button>
-                  </div>
+                  <p className="text-app-text text-gray-500 text-center mt-1">
+                    Field changes auto-save. Use button for status/comments only.
+                  </p>
                 </div>
-                <p className="text-app-text text-gray-500 text-center mt-1">
-                  Field changes auto-save. Use button for status/comments only.
-                </p>
-              </div>
-            )}
+              )}
 
-            {/* Render Dispatch Panel if applicable - Hidden in readOnly mode to avoid circular display */}
-            {!readOnly && (srd?.inDispatch) && (
-              <div className="border-gray-200">
-                <DispatchPanel
-                  srd={srd}
-                  onUpdate={onSrdUpdate}
-                  canEdit={userRole === 'dispatch' || userRole === 'vmd' || userRole === 'admin'}
-                />
-              </div>
-            )}
-          </>
-        )}
-      </div>  
-      {/* Pagination Controls */}
-      {sections.length > 1 && (
-        <div className="flex items-center justify-center gap-3 py-3">
-          <button
-            onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-            disabled={isFirstPage}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            aria-label="Previous page"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
-
-          <span className="text-app-text text-gray-700 font-medium min-w-[60px] text-center">
-            {currentPage + 1} of {sections.length}
-          </span>
-
-          <button
-            onClick={() => setCurrentPage(Math.min(sections.length - 1, currentPage + 1))}
-            disabled={isLastPage}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            aria-label="Next page"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
+              <DispatchPanel
+                srd={srd}
+                onUpdate={(data) => setSrd(data)}
+                canEdit={true}
+              />
+            </>
+          )}
         </div>
-      )}
+        {/* Pagination Controls */}
+        {sections.length > 1 && (
+          <div className="flex items-center justify-center gap-3 py-3">
+            <button
+              onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+              disabled={isFirstPage}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              aria-label="Previous page"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+
+            <span className="text-app-text text-gray-700 font-medium min-w-[60px] text-center">
+              {currentPage + 1} of {sections.length}
+            </span>
+
+            <button
+              onClick={() => setCurrentPage(Math.min(sections.length - 1, currentPage + 1))}
+              disabled={isLastPage}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              aria-label="Next page"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+          </div>
+        )}
 
       </div>
       {/* End Main Form Area */}
@@ -2068,7 +2256,7 @@ export default function DepartmentPanelExcel({
       {/* Activity Sidebar Console */}
       {srd.audit && srd.audit.length > 0 && (
         <div
-          className="border-gray-300 bg-gray-50 flex flex-col h-full overflow-hidden"
+          className="border-gray-300 bg-gray-50 flex flex-col overflow-hidden"
           style={{
             width: showActivityConsole ? '320px' : '0px',
             borderLeftWidth: showActivityConsole ? '1px' : '0px',
