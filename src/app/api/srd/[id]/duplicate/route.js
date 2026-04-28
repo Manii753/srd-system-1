@@ -28,16 +28,24 @@ const getNextRefNo = async (baseRefNo, isRedo) => {
     return { refNo: candidateRefNo, suffix: `R-${nextNum}` };
   }
 
-  // Handle duplicates (unchanged)
-  let newRefNo = `${baseRefNo}-COPY`;
-  let counter = 2;
+  // Handle duplicates — use next incremented SRD number
+  // Extract the numeric part from the refNo (e.g. SRD-1011 → 1011)
+  const prefix = baseRefNo.replace(/\d+$/, ''); // e.g. "SRD-"
+  const lastNum = parseInt(baseRefNo.match(/(\d+)$/)?.[1] || '0', 10);
 
-  while (await SRD.findOne({ refNo: newRefNo })) {
-    newRefNo = `${baseRefNo}-COPY-${counter}`;
-    counter++;
+  // Find the highest existing refNo with this prefix
+  const existing = await SRD.find({
+    refNo: { $regex: `^${prefix.replace('-', '\\-')}\\d+$` }
+  }).select('refNo').lean();
+
+  let maxNum = lastNum;
+  for (const doc of existing) {
+    const m = doc.refNo.match(/(\d+)$/);
+    if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
   }
 
-  return { refNo: newRefNo, suffix: '(Copy)' };
+  const newRefNo = `${prefix}${maxNum + 1}`;
+  return { refNo: newRefNo, suffix: `(${maxNum + 1})` };
 };
 
 export async function POST(request, { params }) {
@@ -78,6 +86,25 @@ export async function POST(request, { params }) {
       audit,
       revision,
       images: _legacyImages,
+      // Strip all dispatch/conditions fields
+      inDispatch,
+      internalApproved,
+      internalApprovedBy,
+      internalApprovedDate,
+      internalComments,
+      internalRejectedReasons,
+      internalEmails,
+      sampleDispatchedToBuyer,
+      sampleDispatchDate,
+      sampleDipatchedtoBuyerDate,
+      BuyerApproved,
+      BuyerApprovedBy,
+      BuyerApprovedDate,
+      BuyerComments,
+      BuyerRejectedReasons,
+      BuyerDetails,
+      DispatchDetails,
+      dispatchDate,
       ...restOfSrd
     } = originalSrd;
     void _legacyImages;

@@ -39,6 +39,7 @@ export default function PaginationSettingsPage() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [delayDays, setDelayDays] = useState(3);
 
   useEffect(() => {
     fetch('/api/company')
@@ -62,6 +63,9 @@ export default function PaginationSettingsPage() {
             ...(isOldFlat ? {} : pg.srdForm ?? {}),
           },
         });
+        if (data?.delayThresholdDays !== undefined) {
+          setDelayDays(data.delayThresholdDays);
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -80,7 +84,7 @@ export default function PaginationSettingsPage() {
       const res = await fetch('/api/company', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paginationSettings: settings }),
+        body: JSON.stringify({ paginationSettings: settings, delayThresholdDays: delayDays }),
       });
       if (res.ok) {
         toast({ title: 'Saved', description: 'Pagination settings updated.' });
@@ -149,6 +153,29 @@ export default function PaginationSettingsPage() {
                 </CardContent>
               </Card>
             ))}
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-app-text">SRD Delay Threshold</CardTitle>
+                <p className="text-app-text text-gray-500">Number of days after which a pending SRD department is marked as delayed (shown in red)</p>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3">
+                  <div>
+                    <Label className="text-app-text font-medium">Days until delayed</Label>
+                    <p className="text-app-text text-gray-400 mb-1">Current: <span className="font-semibold text-gray-700">{delayDays}</span> days</p>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={delayDays}
+                      onChange={(e) => setDelayDays(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-32 h-9 text-app-text"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             <Button onClick={save} disabled={saving} className="w-full">
               {saving ? 'Saving...' : 'Save All Settings'}

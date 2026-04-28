@@ -695,8 +695,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
       </div>
 
-      {srd.internalApproved && (
-        <div className="border border-gray-300 bg-white">
+      <div className="border border-gray-300 bg-white mt-2">
           {/* Header */}
           <div className="grid grid-cols-12 bg-gray-100 border-b border-gray-300">
             <div className="col-span-2 px-2 py-0.5 border-r border-gray-300">
@@ -979,9 +978,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             </div>
           )}
         </div>
-      )}
 
-      <div className={`border border-gray-300 bg-white ${!srd.sampleDispatchedToBuyer ? 'hidden' : ''}`}>
+      <div className="border border-gray-300 bg-white mt-2">
         {/* Header */}
         <div className="grid grid-cols-12 bg-gray-100 border-b border-gray-300 px-2 py-0.5 items-center">
           <div className="col-span-10">

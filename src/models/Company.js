@@ -19,6 +19,8 @@ const CompanySchema = new mongoose.Schema({
       itemsPerPage: { type: Number, default: 12 }, // cells per page in the form view
     },
   },
+  // Number of days before a pending SRD is marked as delayed
+  delayThresholdDays: { type: Number, default: 3 },
 }, { timestamps: true, strict: false });
 
 // Delete cached model to pick up schema changes in dev

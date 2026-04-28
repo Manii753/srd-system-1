@@ -27,6 +27,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
   const [filterStatus, setFilterStatus] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [paginationSettings, setPaginationSettings] = useState({ enabled: true, itemsPerPage: 10 });
+  const [delayThresholdDays, setDelayThresholdDays] = useState(3);
 
   // Use controlled props if provided
   const effectiveSearch = searchTermProp !== undefined ? searchTermProp : searchTerm;
@@ -67,6 +68,9 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
       } else if (pg?.itemsPerPage !== undefined) {
         // old flat structure
         setPaginationSettings({ enabled: pg.enabled ?? true, itemsPerPage: pg.itemsPerPage });
+      }
+      if (companyData?.delayThresholdDays !== undefined) {
+        setDelayThresholdDays(companyData.delayThresholdDays);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -328,12 +332,19 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                       const val = getDeptStatus(srd.status, key);
                       const date = getDeptStatusDate(srd.status, key);
                       const isApproved = val === 'approved';
+                      const isDelayed = val === 'pending' && delayThresholdDays > 0 &&
+                        (Date.now() - new Date(srd.createdAt).getTime()) > delayThresholdDays * 24 * 60 * 60 * 1000;
+                      const delayedDays = isDelayed
+                        ? Math.floor((Date.now() - new Date(srd.createdAt).getTime()) / (24 * 60 * 60 * 1000)) - delayThresholdDays
+                        : 0;
                       return (
                         <td key={key} className="px-6 py-2 border-b border-black/10 text-center">
                           {isApproved && date ? (
                             <span className="text-app-text font-medium text-green-700">
                               {new Date(date).toLocaleDateString()}
                             </span>
+                          ) : isDelayed ? (
+                            <span className="text-app-text font-medium text-red-600">+{delayedDays}d</span>
                           ) : (
                             <span className="text-app-text text-gray-400">Pending</span>
                           )}
@@ -386,20 +397,20 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDuplicate(srd._id)}
-                          title="Duplicate SRD"
-                          className="border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-colors duration-200"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
                           onClick={() => handleRedo(srd._id)}
                           title="Redo SRD"
                           className="border-gray-300 hover:border-green-500 hover:text-green-600 transition-colors duration-200"
                         >
                           <Repeat className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDuplicate(srd._id)}
+                          title="Duplicate SRD"
+                          className="border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-colors duration-200"
+                        >
+                          <Copy className="h-4 w-4" />
                         </Button>
                       </div>
                     </td>

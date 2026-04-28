@@ -241,6 +241,7 @@ export default function DepartmentPanelExcel({
   const [currentPage, setCurrentPage] = useState(0);
   const [sections, setSections] = useState([]);
   const [formPagination, setFormPagination] = useState({ enabled: true, itemsPerPage: 12 });
+  const [delayThresholdDays, setDelayThresholdDays] = useState(3);
   const [pendingUpdates, setPendingUpdates] = useState({}); // Track updates per department
   const [showActivityConsole, setShowActivityConsole] = useState(false); // Activity console visibility - default hidden
 
@@ -319,7 +320,9 @@ export default function DepartmentPanelExcel({
           if (pg?.srdForm) {
             setFormPagination(pg.srdForm);
           }
-          // old flat structure has no srdForm key — keep default
+          if (companyData?.delayThresholdDays !== undefined) {
+            setDelayThresholdDays(companyData.delayThresholdDays);
+          }
         } catch (err) {
           console.error('Failed to fetch pagination settings:', err);
         }
@@ -986,6 +989,8 @@ export default function DepartmentPanelExcel({
         <div className="flex items-center gap-1 ml-2">
           {['vmd', 'cad', 'commercial', 'mmc'].map(dept => {
             const val = (srd.status || []).find(s => s.department === dept)?.value || 'pending';
+            const isDelayed = val === 'pending' && delayThresholdDays > 0 &&
+              (Date.now() - new Date(srd.createdAt).getTime()) > delayThresholdDays * 24 * 60 * 60 * 1000;
 
             // Check fill % using saved fields + allFieldDefs
             // For tables: check column ownership; for regular fields: check department
@@ -1043,12 +1048,13 @@ export default function DepartmentPanelExcel({
                   val === 'approved' && 'bg-green-100 text-green-800',
                   val === 'in-progress' && 'bg-blue-100 text-blue-800',
                   val === 'flagged' && 'bg-red-100 text-red-800',
-                  val === 'pending' && 'bg-gray-100 text-gray-800'
+                  isDelayed && 'bg-red-100 text-red-600',
+                  val === 'pending' && !isDelayed && 'bg-gray-100 text-amber-500'
                 )}
               >
                 {dept}
                 {hasPending && val !== 'approved' && (
-                  <span className="text-amber-500 font-bold leading-none" title="Has unfilled fields">!</span>
+                  <span className={`font-bold leading-none ${isDelayed ? 'text-red-600' : 'text-amber-500'}`} title={isDelayed ? `Delayed (>${delayThresholdDays} days)` : 'Has unfilled fields'}>!</span>
                 )}
               </span>
             );
@@ -1057,7 +1063,7 @@ export default function DepartmentPanelExcel({
       </div>
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onHeaderContent, srd._id, srd.refNo, JSON.stringify(srd.status), isPrinting, hasUnsavedChanges, isAutoSaving, handlePrint, fields, allFieldDefs, activeTemplate]);
+  }, [onHeaderContent, srd._id, srd.refNo, JSON.stringify(srd.status), isPrinting, hasUnsavedChanges, isAutoSaving, handlePrint, fields, allFieldDefs, activeTemplate, delayThresholdDays]);
 
   // Activity Console toggle button — injected into the header right slot (before notifications)
   useEffect(() => {
