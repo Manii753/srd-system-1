@@ -353,24 +353,39 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                     })}
                     <td className="px-6 py-2 border-b border-black/10">
                       <div className="flex items-center gap-2">
-                        {srd.inProduction && srd.currentProductionStage ? (() => {
-                          const stage = productionStages.find(s => String(s._id) === String(srd.currentProductionStage));
-                          const historyEntry = (srd.productionHistory || []).find(h => String(h.stage) === String(srd.currentProductionStage));
-                          return (
-                            <div className="flex flex-col">
-                              <span className="text-app-text text-gray-700 font-medium">
-                                {stage?.displayName || stage?.name || '—'}
-                              </span>
-                              {historyEntry?.startDate && (
-                                <span className="text-[11px] text-blue-500">
-                                  {new Date(historyEntry.startDate).toLocaleDateString()}
+                        {(() => {
+                          const srdStageIds = (srd.productionStages || []).map(id => String(id));
+                          const relevantStages = srdStageIds.length > 0
+                            ? productionStages.filter(s => srdStageIds.includes(String(s._id)))
+                            : productionStages;
+                          const allCompleted = relevantStages.length > 0 && relevantStages.every(stage => {
+                            const historyEntry = (srd.productionHistory || []).find(h => String(h.stage) === String(stage._id));
+                            return historyEntry?.status === 'completed';
+                          });
+
+                          if (srd.inProduction && srd.currentProductionStage) {
+                            const stage = productionStages.find(s => String(s._id) === String(srd.currentProductionStage));
+                            const historyEntry = (srd.productionHistory || []).find(h => String(h.stage) === String(srd.currentProductionStage));
+                            return (
+                              <div className="flex flex-col">
+                                <span className="text-app-text text-gray-700 font-medium">
+                                  {stage?.displayName || stage?.name || '—'}
                                 </span>
-                              )}
-                            </div>
-                          );
-                        })() : (
-                          <span className="text-app-text text-gray-400">Pending</span>
-                        )}
+                                {historyEntry?.startDate && (
+                                  <span className="text-[11px] text-blue-500">
+                                    {new Date(historyEntry.startDate).toLocaleDateString()}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          if (allCompleted) {
+                            return <span className="text-app-text font-medium text-green-700">Completed</span>;
+                          }
+
+                          return <span className="text-app-text text-gray-400">Pending</span>;
+                        })()}
                         <button
                           onClick={() => toggleRow(srd._id)}
                           className="p-1 rounded hover:bg-gray-200 transition-colors shrink-0"
