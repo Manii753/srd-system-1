@@ -23,6 +23,10 @@ import {
   Edit,
   FileSpreadsheet,
   BarChart3,
+  ChevronDown,
+  Truck,
+  MessageSquare,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -43,6 +47,7 @@ export default function DynamicSidebar() {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [samplesExpanded, setSamplesExpanded] = useState(false);
 
   const userRole = session?.user?.role;
   const unreadIntervalRef = useRef(null);
@@ -109,13 +114,21 @@ export default function DynamicSidebar() {
       if (userRole === 'admin') {
         // Admin gets all config pages
         setMenuItems([
-          { name: 'Home', href: '/dashboard/admin', icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
-          // { name: 'Inbox', href: '/inbox', icon: Inbox, gradient: 'from-pink-500 to-rose-500', showBadge: true },
+          { name: 'Home', href: '/home', icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
           { name: 'All SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
-          // { name: 'Production', href: '/production', icon: Package, gradient: 'from-red-500 to-orange-500' },
+          {
+            name: 'Samples Management',
+            icon: Package,
+            gradient: 'from-pink-500 to-rose-500',
+            isSubmenu: true,
+            children: [
+              { name: 'Sample Request', href: '/srd', icon: FileText },
+              { name: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList },
+              { name: 'Dispatch Detail', href: '/samples/dispatch', icon: Truck },
+              { name: 'Buyer Comment', href: '/samples/buyer-comment', icon: MessageSquare },
+            ]
+          },
           { name: 'Reports', href: '/reports', icon: BarChart3, gradient: 'from-indigo-500 to-purple-500' },
-          // { name: 'Departments', href: '/departments', icon: Edit, gradient: 'from-blue-500 to-indigo-500' },
-          // { name: 'Stages', href: '/stages', icon: GitBranch, gradient: 'from-teal-500 to-cyan-500' },
           { name: 'SRD Fields', href: '/srdfields', icon: FileSpreadsheet, gradient: 'from-green-500 to-emerald-500' },
           { name: 'Users', href: '/users', icon: Users, gradient: 'from-orange-500 to-red-500' },
           { name: 'Settings', href: '/settings', icon: Settings, gradient: 'from-gray-500 to-slate-600' },
@@ -156,7 +169,7 @@ export default function DynamicSidebar() {
             const menuItems = [
               {
                 name: 'Home',
-                href: `/dashboard/${userRole}`,
+                href: userRole === 'vmd' || userRole === 'VMD' ? '/home' : `/dashboard/${userRole}`,
                 icon: LayoutDashboard,
                 gradient: 'from-blue-500 to-cyan-500'
               },
@@ -169,6 +182,19 @@ export default function DynamicSidebar() {
                 href: `/dashboard/${userRole}/create`,
                 icon: Plus,
                 gradient: 'from-emerald-500 to-teal-500'
+              });
+              
+              menuItems.push({
+                name: 'Samples Management',
+                icon: Package,
+                gradient: 'from-pink-500 to-rose-500',
+                isSubmenu: true,
+                children: [
+                  { name: 'Sample Request', href: '/srd', icon: FileText },
+                  { name: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList },
+                  { name: 'Dispatch Detail', href: '/samples/dispatch', icon: Truck },
+                  { name: 'Buyer Comment', href: '/samples/buyer-comment', icon: MessageSquare },
+                ]
               });
             }
 
@@ -242,148 +268,176 @@ export default function DynamicSidebar() {
   }
 
   return (
-    <Sidebar className="border-r-0 transition-all duration-400" collapsible="icon">
-      <div className="h-full bg-gradient-to-br from-slate-50 via-white to-slate-50" onClick={(e) => {
-        if (state === 'collapsed') {
-          e.stopPropagation();
-        }
-      }}>
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.1),rgba(255,255,255,0))]" />
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-        </div>
-
-        <SidebarHeader className={cn("relative", open ? "p-6 pb-8" : "p-4 pb-6")}>
+    <Sidebar className="border-r border-gray-200 transition-all duration-300" collapsible="icon">
+      <div className="h-full bg-white">
+        <SidebarHeader className={cn("relative border-b border-gray-200", open ? "p-6" : "p-4")}>
           <div className={cn("relative", !open && "flex flex-col items-center")}>
             {open && (
-              <div>
-                <h2 className="text-app-heading text-nowrap font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-gray-900">
                   SRD System
                 </h2>
+                <button
+                  onClick={toggleSidebar}
+                  className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors"
+                >
+                  <PanelLeftClose className="w-4 h-4 text-gray-600" />
+                </button>
               </div>
             )}
 
             {!open && (
               <button
                 onClick={toggleSidebar}
-                className="w-full rounded-lg p-2 bg-white/60 hover:bg-white shadow-sm hover:shadow-md group border border-slate-200/50"
+                className="w-full rounded-lg p-2 hover:bg-gray-100 transition-colors"
               >
-                <PanelLeftOpen className="w-4 h-4 text-slate-600 group-hover:text-slate-900 mx-auto" />
+                <PanelLeftOpen className="w-4 h-4 text-gray-600 mx-auto" />
               </button>
             )}
           </div>
-
-          {open && (
-            <button
-              onClick={toggleSidebar}
-              className="absolute top-6 right-6 rounded-lg p-1.5 bg-white/60 hover:bg-white shadow-sm hover:shadow-md group border border-slate-200/50 z-10"
-            >
-              <PanelLeftClose className="w-4 h-4 text-slate-600 group-hover:text-slate-900" />
-            </button>
-          )}
-
-          {open && (
-            <div className="absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-          )}
         </SidebarHeader>
 
-        <SidebarContent className="relative px-2">
+        <SidebarContent className="relative px-3 py-4">
           <SidebarGroup>
-            <SidebarMenu className="space-y-2">
-              {menuItems.map((item) => {
+            <SidebarMenu className="space-y-1">
+              {menuItems.map((item, index) => {
                 const Icon = item.icon;
                 const isActive = item.href === activeItemHref;
+                const hasActiveChild = item.children?.some(child => child.href === activeItemHref);
 
+                // Handle submenu items
+                if (item.isSubmenu) {
+                  return (
+                    <div key={item.name || index} className="space-y-1">
+                      {/* Parent menu item */}
+                      <div className="relative">
+                        <SidebarMenuButton
+                          tooltip={!open ? item.name : undefined}
+                          className={cn(
+                            "relative rounded-lg transition-all",
+                            hasActiveChild
+                              ? "bg-pink-50 text-pink-700 font-medium"
+                              : "hover:bg-gray-100 text-gray-700",
+                            open ? "h-11 px-3" : "h-11 px-2 justify-center"
+                          )}
+                          onClick={() => setSamplesExpanded(!samplesExpanded)}
+                        >
+                          <div className={cn(
+                            "flex items-center w-full h-full",
+                            open ? "gap-3" : "justify-center"
+                          )}>
+                            <Icon className={cn(
+                              "h-5 w-5 shrink-0",
+                              hasActiveChild ? "text-pink-700" : "text-gray-600"
+                            )} />
+                            {open && (
+                              <>
+                                <span className="text-sm">
+                                  {item.name}
+                                </span>
+                                <ChevronDown className={cn(
+                                  "ml-auto h-4 w-4 shrink-0 transition-transform",
+                                  samplesExpanded ? "rotate-180" : ""
+                                )} />
+                              </>
+                            )}
+                          </div>
+                        </SidebarMenuButton>
+                      </div>
+
+                      {/* Child menu items */}
+                      {open && samplesExpanded && (
+                        <div className="ml-6 space-y-1 border-l-2 border-gray-200 pl-3">
+                          {item.children.map((child, childIndex) => {
+                            const ChildIcon = child.icon;
+                            const isChildActive = child.href === activeItemHref;
+
+                            return (
+                              <div key={child.href || childIndex} className="relative">
+                                <SidebarMenuButton
+                                  asChild
+                                  isActive={isChildActive}
+                                  className={cn(
+                                    "relative rounded-lg h-9 px-2",
+                                    isChildActive
+                                      ? "bg-blue-50 text-blue-700 font-medium"
+                                      : "hover:bg-gray-100 text-gray-700"
+                                  )}
+                                >
+                                  <Link href={child.href} className="flex items-center gap-2 w-full h-full">
+                                    <ChildIcon className={cn(
+                                      "h-4 w-4 shrink-0",
+                                      isChildActive ? "text-blue-700" : "text-gray-600"
+                                    )} />
+                                    <span className="text-xs">
+                                      {child.name}
+                                    </span>
+                                  </Link>
+                                </SidebarMenuButton>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                // Regular menu items
                 return (
-                  <div key={item.href} className="relative group">
-                    {isActive && (
-                      <div className={cn(
-                        "absolute -left-3 top-0 bottom-0 w-1 rounded-r-full bg-gradient-to-b",
-                        item.gradient
-                      )} />
-                    )}
-
+                  <div key={item.href || item.name || index} className="relative">
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
                       tooltip={!open ? item.name : undefined}
                       className={cn(
-                        "relative rounded-xl hover:shadow-lg",
+                        "relative rounded-lg transition-all",
                         isActive
-                          ? "bg-gradient-to-r text-white shadow-lg shadow-blue-500/20"
-                          : "hover:bg-white/60 text-gray-700 hover:text-gray-900",
-                        isActive && item.gradient,
-                        open ? "h-12 px-4" : "h-12 px-2 mb-2 justify-center"
+                          ? "bg-blue-50 text-blue-700 font-medium"
+                          : "hover:bg-gray-100 text-gray-700",
+                        open ? "h-11 px-3" : "h-11 px-2 justify-center"
                       )}
                     >
-                      <Link href={item.href} className={cn(
+                      <Link href={item.href || '#'} className={cn(
                         "flex items-center w-full h-full",
                         open ? "gap-3" : "justify-center"
                       )}>
-                        <div className={cn(
-                          "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
-                          isActive
-                            ? "bg-white/20 backdrop-blur-sm"
-                            : "bg-slate-100 group-hover:bg-white"
-                        )}>
-                          <Icon className={cn(
-                            "h-5 w-5",
-                            isActive ? "text-white" : "text-gray-600 group-hover:text-gray-900"
-                          )} />
-                        </div>
+                        <Icon className={cn(
+                          "h-5 w-5 shrink-0",
+                          isActive ? "text-blue-700" : "text-gray-600"
+                        )} />
                         {open && (
-                          <>
-                            <span className={cn(
-                              "font-medium text-app-heading",
-                              isActive && "font-semibold"
-                            )}>
-                              {item.name}
-                            </span>
+                          <span className="text-sm">
+                            {item.name}
+                          </span>
+                        )}
 
-                            {/* Unread count badge */}
-                            {item.showBadge && unreadCount > 0 && (
-                              <span className="ml-auto mr-2 px-2 py-0.5 text-app-heading font-bold bg-red-500 text-white rounded-full min-w-[20px] text-center">
-                                {unreadCount > 99 ? '99+' : unreadCount}
-                              </span>
-                            )}
-
-                            <ChevronRight className={cn(
-                              "ml-auto h-4 w-4 shrink-0",
-                              isActive
-                                ? "opacity-100 text-white"
-                                : "opacity-0 group-hover:opacity-100"
-                            )} />
-                          </>
+                        {/* Unread count badge */}
+                        {item.showBadge && unreadCount > 0 && open && (
+                          <span className="ml-auto px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                          </span>
                         )}
 
                         {/* Unread badge when collapsed */}
                         {!open && item.showBadge && unreadCount > 0 && (
-                          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-app-heading font-bold bg-red-500 text-white rounded-full min-w-[18px] text-center">
+                          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">
                             {unreadCount > 9 ? '9+' : unreadCount}
                           </span>
                         )}
                       </Link>
                     </SidebarMenuButton>
-
-                    {!isActive && (
-                      <div className={cn(
-                        "absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 -z-10 blur-xl",
-                        `bg-gradient-to-r ${item.gradient}`
-                      )} />
-                    )}
                   </div>
                 );
               })}
-              {/* Logout Button styled as navigation item */}
-              <div className="relative group">
+              {/* Logout Button */}
+              <div className="relative mt-2">
                 <SidebarMenuButton
                   asChild
                   tooltip={!open ? "Logout" : undefined}
                   className={cn(
-                    "relative rounded-xl hover:shadow-lg",
-                    "hover:bg-white/60 text-gray-700 hover:text-gray-900",
-                    open ? "h-12 px-4" : "h-12 px-2 mb-2 justify-center"
+                    "relative rounded-lg transition-all hover:bg-red-50 text-gray-700 hover:text-red-600",
+                    open ? "h-11 px-3" : "h-11 px-2 justify-center"
                   )}
                 >
                   <button
@@ -393,41 +447,13 @@ export default function DynamicSidebar() {
                       open ? "gap-3" : "justify-center"
                     )}
                   >
-                    <div className={cn(
-                      "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
-                      "bg-slate-100 group-hover:bg-white"
-                    )}>
-                      <LogOut className="h-5 w-5 text-gray-600 group-hover:text-gray-900" />
-                    </div>
-                    {open && (
-                      <>
-                        <span className="font-medium text-app-heading">
-                          Logout
-                        </span>
-                        <ChevronRight className="ml-auto h-4 w-4 shrink-0 opacity-0 group-hover:opacity-100" />
-                      </>
-                    )}
+                    <LogOut className="h-5 w-5 shrink-0" />
+                    {open && <span className="text-sm">Logout</span>}
                   </button>
                 </SidebarMenuButton>
-
-                <div className={cn(
-                  "absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 -z-10 blur-xl",
-                  "bg-gradient-to-r from-red-500 to-pink-500"
-                )} />
               </div>
             </SidebarMenu>
-
-            {/* User Info Section */}
-            {open && (
-              <div className="mt-4 px-4 py-3 bg-white/40 rounded-xl border border-slate-200/50">
-                <p className="text-app-text font-medium text-gray-900">{session?.user?.name}</p>
-                <p className="text-app-text text-gray-500">{session?.user?.role?.toUpperCase()}</p>
-              </div>
-            )}
-
           </SidebarGroup>
-
-          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-50/50 to-transparent pointer-events-none" />
         </SidebarContent>
       </div>
     </Sidebar>

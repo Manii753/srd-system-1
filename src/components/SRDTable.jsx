@@ -299,12 +299,12 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
               <th className="px-6 py-4 text-center text-app-heading font-bold text-gray-600 uppercase tracking-wider">CAD</th>
               <th className="px-6 py-4 text-center text-app-heading font-bold text-gray-600 uppercase tracking-wider">MMC</th>
               <th className="px-6 py-4 text-center text-app-heading font-bold text-gray-600 uppercase tracking-wider">COM</th>
-              <th className="px-6 py-4 text-left text-app-heading font-bold text-gray-600 uppercase tracking-wider">Current Status Summary</th>
+              <th className="px-6 py-4 text-left text-app-heading font-bold text-gray-600 uppercase tracking-wider">Status</th>
               <th className="px-6 py-4 text-center text-app-heading font-bold text-gray-600 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white">
-            {paginatedSRDs.map((srd) => {
+            {paginatedSRDs.map((srd) => { 
               const isExpanded = !!expandedRows[srd._id];
               const depts = [
                 { key: 'vmd', label: 'VMD' },

@@ -45,8 +45,8 @@ export default function LoginPage() {
         }
 
         const role = session.user.role;
-        if (role === 'admin') {
-          router.push('/dashboard/admin');
+        if (role === 'admin' || role === 'vmd') {
+          router.push('/home');
         } else {
           router.push(`/dashboard/${role}`);
         }

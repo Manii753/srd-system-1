@@ -4,11 +4,9 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 import Layout from '@/components/layout/Layout';
-import SRDCard from '@/components/SRDCard';
 import SRDTable from '@/components/SRDTable';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Search, Filter } from 'lucide-react';
+import { FileText, Search, Filter, Plus } from 'lucide-react';
 import SRDPrintDialog from '@/components/SRDPrintDialog';
 
 function SRDListPageContent() {
@@ -17,13 +15,14 @@ function SRDListPageContent() {
   const searchParams = useSearchParams();
   const [srds, setSRDs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('table');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
   const departmentFilter = searchParams.get('department') || 'all';
   const statusFilter = searchParams.get('status') || 'all';
   const readyForProductionFilter = searchParams.get('readyForProduction') === 'true';
+
+  const canCreateSRD = session?.user?.role === 'vmd' || session?.user?.role === 'admin';
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -82,15 +81,15 @@ function SRDListPageContent() {
             placeholder="Search SRDs by reference or title..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-app-text"
+            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
           />
         </div>
-        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
+        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm">
           <Filter className="h-4 w-4 text-gray-500" />
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="border-0 focus:ring-0 focus:outline-none bg-transparent text-app-text text-gray-700 font-medium"
+            className="border-0 focus:ring-0 focus:outline-none bg-transparent text-sm text-gray-700 font-medium"
           >
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
@@ -100,29 +99,27 @@ function SRDListPageContent() {
           </select>
         </div>
         <SRDPrintDialog />
-        <div className="flex items-center gap-1">
-          <Button variant={viewMode === 'cards' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('cards')}>Cards</Button>
-          <Button variant={viewMode === 'table' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('table')}>Table</Button>
-        </div>
+        {canCreateSRD && (
+          <Button 
+            onClick={() => router.push(`/dashboard/${session.user.role}/create`)}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+            size="sm"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Create SRD
+          </Button>
+        )}
       </div>
     }>
       <div className="flex flex-col flex-1 h-[calc(100vh-56px)] overflow-hidden space-y-4 p-4">
-        {/* SRDs List */}
-        {viewMode === 'cards' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto pr-2 custom-scrollbar">
-            {srds.map((srd) => (
-              <SRDCard key={srd._id} srd={srd} department={departmentFilter} />
-            ))}
-          </div>
-        ) : (
-          <SRDTable srds={srds} department={departmentFilter} searchTerm={searchTerm} filterStatus={filterStatus} />
-        )}
+        {/* SRDs Table */}
+        <SRDTable srds={srds} department={departmentFilter} searchTerm={searchTerm} filterStatus={filterStatus} />
 
         {srds.length === 0 && (
           <div className="text-center py-12">
             <FileText className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-app-text font-medium text-gray-900">No SRDs found</h3>
-            <p className="mt-1 text-app-text text-gray-500">Adjust your filters or create a new SRD.</p>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No SRDs found</h3>
+            <p className="mt-1 text-sm text-gray-500">Adjust your filters or create a new SRD.</p>
           </div>
         )}
       </div>
