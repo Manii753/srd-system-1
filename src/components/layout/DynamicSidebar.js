@@ -312,11 +312,13 @@ export default function DynamicSidebar() {
                 const Icon = item.icon;
                 const isActive = item.href === activeItemHref;
                 const hasActiveChild = item.children?.some(child => child.href === activeItemHref);
+                // Create truly unique key using multiple properties
+                const uniqueKey = `menu-item-${index}-${item.name?.replace(/\s+/g, '-').toLowerCase() || 'unnamed'}`;
 
                 // Handle submenu items
                 if (item.isSubmenu) {
                   return (
-                    <div key={item.name || index} className="space-y-1">
+                    <div key={uniqueKey} className="space-y-1">
                       {/* Parent menu item */}
                       <div className="relative">
                         <SidebarMenuButton
@@ -359,9 +361,11 @@ export default function DynamicSidebar() {
                           {item.children.map((child, childIndex) => {
                             const ChildIcon = child.icon;
                             const isChildActive = child.href === activeItemHref;
+                            // Create unique key for child items
+                            const childKey = `submenu-${index}-child-${childIndex}-${child.name?.replace(/\s+/g, '-').toLowerCase()}`;
 
                             return (
-                              <div key={child.href || childIndex} className="relative">
+                              <div key={childKey} className="relative">
                                 <SidebarMenuButton
                                   asChild
                                   isActive={isChildActive}
@@ -393,7 +397,7 @@ export default function DynamicSidebar() {
 
                 // Regular menu items
                 return (
-                  <div key={item.name || item.href || index} className="relative">
+                  <div key={uniqueKey} className="relative">
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}

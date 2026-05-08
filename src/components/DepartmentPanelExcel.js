@@ -1045,16 +1045,16 @@ export default function DepartmentPanelExcel({
                 key={dept}
                 className={cn(
                   "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-app-heading font-medium capitalize",
-                  val === 'approved' && 'bg-green-100 text-green-800',
-                  val === 'in-progress' && 'bg-blue-100 text-blue-800',
-                  val === 'flagged' && 'bg-red-100 text-red-800',
-                  isDelayed && 'bg-red-100 text-red-600',
-                  val === 'pending' && !isDelayed && 'bg-gray-100 text-amber-500'
+                  val === 'approved' && 'bg-green-700 text-white',
+                  val === 'in-progress' && 'bg-blue-700 text-white',
+                  val === 'flagged' && 'bg-red-700 text-white',
+                  isDelayed && 'bg-red-700 text-white',
+                  val === 'pending' && !isDelayed && 'bg-orange-600 text-white'
                 )}
               >
                 {dept}
                 {hasPending && val !== 'approved' && (
-                  <span className={`font-bold leading-none ${isDelayed ? 'text-red-600' : 'text-amber-500'}`} title={isDelayed ? `Delayed (>${delayThresholdDays} days)` : 'Has unfilled fields'}>!</span>
+                  <span className={`font-bold leading-none ${isDelayed ? 'text-yellow-300' : 'text-yellow-300'}`} title={isDelayed ? `Delayed (>${delayThresholdDays} days)` : 'Has unfilled fields'}>!</span>
                 )}
               </span>
             );
@@ -1448,7 +1448,7 @@ export default function DepartmentPanelExcel({
             <div className="border border-gray-200 overflow-hidden">
               <table className="w-full text-app-text border-collapse table-fixed">
                 <thead>
-                  <tr className="bg-gradient-to-r from-gray-50 to-gray-100 h-5">
+                  <tr className="bg-gradient-to-r from-gray-50 to-gray-100 h-6">
                     {tableData.headers?.map((header, colIdx) => {
                       const headerName = typeof header === 'object' ? header.name : header;
                       const headerOwner = typeof header === 'object' ? header.owner : 'global';
@@ -1476,7 +1476,7 @@ export default function DepartmentPanelExcel({
                                     newHeaders[colIdx] = typeof header === 'object' ? { ...header, name: val } : { name: val, owner: 'global' };
                                     handleFieldChange(fieldId, name, { ...tableData, headers: newHeaders }, department, fieldDef);
                                   }}
-                                  className="w-full border-none focus:outline-none focus:ring-2 focus:ring-blue-400 rounded px-1.5 py-0 font-semibold text-center text-gray-700 leading-none h-4"
+                                  className="w-full rounded-none border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none px-1.5 py-0 font-semibold text-center text-gray-700 leading-none h-6"
                                   placeholder={`Column ${colIdx + 1}`}
                                   disabled={!canEditColumn}
                                   maxLength={20}
@@ -1537,7 +1537,7 @@ export default function DepartmentPanelExcel({
                     const isInStock = rowPredefined.purchaseType === 'instock';
 
                     return (
-                      <tr key={rowIdx} className="hover:bg-blue-50/30 transition-colors duration-100 h-5">
+                      <tr key={rowIdx} className="hover:bg-blue-50/30 transition-colors duration-100 h-7">
                         {row.map((cell, colIdx) => {
                           const colOwner = typeof tableData.headers[colIdx] === 'object' ? tableData.headers[colIdx].owner : 'global';
                           const canEditColumn = canEditField(colOwner);
@@ -1578,7 +1578,7 @@ export default function DepartmentPanelExcel({
                                       }
                                     }}
                                     className={cn(
-                                      "w-full h-4 px-1.5 py-0 leading-none border-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/50 bg-transparent transition-all duration-300",
+                                      "w-full h-4 px-1.5 py-0 leading-none rounded-none border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none bg-transparent h-6",
                                       isFieldHighlighted(fieldId, { ...fieldDef, department: colOwner }, cell) && "highlight-empty-field"
                                     )}
                                     disabled={!canEditColumn}
@@ -1650,7 +1650,7 @@ export default function DepartmentPanelExcel({
                             onChange={(e) => updatePredefined(rowIdx, 'opd', e.target.value)}
                             disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                             className={cn(
-                              "w-full h-full px-1.5 py-0 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 text-app-text transition-all duration-300",
+                              "w-full h-full px-1.5 py-0 border-none focus:outline-none text-app-text transition-all duration-300",
                               !isInStock && isFieldHighlighted(fieldId, { ...fieldDef, department: fieldDef.predefinedFieldsOwner || 'global' }, rowPredefined.opd) && "highlight-empty-field",
                               isInStock && "opacity-40 cursor-not-allowed"
                             )}
@@ -1664,7 +1664,7 @@ export default function DepartmentPanelExcel({
                             onChange={(e) => updatePredefined(rowIdx, 'etd', e.target.value)}
                             disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global') || isInStock}
                             className={cn(
-                              "w-full h-full px-1.5 py-0 border-none focus:outline-none focus:ring-2 focus:ring-blue-400  text-app-text transition-all duration-300",
+                              "w-full h-full px-1.5 py-0 border-none focus:outline-none text-app-text transition-all duration-300",
                               !isInStock && isFieldHighlighted(fieldId, { ...fieldDef, department: fieldDef.predefinedFieldsOwner || 'global' }, rowPredefined.etd) && "highlight-empty-field",
                               isInStock && "opacity-40 cursor-not-allowed"
                             )}
@@ -1677,16 +1677,16 @@ export default function DepartmentPanelExcel({
               </table>
             </div>
             {canEdit && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mb-1">
                 <button
                   onClick={() => {
                     const newRows = [...tableData.rows, new Array(tableData.headers.length).fill('')];
                     const newPredefined = [...predefinedData, { purchaseType: 'purchase', opd: '', etd: '' }];
                     handleFieldChange(fieldId, name, { ...tableData, rows: newRows, predefinedData: newPredefined }, department, fieldDef);
                   }}
-                  className="text-app-text text-blue-600 hover:text-blue-700 flex items-center gap-1.5 px-3 py-1.5 border border-blue-200 rounded-md hover:bg-blue-50 hover:border-blue-300 transition-all duration-150 shadow-sm"
+                  className="text-app-text text-blue-600 hover:text-blue-700 flex items-center gap-1 px-2 py-1 border border-blue-200 rounded-md hover:bg-blue-50 hover:border-blue-300 transition-all duration-150 shadow-sm"
                 >
-                  <Plus className="h-3 w-3" />
+                  <Plus className="h-2.5 w-2.5" />
                 </button>
               </div>
             )}
@@ -1741,95 +1741,103 @@ export default function DepartmentPanelExcel({
 
       case 'image':
         const deptImages = normalizeAssetEntries(fieldValue, { kind: 'image' });
-        const allImages = deptImages;
+        const allImages = deptImages.slice(0, 2); // Limit to 2 images max
+        const canAddMore = allImages.length < 2;
 
         return (
           <div className={cn(
-            "h-full  transition-all duration-300 border-2 border-dashed border-gray-300 rounded-lg ",
+            "h-full transition-all duration-300 border-2 border-dashed border-gray-300 rounded-lg p-2",
             isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
           )}>
-            {canEdit && (
-              <UploadImage
-                srdId={srd?._id}
-                fieldId={fieldId}
-                onUploaded={(assets) => {
-                  const imageArray = normalizeAssetEntries(assets, { kind: 'image' });
-                  if (imageArray.length > 0) {
-                    const currentImages = normalizeAssetEntries(fieldValue, { kind: 'image' });
-                    const updatedImages = [...currentImages, ...imageArray];
-                    handleFieldChange(fieldId, name, updatedImages, department, fieldDef);
-                    toast({
-                      title: 'Images uploaded',
-                      description: `${imageArray.length} image(s) uploaded.`,
-                    });
-                  }
-                }}
-              />
-            )}
-
-            {/* {allImages.length > 0 ? (
-              <div className="grid grid-cols-3 gap-1">
-                {allImages.slice(0, 6).map((asset, idx) => {
-                  const isCover = idx === 0;
-                  const imageUrl = getAssetUrl(asset);
-
-                  return (
-                    <div key={idx} className="relative group aspect-square">
-                      <Image
-                        src={imageUrl}
-                        alt={`${name}-${idx}`}
-                        fill
+            {allImages.length === 0 ? (
+              // Empty state - show upload area
+              canEdit && (
+                <UploadImage
+                  srdId={srd?._id}
+                  fieldId={fieldId}
+                  maxImages={2}
+                  onUploaded={(assets) => {
+                    const imageArray = normalizeAssetEntries(assets, { kind: 'image' }).slice(0, 2);
+                    if (imageArray.length > 0) {
+                      handleFieldChange(fieldId, name, imageArray, department, fieldDef);
+                      toast({
+                        title: 'Images uploaded',
+                        description: `${imageArray.length} image(s) uploaded.`,
+                      });
+                    }
+                  }}
+                />
+              )
+            ) : (
+              // Show uploaded images
+              <div className="h-full flex flex-col gap-2">
+                <div className={cn(
+                  "flex gap-2 flex-1",
+                  allImages.length === 1 ? "justify-center" : "justify-between"
+                )}>
+                  {allImages.map((asset, idx) => {
+                    const imageUrl = getAssetUrl(asset);
+                    return (
+                      <div 
+                        key={idx} 
                         className={cn(
-                          "object-cover rounded border transition-all",
-                          isCover ? "border-yellow-400 border-2" : "border-gray-200"
+                          "relative group rounded overflow-hidden border-2 border-gray-200",
+                          allImages.length === 1 ? "w-full" : "w-[48%]"
                         )}
-                      />
-                      {isCover && (
-                        <div className="absolute top-0 left-0 bg-yellow-400 text-yellow-900 px-0.5 py-0.5 rounded-br text-app-text">
-                          <Star className="h-2 w-2 fill-current" />
+                      >
+                        <div className="relative w-full h-full min-h-[200px]">
+                          <Image
+                            src={imageUrl}
+                            alt={`${name}-${idx}`}
+                            fill
+                            className="object-cover"
+                          />
                         </div>
-                      )}
+                        
+                        {canEdit && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveImage(fieldId, name, department, idx, allImages);
+                            }}
+                            className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full h-7 w-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                            title="Remove image"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
 
-                      {canEdit && (
-                        <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <div className="flex gap-1">
-                            {!isCover && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSetCoverImage(fieldId, name, department, idx, allImages);
-                                }}
-                                className="bg-yellow-500 hover:bg-yellow-600 text-white p-1 rounded"
-                                title="Set as cover"
-                              >
-                                <Star className="h-2 w-2" />
-                              </button>
-                            )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveImage(fieldId, name, department, idx, allImages);
-                              }}
-                              className="bg-red-500 hover:bg-red-600 text-white p-1 rounded"
-                              title="Remove"
-                            >
-                              <Trash2 className="h-2 w-2" />
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                {allImages.length > 6 && (
-                  <div className="aspect-square border border-gray-200 rounded flex items-center justify-center text-app-text text-gray-500">
-                    +{allImages.length - 6}
+                {/* Add Another button */}
+                {canEdit && canAddMore && (
+                  <div className="flex justify-center">
+                    <UploadImage
+                      srdId={srd?._id}
+                      fieldId={fieldId}
+                      compact={true}
+                      maxImages={1}
+                      onUploaded={(assets) => {
+                        const imageArray = normalizeAssetEntries(assets, { kind: 'image' });
+                        if (imageArray.length > 0) {
+                          const currentImages = normalizeAssetEntries(fieldValue, { kind: 'image' });
+                          const remainingSlots = 2 - currentImages.length;
+                          const newImages = imageArray.slice(0, remainingSlots);
+                          const updatedImages = [...currentImages, ...newImages].slice(0, 2);
+                          handleFieldChange(fieldId, name, updatedImages, department, fieldDef);
+                          toast({
+                            title: 'Images uploaded',
+                            description: `${newImages.length} image(s) uploaded.`,
+                          });
+                        }
+                      }}
+                    />
                   </div>
                 )}
               </div>
-            ) : (
-              <></>
-            )} */}
+            )}
           </div>
         );
 
