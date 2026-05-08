@@ -8,10 +8,10 @@ import { FileText, Package, DollarSign, List, Calendar, Truck, BarChart2, Messag
 
 const APP_GROUPS = [
   {
-    label: 'First Screen',
+    label: 'Home Page',
     apps: [
       { label: 'Order Confirmation', icon: ClipboardList, href: '/dashboard/vmd', color: 'bg-yellow-400', textColor: 'text-black' },
-      { label: 'Samples Management', icon: Package, href: '/samples', color: 'bg-pink-200', textColor: 'text-black', highlight: true },
+      { label: 'Samples Management', icon: Package, href: '/samples', color: 'bg-yellow-400', textColor: 'text-black' },
       { label: 'Cost Sheets', icon: DollarSign, href: '#', color: 'bg-yellow-400', textColor: 'text-black' },
       { label: 'Bom', icon: List, href: '#', color: 'bg-yellow-400', textColor: 'text-black' },
       { label: 'Planning', icon: Calendar, href: '#', color: 'bg-yellow-400', textColor: 'text-black' },
@@ -171,16 +171,20 @@ export default function HomePage() {
             </div>
 
             {/* App Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {group.apps.map((app) => (
-                <Link key={app.label} href={app.href}>
-                  <div
-                    className={`${app.color} ${app.textColor} rounded-lg p-6 h-32 flex items-center justify-center text-center font-semibold text-sm cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 border border-gray-200/50`}
-                  >
-                    <span>{app.label}</span>
-                  </div>
-                </Link>
-              ))}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {group.apps.map((app) => {
+                const Icon = app.icon;
+                return (
+                  <Link key={app.label} href={app.href}>
+                    <div
+                      className={`${app.color} text-black rounded-lg p-4 h-28 flex flex-col items-center justify-center text-center font-semibold text-xs cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 border border-gray-200/50`}
+                    >
+                      <Icon className="h-5 w-5 mb-2" />
+                      <span>{app.label}</span>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         ))}

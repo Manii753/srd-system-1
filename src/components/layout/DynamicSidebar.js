@@ -4,7 +4,6 @@ import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import {
   LayoutDashboard,
@@ -27,6 +26,10 @@ import {
   Truck,
   MessageSquare,
   ClipboardList,
+  DollarSign,
+  List,
+  Calendar,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -115,20 +118,26 @@ export default function DynamicSidebar() {
         // Admin gets all config pages
         setMenuItems([
           { name: 'Home', href: '/home', icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
-          { name: 'All SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
+          { name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList, gradient: 'from-yellow-400 to-yellow-500' },
           {
             name: 'Samples Management',
             icon: Package,
             gradient: 'from-pink-500 to-rose-500',
             isSubmenu: true,
             children: [
+              { name: 'Create SRD', href: '/dashboard/admin/create', icon: Plus },
               { name: 'Sample Request', href: '/srd', icon: FileText },
+              { name: 'Sample Process', href: '/srd', icon: Package },
               { name: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList },
               { name: 'Dispatch Detail', href: '/samples/dispatch', icon: Truck },
+              { name: 'Reports', href: '/reports', icon: BarChart3 },
               { name: 'Buyer Comment', href: '/samples/buyer-comment', icon: MessageSquare },
             ]
           },
-          { name: 'Reports', href: '/reports', icon: BarChart3, gradient: 'from-indigo-500 to-purple-500' },
+          { name: 'Cost Sheets', href: '#', icon: DollarSign, gradient: 'from-yellow-400 to-yellow-500' },
+          { name: 'Bom', href: '#', icon: List, gradient: 'from-yellow-400 to-yellow-500' },
+          { name: 'Planning', href: '#', icon: Calendar, gradient: 'from-yellow-400 to-yellow-500' },
+          { name: 'All SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
           { name: 'SRD Fields', href: '/srdfields', icon: FileSpreadsheet, gradient: 'from-green-500 to-emerald-500' },
           { name: 'Users', href: '/users', icon: Users, gradient: 'from-orange-500 to-red-500' },
           { name: 'Settings', href: '/settings', icon: Settings, gradient: 'from-gray-500 to-slate-600' },
@@ -169,43 +178,42 @@ export default function DynamicSidebar() {
             const menuItems = [
               {
                 name: 'Home',
-                href: userRole === 'vmd' || userRole === 'VMD' ? '/home' : `/dashboard/${userRole}`,
+                href: '/home',
                 icon: LayoutDashboard,
                 gradient: 'from-blue-500 to-cyan-500'
               },
+              {
+                name: 'Order Confirmation',
+                href: '/dashboard/vmd',
+                icon: ClipboardList,
+                gradient: 'from-yellow-400 to-yellow-500'
+              },
             ];
 
-            // Add Create SRD only for VMD
+            // Add Samples Management submenu for VMD
             if (userRole === 'vmd' || userRole === 'VMD') {
-              menuItems.push({
-                name: 'Create SRD',
-                href: `/dashboard/${userRole}/create`,
-                icon: Plus,
-                gradient: 'from-emerald-500 to-teal-500'
-              });
-              
               menuItems.push({
                 name: 'Samples Management',
                 icon: Package,
                 gradient: 'from-pink-500 to-rose-500',
                 isSubmenu: true,
                 children: [
+                  { name: 'Create SRD', href: `/dashboard/${userRole}/create`, icon: Plus },
                   { name: 'Sample Request', href: '/srd', icon: FileText },
+                  { name: 'Sample Process', href: '/srd', icon: Package },
                   { name: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList },
                   { name: 'Dispatch Detail', href: '/samples/dispatch', icon: Truck },
+                  { name: 'Reports', href: '/reports', icon: BarChart3 },
                   { name: 'Buyer Comment', href: '/samples/buyer-comment', icon: MessageSquare },
                 ]
               });
+              
+              menuItems.push(
+                { name: 'Cost Sheets', href: '#', icon: DollarSign, gradient: 'from-yellow-400 to-yellow-500' },
+                { name: 'Bom', href: '#', icon: List, gradient: 'from-yellow-400 to-yellow-500' },
+                { name: 'Planning', href: '#', icon: Calendar, gradient: 'from-yellow-400 to-yellow-500' }
+              );
             }
-
-            menuItems.push(
-              {
-                name: 'Reports',
-                href: '/reports',
-                icon: BarChart3,
-                gradient: 'from-indigo-500 to-purple-500'
-              }
-            );
 
             setMenuItems(menuItems);
           } else {
@@ -385,7 +393,7 @@ export default function DynamicSidebar() {
 
                 // Regular menu items
                 return (
-                  <div key={item.href || item.name || index} className="relative">
+                  <div key={item.name || item.href || index} className="relative">
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
