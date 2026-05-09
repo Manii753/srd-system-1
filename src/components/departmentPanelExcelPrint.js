@@ -666,7 +666,7 @@ export async function printDepartmentPanelExcel({
   <style>
     @page {
       size: A4;
-      margin: 0.03in;
+      margin: 0.05in;
     }
     
     body {
