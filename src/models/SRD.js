@@ -94,6 +94,36 @@ const srdSchema = new mongoose.Schema({
   BuyerDetails: { type: mongoose.Schema.Types.ObjectId, ref: 'Buyer' },
   DispatchDetails: { type: mongoose.Schema.Types.ObjectId, ref: 'Dispatch' },
 
+  // Sample Process Tracking
+  sampleProcess: [{
+    stage: {
+      type: String,
+      enum: ['pattern', 'sewing', 'washing', 'finishing', 'vmd'],
+      required: true
+    },
+    stageDisplayName: String,
+    completedDate: Date,
+    completedBy: {
+      id: String,
+      name: String,
+      role: String
+    },
+    handoverDate: Date, // When this stage handed over to next stage
+    receivedDate: Date,
+    receivedBy: {
+      id: String,
+      name: String,
+      role: String
+    },
+    nextStage: String,
+    status: {
+      type: String,
+      enum: ['pending', 'in-progress', 'completed', 'received'],
+      default: 'pending'
+    },
+    notes: String,
+    order: Number
+  }],
 
   status:[{
     department: String,

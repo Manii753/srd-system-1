@@ -30,6 +30,7 @@ import {
   List,
   Calendar,
   LogOut,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -127,10 +128,10 @@ export default function DynamicSidebar() {
             children: [
               { name: 'Create SRD', href: '/dashboard/admin/create', icon: Plus },
               { name: 'Sample Request', href: '/srd', icon: FileText },
-              { name: 'Sample Process', href: '/srd', icon: Package },
+              { name: 'Sample Process', href: '/sample-management/sample-process', icon: Package },
               { name: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList },
               { name: 'Dispatch Detail', href: '/samples/dispatch', icon: Truck },
-              { name: 'Reports', href: '/reports', icon: BarChart3 },
+              { name: 'Reports', href: '/sample-management/reports', icon: BarChart3 },
               { name: 'Buyer Comment', href: '/samples/buyer-comment', icon: MessageSquare },
             ]
           },
@@ -140,6 +141,7 @@ export default function DynamicSidebar() {
           { name: 'All SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
           { name: 'SRD Fields', href: '/srdfields', icon: FileSpreadsheet, gradient: 'from-green-500 to-emerald-500' },
           { name: 'Users', href: '/users', icon: Users, gradient: 'from-orange-500 to-red-500' },
+          { name: 'Permissions', href: '/permissions', icon: Shield, gradient: 'from-indigo-500 to-purple-500' },
           { name: 'Settings', href: '/settings', icon: Settings, gradient: 'from-gray-500 to-slate-600' },
         ]);
       } else if (['cutting', 'sewing', 'washing', 'finishing', 'dispatch'].includes(userRole)) {
@@ -200,10 +202,10 @@ export default function DynamicSidebar() {
                 children: [
                   { name: 'Create SRD', href: `/dashboard/${userRole}/create`, icon: Plus },
                   { name: 'Sample Request', href: '/srd', icon: FileText },
-                  { name: 'Sample Process', href: '/srd', icon: Package },
+                  { name: 'Sample Process', href: '/sample-management/sample-process', icon: Package },
                   { name: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList },
                   { name: 'Dispatch Detail', href: '/samples/dispatch', icon: Truck },
-                  { name: 'Reports', href: '/reports', icon: BarChart3 },
+                  { name: 'Reports', href: '/sample-management/reports', icon: BarChart3 },
                   { name: 'Buyer Comment', href: '/samples/buyer-comment', icon: MessageSquare },
                 ]
               });

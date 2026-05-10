@@ -11,9 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { 
   PlusCircle, Edit, Trash2, UserCheck, UserX, 
-  Mail, Shield, Calendar, Search 
+  Mail, Shield, Calendar, Search, Key
 } from 'lucide-react';
 import { toast } from 'sonner';
+import UserPermissionsModal from '@/components/UserPermissionsModal';
 
 export default function UsersManagementPage() {
   const { data: session, status } = useSession();
@@ -23,7 +24,9 @@ export default function UsersManagementPage() {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [editingPermissionsUser, setEditingPermissionsUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     name: '',
@@ -186,6 +189,33 @@ export default function UsersManagementPage() {
     }
   };
 
+  const openPermissionsModal = (user) => {
+    setEditingPermissionsUser(user);
+    setPermissionsModalOpen(true);
+  };
+
+  const handlePermissionsUpdate = async (permissions, sidebarMenuItems) => {
+    try {
+      const res = await fetch(`/api/users/${editingPermissionsUser._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissions, sidebarMenuItems })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Permissions updated successfully');
+        fetchData();
+        setPermissionsModalOpen(false);
+      } else {
+        toast.error(data.error || 'Failed to update permissions');
+      }
+    } catch (error) {
+      console.error('Error updating permissions:', error);
+      toast.error('An error occurred');
+    }
+  };
+
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -221,11 +251,11 @@ export default function UsersManagementPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-app-heading font-bold text-gray-900">User Management</h1>
-              <p className="text-gray-600 mt-1">Manage system users and permissions</p>
+              <p className="text-app-text text-gray-600 mt-1">Manage system users and permissions</p>
             </div>
             <Button onClick={openNewUserModal} className="flex items-center space-x-2">
               <PlusCircle className="h-5 w-5" />
-              <span>Add User</span>
+              <span className="text-app-text">Add User</span>
             </Button>
           </div>
 
@@ -325,7 +355,7 @@ export default function UsersManagementPage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                              <span className="text-blue-600 font-semibold">
+                              <span className="text-blue-600 font-semibold text-app-text">
                                 {user.name.charAt(0).toUpperCase()}
                               </span>
                             </div>
@@ -339,7 +369,7 @@ export default function UsersManagementPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge className={getRoleBadgeColor(user.role)}>
+                          <Badge className={`${getRoleBadgeColor(user.role)} text-app-text`}>
                             {user.role.toUpperCase()}
                           </Badge>
                         </td>
@@ -347,7 +377,7 @@ export default function UsersManagementPage() {
                           {user.department || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge className={user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          <Badge className={`${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} text-app-text`}>
                             {user.isActive ? 'Active' : 'Inactive'}
                           </Badge>
                         </td>
@@ -358,6 +388,15 @@ export default function UsersManagementPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-app-text font-medium space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openPermissionsModal(user)}
+                            title="Manage Permissions"
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            <Key className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -392,7 +431,7 @@ export default function UsersManagementPage() {
 
           {filteredUsers.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-gray-500">No users found</p>
+              <p className="text-app-text text-gray-500">No users found</p>
             </div>
           )}
         </div>
@@ -420,28 +459,30 @@ export default function UsersManagementPage() {
 
                 <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
                   <div>
-                    <Label htmlFor="name">Name *</Label>
+                    <Label htmlFor="name" className="text-app-heading">Name *</Label>
                     <Input
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
+                      className="text-app-text"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="email">Email *</Label>
+                    <Label htmlFor="email" className="text-app-heading">Email *</Label>
                     <Input
                       id="email"
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       required
+                      className="text-app-text"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="password">
+                    <Label htmlFor="password" className="text-app-heading">
                       Password {editingUser ? '(leave empty to keep current)' : '*'}
                     </Label>
                     <Input
@@ -450,14 +491,15 @@ export default function UsersManagementPage() {
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       required={!editingUser}
+                      className="text-app-text"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="role">Role *</Label>
+                    <Label htmlFor="role" className="text-app-heading">Role *</Label>
                     <select
                       id="role"
-                      className="w-full p-2 border border-gray-300 rounded"
+                      className="w-full p-2 border border-gray-300 rounded text-app-text"
                       value={formData.role}
                       onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                       required
@@ -473,12 +515,13 @@ export default function UsersManagementPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="department">Department (Optional)</Label>
+                    <Label htmlFor="department" className="text-app-heading">Department (Optional)</Label>
                     <Input
                       id="department"
                       value={formData.department}
                       onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                       placeholder="e.g., Design Team"
+                      className="text-app-text"
                     />
                   </div>
 
@@ -490,7 +533,7 @@ export default function UsersManagementPage() {
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                       className="form-checkbox h-4 w-4"
                     />
-                    <Label htmlFor="isActive">Active</Label>
+                    <Label htmlFor="isActive" className="text-app-text">Active</Label>
                   </div>
 
                   <div className="flex justify-end space-x-3 pt-4 border-t">
@@ -498,10 +541,11 @@ export default function UsersManagementPage() {
                       type="button"
                       variant="outline"
                       onClick={() => setModalOpen(false)}
+                      className="text-app-text"
                     >
                       Cancel
                     </Button>
-                    <Button type="submit">
+                    <Button type="submit" className="text-app-text">
                       {editingUser ? 'Update User' : 'Create User'}
                     </Button>
                   </div>
@@ -510,6 +554,14 @@ export default function UsersManagementPage() {
             </div>
           </>
         )}
+
+        {/* Permissions Modal */}
+        <UserPermissionsModal
+          user={editingPermissionsUser}
+          isOpen={permissionsModalOpen}
+          onClose={() => setPermissionsModalOpen(false)}
+          onSave={handlePermissionsUpdate}
+        />
 
       </div>  
     </Layout>

@@ -19,6 +19,68 @@ const userSchema = new mongoose.Schema({
   lastSeen: { type: Date, default: Date.now },
   createdAt: { type: Date, default: Date.now },
   lastLogin: Date,
+  
+  // User-specific permissions
+  permissions: {
+    // Sample Process Permissions
+    canViewAll: { type: Boolean, default: false },
+    canCompleteAnyStage: { type: Boolean, default: false },
+    canReceiveAnyStage: { type: Boolean, default: false },
+    stages: { type: [String], default: [] },
+    
+    // SRD Management Permissions
+    canCreateSRD: { type: Boolean, default: false },
+    canEditSRD: { type: Boolean, default: false },
+    canDeleteSRD: { type: Boolean, default: false },
+    canViewAllSRDs: { type: Boolean, default: false },
+    
+    // Admin Portal Permissions
+    canAccessAdminPortal: { type: Boolean, default: false },
+    canManageUsers: { type: Boolean, default: false },
+    canManageDepartments: { type: Boolean, default: false },
+    canManagePermissions: { type: Boolean, default: false },
+    canManageSRDFields: { type: Boolean, default: false },
+    canAccessSettings: { type: Boolean, default: false },
+    
+    // Reports & Data Permissions
+    canViewReports: { type: Boolean, default: false },
+    canExportData: { type: Boolean, default: false },
+    
+    // Dispatch Permissions
+    canViewDispatch: { type: Boolean, default: false },
+    canManageDispatch: { type: Boolean, default: false },
+    
+    // Buyer Comments Permissions
+    canViewBuyerComments: { type: Boolean, default: false },
+    canAddBuyerComments: { type: Boolean, default: false },
+    
+    // Sample Card Permissions
+    canViewSampleCard: { type: Boolean, default: false },
+    canEditSampleCard: { type: Boolean, default: false },
+    
+    // Cost Sheet Permissions
+    canViewCostSheets: { type: Boolean, default: false },
+    canEditCostSheets: { type: Boolean, default: false },
+    
+    // BOM Permissions
+    canViewBOM: { type: Boolean, default: false },
+    canEditBOM: { type: Boolean, default: false },
+    
+    // Planning Permissions
+    canViewPlanning: { type: Boolean, default: false },
+    canEditPlanning: { type: Boolean, default: false },
+    
+    // Order Confirmation Permissions
+    canViewOrderConfirmation: { type: Boolean, default: false },
+    canEditOrderConfirmation: { type: Boolean, default: false }
+  },
+  
+  // Sidebar Menu Configuration
+  sidebarMenuItems: {
+    type: [String],
+    default: []
+  },
+  
   pushSubscriptions: [{
     endpoint: String,
     keys: {
