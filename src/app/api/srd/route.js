@@ -146,7 +146,12 @@ export async function GET(request) {
       queryExec = queryExec
         .populate('dynamicFields.field')
         .populate('currentProductionStage')
-        .populate('productionHistory.stage');
+        .populate('productionHistory.stage')
+        .populate('BuyerDetails')
+        .populate('DispatchDetails');
+    } else {
+      // Always populate BuyerDetails for merge email picker
+      queryExec = queryExec.populate('BuyerDetails', 'name email contactPerson');
     }
 
     const srds = await queryExec;

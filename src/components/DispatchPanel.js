@@ -187,6 +187,22 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   const [approvalDialogType, setApprovalDialogType] = useState(null); // 'approve' or 'reject'
   const [approverName, setApproverName] = useState('');
 
+  // Email modal state
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailMode, setEmailMode] = useState('send'); // 'send' | 'merge'
+  const [emailTo, setEmailTo] = useState('');
+  const [emailCc, setEmailCc] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+  // Merge SRD picker state
+  const [allSRDs, setAllSRDs] = useState([]);
+  const [srdSearch, setSrdSearch] = useState('');
+  const [srdFilterBrand, setSrdFilterBrand] = useState('');
+  const [srdFilterContact, setSrdFilterContact] = useState('');
+  const [srdFilterEmail, setSrdFilterEmail] = useState('');
+  const [selectedMergeSRDs, setSelectedMergeSRDs] = useState([]);
+  const [loadingSRDs, setLoadingSRDs] = useState(false);
+
   // Dispatch details states
   const [dispatchAWB, setDispatchAWB] = useState('');
   const [dispatchQty, setDispatchQty] = useState('');
@@ -468,6 +484,73 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
   const handleDispatchToBuyer = () => {
     handleAction('dispatch_to_buyer', {});
+  };
+
+  const openEmailModal = (mode) => {
+    // Pre-fill To with buyer contact emails
+    const buyer = buyers.find(x => x._id?.toString() === selectedBuyer?.toString());
+    const contactEmails = (buyer?.contactPerson || []).map(cp => cp.email).filter(Boolean);
+    const buyerEmails = buyer?.email || [];
+    const allEmails = [...new Set([...contactEmails, ...buyerEmails])];
+    setEmailTo(allEmails.join(', '));
+    setEmailCc('');
+    setEmailSubject(`SDD-Development Sample-${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: '2-digit' })}`);
+    setEmailMode(mode);
+    // Reset merge state
+    setSrdSearch('');
+    setSrdFilterBrand('');
+    setSrdFilterContact('');
+    setSrdFilterEmail('');
+    setSelectedMergeSRDs([srd._id?.toString()]); // pre-select current SRD
+    if (mode === 'merge') {
+      setLoadingSRDs(true);
+      fetch('/api/srd?limit=200')
+        .then(r => r.json())
+        .then(data => {
+          const list = data.data || data.srds || (Array.isArray(data) ? data : []);
+          setAllSRDs(list);
+        })
+        .catch(() => setAllSRDs([]))
+        .finally(() => setLoadingSRDs(false));
+    }
+    setEmailModalOpen(true);
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailTo.trim()) {
+      toast({ title: 'Error', description: 'Please enter a recipient email', variant: 'destructive' });
+      return;
+    }
+    const srdIds = emailMode === 'merge' ? selectedMergeSRDs : [srd._id];
+    if (emailMode === 'merge' && srdIds.length === 0) {
+      toast({ title: 'Error', description: 'Please select at least one SRD to merge', variant: 'destructive' });
+      return;
+    }
+    setEmailSending(true);
+    try {
+      const res = await fetch('/api/mail/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          srdIds,
+          to: emailTo.split(',').map(e => e.trim()).filter(Boolean),
+          cc: emailCc ? emailCc.split(',').map(e => e.trim()).filter(Boolean) : [],
+          subject: emailSubject,
+          merge: emailMode === 'merge',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: 'Email sent', description: `Dispatch email sent successfully` });
+        setEmailModalOpen(false);
+      } else {
+        toast({ title: 'Failed', description: data.error || 'Failed to send email', variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setEmailSending(false);
+    }
   };
 
   const handleBuyerApproval = (approved) => {
@@ -971,6 +1054,22 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                 <Button onClick={handleDispatchToBuyer} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white h-6 text-app-text rounded-none">
                   Dispatch Sample to Buyer
                 </Button>
+                <Button
+                  onClick={() => openEmailModal('send')}
+                  disabled={loading}
+                  variant="outline"
+                  className="h-6 text-app-text rounded-none border-blue-400 text-blue-700 hover:bg-blue-50"
+                >
+                  ✉ Send Mail
+                </Button>
+                <Button
+                  onClick={() => openEmailModal('merge')}
+                  disabled={loading}
+                  variant="outline"
+                  className="h-6 text-app-text rounded-none border-purple-400 text-purple-700 hover:bg-purple-50"
+                >
+                  ⊞ Merge & Send Mail
+                </Button>
             </div>
           </div>
         )}
@@ -1133,6 +1232,227 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           </div>
         </div>
       </div>
+
+      {/* Email Modal */}
+      <Dialog open={emailModalOpen} onOpenChange={setEmailModalOpen}>
+        <DialogContent className={emailMode === 'merge' ? 'sm:max-w-3xl max-h-[90vh] overflow-y-auto' : 'sm:max-w-lg'}>
+          <DialogHeader>
+            <DialogTitle>
+              {emailMode === 'merge' ? '⊞ Merge & Send Mail' : '✉ Send Dispatch Mail'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+
+            {/* ── MERGE: SRD picker ── */}
+            {emailMode === 'merge' && (
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-gray-50 border-b border-gray-200 px-3 py-2">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Select SRDs to merge into one email</p>
+
+                  {/* Search + Filters */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Search bar */}
+                    <input
+                      type="text"
+                      value={srdSearch}
+                      onChange={e => setSrdSearch(e.target.value)}
+                      placeholder="🔍 Search by Ref No or Style..."
+                      className="col-span-2 h-7 px-2 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    />
+                    {/* Brand filter */}
+                    <input
+                      type="text"
+                      value={srdFilterBrand}
+                      onChange={e => setSrdFilterBrand(e.target.value)}
+                      placeholder="Filter by Brand..."
+                      className="h-7 px-2 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    />
+                    {/* Contact person filter */}
+                    <input
+                      type="text"
+                      value={srdFilterContact}
+                      onChange={e => setSrdFilterContact(e.target.value)}
+                      placeholder="Filter by Contact Person..."
+                      className="h-7 px-2 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    />
+                    {/* Email filter */}
+                    <input
+                      type="text"
+                      value={srdFilterEmail}
+                      onChange={e => setSrdFilterEmail(e.target.value)}
+                      placeholder="Filter by Buyer Email..."
+                      className="h-7 px-2 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    />
+                    {/* Clear filters */}
+                    {(srdSearch || srdFilterBrand || srdFilterContact || srdFilterEmail) && (
+                      <button
+                        onClick={() => { setSrdSearch(''); setSrdFilterBrand(''); setSrdFilterContact(''); setSrdFilterEmail(''); }}
+                        className="h-7 px-2 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50"
+                      >
+                        ✕ Clear filters
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* SRD list */}
+                <div className="max-h-56 overflow-y-auto">
+                  {loadingSRDs ? (
+                    <div className="text-center py-6 text-xs text-gray-400">Loading SRDs...</div>
+                  ) : (() => {
+                    const q = srdSearch.toLowerCase();
+                    const bq = srdFilterBrand.toLowerCase();
+                    const cq = srdFilterContact.toLowerCase();
+                    const eq = srdFilterEmail.toLowerCase();
+
+                    const filtered = allSRDs.filter(s => {
+                      const brand = (s.dynamicFields?.find(f => f.name?.toLowerCase() === 'brand')?.value || '').toLowerCase();
+                      const desc  = (s.dynamicFields?.find(f => ['description','style'].includes(f.name?.toLowerCase()))?.value || '').toLowerCase();
+                      const refNo = (s.refNo || '').toLowerCase();
+                      const buyerObj = s.BuyerDetails;
+                      const contacts = Array.isArray(buyerObj?.contactPerson) ? buyerObj.contactPerson : [];
+                      const contactNames = contacts.map(c => (c.name || '').toLowerCase()).join(' ');
+                      const contactEmails = [
+                        ...(buyerObj?.email || []),
+                        ...contacts.map(c => c.email || '')
+                      ].join(' ').toLowerCase();
+
+                      if (q && !refNo.includes(q) && !desc.includes(q) && !brand.includes(q)) return false;
+                      if (bq && !brand.includes(bq)) return false;
+                      if (cq && !contactNames.includes(cq)) return false;
+                      if (eq && !contactEmails.includes(eq)) return false;
+                      return true;
+                    });
+
+                    if (!filtered.length) return (
+                      <div className="text-center py-6 text-xs text-gray-400">No SRDs match your filters</div>
+                    );
+
+                    return filtered.map(s => {
+                      const id = s._id?.toString();
+                      const checked = selectedMergeSRDs.includes(id);
+                      const brand = s.dynamicFields?.find(f => f.name?.toLowerCase() === 'brand')?.value || '—';
+                      const desc  = s.dynamicFields?.find(f => ['description','style'].includes(f.name?.toLowerCase()))?.value || '—';
+                      const buyerName = s.BuyerDetails?.name || '—';
+                      const isCurrent = id === srd._id?.toString();
+
+                      return (
+                        <label
+                          key={id}
+                          className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer border-b border-gray-100 hover:bg-blue-50 text-xs ${checked ? 'bg-blue-50' : ''}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              setSelectedMergeSRDs(prev =>
+                                prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                              );
+                            }}
+                            className="h-3.5 w-3.5 accent-blue-600"
+                          />
+                          <span className="font-mono font-semibold text-blue-700 w-24 shrink-0">{s.refNo}</span>
+                          <span className="text-gray-500 w-16 shrink-0">{brand}</span>
+                          <span className="text-gray-700 flex-1 truncate">{desc}</span>
+                          <span className="text-gray-400 shrink-0">{buyerName}</span>
+                          {isCurrent && <span className="text-blue-500 text-[10px] shrink-0">(current)</span>}
+                        </label>
+                      );
+                    });
+                  })()}
+                </div>
+
+                {/* Selection summary */}
+                <div className="bg-gray-50 border-t border-gray-200 px-3 py-1.5 flex items-center justify-between">
+                  <span className="text-xs text-gray-600">
+                    <strong>{selectedMergeSRDs.length}</strong> SRD{selectedMergeSRDs.length !== 1 ? 's' : ''} selected
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const filtered = allSRDs.filter(s => {
+                          const q = srdSearch.toLowerCase();
+                          const bq = srdFilterBrand.toLowerCase();
+                          const brand = (s.dynamicFields?.find(f => f.name?.toLowerCase() === 'brand')?.value || '').toLowerCase();
+                          const refNo = (s.refNo || '').toLowerCase();
+                          if (q && !refNo.includes(q) && !brand.includes(q)) return false;
+                          if (bq && !brand.includes(bq)) return false;
+                          return true;
+                        });
+                        setSelectedMergeSRDs(filtered.map(s => s._id?.toString()));
+                      }}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Select all visible
+                    </button>
+                    <button onClick={() => setSelectedMergeSRDs([])} className="text-xs text-red-500 hover:underline">
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── To / Cc / Subject ── */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">To *</Label>
+              <input
+                type="text"
+                value={emailTo}
+                onChange={e => setEmailTo(e.target.value)}
+                placeholder="buyer@example.com, another@example.com"
+                className="w-full h-8 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
+              />
+              <p className="text-xs text-gray-400">Separate multiple emails with commas</p>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Cc</Label>
+              <input
+                type="text"
+                value={emailCc}
+                onChange={e => setEmailCc(e.target.value)}
+                placeholder="cc@example.com"
+                className="w-full h-8 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Subject</Label>
+              <input
+                type="text"
+                value={emailSubject}
+                onChange={e => setEmailSubject(e.target.value)}
+                className="w-full h-8 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
+              />
+            </div>
+
+            {/* Email body preview */}
+            <div className="border border-gray-200 rounded p-3 bg-gray-50 text-xs text-gray-700 space-y-1">
+              <p className="font-semibold text-gray-500 mb-1">Email Preview:</p>
+              <p>Hi,</p>
+              <p>Pls note courier no <strong>DHL {srd.DispatchDetails?.awb || '—'}</strong> of below mentioned samples dispatch on Dated <strong>{srd.DispatchDetails?.sampleDispatchDate ? new Date(srd.DispatchDetails.sampleDispatchDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: '2-digit' }) : '—'}</strong></p>
+              <p className="italic text-gray-400">[Table with {emailMode === 'merge' ? `${selectedMergeSRDs.length} SRD(s)` : '1 SRD'}]</p>
+              <p className="italic">If you have any questions relating to the above, please do not hesitate to contact <strong>Usman and Tayyab</strong> directly at Usman@lazienda.com.pk or Tayyab@lazienda.com.pk</p>
+              <p>Thanks,<br/>Regards,<br/>Vmd Team<br/><strong>Lazienda Denim Pvt Ltd</strong> | Lahore Office - 22km Ferozpur Road Near Khan Khaca Railway Station</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailModalOpen(false)} disabled={emailSending}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendEmail}
+              disabled={emailSending || !emailTo.trim() || (emailMode === 'merge' && selectedMergeSRDs.length === 0)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {emailSending ? 'Sending...' : emailMode === 'merge' ? `⊞ Merge & Send (${selectedMergeSRDs.length})` : '✉ Send Mail'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Approval Dialog */}
       <Dialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen}>
