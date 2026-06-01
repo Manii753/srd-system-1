@@ -1,7 +1,5 @@
 'use client';
 
-import DynamicSidebar from '@/components/layout/DynamicSidebar';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -24,16 +22,6 @@ export default function SampleManagementLayout({ children }) {
     );
   }
 
-  return (
-    <SidebarProvider defaultOpen={true}>
-      <DynamicSidebar />
-      <SidebarInset>
-        <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-          <main className="flex-1 min-h-0 overflow-y-auto">
-            {children}
-          </main>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
-  );
+  // Each page under /sample-management handles its own Layout wrapper
+  return <>{children}</>;
 }

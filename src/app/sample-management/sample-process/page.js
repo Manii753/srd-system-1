@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/lib/use-toast';
+import Layout from '@/components/layout/Layout';
 import { Loader2, ArrowLeft, Clock } from 'lucide-react';
 
 // Dynamic Stage Configuration
@@ -275,9 +276,11 @@ export default function SampleProcessPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        </div>
+      </Layout>
     );
   }
 
@@ -305,6 +308,7 @@ export default function SampleProcessPage() {
     const totalTime = calculateTotalTime(selectedSrd);
 
     return (
+      <Layout>
       <div className="container mx-auto p-4 max-w-7xl">
         {/* Back Button */}
         <button 
@@ -319,7 +323,7 @@ export default function SampleProcessPage() {
         <div className="border-2 border-gray-300 bg-white overflow-hidden">
           {/* Header */}
           <div className="bg-gray-100 border-b-2 border-gray-300 px-3 py-2 flex items-center justify-between">
-            <h1 className="text-sm font-bold text-gray-900 uppercase">Sample Process Tracking</h1>
+            <h1 className="text-sm font-bold text-gray-900 uppercase">SR In Process Tracking</h1>
             {totalTime && (
               <div className="flex items-center gap-2 text-xs">
                 <Clock className="h-3 w-3 text-gray-600" />
@@ -513,14 +517,16 @@ export default function SampleProcessPage() {
           </div>
         </div>
       </div>
+      </Layout>
     );
   }
 
   // List View
   return (
+    <Layout>
     <div className="container mx-auto p-4 max-w-7xl">
       <div className="mb-4">
-        <h1 className="text-xl font-bold text-gray-900">Sample Process Management</h1>
+        <h1 className="text-xl font-bold text-gray-900">SR In Process Management</h1>
         <p className="text-xs text-gray-600 mt-1">
           {permissions.canViewAll 
             ? 'Viewing all samples - Click on any row to view details' 
@@ -592,5 +598,6 @@ export default function SampleProcessPage() {
         </div>
       )}
     </div>
+    </Layout>
   );
 }

@@ -146,11 +146,12 @@ export async function GET(request) {
       queryExec = queryExec
         .populate('dynamicFields.field')
         .populate('currentProductionStage')
-        .populate('productionHistory.stage')
-        .populate('BuyerDetails')
-        .populate('DispatchDetails');
-    } else {
-      // Always populate BuyerDetails for merge email picker
+        .populate('productionHistory.stage');
+    }
+
+    // Optionally populate BuyerDetails (used by merge email picker)
+    const shouldPopulateBuyer = searchParams.get('populateBuyer') === 'true';
+    if (shouldPopulateBuyer) {
       queryExec = queryExec.populate('BuyerDetails', 'name email contactPerson');
     }
 

@@ -2,6 +2,20 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Buyer from '@/models/Buyer';
 
+export async function GET(request, context) {
+  try {
+    await dbConnect();
+    const { id } = await context.params;
+    const buyer = await Buyer.findById(id);
+    if (!buyer) {
+      return NextResponse.json({ success: false, error: 'Buyer not found' }, { status: 404 });
+    }
+    return NextResponse.json({ success: true, data: buyer });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
 export async function PATCH(request, context) {
   try {
     await dbConnect();

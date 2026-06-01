@@ -1,421 +1,800 @@
 'use client';
-
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { useToast } from '@/lib/use-toast';
-import { Loader2, Download, Filter, Eye, Edit, Trash2 } from 'lucide-react';
+import Layout from '@/components/layout/Layout';
+import {
+  Loader2, Download, Filter, ChevronDown,
+  Search, X, Plus, Trash2, Edit2, Printer,
+} from 'lucide-react';
 
-// Dynamic Stage Configuration
-const STAGE_CONFIG = [
-  { id: 'pattern', name: 'Pattern', department: 'pattern', order: 1 },
-  { id: 'sewing', name: 'Sewing', department: 'sewing', order: 2 },
-  { id: 'washing', name: 'Washing', department: 'washing', order: 3 },
-  { id: 'finishing', name: 'Finishing', department: 'finishing', order: 4 },
-  { id: 'vmd', name: 'VMD', department: 'vmd', order: 5 }
+// ── helpers ───────────────────────────────────────────────────────────────────
+function getDyn(srd, ...names) {
+  // Normalize: lowercase, strip punctuation and extra spaces
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normNames = names.map(norm);
+  for (const f of (srd.dynamicFields || [])) {
+    if (f?.value != null && f.value !== '') {
+      const fn = norm(f.name || '');
+      if (normNames.includes(fn)) return String(f.value);
+    }
+  }
+  return '';
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
+}
+
+function getDeptVal(srd, dept) {
+  return Array.isArray(srd.status)
+    ? (srd.status.find(s => s.department === dept)?.value || 'pending')
+    : 'pending';
+}
+
+function getOverallStatus(srd) {
+  const vals = ['vmd', 'cad', 'mmc', 'commercial'].map(d => getDeptVal(srd, d));
+  if (vals.every(v => v === 'approved')) return 'Completed';
+  if (vals.some(v => v === 'flagged')) return 'Flagged';
+  if (vals.some(v => v === 'approved' || v === 'in-progress')) return 'In Progress';
+  return 'Not Started';
+}
+
+function getDelayDays(srd) {
+  const created = srd.createdAt ? new Date(srd.createdAt) : null;
+  if (!created) return 0;
+  return Math.floor((Date.now() - created) / 86400000);
+}
+
+// Stage columns shown in the expanded sub-row
+const STAGE_COLS = [
+  { key: 'labeling',  label: 'Labeling' },
+  { key: 'print',     label: 'Print' },
+  { key: 'emb',       label: 'Emb' },
+  { key: 'cad',       label: 'Cad' },
+  { key: 'sewing',    label: 'Sewing' },
+  { key: 'washing',   label: 'Washing' },
+  { key: 'finishing', label: 'Finishing' },
 ];
 
-export default function SampleProcessReportPage() {
+function getStageStatus(srd, stageKey) {
+  const sp = srd.sampleProcess || [];
+  const s = sp.find(x => x.stage?.toLowerCase() === stageKey.toLowerCase());
+  if (!s) return null;
+  if (s.completedDate) return { text: fmtDate(s.completedDate), cls: 'bg-green-600 text-white', done: true };
+  if (s.receivedDate)  return { text: 'In Process', cls: 'bg-yellow-500 text-white', done: false };
+  return { text: 'ok', cls: 'bg-green-100 text-green-800', done: false };
+}
+
+// ── Group Manager Modal ───────────────────────────────────────────────────────
+function GroupManagerModal({ open, onClose, groups, allBrands, allUsers, onSave, onDelete }) {
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({ name: '', brands: [], assignedUsers: [], color: '#2d6a2d' });
+
+  if (!open) return null;
+
+  const startNew = () => {
+    setForm({ name: '', brands: [], assignedUsers: [], color: '#2d6a2d' });
+    setEditing('new');
+  };
+  const startEdit = (g) => {
+    setForm({
+      name: g.name,
+      brands: g.brands || [],
+      assignedUsers: (g.assignedUsers || []).map(u => u._id || u),
+      color: g.color || '#2d6a2d',
+    });
+    setEditing(g._id);
+  };
+
+  const toggleBrand = (b) => setForm(f => ({
+    ...f,
+    brands: f.brands.includes(b) ? f.brands.filter(x => x !== b) : [...f.brands, b],
+  }));
+  const toggleUser = (id) => setForm(f => ({
+    ...f,
+    assignedUsers: f.assignedUsers.includes(id) ? f.assignedUsers.filter(x => x !== id) : [...f.assignedUsers, id],
+  }));
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3 border-b">
+          <h2 className="font-bold text-gray-900">Manage Report Groups</h2>
+          <button onClick={onClose}><X className="h-5 w-5 text-gray-500" /></button>
+        </div>
+
+        {editing ? (
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-600 uppercase">Group Name *</label>
+              <input
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                className="mt-1 w-full h-9 px-3 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-600 text-sm"
+                placeholder="e.g. BHW-MR Group"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 uppercase">Color</label>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="color"
+                  value={form.color}
+                  onChange={e => setForm(f => ({ ...f, color: e.target.value }))}
+                  className="h-9 w-16 border border-gray-300 rounded cursor-pointer"
+                />
+                <span className="text-sm text-gray-500">{form.color}</span>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 uppercase">Brands ({form.brands.length} selected)</label>
+              <div className="mt-1 flex flex-wrap gap-1.5 max-h-40 overflow-y-auto border border-gray-200 rounded p-2">
+                {allBrands.length === 0 && <span className="text-xs text-gray-400">No brands found in SRDs</span>}
+                {allBrands.map(b => (
+                  <button
+                    key={b}
+                    onClick={() => toggleBrand(b)}
+                    className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${form.brands.includes(b) ? 'bg-green-700 text-white border-green-700' : 'border-gray-300 text-gray-600 hover:border-green-600'}`}
+                  >
+                    {b}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 uppercase">Assigned Users ({form.assignedUsers.length} selected)</label>
+              <div className="mt-1 space-y-1 max-h-40 overflow-y-auto border border-gray-200 rounded p-2">
+                {allUsers.map(u => (
+                  <label key={u._id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 px-1 py-0.5 rounded">
+                    <input
+                      type="checkbox"
+                      checked={form.assignedUsers.includes(u._id)}
+                      onChange={() => toggleUser(u._id)}
+                      className="accent-green-700"
+                    />
+                    <span className="text-sm text-gray-700">{u.name}</span>
+                    <span className="text-xs text-gray-400">{u.role}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => { onSave(editing, form); setEditing(null); }}
+                disabled={!form.name.trim()}
+                className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white rounded-md text-sm font-medium disabled:opacity-40"
+              >
+                Save Group
+              </button>
+              <button
+                onClick={() => setEditing(null)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto p-4">
+            <button
+              onClick={startNew}
+              className="mb-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-700 hover:bg-green-800 text-white rounded-md text-sm font-medium"
+            >
+              <Plus className="h-4 w-4" /> New Group
+            </button>
+            {groups.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-8">No groups yet. Create one above.</p>
+            )}
+            <div className="space-y-2">
+              {groups.map(g => (
+                <div key={g._id} className="flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ background: g.color || '#2d6a2d' }} />
+                    <span className="font-medium text-sm text-gray-800">{g.name}</span>
+                    <span className="text-xs text-gray-400">{(g.brands || []).length} brands · {(g.assignedUsers || []).length} users</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => startEdit(g)} className="p-1 hover:bg-blue-50 rounded">
+                      <Edit2 className="h-4 w-4 text-blue-600" />
+                    </button>
+                    <button onClick={() => onDelete(g._id)} className="p-1 hover:bg-red-50 rounded">
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
+export default function SRReportPage() {
+  const router = useRouter();
   const { data: session } = useSession();
   const { toast } = useToast();
-  const [srds, setSrds] = useState([]);
+
+  const [srds, setSrds]       = useState([]);
+  const [groups, setGroups]   = useState([]);
+  const [users, setUsers]     = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState('all'); // all, in-progress, completed, pending
-  const [expandedRows, setExpandedRows] = useState(new Set()); // Track which rows are expanded
+
+  // filters
+  const [search, setSearch]                 = useState('');
+  const [filterStatus, setFilterStatus]     = useState('all');
+  const [filterBrand, setFilterBrand]       = useState('');
+  const [filterType, setFilterType]         = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo]     = useState('');
+  const [showFilters, setShowFilters]       = useState(false);
+
+  // active group tab (null = All)
+  const [activeGroup, setActiveGroup] = useState(null);
+
+  // expanded rows
+  const [expandedRows, setExpandedRows] = useState(new Set());
+
+  // group manager modal
+  const [showGroupManager, setShowGroupManager] = useState(false);
 
   useEffect(() => {
-    fetchSRDs();
+    Promise.all([
+      fetch('/api/srd').then(r => r.json()),
+      fetch('/api/report-groups').then(r => r.json()),
+      fetch('/api/users').then(r => r.json()),
+    ]).then(([srdData, groupData, userData]) => {
+      if (srdData.success)   setSrds(srdData.data || []);
+      if (groupData.success) setGroups(groupData.data || []);
+      if (userData.success || Array.isArray(userData))
+        setUsers(Array.isArray(userData) ? userData : (userData.data || userData.users || []));
+    }).catch(() => toast({ title: 'Error', description: 'Failed to load data', variant: 'destructive' }))
+      .finally(() => setLoading(false));
   }, []);
 
-  const fetchSRDs = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/srd');
-      const data = await response.json();
-      
-      if (data.success) {
-        setSrds(data.data);
+  const allBrands = useMemo(() => [...new Set(srds.map(s => getDyn(s, 'brand')).filter(Boolean))].sort(), [srds]);
+  const allTypes  = useMemo(() => [...new Set(srds.map(s => getDyn(s, 'sample type', 'sampleType')).filter(Boolean))].sort(), [srds]);
+
+  // filter + group
+  const filtered = useMemo(() => {
+    let list = srds;
+
+    if (activeGroup) {
+      const g = groups.find(x => x._id === activeGroup);
+      if (g?.brands?.length) list = list.filter(s => g.brands.includes(getDyn(s, 'brand')));
+    }
+
+    const q = search.toLowerCase();
+    return list.filter(srd => {
+      if (q &&
+        !srd.refNo?.toLowerCase().includes(q) &&
+        !getDyn(srd, 'brand').toLowerCase().includes(q) &&
+        !getDyn(srd, 'description', 'style').toLowerCase().includes(q) &&
+        !getDyn(srd, 'buyer style ref').toLowerCase().includes(q)
+      ) return false;
+      if (filterBrand && getDyn(srd, 'brand').toLowerCase() !== filterBrand.toLowerCase()) return false;
+      if (filterType  && getDyn(srd, 'sample type', 'sampleType').toLowerCase() !== filterType.toLowerCase()) return false;
+      if (filterStatus !== 'all') {
+        const os = getOverallStatus(srd).toLowerCase().replace(' ', '-');
+        if (!os.includes(filterStatus.replace('in-progress', 'progress'))) return false;
       }
-    } catch (error) {
-      console.error('Error fetching SRDs:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch SRDs',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Toggle row expansion
-  const toggleRowExpansion = (srdId) => {
-    const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(srdId)) {
-      newExpanded.delete(srdId);
-    } else {
-      newExpanded.add(srdId);
-    }
-    setExpandedRows(newExpanded);
-  };
-
-  // Get current status summary for an SRD
-  const getCurrentStatusSummary = (srd) => {
-    const sampleProcess = srd.sampleProcess || [];
-    
-    if (sampleProcess.length === 0) {
-      return { text: 'Not Started', color: 'bg-gray-400 text-white' };
-    }
-
-    const completedCount = sampleProcess.filter(s => s.completedDate).length;
-    const totalStages = STAGE_CONFIG.length;
-
-    if (completedCount === totalStages) {
-      return { text: 'Completed', color: 'bg-green-700 text-white' };
-    }
-
-    // Find current stage (first non-completed stage)
-    const currentStage = sampleProcess.find(s => !s.completedDate);
-    if (currentStage) {
-      const stageConfig = STAGE_CONFIG.find(c => c.id === currentStage.stage);
-      const stageName = stageConfig?.name || currentStage.stage;
-      
-      if (currentStage.receivedDate) {
-        return { 
-          text: `${completedCount} March in Process`, 
-          color: 'bg-yellow-600 text-white',
-          detail: `At ${stageName}`
-        };
-      }
-      return { 
-        text: `${completedCount} March in Process`, 
-        color: 'bg-yellow-600 text-white',
-        detail: `Waiting for ${stageName}`
-      };
-    }
-
-    return { text: 'In Progress', color: 'bg-yellow-600 text-white' };
-  };
-
-  // Get stage date display (date when completed)
-  const getStageDate = (srd, stageId) => {
-    const sampleProcess = srd.sampleProcess || [];
-    const stage = sampleProcess.find(s => s.stage === stageId);
-    
-    if (!stage) return '-';
-    
-    if (stage.completedDate) {
-      const date = new Date(stage.completedDate);
-      return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-    }
-    
-    return '-';
-  };
-
-  // Get approval status
-  const getApprovalStatus = (srd) => {
-    if (srd.internalApproved) return 'Internal Approved';
-    if (srd.BuyerApproved) return 'Buyer Approved';
-    if (srd.sampleDispatchedToBuyer) return 'Dispatched to Buyer';
-    
-    const sampleProcess = srd.sampleProcess || [];
-    const allCompleted = sampleProcess.length > 0 && 
-      sampleProcess.every(s => s.completedDate);
-    
-    if (allCompleted) return 'Awaiting Approval';
-    return '-';
-  };
-
-  // Filter SRDs based on status
-  const getFilteredSrds = () => {
-    if (filterStatus === 'all') return srds;
-    
-    return srds.filter(srd => {
-      const sampleProcess = srd.sampleProcess || [];
-      const completedCount = sampleProcess.filter(s => s.completedDate).length;
-      const totalStages = STAGE_CONFIG.length;
-      
-      if (filterStatus === 'completed') {
-        return completedCount === totalStages;
-      } else if (filterStatus === 'in-progress') {
-        return completedCount > 0 && completedCount < totalStages;
-      } else if (filterStatus === 'pending') {
-        return completedCount === 0;
-      }
-      
+      if (filterDateFrom && new Date(srd.createdAt) < new Date(filterDateFrom)) return false;
+      if (filterDateTo   && new Date(srd.createdAt) > new Date(filterDateTo + 'T23:59:59')) return false;
       return true;
     });
+  }, [srds, activeGroup, groups, search, filterStatus, filterBrand, filterType, filterDateFrom, filterDateTo]);
+
+  const hasFilters = search || filterStatus !== 'all' || filterBrand || filterType || filterDateFrom || filterDateTo;
+  const clearFilters = () => {
+    setSearch(''); setFilterStatus('all'); setFilterBrand('');
+    setFilterType(''); setFilterDateFrom(''); setFilterDateTo('');
   };
 
+  const toggleRow = id => setExpandedRows(prev => {
+    const s = new Set(prev);
+    s.has(id) ? s.delete(id) : s.add(id);
+    return s;
+  });
+
+  // ── CSV Export ──────────────────────────────────────────────────────────────
+  const handleExport = () => {
+    const headers = [
+      'S.No', 'Inquiry #', 'S.Request Date', 'SR Raised Date', 'Delay Days',
+      'Buyer', 'Sample Type', 'Priority', 'Buyer Style Ref', 'Description',
+      'Color/Wash', 'Size', 'Qty', 'Current Status', 'Target Dispatch Date',
+      'Actual Dispatch Date', 'Approval Status', 'Reason',
+    ];
+
+    const rows = filtered.map((srd, idx) => {
+      const brand      = getDyn(srd, 'brand');
+      const sampleType = getDyn(srd, 'sample type', 'sampleType');
+      const priority   = getDyn(srd, 'priority', 'Priority');
+      const styleRef   = getDyn(srd, 'buyer style ref', 'style ref', 'Buyer Style Ref');
+      const desc       = getDyn(srd, 'description', 'style', 'Description');
+      const color      = getDyn(srd, 'wash / color', 'wash/color', 'color/wash', 'color', 'wash');
+      const size       = getDyn(srd, 'sample request size', 'size', 'Size');
+      const qty        = getDyn(srd, 'sample request qty.', 'sample request qty', 'qty', 'quantity', 'Qty');
+      const delay      = getDelayDays(srd);
+      const os         = getOverallStatus(srd);
+      const targetDate = fmtDate(getDyn(srd, 'sample etd', 'target dispatch date', 'etd', 'dispatch date'));
+      const actualDate = srd.sampleDispatchedToBuyer ? fmtDate(srd.sampleDipatchedtoBuyerDate) : '';
+
+      let approvalStatus = '';
+      if (srd.BuyerApproved) approvalStatus = 'Buyer Approved';
+      else if (srd.internalApproved) approvalStatus = 'Internal Approved';
+      else if (srd.internalApprovedDate && !srd.internalApproved) approvalStatus = 'Internal Rejected';
+
+      const reason =
+        (srd.internalRejectedReasons || []).map(r => r.reason).join('; ') ||
+        (srd.BuyerRejectedReasons    || []).map(r => r.reason).join('; ');
+
+      return [
+        idx + 1,
+        srd.refNo,
+        fmtDate(srd.createdAt),
+        fmtDate(srd.createdAt),
+        delay > 0 ? delay : '',
+        brand,
+        sampleType,
+        priority,
+        styleRef,
+        desc,
+        color,
+        size,
+        qty,
+        os,
+        targetDate,
+        actualDate,
+        approvalStatus,
+        reason,
+      ];
+    });
+
+    const escape = v => {
+      const s = String(v ?? '');
+      return s.includes(',') || s.includes('"') || s.includes('\n')
+        ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+
+    const csv = [headers, ...rows].map(row => row.map(escape).join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SR-Report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ── Print ────────────────────────────────────────────────────────────────────
+  const handlePrint = () => {
+    const win = window.open('', '_blank');
+    if (!win) return;
+
+    const rows = filtered.map((srd, idx) => {
+      const brand      = getDyn(srd, 'brand');
+      const sampleType = getDyn(srd, 'sample type', 'sampleType');
+      const priority   = getDyn(srd, 'priority', 'Priority');
+      const styleRef   = getDyn(srd, 'buyer style ref', 'style ref', 'Buyer Style Ref');
+      const desc       = getDyn(srd, 'description', 'style', 'Description');
+      const color      = getDyn(srd, 'wash / color', 'wash/color', 'color/wash', 'color', 'wash');
+      const size       = getDyn(srd, 'sample request size', 'size', 'Size');
+      const qty        = getDyn(srd, 'sample request qty.', 'sample request qty', 'qty', 'quantity', 'Qty');
+      const delay      = getDelayDays(srd);
+      const os         = getOverallStatus(srd);
+      const targetDate = fmtDate(getDyn(srd, 'sample etd', 'target dispatch date', 'etd', 'dispatch date'));
+      const actualDate = srd.sampleDispatchedToBuyer ? fmtDate(srd.sampleDipatchedtoBuyerDate) : '-';
+
+      let approvalStatus = '-';
+      if (srd.BuyerApproved) approvalStatus = 'Buyer Approved';
+      else if (srd.internalApproved) approvalStatus = 'Internal Approved';
+      else if (srd.internalApprovedDate && !srd.internalApproved) approvalStatus = 'Internal Rejected';
+
+      const reason =
+        (srd.internalRejectedReasons || []).map(r => r.reason).join(', ') ||
+        (srd.BuyerRejectedReasons    || []).map(r => r.reason).join(', ') || '-';
+
+      const delayCls = delay > 7 ? 'color:#dc2626' : delay > 3 ? 'color:#ea580c' : 'color:#374151';
+      const osCls    = os === 'Completed' ? 'color:#15803d;font-weight:600'
+                     : os === 'Flagged'   ? 'color:#ea580c;font-weight:600'
+                     : os === 'In Progress' ? 'color:#ca8a04;font-weight:600'
+                     : 'color:#9ca3af';
+      const appCls   = approvalStatus.includes('Rejected') ? 'color:#dc2626'
+                     : approvalStatus !== '-' ? 'color:#15803d' : 'color:#9ca3af';
+
+      return `<tr>
+        <td>${idx + 1}</td>
+        <td style="color:#2563eb;font-weight:500">${srd.refNo}</td>
+        <td>${fmtDate(srd.createdAt)}</td>
+        <td>${fmtDate(srd.createdAt)}</td>
+        <td style="${delayCls};font-weight:500">${delay > 0 ? delay : '-'}</td>
+        <td>${brand || '-'}</td>
+        <td>${sampleType || '-'}</td>
+        <td>${priority || '-'}</td>
+        <td>${styleRef || '-'}</td>
+        <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${desc}">${desc || '-'}</td>
+        <td>${color || '-'}</td>
+        <td>${size || '-'}</td>
+        <td>${qty || '-'}</td>
+        <td style="${osCls}">${os}</td>
+        <td>${targetDate || '-'}</td>
+        <td>${actualDate}</td>
+        <td style="${appCls}">${approvalStatus}</td>
+        <td style="color:#dc2626">${reason}</td>
+      </tr>`;
+    }).join('');
+
+    const activeGroupName = activeGroup
+      ? (groups.find(g => g._id === activeGroup)?.name || 'Group')
+      : 'All';
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SR In Process Report</title>
+  <style>
+    @page { size: A4 landscape; margin: 10mm; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 8px; color: #111; margin: 0; }
+    h1 { font-size: 13px; font-weight: 700; margin: 0 0 2px 0; }
+    .meta { font-size: 8px; color: #666; margin-bottom: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 7.5px; }
+    th { background: #f3f4f6; border: 0.5px solid #d1d5db; padding: 3px 5px; text-align: left; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
+    td { border: 0.5px solid #e5e7eb; padding: 2.5px 5px; vertical-align: middle; }
+    tr:nth-child(even) td { background: #f9fafb; }
+    tr:hover td { background: #eff6ff; }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <h1>SR In Process Report</h1>
+  <div class="meta">
+    Group: ${activeGroupName} &nbsp;|&nbsp;
+    Records: ${filtered.length} &nbsp;|&nbsp;
+    Generated: ${new Date().toLocaleString('en-GB')}
+    ${hasFilters ? '&nbsp;|&nbsp;<strong>Filters active</strong>' : ''}
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>S.No</th><th>Inquiry #</th><th>S.Request Date</th><th>SR Raised Date</th>
+        <th>Delay Days</th><th>Buyer</th><th>Sample Type</th><th>Priority</th>
+        <th>Buyer Style Ref</th><th>Description</th><th>Color/Wash</th><th>Size</th>
+        <th>Qty</th><th>Current Status</th><th>Target Dispatch</th>
+        <th>Actual Dispatch</th><th>Approval Status</th><th>Reason</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <script>window.onload = () => { window.print(); }<\/script>
+</body>
+</html>`;
+
+    win.document.write(html);
+    win.document.close();
+  };
+
+  // ── Group CRUD ───────────────────────────────────────────────────────────────
+  async function handleSaveGroup(id, form) {
+    const isNew = id === 'new';
+    const url    = isNew ? '/api/report-groups' : `/api/report-groups/${id}`;
+    const method = isNew ? 'POST' : 'PATCH';
+    const res  = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    const data = await res.json();
+    if (data.success) {
+      setGroups(prev => isNew ? [...prev, data.data] : prev.map(g => g._id === id ? data.data : g));
+      toast({ title: isNew ? 'Group created' : 'Group updated' });
+    }
+  }
+
+  async function handleDeleteGroup(id) {
+    if (!confirm('Delete this group?')) return;
+    await fetch(`/api/report-groups/${id}`, { method: 'DELETE' });
+    setGroups(prev => prev.filter(g => g._id !== id));
+    if (activeGroup === id) setActiveGroup(null);
+    toast({ title: 'Group deleted' });
+  }
+
+  // ── Loading state ────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-green-700" />
+        </div>
+      </Layout>
     );
   }
 
-  const filteredSrds = getFilteredSrds();
-
+  // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="container mx-auto p-4 max-w-full">
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-app-heading font-bold text-gray-900">Sample Process Report</h1>
-          <p className="text-app-text text-gray-600 mt-1">
-            Comprehensive view of all sample requests and their progress
-          </p>
-        </div>
-        
-        {/* Filter and Export */}
-        <div className="flex items-center gap-3">
+    <Layout>
+      <div style={{ padding: '16px', minWidth: 0, width: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
+
+        {/* Header */}
+        <div className="mb-3 flex items-start justify-between">
+          <div>
+            <h1 className="text-app-heading font-bold text-gray-900">SR In Process Report</h1>
+            <p className="text-app-text text-gray-500 mt-0.5">Comprehensive view of all sample requests and their progress</p>
+          </div>
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-gray-600" />
+            <button
+              onClick={() => setShowFilters(v => !v)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm border rounded hover:bg-gray-50 ${hasFilters ? 'border-green-600 text-green-700 bg-green-50' : 'border-gray-300 text-gray-700'}`}
+            >
+              <Filter className="h-4 w-4" /> Filters{hasFilters ? ' (active)' : ''}
+            </button>
             <select
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-1.5 text-app-text focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={e => setFilterStatus(e.target.value)}
+              className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-green-600"
             >
               <option value="all">All Status</option>
-              <option value="pending">Pending</option>
+              <option value="not-started">Not Started</option>
               <option value="in-progress">In Progress</option>
               <option value="completed">Completed</option>
+              <option value="flagged">Flagged</option>
             </select>
+            <button
+              onClick={handleExport}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-white bg-green-700 hover:bg-green-800 rounded-md"
+            >
+              <Download className="h-4 w-4" /> Export
+            </button>
+            <button
+              onClick={handlePrint}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-white bg-green-700 hover:bg-green-800 rounded-md"
+            >
+              <Printer className="h-4 w-4" /> Print
+            </button>
           </div>
-          
+        </div>
+
+        {/* Group Tabs */}
+        <div className="flex items-center gap-1.5 mb-3 flex-wrap">
           <button
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-2 px-4 py-1.5 text-app-text font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
+            onClick={() => setActiveGroup(null)}
+            className={`px-3 py-1 text-sm rounded-full border transition-colors ${!activeGroup ? 'bg-green-700 text-white border-green-700' : 'border-gray-300 text-gray-600 hover:border-green-600'}`}
           >
-            <Download className="h-4 w-4" />
-            Export
+            All ({srds.length})
+          </button>
+          {groups.map(g => (
+            <button
+              key={g._id}
+              onClick={() => setActiveGroup(g._id)}
+              style={activeGroup === g._id ? { background: g.color, borderColor: g.color } : {}}
+              className={`px-3 py-1 text-sm rounded-full border transition-colors ${activeGroup === g._id ? 'text-white' : 'border-gray-300 text-gray-600 hover:border-green-600'}`}
+            >
+              <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ background: activeGroup === g._id ? 'white' : g.color }} />
+              {g.name}
+            </button>
+          ))}
+          <button
+            onClick={() => setShowGroupManager(true)}
+            className="px-3 py-1 text-sm rounded-full border border-dashed border-gray-400 text-gray-500 hover:border-green-600 hover:text-green-700 inline-flex items-center gap-1"
+          >
+            <Plus className="h-3.5 w-3.5" /> Manage Groups
           </button>
         </div>
-      </div>
 
-      {/* Report Table */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-app-heading font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200">Date</th>
-                <th className="px-4 py-3 text-left text-app-heading font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200">INQUIRY #</th>
-                <th className="px-4 py-3 text-left text-app-heading font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200">VMD</th>
-                <th className="px-4 py-3 text-left text-app-heading font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200">CAD</th>
-                <th className="px-4 py-3 text-left text-app-heading font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200">MMC</th>
-                <th className="px-4 py-3 text-left text-app-heading font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200">COM</th>
-                <th className="px-4 py-3 text-left text-app-heading font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200">STATUS</th>
-                <th className="px-4 py-3 text-left text-app-heading font-semibold text-gray-700 uppercase tracking-wider">ACTIONS</th>
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="mb-3 border border-gray-200 rounded-lg bg-gray-50 p-3">
+            <div className="grid grid-cols-6 gap-2 items-end">
+              <div className="col-span-2 relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search Ref No, Brand, Description..."
+                  className="w-full pl-7 h-8 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-600"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-0.5">Brand</label>
+                <select
+                  value={filterBrand}
+                  onChange={e => setFilterBrand(e.target.value)}
+                  className="w-full h-8 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-600"
+                >
+                  <option value="">All Brands</option>
+                  {allBrands.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-0.5">Sample Type</label>
+                <select
+                  value={filterType}
+                  onChange={e => setFilterType(e.target.value)}
+                  className="w-full h-8 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-600"
+                >
+                  <option value="">All Types</option>
+                  {allTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-0.5">Date From</label>
+                <input
+                  type="date"
+                  value={filterDateFrom}
+                  onChange={e => setFilterDateFrom(e.target.value)}
+                  className="w-full h-8 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-600"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-0.5">Date To</label>
+                <div className="flex gap-1">
+                  <input
+                    type="date"
+                    value={filterDateTo}
+                    onChange={e => setFilterDateTo(e.target.value)}
+                    className="flex-1 h-8 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-600"
+                  />
+                  {hasFilters && (
+                    <button onClick={clearFilters} className="h-8 w-8 flex items-center justify-center border border-red-300 text-red-500 rounded hover:bg-red-50">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-gray-400">{filtered.length} of {srds.length} records</p>
+          </div>
+        )}
+
+        {/* Table */}
+        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflowX: 'auto', width: '100%', boxSizing: 'border-box' }}>
+          <table className="text-app-text border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
+            <thead>
+              <tr className="bg-gray-100 border-b border-gray-300">
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '48px' }}>S.No</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '110px' }}>Inquiry #</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '120px' }}>S.Request Date</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '120px' }}>SR Raised Date</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '90px' }}>Delay Days</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '120px' }}>Buyer</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '130px' }}>Sample Type</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '90px' }}>Priority</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '130px' }}>Buyer Style Ref</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '180px' }}>Description</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '120px' }}>Color/Wash</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '70px' }}>Size</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '60px' }}>Qty</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '160px' }}>Current Status Summary</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '140px' }}>Target Dispatch Date</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '140px' }}>Actual Dispatch Date</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '140px' }}>Approval Status</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase whitespace-nowrap" style={{ minWidth: '120px' }}>Reason</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredSrds.length === 0 ? (
+            <tbody className="divide-y divide-gray-200">
+              {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-4 py-8 text-center text-app-text text-gray-500">
-                    No samples found
-                  </td>
+                  <td colSpan="18" className="px-4 py-10 text-center text-sm text-gray-400">No records match your filters</td>
                 </tr>
-              ) : (
-                filteredSrds.map((srd, index) => {
-                  const statusSummary = getCurrentStatusSummary(srd);
-                  const isExpanded = expandedRows.has(srd._id);
-                  
-                  // Get department statuses
-                  const vmdStatus = srd.status?.find(s => s.department === 'vmd');
-                  const cadStatus = srd.status?.find(s => s.department === 'cad');
-                  const mmcStatus = srd.status?.find(s => s.department === 'mmc');
-                  const comStatus = srd.status?.find(s => s.department === 'commercial');
-                  
-                  const getStatusDisplay = (status) => {
-                    if (!status) return { text: '-', color: 'text-gray-400' };
-                    
-                    const now = new Date();
-                    const updatedAt = new Date(status.updatedAt);
-                    const daysDiff = Math.floor((now - updatedAt) / (1000 * 60 * 60 * 24));
-                    
-                    if (status.value === 'approved') {
-                      return { 
-                        text: updatedAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric' }), 
-                        color: 'text-gray-900' 
-                      };
-                    } else if (daysDiff > 0) {
-                      return { 
-                        text: `Delayed ( ${daysDiff} days )`, 
-                        color: 'text-red-600 font-medium' 
-                      };
-                    }
-                    return { text: 'Pending', color: 'text-gray-500' };
-                  };
-                  
-                  const vmdDisplay = getStatusDisplay(vmdStatus);
-                  const cadDisplay = getStatusDisplay(cadStatus);
-                  const mmcDisplay = getStatusDisplay(mmcStatus);
-                  const comDisplay = getStatusDisplay(comStatus);
-                  
-                  return (
-                    <>
-                      {/* Main Row */}
-                      <tr key={srd._id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 text-app-text text-gray-900 border-r border-gray-200">
-                          {srd.createdAt ? new Date(srd.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' }) : '-'}
-                        </td>
-                        <td className="px-4 py-3 text-app-text font-medium text-blue-600 border-r border-gray-200">
+              ) : filtered.map((srd, idx) => {
+                const isExpanded = expandedRows.has(srd._id);
+                const brand      = getDyn(srd, 'brand');
+                const sampleType = getDyn(srd, 'sample type', 'sampleType');
+                const priority   = getDyn(srd, 'priority', 'Priority');
+                const styleRef   = getDyn(srd, 'buyer style ref', 'style ref', 'Buyer Style Ref');
+                const desc       = getDyn(srd, 'description', 'style', 'Description');
+                const color      = getDyn(srd, 'wash / color', 'wash/color', 'color/wash', 'color', 'wash');
+                const size       = getDyn(srd, 'sample request size', 'size', 'Size');
+                const qty        = getDyn(srd, 'sample request qty.', 'sample request qty', 'qty', 'quantity', 'Qty');
+                const delay      = getDelayDays(srd);
+                const os         = getOverallStatus(srd);
+                const osCls      = os === 'Completed' ? 'text-green-700 font-semibold'
+                                 : os === 'Flagged'   ? 'text-orange-600 font-semibold'
+                                 : os === 'In Progress' ? 'text-yellow-600 font-semibold'
+                                 : 'text-gray-400';
+
+                let approvalStatus = '';
+                if (srd.BuyerApproved) approvalStatus = 'Buyer Approved';
+                else if (srd.internalApproved) approvalStatus = 'Internal Approved';
+                else if (srd.internalApprovedDate && !srd.internalApproved) approvalStatus = 'Internal Rejected';
+
+                const reason =
+                  (srd.internalRejectedReasons || []).map(r => r.reason).join(', ') ||
+                  (srd.BuyerRejectedReasons    || []).map(r => r.reason).join(', ');
+
+                return (
+                  <React.Fragment key={srd._id}>
+                    <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => toggleRow(srd._id)}>
+                      <td className="px-3 py-2.5 text-gray-500 border-r border-gray-200 whitespace-nowrap">{idx + 1}</td>
+                      <td className="px-3 py-2.5 border-r border-gray-200 whitespace-nowrap">
+                        <button
+                          onClick={e => { e.stopPropagation(); router.push(`/srd/${srd._id}`); }}
+                          className="text-blue-600 hover:underline font-medium"
+                        >
                           {srd.refNo}
-                        </td>
-                        <td className={`px-4 py-3 text-app-text border-r border-gray-200 ${vmdDisplay.color}`}>
-                          {vmdDisplay.text}
-                        </td>
-                        <td className={`px-4 py-3 text-app-text border-r border-gray-200 ${cadDisplay.color}`}>
-                          {cadDisplay.text}
-                        </td>
-                        <td className={`px-4 py-3 text-app-text border-r border-gray-200 ${mmcDisplay.color}`}>
-                          {mmcDisplay.text}
-                        </td>
-                        <td className={`px-4 py-3 text-app-text border-r border-gray-200 ${comDisplay.color}`}>
-                          {comDisplay.text}
-                        </td>
-                        <td className="px-4 py-3 border-r border-gray-200">
-                          <button
-                            onClick={() => toggleRowExpansion(srd._id)}
-                            className="text-left w-full"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className={`inline-block px-2 py-1 rounded text-app-text font-medium ${statusSummary.color}`}>
-                                {statusSummary.text}
-                              </span>
-                              <svg 
-                                className={`h-4 w-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                                fill="none" 
-                                viewBox="0 0 24 24" 
-                                stroke="currentColor"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </div>
-                          </button>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <button className="p-1 hover:bg-blue-50 rounded transition-colors" title="View">
-                              <Eye className="h-4 w-4 text-blue-600" />
-                            </button>
-                            <button className="p-1 hover:bg-gray-100 rounded transition-colors" title="Edit">
-                              <Edit className="h-4 w-4 text-gray-600" />
-                            </button>
-                            <button className="p-1 hover:bg-red-50 rounded transition-colors" title="Delete">
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </button>
+                        </button>
+                      </td>
+                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{fmtDate(srd.createdAt)}</td>
+                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{fmtDate(srd.createdAt)}</td>
+                      <td className={`px-3 py-2.5 border-r border-gray-200 whitespace-nowrap font-medium ${delay > 7 ? 'text-red-600' : delay > 3 ? 'text-orange-500' : 'text-gray-700'}`}>
+                        {delay > 0 ? delay : '-'}
+                      </td>
+                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{brand || '-'}</td>
+                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{sampleType || '-'}</td>
+                      <td className="px-3 py-2.5 border-r border-gray-200 whitespace-nowrap">
+                        {priority ? (
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${priority.toLowerCase() === 'high' ? 'bg-red-100 text-red-700' : priority.toLowerCase() === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
+                            {priority}
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{styleRef || '-'}</td>
+                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200" style={{ maxWidth: '180px' }}>
+                        <span className="block truncate" title={desc}>{desc || '-'}</span>
+                      </td>
+                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{color || '-'}</td>
+                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{size || '-'}</td>
+                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{qty || '-'}</td>
+                      <td className={`px-3 py-2.5 border-r border-gray-200 whitespace-nowrap ${osCls}`}>
+                        <div className="flex items-center gap-1">
+                          <span>{os}</span>
+                          <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">
+                        {fmtDate(getDyn(srd, 'sample etd', 'target dispatch date', 'etd', 'dispatch date')) || '-'}
+                      </td>
+                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">
+                        {srd.sampleDispatchedToBuyer ? fmtDate(srd.sampleDipatchedtoBuyerDate) : '-'}
+                      </td>
+                      <td className={`px-3 py-2.5 border-r border-gray-200 whitespace-nowrap text-xs font-medium ${approvalStatus.includes('Rejected') ? 'text-red-600' : approvalStatus ? 'text-green-700' : 'text-gray-400'}`}>
+                        {approvalStatus || '-'}
+                      </td>
+                      <td className="px-3 py-2.5 text-red-600 text-xs whitespace-nowrap">{reason || ''}</td>
+                    </tr>
+
+                    {/* Expanded stage sub-row */}
+                    {isExpanded && (
+                      <tr key={`exp-${srd._id}`} className="bg-yellow-50 border-t border-yellow-200">
+                        <td colSpan="18" className="px-4 py-2">
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {STAGE_COLS.map(sc => {
+                              const st = getStageStatus(srd, sc.key);
+                              return (
+                                <div key={sc.key} className="flex flex-col items-center min-w-[70px]">
+                                  <span className="text-xs text-gray-500 font-semibold mb-0.5">{sc.label}</span>
+                                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${st ? st.cls : 'bg-gray-100 text-gray-400'}`}>
+                                    {st ? st.text : '-'}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </td>
                       </tr>
-                      
-                      {/* Expandable Stage Details Row */}
-                      {isExpanded && (
-                        <tr className="bg-blue-50 border-t border-blue-100">
-                          <td colSpan="8" className="px-4 py-3">
-                            <div className="grid grid-cols-7 gap-3">
-                              {/* Pattern */}
-                              <div className="text-center">
-                                <div className="text-app-heading font-semibold text-gray-700 mb-1">Pattern</div>
-                                <div className={`text-app-text px-2 py-1 rounded ${getStageDate(srd, 'pattern') !== '-' ? 'bg-green-500 text-white font-medium' : 'text-gray-500'}`}>
-                                  {getStageDate(srd, 'pattern')}
-                                </div>
-                              </div>
-                              
-                              {/* Cutting */}
-                              <div className="text-center">
-                                <div className="text-app-heading font-semibold text-gray-700 mb-1">Cutting</div>
-                                <div className="text-app-text text-gray-500">-</div>
-                              </div>
-                              
-                              {/* Sewing */}
-                              <div className="text-center">
-                                <div className="text-app-heading font-semibold text-gray-700 mb-1">Sewing</div>
-                                <div className={`text-app-text px-2 py-1 rounded ${getStageDate(srd, 'sewing') !== '-' ? 'bg-green-500 text-white font-medium' : 'text-gray-500'}`}>
-                                  {getStageDate(srd, 'sewing')}
-                                </div>
-                              </div>
-                              
-                              {/* Washing */}
-                              <div className="text-center">
-                                <div className="text-app-heading font-semibold text-gray-700 mb-1">Washing</div>
-                                <div className={`text-app-text px-2 py-1 rounded ${getStageDate(srd, 'washing') !== '-' ? 'bg-yellow-500 text-white font-medium' : 'text-gray-500'}`}>
-                                  {getStageDate(srd, 'washing')}
-                                </div>
-                              </div>
-                              
-                              {/* Finishing */}
-                              <div className="text-center">
-                                <div className="text-app-heading font-semibold text-gray-700 mb-1">Finishing</div>
-                                <div className={`text-app-text px-2 py-1 rounded ${getStageDate(srd, 'finishing') !== '-' ? 'bg-green-500 text-white font-medium' : 'text-gray-500'}`}>
-                                  {getStageDate(srd, 'finishing')}
-                                </div>
-                              </div>
-                              
-                              {/* VMD */}
-                              <div className="text-center">
-                                <div className="text-app-heading font-semibold text-gray-700 mb-1">VMD</div>
-                                <div className={`text-app-text px-2 py-1 rounded ${getStageDate(srd, 'vmd') !== '-' ? 'bg-green-500 text-white font-medium' : 'text-gray-500'}`}>
-                                  {getStageDate(srd, 'vmd')}
-                                </div>
-                              </div>
-                              
-                              {/* Dispatch */}
-                              <div className="text-center">
-                                <div className="text-app-heading font-semibold text-gray-700 mb-1">Dispatch</div>
-                                <div className="text-app-text text-gray-500">
-                                  {srd.dispatchDate ? new Date(srd.dispatchDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '-'}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </>
-                  );
-                })
-              )}
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
-      </div>
 
-      {/* Summary Stats */}
-      <div className="mt-4 grid grid-cols-4 gap-4">
-        <div className="border-2 border-gray-300 bg-white p-3">
-          <div className="text-app-text text-gray-600">Total Samples</div>
-          <div className="text-app-heading text-2xl font-bold text-gray-900">{srds.length}</div>
-        </div>
-        <div className="border-2 border-gray-300 bg-white p-3">
-          <div className="text-app-text text-gray-600">In Progress</div>
-          <div className="text-app-heading text-2xl font-bold text-yellow-600">
-            {srds.filter(srd => {
-              const sp = srd.sampleProcess || [];
-              const completed = sp.filter(s => s.completedDate).length;
-              return completed > 0 && completed < STAGE_CONFIG.length;
-            }).length}
-          </div>
-        </div>
-        <div className="border-2 border-gray-300 bg-white p-3">
-          <div className="text-app-text text-gray-600">Completed</div>
-          <div className="text-app-heading text-2xl font-bold text-green-700">
-            {srds.filter(srd => {
-              const sp = srd.sampleProcess || [];
-              return sp.filter(s => s.completedDate).length === STAGE_CONFIG.length;
-            }).length}
-          </div>
-        </div>
-        <div className="border-2 border-gray-300 bg-white p-3">
-          <div className="text-app-text text-gray-600">Pending</div>
-          <div className="text-app-heading text-2xl font-bold text-gray-500">
-            {srds.filter(srd => {
-              const sp = srd.sampleProcess || [];
-              return sp.filter(s => s.completedDate).length === 0;
-            }).length}
-          </div>
-        </div>
+        {/* Group Manager Modal */}
+        <GroupManagerModal
+          open={showGroupManager}
+          onClose={() => setShowGroupManager(false)}
+          groups={groups}
+          allBrands={allBrands}
+          allUsers={users}
+          onSave={handleSaveGroup}
+          onDelete={handleDeleteGroup}
+        />
       </div>
-    </div>
+    </Layout>
   );
 }

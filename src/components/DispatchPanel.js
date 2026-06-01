@@ -384,19 +384,34 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
   // Re-match buyer when Brand field changes — create if doesn't exist
   useEffect(() => {
-    if (!buyers.length && !srd.dynamicFields) return;
+    if (!buyers.length || !srd.dynamicFields) return;
     const brandField = srd.dynamicFields?.find(f => f.name === 'Brand' || f.name === 'Buyer');
     const brandName = brandField?.value?.trim();
     if (!brandName) return;
 
     const match = buyers.find(b => b.name.toLowerCase() === brandName.toLowerCase());
     if (match) {
+      // Only update if not already selected
       if (match._id?.toString() !== selectedBuyer?.toString()) {
         setSelectedBuyer(match._id);
         if (match.address) setDispatchAddress(match.address);
       }
-    } else {
-      // Brand doesn't exist — create it automatically
+      // Always refresh the buyer record to get latest contactPerson data
+      fetch(`/api/buyers/${match._id}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && data.data) {
+            setBuyers(prev => prev.map(b =>
+              b._id?.toString() === match._id?.toString() ? data.data : b
+            ));
+            if (data.data.address && !dispatchAddress) {
+              setDispatchAddress(data.data.address);
+            }
+          }
+        })
+        .catch(e => console.error('Failed to refresh buyer', e));
+    } else if (!selectedBuyer) {
+      // Only auto-create if no buyer is selected at all
       fetch('/api/buyers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -504,7 +519,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     setSelectedMergeSRDs([srd._id?.toString()]); // pre-select current SRD
     if (mode === 'merge') {
       setLoadingSRDs(true);
-      fetch('/api/srd?limit=200')
+      fetch('/api/srd?limit=200&populateBuyer=true')
         .then(r => r.json())
         .then(data => {
           const list = data.data || data.srds || (Array.isArray(data) ? data : []);
@@ -1051,22 +1066,20 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           <div className="grid grid-cols-12 border-gray-300">
             <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
             <div className="col-span-10 px-2 py-0.5 flex gap-1.5 items-center">
-                <Button onClick={handleDispatchToBuyer} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white h-6 text-app-text rounded-none">
-                  Dispatch Sample to Buyer
+                <Button onClick={handleDispatchToBuyer} disabled={loading} className="bg-green-700 hover:bg-green-800 text-[white!important] h-6 text-app-text rounded-md">
+                  <span className='text-white'>Dispatch Sample to Buyer</span>
                 </Button>
                 <Button
                   onClick={() => openEmailModal('send')}
                   disabled={loading}
-                  variant="outline"
-                  className="h-6 text-app-text rounded-none border-blue-400 text-blue-700 hover:bg-blue-50"
+                  className="h-6 text-app-text rounded-md bg-green-700 hover:bg-green-800 text-white border-0"
                 >
                   ✉ Send Mail
                 </Button>
                 <Button
                   onClick={() => openEmailModal('merge')}
                   disabled={loading}
-                  variant="outline"
-                  className="h-6 text-app-text rounded-none border-purple-400 text-purple-700 hover:bg-purple-50"
+                  className="h-6 text-app-text rounded-md bg-green-700 hover:bg-green-800 text-white border-0"
                 >
                   ⊞ Merge & Send Mail
                 </Button>
@@ -1446,7 +1459,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <Button
               onClick={handleSendEmail}
               disabled={emailSending || !emailTo.trim() || (emailMode === 'merge' && selectedMergeSRDs.length === 0)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-green-700 hover:bg-green-800 text-white"
             >
               {emailSending ? 'Sending...' : emailMode === 'merge' ? `⊞ Merge & Send (${selectedMergeSRDs.length})` : '✉ Send Mail'}
             </Button>

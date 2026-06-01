@@ -18,7 +18,7 @@ const AVAILABLE_MENU_ITEMS = [
   { id: 'samples-management', name: 'Samples Management' },
   { id: 'create-srd', name: 'Create SRD' },
   { id: 'sample-request', name: 'Sample Request' },
-  { id: 'sample-process', name: 'Sample Process' },
+  { id: 'sample-process', name: 'SR In Process' },
   { id: 'sample-card', name: 'Sample Card' },
   { id: 'dispatch', name: 'Dispatch Detail' },
   { id: 'reports', name: 'Reports' },

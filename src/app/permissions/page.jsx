@@ -28,7 +28,7 @@ const AVAILABLE_MENU_ITEMS = [
   { id: 'samples-management', name: 'Samples Management' },
   { id: 'create-srd', name: 'Create SRD' },
   { id: 'sample-request', name: 'Sample Request' },
-  { id: 'sample-process', name: 'Sample Process' },
+  { id: 'sample-process', name: 'SR In Process' },
   { id: 'sample-card', name: 'Sample Card' },
   { id: 'dispatch', name: 'Dispatch Detail' },
   { id: 'reports', name: 'Reports' },
@@ -442,7 +442,7 @@ export default function PermissionsManagementPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-app-heading font-bold text-gray-900">Role Permissions</h1>
-              <p className="text-app-text text-gray-600 mt-1">Manage sample process permissions for each role</p>
+              <p className="text-app-text text-gray-600 mt-1">Manage SR in process permissions for each role</p>
             </div>
             <Button onClick={openNewPermissionModal} className="flex items-center space-x-2">
               <PlusCircle className="h-5 w-5" />
