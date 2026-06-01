@@ -29,7 +29,7 @@ export default function DynamicDepartmentDashboard() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('cards');
 
-  // List of production stages that should use ProductionStageDashboard
+  // List of production stages that should use the new stage dashboard
   const productionStages = ['cutting', 'sewing', 'washing', 'finishing', 'pattren'];
   const isProductionStage = productionStages.includes(departmentSlug);
 
@@ -38,6 +38,12 @@ export default function DynamicDepartmentDashboard() {
 
     if (!session) {
       router.push('/login');
+      return;
+    }
+
+    // Redirect production stage workers to the new unified stage dashboard
+    if (isProductionStage) {
+      router.replace('/dashboard/stage');
       return;
     }
 

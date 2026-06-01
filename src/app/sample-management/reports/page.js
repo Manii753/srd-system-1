@@ -35,8 +35,16 @@ function getDeptVal(srd, dept) {
 }
 
 function getOverallStatus(srd) {
+  // If in production, show current production stage
+  if (srd.inProduction && srd.currentProductionStage) {
+    return 'In Production';
+  }
+  if (srd.inProduction && !srd.currentProductionStage) {
+    return 'Production Complete';
+  }
+  // Otherwise show department approval status
   const vals = ['vmd', 'cad', 'mmc', 'commercial'].map(d => getDeptVal(srd, d));
-  if (vals.every(v => v === 'approved')) return 'Completed';
+  if (vals.every(v => v === 'approved')) return 'Ready for Production';
   if (vals.some(v => v === 'flagged')) return 'Flagged';
   if (vals.some(v => v === 'approved' || v === 'in-progress')) return 'In Progress';
   return 'Not Started';
@@ -223,6 +231,7 @@ export default function SRReportPage() {
   const [srds, setSrds]       = useState([]);
   const [groups, setGroups]   = useState([]);
   const [users, setUsers]     = useState([]);
+  const [prodStages, setProdStages] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // filters
@@ -248,11 +257,13 @@ export default function SRReportPage() {
       fetch('/api/srd').then(r => r.json()),
       fetch('/api/report-groups').then(r => r.json()),
       fetch('/api/users').then(r => r.json()),
-    ]).then(([srdData, groupData, userData]) => {
-      if (srdData.success)   setSrds(srdData.data || []);
-      if (groupData.success) setGroups(groupData.data || []);
+      fetch('/api/production-stages').then(r => r.json()),
+    ]).then(([srdData, groupData, userData, stagesData]) => {
+      if (srdData.success)    setSrds(srdData.data || []);
+      if (groupData.success)  setGroups(groupData.data || []);
       if (userData.success || Array.isArray(userData))
         setUsers(Array.isArray(userData) ? userData : (userData.data || userData.users || []));
+      if (stagesData.success) setProdStages((stagesData.data || []).filter(s => s.isActive).sort((a,b) => a.order - b.order));
     }).catch(() => toast({ title: 'Error', description: 'Failed to load data', variant: 'destructive' }))
       .finally(() => setLoading(false));
   }, []);
@@ -400,9 +411,11 @@ export default function SRReportPage() {
         (srd.BuyerRejectedReasons    || []).map(r => r.reason).join(', ') || '-';
 
       const delayCls = delay > 7 ? 'color:#dc2626' : delay > 3 ? 'color:#ea580c' : 'color:#374151';
-      const osCls    = os === 'Completed' ? 'color:#15803d;font-weight:600'
-                     : os === 'Flagged'   ? 'color:#ea580c;font-weight:600'
-                     : os === 'In Progress' ? 'color:#ca8a04;font-weight:600'
+      const osCls    = os === 'Production Complete' ? 'color:#15803d;font-weight:600'
+                     : os === 'In Production'      ? 'color:#2563eb;font-weight:600'
+                     : os === 'Ready for Production' ? 'color:#7c3aed;font-weight:600'
+                     : os === 'Flagged'            ? 'color:#ea580c;font-weight:600'
+                     : os === 'In Progress'        ? 'color:#ca8a04;font-weight:600'
                      : 'color:#9ca3af';
       const appCls   = approvalStatus.includes('Rejected') ? 'color:#dc2626'
                      : approvalStatus !== '-' ? 'color:#15803d' : 'color:#9ca3af';
@@ -692,9 +705,11 @@ export default function SRReportPage() {
                 const qty        = getDyn(srd, 'sample request qty.', 'sample request qty', 'qty', 'quantity', 'Qty');
                 const delay      = getDelayDays(srd);
                 const os         = getOverallStatus(srd);
-                const osCls      = os === 'Completed' ? 'text-green-700 font-semibold'
-                                 : os === 'Flagged'   ? 'text-orange-600 font-semibold'
-                                 : os === 'In Progress' ? 'text-yellow-600 font-semibold'
+                const osCls      = os === 'Production Complete' ? 'text-green-700 font-semibold'
+                                 : os === 'In Production'      ? 'text-blue-600 font-semibold'
+                                 : os === 'Ready for Production' ? 'text-purple-600 font-semibold'
+                                 : os === 'Flagged'            ? 'text-orange-600 font-semibold'
+                                 : os === 'In Progress'        ? 'text-yellow-600 font-semibold'
                                  : 'text-gray-400';
 
                 let approvalStatus = '';
@@ -761,19 +776,35 @@ export default function SRReportPage() {
                     {isExpanded && (
                       <tr key={`exp-${srd._id}`} className="bg-yellow-50 border-t border-yellow-200">
                         <td colSpan="18" className="px-4 py-2">
-                          <div className="flex items-center gap-1 flex-wrap">
-                            {STAGE_COLS.map(sc => {
-                              const st = getStageStatus(srd, sc.key);
-                              return (
-                                <div key={sc.key} className="flex flex-col items-center min-w-[70px]">
-                                  <span className="text-xs text-gray-500 font-semibold mb-0.5">{sc.label}</span>
-                                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${st ? st.cls : 'bg-gray-100 text-gray-400'}`}>
-                                    {st ? st.text : '-'}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
+                          {srd.inProduction ? (
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {prodStages.map(ps => {
+                                // Find this stage in the SRD's productionHistory
+                                const histEntry = (srd.productionHistory || []).find(h =>
+                                  String(h.stage) === String(ps._id) ||
+                                  h.stageName?.toLowerCase() === ps.name?.toLowerCase()
+                                );
+                                const isCurrent = String(srd.currentProductionStage) === String(ps._id);
+                                let cls = 'bg-gray-100 text-gray-400';
+                                let text = '-';
+                                if (histEntry?.status === 'completed') {
+                                  cls = 'bg-green-600 text-white';
+                                  text = histEntry.endDate ? fmtDate(histEntry.endDate) : 'Done';
+                                } else if (isCurrent || histEntry?.status === 'in-progress') {
+                                  cls = 'bg-yellow-500 text-white';
+                                  text = 'In Process';
+                                }
+                                return (
+                                  <div key={ps._id} className="flex flex-col items-center min-w-[80px]">
+                                    <span className="text-xs text-gray-500 font-semibold mb-0.5">{ps.displayName || ps.name}</span>
+                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${cls}`}>{text}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">Not in production yet</span>
+                          )}
                         </td>
                       </tr>
                     )}

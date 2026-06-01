@@ -606,7 +606,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         )}
       </div> */}
 
-      {/* Dispatch Approval - Excel Style */}
+      {/* Dispatch Approval - Excel Style — only visible to vmd and admin */}
+      {(session?.user?.role === 'admin' || session?.user?.role === 'vmd') && (
       <div className="border border-gray-300 bg-white">
         {/* Section Header */}
         <div className="flex justify-between bg-gray-100 border-b border-gray-300 px-2 py-0 items-center h-6">
@@ -792,8 +793,17 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
 
       </div>
+      )} {/* end vmd/admin only — Conditions */}
 
-      <div className="border border-gray-300 bg-white mt-2">
+      <div className={`border border-gray-300 bg-white mt-2 relative ${!srd.inDispatch && !srd.sampleDispatchedToBuyer ? 'pointer-events-none' : ''}`}>
+        {/* Locked overlay */}
+        {!srd.inDispatch && !srd.sampleDispatchedToBuyer && (
+          <div className="absolute inset-0 z-10 bg-white/60 flex items-center justify-center">
+            <span className="bg-white border border-orange-300 rounded-lg px-4 py-2 text-sm text-orange-700 font-medium shadow">
+              🔒 Available when production reaches the Dispatch stage
+            </span>
+          </div>
+        )}
         {/* Header */}
         <div className="flex bg-gray-100 border-b border-gray-300 h-6 items-center justify-between">
           <div className=" px-2 py-0.5">
@@ -806,7 +816,6 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           </div>
         </div>
 
-        {/* Sample Dispatch Date | Awb # | Attach Front Pic */}
         <div className="grid grid-cols-12 border-b border-gray-300">
           <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
             <span className="text-app-text font-semibold text-gray-700">Sample Dispatch Date</span>
@@ -1086,9 +1095,10 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             </div>
           </div>
         )}
+        {/* End of dispatch details content */}
       </div>
 
-      <div className="border border-gray-300 bg-white mt-2">
+      <div className={`border border-gray-300 bg-white mt-2 ${session?.user?.role !== 'admin' && session?.user?.role !== 'vmd' ? 'hidden' : ''}`}>
         {/* Header */}
         <div className="flex justify-between bg-gray-100 border-b border-gray-300 px-2 py-0 items-center h-6">
           <div className="">
@@ -1245,6 +1255,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           </div>
         </div>
       </div>
+
 
       {/* Email Modal */}
       <Dialog open={emailModalOpen} onOpenChange={setEmailModalOpen}>

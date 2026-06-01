@@ -90,12 +90,12 @@ export default function ProductionStagesPage() {
     }
 
     async function handleDelete(stage) {
-        if (!confirm(`Delete production stage "${stage.name}"?`)) return;
+        if (!confirm(`Delete production stage "${stage.name}"? This cannot be undone.`)) return;
         try {
             const res = await fetch(`/api/production-stages/${stage._id}`, { method: 'DELETE' });
             const data = await res.json();
             if (data.success) {
-                toast.success('Production stage deleted');
+                toast.success(data.message || 'Production stage deleted');
                 fetchStages();
             } else {
                 toast.error(data.error || 'Failed to delete stage');

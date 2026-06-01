@@ -8,7 +8,7 @@ import {
   LayoutDashboard, FileText, Settings, Users, Package,
   PanelLeftClose, PanelLeftOpen, Plus, FileSpreadsheet,
   BarChart3, ChevronDown, Truck, MessageSquare, ClipboardList,
-  DollarSign, List, Calendar, LogOut, Shield,
+  DollarSign, List, Calendar, LogOut, Shield, Factory, Wrench,
 } from 'lucide-react';
 
 const COLLAPSED_KEY = 'sidebar_collapsed';
@@ -104,15 +104,25 @@ export default function DynamicSidebar() {
           { name: 'Cost Sheets', href: '#', icon: DollarSign },
           { name: 'Bom', href: '#', icon: List },
           { name: 'Planning', href: '#', icon: Calendar },
+          { name: 'Production', href: '/dashboard/production-manager', icon: Factory },
           { name: 'All SRDs', href: '/srd', icon: FileText },
           { name: 'SRD Fields', href: '/srdfields', icon: FileSpreadsheet },
           { name: 'Users', href: '/users', icon: Users },
           { name: 'Permissions', href: '/permissions', icon: Shield },
           { name: 'Settings', href: '/settings', icon: Settings },
+          { name: 'SR Diagnostics', href: '/settings/diagnose', icon: Wrench },
         ]);
       } else if (['cutting','sewing','washing','finishing','dispatch'].includes(userRole)) {
         const names = { cutting:'Cutting', sewing:'Sewing', washing:'Washing', finishing:'Finishing', dispatch:'Dispatch' };
-        setMenuItems([{ name: names[userRole], href: `/dashboard/${userRole}`, icon: LayoutDashboard }]);
+        setMenuItems([
+          { name: 'Home', href: '/home', icon: LayoutDashboard },
+          { name: names[userRole] + ' Stage', href: '/dashboard/stage', icon: Factory },
+        ]);
+      } else if (userRole === 'production-manager') {
+        setMenuItems([
+          { name: 'Home', href: '/home', icon: LayoutDashboard },
+          { name: 'Production', href: '/dashboard/production-manager', icon: Factory },
+        ]);
       } else {
         const items = [
           { name: 'Home', href: '/home', icon: LayoutDashboard },
@@ -123,6 +133,7 @@ export default function DynamicSidebar() {
           items.push({ name: 'Cost Sheets', href: '#', icon: DollarSign });
           items.push({ name: 'Bom', href: '#', icon: List });
           items.push({ name: 'Planning', href: '#', icon: Calendar });
+          items.push({ name: 'Production', href: '/dashboard/vmd/production', icon: Factory });
         }
         setMenuItems(items);
       }
