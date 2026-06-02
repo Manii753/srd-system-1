@@ -9,6 +9,7 @@ import ProductionControl from '@/components/ProductionControl';
 import { useToast } from '@/lib/use-toast';
 import { FileText } from 'lucide-react';
 import DispatchPanel from '@/components/DispatchPanel';
+import WashReportUploader from '@/components/WashReportUploader';
 
 export default function SRDDetailPage() {
   const { data: session, status } = useSession();
@@ -186,6 +187,15 @@ export default function SRDDetailPage() {
           onHeaderRightContent={setExcelHeaderRightContent}
           onSaveRef={(fn) => { saveRef.current = fn; }}
         />
+
+        {/* Wash Analysis Reports */}
+        <div className="mt-2 px-0">
+          <WashReportUploader
+            srd={srd}
+            canEdit={userRole === 'vmd' || userRole === 'admin' || userRole === 'mmc'}
+            onSrdUpdate={(data) => setSrd(prev => ({ ...prev, ...data }))}
+          />
+        </div>
 
         {/* Dispatch Panel — always visible for VMD/Admin */}
         {/* {(userRole === 'vmd' || userRole === 'admin') && (

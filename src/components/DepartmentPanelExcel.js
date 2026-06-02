@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Trash2, Star, Upload, Printer, FileSpreadsheet, Loader2, Plus, X, Columns, Rows, DiscIcon } from 'lucide-react';
+import { AlertCircle, Trash2, Star, Upload, Printer, FileSpreadsheet, Loader2, Plus, X, Columns, Rows, DiscIcon, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import UploadImage from './UploadImage';
@@ -30,6 +30,7 @@ const DispatchPanel = dynamic(() => import('./DispatchPanel'), {
   loading: () => <div className="p-4 text-center">Loading Dispatch Panel...</div>
 });
 import { Send } from 'lucide-react';
+import WashReportUploader from './WashReportUploader';
 import { checkCustomRoutes } from 'next/dist/lib/load-custom-routes';
 
 // Debounced input: keeps local state while typing so parent re-renders don't revert the value
@@ -238,6 +239,8 @@ export default function DepartmentPanelExcel({
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [fileViewerUrl, setFileViewerUrl] = useState(null);
+  const [fileViewerName, setFileViewerName] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
   const [sections, setSections] = useState([]);
   const [formPagination, setFormPagination] = useState({ enabled: true, itemsPerPage: 12 });
@@ -1460,7 +1463,7 @@ export default function DepartmentPanelExcel({
                         vmd: 'bg-gray-100',
                         cad: 'bg-amber-200',
                         commercial: 'bg-emerald-100',
-                        mmc: 'bg-sky-200',
+                        mmc: 'bg-gray-200',
                       };
                       const headerBg = headerDeptBgColor[headerOwner] || 'bg-gray-50';
 
@@ -2104,14 +2107,31 @@ export default function DepartmentPanelExcel({
 
                             if (hasAssets) {
                               const sourceFieldState = findFieldState(info.sourceFieldId, info.fieldDef);
+                              const isFile = info.type === 'file';
                               const previewUrls = info.type === 'image'
                                 ? normalizeAssetEntries(sourceFieldState?.value, { kind: 'image' }).map(a => getAssetUrl(a)).filter(Boolean)
                                 : [];
+                              const fileAssetForView = isFile
+                                ? normalizeAssetEntries(sourceFieldState?.value, { kind: 'file' })[0]
+                                : null;
+                              const fileUrlForView = fileAssetForView ? getAssetUrl(fileAssetForView) : null;
+                              const fileLabelForView = fileAssetForView ? getAssetLabel(fileAssetForView, info.name) : info.name;
                               return (
                                 <div key={info.sourceFieldId} className="flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5">
                                   <span className="text-[10px] font-medium text-emerald-700">
-                                    {info.name} attached
+                                    {info.name} attached{info.assetCount > 1 ? ` (${info.assetCount})` : ''}
                                   </span>
+                                  {/* Eye button for file types */}
+                                  {isFile && fileUrlForView && (
+                                    <button
+                                      type="button"
+                                      className="h-4 w-4 inline-flex items-center justify-center rounded bg-blue-100 hover:bg-blue-200 text-blue-600"
+                                      onClick={() => { setFileViewerUrl(fileUrlForView); setFileViewerName(fileLabelForView); }}
+                                      title={`View ${info.name}`}
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                    </button>
+                                  )}
                                   {previewUrls.length > 0 && <AttachmentPreview urls={previewUrls} />}
                                   {canUploadToSource && (
                                     <>

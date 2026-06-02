@@ -131,6 +131,14 @@ const srdSchema = new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now }
   }],
 
+  // Wash Analysis Report (single Excel file with before & after wash data)
+  washAnalysisReport: {
+    url: { type: String, default: null },
+    name: { type: String, default: null },
+    uploadedAt: { type: Date, default: null },
+    uploadedBy: { type: String, default: null },
+  },
+
   // Images (optional)
   images: [String],
 
