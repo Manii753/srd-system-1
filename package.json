@@ -51,6 +51,7 @@
     "exceljs": "^4.4.0",
     "googleapis": "^166.0.0",
     "handsontable": "^17.1.0",
+    "hyperformula": "^3.3.0",
     "init": "^0.1.2",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.294.0",

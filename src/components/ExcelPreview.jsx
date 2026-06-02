@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Handsontable from 'handsontable';
 import { registerAllModules } from 'handsontable/registry';
+import { HyperFormula } from 'hyperformula';
 import ExcelJS from 'exceljs';
 import {
   Loader2,
@@ -13,6 +14,11 @@ import {
   Save,
   Download,
   X,
+  Bold,
+  Italic,
+  Underline,
+  Type,
+  Palette,
 } from 'lucide-react';
 import { useToast } from '@/lib/use-toast';
 import {
@@ -34,7 +40,8 @@ import {
   legacyBookType,
 } from '@/lib/sheetJsWorkbook';
 
-import 'handsontable/dist/themes/main.min.js';
+import 'handsontable/styles/handsontable.min.css';
+import 'handsontable/styles/ht-theme-main.min.css';
 import '@/styles/handsontable.css';
 
 let handsontableReady = false;
@@ -47,15 +54,54 @@ function ensureHandsontableReady() {
     Handsontable.renderers.registerRenderer(
       'excelStyled',
       function excelStyledRenderer(instance, td, row, col, prop, value, cellProperties) {
+        // Call base renderer first
         Handsontable.renderers.TextRenderer.apply(this, arguments);
+        
+        // Apply Excel styling
         const style = cellProperties.excelStyle;
-        if (style) {
-          Object.assign(td.style, style);
+        if (style && Object.keys(style).length > 0) {
+          // Log for debugging (only first few cells)
+          if (row === 0 && col < 3) {
+            console.log(`[Renderer] Applying styles to td[${row},${col}]:`, style);
+          }
+          
+          // Apply each style property explicitly
+          Object.entries(style).forEach(([key, val]) => {
+            if (val != null && val !== '') {
+              // Convert camelCase to kebab-case for CSS properties
+              const cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+              
+              // Use setProperty for better control
+              td.style.setProperty(cssKey, val, 'important');
+            }
+          });
+          
+          // Ensure proper box-sizing for borders
+          td.style.setProperty('box-sizing', 'border-box', 'important');
+          
+          // Add a class to track styled cells
+          if (!td.classList.contains('excel-styled-cell')) {
+            td.classList.add('excel-styled-cell');
+          }
+          
+          // Debug: log computed styles for first cell
+          if (row === 0 && col === 0) {
+            setTimeout(() => {
+              const computed = window.getComputedStyle(td);
+              console.log('[Renderer] Computed styles for [0,0]:', {
+                backgroundColor: computed.backgroundColor,
+                borderTop: computed.borderTop,
+                fontWeight: computed.fontWeight,
+                color: computed.color
+              });
+            }, 100);
+          }
         }
       }
     );
-  } catch {
-    /* renderer already registered */
+    console.log('[ExcelPreview] Custom renderer "excelStyled" registered successfully');
+  } catch (err) {
+    console.warn('[ExcelPreview] Renderer registration issue:', err.message);
   }
 
   handsontableReady = true;
@@ -84,6 +130,10 @@ function sheetToHotConfig(worksheet) {
 
   const data = [];
   const styleMap = {};
+  let styleCount = 0;
+  let borderCount = 0;
+  let bgColorCount = 0;
+  let fontCount = 0;
 
   for (let r = 1; r <= rowCount; r++) {
     const rowData = [];
@@ -92,11 +142,34 @@ function sheetToHotConfig(worksheet) {
       rowData.push(getCellDisplayValue(cell));
 
       const style = excelStyleToCss(cell.style);
+      
+      // Debug: count style types
       if (Object.keys(style).length > 0) {
-        styleMap[`${r - 1}-${c - 1}`] = style;
+        const key = `${r - 1}-${c - 1}`;
+        styleMap[key] = style;
+        styleCount++;
+        
+        if (style.borderTop || style.borderRight || style.borderBottom || style.borderLeft) {
+          borderCount++;
+        }
+        if (style.backgroundColor) {
+          bgColorCount++;
+        }
+        if (style.fontWeight || style.fontSize) {
+          fontCount++;
+        }
       }
     }
     data.push(rowData);
+  }
+
+  console.log(`[ExcelPreview] Extracted ${styleCount} styled cells from ${rowCount}x${colCount} grid`);
+  console.log(`[ExcelPreview] - Borders: ${borderCount}, BgColors: ${bgColorCount}, Fonts: ${fontCount}`);
+  
+  if (styleCount > 0 && styleCount < 10) {
+    console.log('[ExcelPreview] All extracted styles:', styleMap);
+  } else if (styleCount > 0) {
+    console.log('[ExcelPreview] Sample styles:', Object.fromEntries(Object.entries(styleMap).slice(0, 5)));
   }
 
   const colWidths = [];
@@ -114,6 +187,8 @@ function sheetToHotConfig(worksheet) {
   const mergeCells = (worksheet.model?.merges || [])
     .map(parseMergeRange)
     .filter(Boolean);
+
+  console.log(`[ExcelPreview] Found ${mergeCells.length} merged cell ranges`);
 
   return {
     data,
@@ -146,6 +221,38 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
   const gridContainerRef = useRef(null);
   const [gridHeight, setGridHeight] = useState(480);
   const gridReadyRef = useRef(false);
+  
+  // Formula bar state
+  const [selectedCell, setSelectedCell] = useState('');
+  const [cellFormula, setCellFormula] = useState('');
+  const [isEditingFormula, setIsEditingFormula] = useState(false);
+  const formulaInputRef = useRef(null);
+  
+  // Formatting state
+  const [showFormatToolbar, setShowFormatToolbar] = useState(false);
+  const [selectedRange, setSelectedRange] = useState(null);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showBgColorPicker, setShowBgColorPicker] = useState(false);
+  const [formulaSuggestions, setFormulaSuggestions] = useState([]);
+  const [showFormulaSuggestions, setShowFormulaSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
+  
+  // Common Excel formulas for autocomplete
+  const commonFormulas = [
+    { name: 'SUM', description: 'Adds all numbers in a range', example: '=SUM(A1:A10)' },
+    { name: 'AVERAGE', description: 'Returns the average of numbers', example: '=AVERAGE(A1:A10)' },
+    { name: 'COUNT', description: 'Counts numbers in a range', example: '=COUNT(A1:A10)' },
+    { name: 'MAX', description: 'Returns the maximum value', example: '=MAX(A1:A10)' },
+    { name: 'MIN', description: 'Returns the minimum value', example: '=MIN(A1:A10)' },
+    { name: 'IF', description: 'Returns one value if true, another if false', example: '=IF(A1>10, "Yes", "No")' },
+    { name: 'VLOOKUP', description: 'Looks up a value in a table', example: '=VLOOKUP(A1, B1:C10, 2, FALSE)' },
+    { name: 'CONCATENATE', description: 'Joins text strings', example: '=CONCATENATE(A1, " ", B1)' },
+    { name: 'LEN', description: 'Returns the length of text', example: '=LEN(A1)' },
+    { name: 'TRIM', description: 'Removes extra spaces from text', example: '=TRIM(A1)' },
+    { name: 'ROUND', description: 'Rounds a number to specified digits', example: '=ROUND(A1, 2)' },
+    { name: 'TODAY', description: 'Returns today\'s date', example: '=TODAY()' },
+    { name: 'NOW', description: 'Returns current date and time', example: '=NOW()' },
+  ];
 
   useEffect(() => {
     ensureHandsontableReady();
@@ -221,22 +328,75 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
       rowHeights: sheetConfig.rowHeights,
       readOnly: !editable,
       licenseKey: 'non-commercial-and-evaluation',
-      themeName: 'ht-theme-main',
+      className: 'ht-theme-main',
       cells(row, col) {
         const key = `${row}-${col}`;
         const excelStyle = styleMapRef.current[key];
-        if (!excelStyle) return {};
-        return { renderer: 'excelStyled', excelStyle };
+        
+        if (!excelStyle || Object.keys(excelStyle).length === 0) {
+          return {};
+        }
+        
+        // Debug logging for first few styled cells
+        if (row === 0 && col < 5 && excelStyle) {
+          console.log(`[ExcelPreview] Applying style to cell [${row},${col}]:`, excelStyle);
+        }
+        
+        return { 
+          renderer: 'excelStyled', 
+          excelStyle,
+          className: 'excel-styled-cell'
+        };
       },
       afterInit() {
         requestAnimationFrame(() => {
-          gridReadyRef.current = true;
-          hot.render();
+          if (hot && !hot.isDestroyed) {
+            gridReadyRef.current = true;
+            hot.render();
+          }
         });
+      },
+      afterSelection(row, col, row2, col2) {
+        if (!gridReadyRef.current) return;
+        try {
+          // Store selected range for formatting
+          setSelectedRange({ row, col, row2, col2 });
+          setShowFormatToolbar(true);
+          
+          // Safely get cell reference
+          const cellRef = Handsontable.helper.spreadsheetColumnLabel(col) + (row + 1);
+          setSelectedCell(cellRef);
+          
+          // Safely get cell data
+          const cellData = hot.getDataAtCell(row, col);
+          
+          // Show formula if cell contains one, otherwise show value
+          if (typeof cellData === 'string' && cellData.startsWith('=')) {
+            setCellFormula(cellData);
+          } else {
+            setCellFormula(cellData != null ? String(cellData) : '');
+          }
+        } catch (err) {
+          console.error('Selection error:', err);
+          setSelectedCell('A1');
+          setCellFormula('');
+        }
       },
       afterChange(changes, source) {
         if (!gridReadyRef.current || source === 'loadData' || !changes) return;
         setHasChanges(true);
+        // Update formula bar if current cell changed
+        if (changes && changes.length > 0) {
+          const [row, col, oldVal, newVal] = changes[0];
+          const selection = hot.getSelected();
+          if (selection && selection[0][0] === row && selection[0][1] === col) {
+            if (typeof newVal === 'string' && newVal.startsWith('=')) {
+              setCellFormula(newVal);
+            } else {
+              setCellFormula(newVal || '');
+            }
+          }
+        }
       },
       afterColumnResize() {
         if (gridReadyRef.current) setHasChanges(true);
@@ -460,6 +620,233 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
     setIsFullscreen((prev) => !prev);
   }, []);
 
+  const handleFormulaChange = useCallback((e) => {
+    const value = e.target.value;
+    setCellFormula(value);
+    
+    // Show formula suggestions when typing =
+    if (value.startsWith('=') && value.length > 1) {
+      const searchTerm = value.substring(1).toUpperCase().split('(')[0];
+      const suggestions = commonFormulas.filter(f => 
+        f.name.startsWith(searchTerm)
+      );
+      setFormulaSuggestions(suggestions);
+      setShowFormulaSuggestions(suggestions.length > 0);
+      setSelectedSuggestionIndex(0);
+    } else {
+      setShowFormulaSuggestions(false);
+    }
+  }, [commonFormulas]);
+
+  const handleFormulaKeyDown = useCallback((e) => {
+    // Handle formula suggestions navigation
+    if (showFormulaSuggestions) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => 
+          Math.min(prev + 1, formulaSuggestions.length - 1)
+        );
+        return;
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => Math.max(prev - 1, 0));
+        return;
+      } else if (e.key === 'Tab' || e.key === 'Enter') {
+        if (formulaSuggestions[selectedSuggestionIndex]) {
+          e.preventDefault();
+          const formula = formulaSuggestions[selectedSuggestionIndex];
+          setCellFormula(formula.example);
+          setShowFormulaSuggestions(false);
+          // Focus back on input to continue editing
+          setTimeout(() => formulaInputRef.current?.focus(), 0);
+          return;
+        }
+      } else if (e.key === 'Escape') {
+        setShowFormulaSuggestions(false);
+        return;
+      }
+    }
+    
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const hot = hotInstanceRef.current;
+      if (!hot) return;
+      
+      const selection = hot.getSelected();
+      if (selection && selection.length > 0) {
+        const [row, col] = selection[0];
+        hot.setDataAtCell(row, col, cellFormula);
+        setIsEditingFormula(false);
+        setShowFormulaSuggestions(false);
+        // Move to next cell
+        hot.selectCell(Math.min(row + 1, hot.countRows() - 1), col);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsEditingFormula(false);
+      setShowFormulaSuggestions(false);
+      // Restore original value
+      const hot = hotInstanceRef.current;
+      if (!hot) return;
+      const selection = hot.getSelected();
+      if (selection && selection.length > 0) {
+        const [row, col] = selection[0];
+        const cellData = hot.getDataAtCell(row, col);
+        setCellFormula(cellData || '');
+      }
+    }
+  }, [cellFormula, showFormulaSuggestions, formulaSuggestions, selectedSuggestionIndex]);
+
+  const handleFormulaFocus = useCallback(() => {
+    setIsEditingFormula(true);
+  }, []);
+
+  const handleFormulaBlur = useCallback(() => {
+    const hot = hotInstanceRef.current;
+    if (!hot || !isEditingFormula) return;
+    
+    const selection = hot.getSelected();
+    if (selection && selection.length > 0) {
+      const [row, col] = selection[0];
+      hot.setDataAtCell(row, col, cellFormula);
+    }
+    setIsEditingFormula(false);
+  }, [cellFormula, isEditingFormula]);
+  
+  // Formatting functions
+  const applyCellStyle = useCallback((styleUpdates) => {
+    if (!selectedRange || !workbook || !editable) return;
+    
+    const { row, col, row2, col2 } = selectedRange;
+    const startRow = Math.min(row, row2);
+    const endRow = Math.max(row, row2);
+    const startCol = Math.min(col, col2);
+    const endCol = Math.max(col, col2);
+    
+    if (engine === 'exceljs') {
+      const worksheet = workbook.worksheets[activeSheet];
+      
+      for (let r = startRow; r <= endRow; r++) {
+        for (let c = startCol; c <= endCol; c++) {
+          const cell = worksheet.getCell(r + 1, c + 1);
+          
+          // Apply font styles
+          if (styleUpdates.bold !== undefined) {
+            cell.font = { ...cell.font, bold: styleUpdates.bold };
+          }
+          if (styleUpdates.italic !== undefined) {
+            cell.font = { ...cell.font, italic: styleUpdates.italic };
+          }
+          if (styleUpdates.underline !== undefined) {
+            cell.font = { ...cell.font, underline: styleUpdates.underline };
+          }
+          if (styleUpdates.color) {
+            cell.font = { ...cell.font, color: { argb: styleUpdates.color } };
+          }
+          if (styleUpdates.size) {
+            cell.font = { ...cell.font, size: styleUpdates.size };
+          }
+          
+          // Apply background color
+          if (styleUpdates.bgColor) {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: styleUpdates.bgColor }
+            };
+          }
+          
+          // Apply borders
+          if (styleUpdates.border) {
+            const borderStyle = { style: 'thin', color: { argb: 'FF000000' } };
+            cell.border = {
+              top: borderStyle,
+              left: borderStyle,
+              bottom: borderStyle,
+              right: borderStyle
+            };
+          }
+          
+          // Update style map for immediate visual update
+          const key = `${r}-${c}`;
+          const currentStyle = styleMapRef.current[key] || {};
+          const newStyle = { ...currentStyle };
+          
+          if (styleUpdates.bold !== undefined) {
+            newStyle.fontWeight = styleUpdates.bold ? 'bold' : 'normal';
+          }
+          if (styleUpdates.italic !== undefined) {
+            newStyle.fontStyle = styleUpdates.italic ? 'italic' : 'normal';
+          }
+          if (styleUpdates.underline !== undefined) {
+            newStyle.textDecoration = styleUpdates.underline ? 'underline' : 'none';
+          }
+          if (styleUpdates.color) {
+            newStyle.color = '#' + styleUpdates.color.substring(2);
+          }
+          if (styleUpdates.size) {
+            newStyle.fontSize = styleUpdates.size + 'px';
+          }
+          if (styleUpdates.bgColor) {
+            newStyle.backgroundColor = '#' + styleUpdates.bgColor.substring(2);
+          }
+          if (styleUpdates.border) {
+            newStyle.border = '1px solid #000';
+          }
+          
+          styleMapRef.current[key] = newStyle;
+        }
+      }
+    }
+    
+    // Trigger re-render
+    const hot = hotInstanceRef.current;
+    if (hot) {
+      hot.render();
+    }
+    
+    setHasChanges(true);
+    toast({
+      title: 'Format Applied',
+      description: 'Cell formatting updated',
+      duration: 2000,
+    });
+  }, [selectedRange, workbook, engine, activeSheet, editable, toast]);
+  
+  const toggleBold = useCallback(() => {
+    applyCellStyle({ bold: true });
+  }, [applyCellStyle]);
+  
+  const toggleItalic = useCallback(() => {
+    applyCellStyle({ italic: true });
+  }, [applyCellStyle]);
+  
+  const toggleUnderline = useCallback(() => {
+    applyCellStyle({ underline: true });
+  }, [applyCellStyle]);
+  
+  const applyTextColor = useCallback((color) => {
+    // Convert hex to ARGB format (FF prefix for full opacity)
+    const argb = 'FF' + color.substring(1);
+    applyCellStyle({ color: argb });
+    setShowColorPicker(false);
+  }, [applyCellStyle]);
+  
+  const applyBgColor = useCallback((color) => {
+    // Convert hex to ARGB format
+    const argb = 'FF' + color.substring(1);
+    applyCellStyle({ bgColor: argb });
+    setShowBgColorPicker(false);
+  }, [applyCellStyle]);
+  
+  const applyBorder = useCallback(() => {
+    applyCellStyle({ border: true });
+  }, [applyCellStyle]);
+  
+  const applyFontSize = useCallback((size) => {
+    applyCellStyle({ size: parseInt(size) });
+  }, [applyCellStyle]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -574,6 +961,189 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
         </div>
       </div>
 
+      {/* Formula Bar */}
+      <div className="flex items-center gap-2 px-3 py-2 bg-white border-b flex-shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-semibold text-gray-700 whitespace-nowrap">
+            {selectedCell || 'A1'}
+          </span>
+          <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0 relative">
+          <input
+            ref={formulaInputRef}
+            type="text"
+            value={cellFormula}
+            onChange={handleFormulaChange}
+            onKeyDown={handleFormulaKeyDown}
+            onFocus={handleFormulaFocus}
+            onBlur={handleFormulaBlur}
+            disabled={!editable || !sheetConfig}
+            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500 font-mono"
+            placeholder={editable ? "Enter value or formula (e.g., =SUM(A1:A10))" : "Select a cell to view content"}
+          />
+          
+          {/* Formula Suggestions Dropdown */}
+          {showFormulaSuggestions && formulaSuggestions.length > 0 && (
+            <div className="absolute top-full left-0 mt-1 w-full max-w-md bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+              {formulaSuggestions.map((formula, index) => (
+                <div
+                  key={formula.name}
+                  className={`px-3 py-2 cursor-pointer ${
+                    index === selectedSuggestionIndex ? 'bg-green-50 border-l-2 border-green-600' : 'hover:bg-gray-50'
+                  }`}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setCellFormula(formula.example);
+                    setShowFormulaSuggestions(false);
+                    setTimeout(() => formulaInputRef.current?.focus(), 0);
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm text-gray-900">{formula.name}</span>
+                    <span className="text-xs text-gray-500">Tab or Enter</span>
+                  </div>
+                  <div className="text-xs text-gray-600 mt-0.5">{formula.description}</div>
+                  <div className="text-xs text-green-700 font-mono mt-1">{formula.example}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {editable && (
+          <span className="text-xs text-gray-500 whitespace-nowrap hidden sm:inline">
+            Press Enter to apply
+          </span>
+        )}
+      </div>
+
+      {/* Formatting Toolbar */}
+      {editable && showFormatToolbar && selectedRange && (
+        <div className="flex items-center gap-1 px-3 py-2 bg-gray-50 border-b flex-shrink-0 flex-wrap">
+          {/* Font Size */}
+          <select
+            onChange={(e) => applyFontSize(e.target.value)}
+            className="text-xs border border-gray-300 rounded px-2 py-1 bg-white hover:bg-gray-50"
+            defaultValue="11"
+          >
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="14">14</option>
+            <option value="16">16</option>
+            <option value="18">18</option>
+            <option value="20">20</option>
+            <option value="24">24</option>
+          </select>
+          
+          <div className="h-5 w-px bg-gray-300 mx-1" />
+          
+          {/* Bold, Italic, Underline */}
+          <button
+            onClick={toggleBold}
+            className="p-1.5 hover:bg-gray-200 rounded transition-colors"
+            title="Bold (Ctrl+B)"
+          >
+            <Bold className="h-4 w-4 text-gray-700" />
+          </button>
+          <button
+            onClick={toggleItalic}
+            className="p-1.5 hover:bg-gray-200 rounded transition-colors"
+            title="Italic (Ctrl+I)"
+          >
+            <Italic className="h-4 w-4 text-gray-700" />
+          </button>
+          <button
+            onClick={toggleUnderline}
+            className="p-1.5 hover:bg-gray-200 rounded transition-colors"
+            title="Underline (Ctrl+U)"
+          >
+            <Underline className="h-4 w-4 text-gray-700" />
+          </button>
+          
+          <div className="h-5 w-px bg-gray-300 mx-1" />
+          
+          {/* Text Color */}
+          <div className="relative">
+            <button
+              onClick={() => setShowColorPicker(!showColorPicker)}
+              className="p-1.5 hover:bg-gray-200 rounded transition-colors flex items-center gap-1"
+              title="Text Color"
+            >
+              <Type className="h-4 w-4 text-gray-700" />
+              <div className="w-4 h-1 bg-red-500 rounded" />
+            </button>
+            {showColorPicker && (
+              <div className="absolute top-full left-0 mt-1 p-2 bg-white border border-gray-300 rounded-lg shadow-lg z-50">
+                <div className="grid grid-cols-8 gap-1">
+                  {['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFFFFF',
+                    '#800000', '#008000', '#000080', '#808000', '#800080', '#008080', '#808080', '#C0C0C0'].map(color => (
+                    <button
+                      key={color}
+                      onClick={() => applyTextColor(color)}
+                      className="w-6 h-6 rounded border border-gray-300 hover:scale-110 transition-transform"
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Background Color */}
+          <div className="relative">
+            <button
+              onClick={() => setShowBgColorPicker(!showBgColorPicker)}
+              className="p-1.5 hover:bg-gray-200 rounded transition-colors"
+              title="Background Color"
+            >
+              <Palette className="h-4 w-4 text-gray-700" />
+            </button>
+            {showBgColorPicker && (
+              <div className="absolute top-full left-0 mt-1 p-2 bg-white border border-gray-300 rounded-lg shadow-lg z-50">
+                <div className="grid grid-cols-8 gap-1">
+                  {['#FFFFFF', '#FFEBEE', '#E8F5E9', '#E3F2FD', '#FFF9C4', '#FCE4EC', '#E0F2F1', '#F3E5F5',
+                    '#FF5252', '#69F0AE', '#448AFF', '#FFEB3B', '#FF4081', '#00BCD4', '#9C27B0', '#FFC107'].map(color => (
+                    <button
+                      key={color}
+                      onClick={() => applyBgColor(color)}
+                      className="w-6 h-6 rounded border border-gray-300 hover:scale-110 transition-transform"
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="h-5 w-px bg-gray-300 mx-1" />
+          
+          {/* Borders */}
+          <button
+            onClick={applyBorder}
+            className="p-1.5 hover:bg-gray-200 rounded transition-colors"
+            title="Add Borders"
+          >
+            <svg className="h-4 w-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="18" height="18" strokeWidth="2" />
+            </svg>
+          </button>
+          
+          <span className="text-xs text-gray-500 ml-2">
+            {selectedRange.row === selectedRange.row2 && selectedRange.col === selectedRange.col2
+              ? '1 cell selected'
+              : `${Math.abs(selectedRange.row2 - selectedRange.row) + 1} × ${Math.abs(selectedRange.col2 - selectedRange.col) + 1} cells selected`
+            }
+          </span>
+        </div>
+      )}
+
       {sheetNames.length > 1 && (
         <div className="flex gap-1 px-2 py-2 bg-gray-50 border-b overflow-x-auto flex-shrink-0">
           {sheetNames.map((name, idx) => (
@@ -601,7 +1171,7 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
           <div
             ref={gridHostRef}
             key={`${engine}-${activeSheet}`}
-            className="ht-theme-main w-full"
+            className="w-full"
             style={{ height: gridHeight, minHeight: 360 }}
           />
         )}

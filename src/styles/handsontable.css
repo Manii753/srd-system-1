@@ -13,9 +13,32 @@
   height: 100% !important;
 }
 
+/* Ensure inline styles from Excel are preserved */
 .excel-preview-container .handsontable td {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
+  position: relative;
+  padding: 4px 6px;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  vertical-align: middle;
+  font-weight: inherit;
+}
+
+/* CRITICAL: Prevent border collapse to show all borders */
+.excel-preview-container .handsontable table {
+  border-collapse: collapse !important;
+}
+
+/* Important: Allow inline styles from Excel to override defaults */
+.excel-preview-container .handsontable td.excel-styled-cell {
+  /* Styled cells - inline styles take precedence */
+}
+
+/* Ensure borders are visible and not overridden */
+.excel-preview-container .handsontable td[style*="border"] {
+  border-collapse: separate !important;
 }
 
 .excel-preview-container .handsontable .manualColumnResizer,
@@ -34,4 +57,78 @@
 
 .excel-preview-container .handsontable .ht__active_highlight {
   background-color: #c8e6c9;
+}
+
+/* Enhanced column resize - drag on column header borders (between A|B, B|C, etc.) */
+.excel-preview-container .handsontable .manualColumnResizer {
+  background-color: #3b82f6;
+  width: 5px;
+  z-index: 999;
+  cursor: col-resize !important;
+}
+
+.excel-preview-container .handsontable .manualColumnResizerGuide {
+  background-color: #10b981;
+  width: 2px;
+  opacity: 0.8;
+}
+
+/* Enhanced row resize - drag on row header borders (between 1|2, 2|3, etc.) */
+.excel-preview-container .handsontable .manualRowResizer {
+  background-color: #3b82f6;
+  height: 5px;
+  z-index: 999;
+  cursor: row-resize !important;
+}
+
+.excel-preview-container .handsontable .manualRowResizerGuide {
+  background-color: #10b981;
+  height: 2px;
+  opacity: 0.8;
+}
+
+/* Make column headers more responsive to resize gestures */
+.excel-preview-container .handsontable thead th {
+  position: relative;
+}
+
+/* Visual hint for resize area on column headers */
+.excel-preview-container .handsontable thead th:hover {
+  background-color: #f3f4f6;
+}
+
+/* Visual hint for resize area on row headers */
+.excel-preview-container .handsontable tbody th:hover {
+  background-color: #f3f4f6;
+}
+
+/* Ensure resize handles are clickable */
+.excel-preview-container .handsontable .manualColumnResizer,
+.excel-preview-container .handsontable .manualRowResizer {
+  pointer-events: all;
+}
+
+/* Center align headers */
+.excel-preview-container .handsontable th {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Better borders for merged cells */
+.excel-preview-container .handsontable td.htMergedCell {
+  box-sizing: border-box;
+}
+
+/* Fix for formula error display */
+.excel-preview-container .handsontable td[title*="#VALUE"],
+.excel-preview-container .handsontable td[title*="#DIV"],
+.excel-preview-container .handsontable td[title*="#REF"] {
+  color: #dc2626 !important;
+  font-weight: 600 !important;
+  background-color: #fff !important;
+}
+
+/* Make cells with #VALUE! errors stand out */
+.excel-preview-container .handsontable td {
+  position: relative;
 }

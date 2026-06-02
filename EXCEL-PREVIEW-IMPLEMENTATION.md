@@ -15,6 +15,8 @@ Implemented a comprehensive client-side Excel file **viewer AND editor** with fu
 - ✅ **Download option** - Export current state anytime
 - ✅ **Read-only mode** - View-only when editing is disabled
 - ✅ **Real-time editing** - Changes reflected immediately
+- ✅ **Formula assistance** - Autocomplete when typing formulas starting with =
+- ✅ **Cell formatting** - Bold, italic, underline, colors, borders, font sizes
 
 ### 🎨 UI Features
 - Row numbers for easy reference
@@ -23,8 +25,25 @@ Implemented a comprehensive client-side Excel file **viewer AND editor** with fu
 - Zebra striping for readability
 - Focus indicators on active cells
 - Action toolbar with Save/Download/Fullscreen
+- **Formatting toolbar** with text/background colors, bold, italic, underline, borders, font sizes
+- **Formula bar** with autocomplete suggestions
 - Unsaved changes indicator
 - Loading and error states
+
+### ✨ Excel-Like Formatting
+- **Bold/Italic/Underline** - Format text with one click
+- **Text Color** - 16 preset colors with color picker
+- **Background Color** - 16 preset colors for cell backgrounds
+- **Borders** - Add borders to selected cells
+- **Font Sizes** - 8pt to 24pt font size options
+- **Multi-cell selection** - Apply formatting to multiple cells at once
+
+### 🔤 Formula Autocomplete
+- **Smart suggestions** - Type `=` to see common Excel formulas
+- **Keyboard navigation** - Use arrow keys to navigate suggestions
+- **Quick insert** - Press Tab or Enter to insert formula
+- **13 Common formulas** including SUM, AVERAGE, COUNT, MAX, MIN, IF, VLOOKUP, and more
+- **Live preview** - See formula examples before inserting
 
 ## Problem (Original)
 The previous implementation used Google Docs Viewer (`https://docs.google.com/gview`) which:
@@ -173,8 +192,8 @@ Works in all modern browsers that support:
 ## Future Enhancements (Optional)
 1. ~~Add cell editing capabilities~~ ✅ **DONE**
 2. ~~Export to different formats~~ ✅ **DONE (Download)**
-3. Formula preview/calculation
-4. Cell formatting preservation (colors, borders, fonts)
+3. ~~Formula preview/calculation~~ ✅ **DONE (Autocomplete)**
+4. ~~Cell formatting preservation (colors, borders, fonts)~~ ✅ **DONE**
 5. Image support within cells
 6. Pagination for very large sheets
 7. Search within sheet
@@ -182,7 +201,8 @@ Works in all modern browsers that support:
 9. ~~Fullscreen mode~~ ✅ **DONE**
 10. Cell copy/paste
 11. Undo/redo functionality
-12. Cell formatting toolbar (bold, italic, colors)
+12. ~~Cell formatting toolbar (bold, italic, colors)~~ ✅ **DONE**
+13. ~~Formula autocomplete~~ ✅ **DONE**
 
 ## Testing
 To test the implementation:
@@ -190,16 +210,29 @@ To test the implementation:
 2. Click the "View" (Eye icon) button
 3. **VIEW MODE**: Preview loads instantly showing the Excel content
 4. **EDIT MODE**: Click any cell to edit its value
-5. **SAVE**: Click the Save button to upload changes back to server
-6. **FULLSCREEN**: Click the fullscreen button (⛶) to expand workspace
-7. **MULTI-SHEET**: Test multiple sheets by clicking sheet tabs
-8. **DOWNLOAD**: Click download to export current state
-9. **UNSAVED CHANGES**: Try switching sheets with unsaved changes to see warning
+5. **FORMATTING**: 
+   - Select cells and use the formatting toolbar
+   - Apply bold, italic, underline, colors, borders, and font sizes
+   - Format multiple cells at once by selecting a range
+6. **FORMULAS**: 
+   - Type `=` in the formula bar to see autocomplete suggestions
+   - Use arrow keys to navigate, Tab/Enter to insert
+   - Supports common formulas like SUM, AVERAGE, COUNT, IF, VLOOKUP
+7. **SAVE**: Click the Save button to upload changes back to server
+8. **FULLSCREEN**: Click the fullscreen button (⛶) to expand workspace
+9. **MULTI-SHEET**: Test multiple sheets by clicking sheet tabs
+10. **DOWNLOAD**: Click download to export current state
+11. **UNSAVED CHANGES**: Try switching sheets with unsaved changes to see warning
 
 ### Keyboard Shortcuts
 - **Tab**: Move to next cell (browser default)
 - **Enter**: Submit cell edit and move down
 - **Esc**: Cancel cell edit (in fullscreen: exit fullscreen)
+- **Arrow Keys**: Navigate formula suggestions (when typing =)
+- **Tab/Enter**: Insert selected formula suggestion
+- **Ctrl+B**: Bold (when formatting toolbar is visible)
+- **Ctrl+I**: Italic (when formatting toolbar is visible)
+- **Ctrl+U**: Underline (when formatting toolbar is visible)
 
 ## Usage Examples
 
@@ -240,7 +273,7 @@ If needed to rollback:
 
 ---
 
-**Status:** ✅ Implementation Complete with Editing & Fullscreen  
+**Status:** ✅ Implementation Complete with Editing, Fullscreen & Formatting  
 **Build Status:** ✅ No compilation errors  
 **Date:** June 2, 2026  
-**Version:** 2.0 - Full Editor with Save & Fullscreen
+**Version:** 3.0 - Full Editor with Formatting Toolbar & Formula Autocomplete
