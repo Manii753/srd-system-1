@@ -88,8 +88,8 @@ export default function DynamicSidebar() {
     try {
       const samplesChildren = [
         // { name: 'Create SRD', href: userRole === 'admin' ? '/dashboard/admin/create' : `/dashboard/${userRole}/create`, icon: Plus },
-        { name: 'Sample Request', href: '/srd', icon: FileText },
-        { name: 'SR In Process', href: '/sample-management/sample-process', icon: Package },
+        { name: 'SR In Process', href: '/srd', icon: FileText },
+        { name: 'SR Progress', href: '/sample-management/sample-process', icon: Package },
         { name: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList },
         { name: 'Dispatch Detail', href: '/samples/dispatch', icon: Truck },
         { name: 'Reports', href: '/sample-management/reports', icon: BarChart3 },
