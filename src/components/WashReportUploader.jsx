@@ -1,20 +1,17 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, Download, Trash2, Eye, FileSpreadsheet, RefreshCw, X, Plus } from 'lucide-react';
 import { useToast } from '@/lib/use-toast';
+import ExcelPreview from './ExcelPreview';
 
 // ── Excel Viewer Modal ────────────────────────────────────────────────────────
-function ExcelViewerModal({ url, name, onClose }) {
-  const [viewMode, setViewMode] = useState('google'); // 'google' | 'office'
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const fullUrl = url.startsWith('http') ? url : `${origin}${url}`;
-
+function ExcelViewerModal({ url, name, onClose, onSave, canEdit }) {
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
       <div
         className="bg-white rounded-lg shadow-2xl flex flex-col"
-        style={{ width: '90vw', maxWidth: 1100, height: '88vh' }}
+        style={{ width: '90vw', maxWidth: 1200, height: '88vh' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -24,16 +21,6 @@ function ExcelViewerModal({ url, name, onClose }) {
             <span className="font-semibold text-gray-800 text-sm truncate max-w-xs" title={name}>{name}</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded px-1">
-              <button
-                onClick={() => setViewMode('google')}
-                className={`px-2 py-0.5 text-xs rounded ${viewMode === 'google' ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-700'}`}
-              >Google Docs</button>
-              <button
-                onClick={() => setViewMode('office')}
-                className={`px-2 py-0.5 text-xs rounded ${viewMode === 'office' ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-700'}`}
-              >Office Online</button>
-            </div>
             <a
               href={url}
               download={name}
@@ -48,16 +35,12 @@ function ExcelViewerModal({ url, name, onClose }) {
         </div>
 
         {/* Viewer */}
-        <div className="flex-1 overflow-hidden bg-gray-100">
-          <iframe
-            key={viewMode}
-            src={
-              viewMode === 'google'
-                ? `https://docs.google.com/gview?url=${encodeURIComponent(fullUrl)}&embedded=true`
-                : `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fullUrl)}`
-            }
-            className="w-full h-full border-0"
-            title={name}
+        <div className="flex-1 min-h-0 overflow-hidden bg-gray-100 flex flex-col">
+          <ExcelPreview 
+            fileUrl={url} 
+            fileName={name}
+            onSave={onSave}
+            editable={canEdit}
           />
         </div>
       </div>
@@ -73,8 +56,14 @@ export default function WashReportUploader({ srd, canEdit = true, onSrdUpdate })
   const [report, setReport] = useState(srd?.washAnalysisReport || null);
   const [viewing, setViewing] = useState(false);
 
+  const srdId = srd?._id ?? srd?.id;
+
+  useEffect(() => {
+    setReport(srd?.washAnalysisReport || null);
+  }, [srdId, srd?.washAnalysisReport?.url, srd?.washAnalysisReport?.name]);
+
   const doUpload = async (file) => {
-    if (!file || !srd?._id) return;
+    if (!file || !srdId) return;
     setUploading(true);
     try {
       const fileData = await new Promise((res, rej) => {
@@ -90,7 +79,7 @@ export default function WashReportUploader({ srd, canEdit = true, onSrdUpdate })
         body: JSON.stringify({
           fileName: file.name,
           fileData,
-          srdId: srd._id,
+          srdId,
           fieldId: 'wash-analysis-report',
           fieldType: 'file',
           mimeType: file.type,
@@ -103,7 +92,7 @@ export default function WashReportUploader({ srd, canEdit = true, onSrdUpdate })
       const url = uploadData.asset?.url || uploadData.url;
       if (!url) throw new Error('No URL returned from upload');
 
-      const patchRes = await fetch(`/api/srd/${srd._id}/wash-report`, {
+      const patchRes = await fetch(`/api/srd/${srdId}/wash-report`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, name: file.name }),
@@ -113,7 +102,7 @@ export default function WashReportUploader({ srd, canEdit = true, onSrdUpdate })
 
       const updated = patchData.data;
       setReport(updated);
-      if (onSrdUpdate) onSrdUpdate({ washAnalysisReport: updated });
+      if (onSrdUpdate) onSrdUpdate({ ...srd, washAnalysisReport: updated });
       toast({ title: 'Wash Analysis Report uploaded', description: file.name });
     } catch (err) {
       toast({ title: 'Upload failed', description: err.message, variant: 'destructive' });
@@ -124,16 +113,80 @@ export default function WashReportUploader({ srd, canEdit = true, onSrdUpdate })
   };
 
   const handleDelete = async () => {
+    if (!srdId) {
+      toast({ title: 'Delete failed', description: 'SRD not loaded', variant: 'destructive' });
+      return;
+    }
     if (!confirm('Remove Wash Analysis Report?')) return;
     try {
-      const res = await fetch(`/api/srd/${srd._id}/wash-report`, { method: 'DELETE' });
+      const res = await fetch(`/api/srd/${srdId}/wash-report`, { method: 'DELETE' });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       setReport(null);
-      if (onSrdUpdate) onSrdUpdate({ washAnalysisReport: null });
+      if (onSrdUpdate) onSrdUpdate({ ...srd, washAnalysisReport: null });
       toast({ title: 'Report removed' });
     } catch (err) {
       toast({ title: 'Delete failed', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const handleSave = async (blob, fileName) => {
+    if (!srdId) return;
+    
+    try {
+      // Convert blob to base64
+      const fileData = await new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = ev => res(ev.target.result);
+        reader.onerror = rej;
+        reader.readAsDataURL(blob);
+      });
+
+      // Upload the updated file
+      const uploadRes = await fetch('/api/uploads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName,
+          fileData,
+          srdId,
+          fieldId: 'wash-analysis-report',
+          fieldType: 'file',
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          size: blob.size,
+        }),
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadData.success) throw new Error(uploadData.error || 'Upload failed');
+
+      const url = uploadData.asset?.url || uploadData.url;
+      if (!url) throw new Error('No URL returned from upload');
+
+      // Update the SRD with new file
+      const patchRes = await fetch(`/api/srd/${srdId}/wash-report`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, name: fileName }),
+      });
+      const patchData = await patchRes.json();
+      if (!patchData.success) throw new Error(patchData.error);
+
+      const updated = patchData.data;
+      setReport(updated);
+      if (onSrdUpdate) onSrdUpdate({ ...srd, washAnalysisReport: updated });
+      
+      toast({ 
+        title: 'Saved successfully', 
+        description: 'Wash Analysis Report updated' 
+      });
+    } catch (err) {
+      console.error('Save error:', err);
+      toast({ 
+        title: 'Save failed', 
+        description: err.message, 
+        variant: 'destructive' 
+      });
+      throw err; // Re-throw so ExcelPreview knows it failed
     }
   };
 
@@ -147,7 +200,7 @@ export default function WashReportUploader({ srd, canEdit = true, onSrdUpdate })
         accept=".xlsx,.xls,.csv,.pdf,.ods"
         className="hidden"
         onChange={e => doUpload(e.target.files?.[0])}
-        disabled={!canEdit || !srd?._id}
+        disabled={!canEdit || !srdId}
       />
 
       {hasReport ? (
@@ -204,7 +257,7 @@ export default function WashReportUploader({ srd, canEdit = true, onSrdUpdate })
         </div>
       ) : (
         /* Empty state — same upload button style */
-        canEdit && srd?._id && (
+        canEdit && srdId && (
           <button
             type="button"
             disabled={uploading}
@@ -221,7 +274,13 @@ export default function WashReportUploader({ srd, canEdit = true, onSrdUpdate })
 
       {/* Excel viewer modal */}
       {viewing && report?.url && (
-        <ExcelViewerModal url={report.url} name={report.name || 'Wash Analysis Report'} onClose={() => setViewing(false)} />
+        <ExcelViewerModal 
+          url={report.url} 
+          name={report.name || 'Wash Analysis Report'} 
+          onClose={() => setViewing(false)}
+          onSave={handleSave}
+          canEdit={canEdit}
+        />
       )}
     </div>
   );

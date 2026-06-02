@@ -182,20 +182,11 @@ export default function SRDDetailPage() {
           srd={srd}
           userRole={userRole}
           onUpdate={(department, data, shouldRefresh) => handleDepartmentUpdate(department, data, shouldRefresh)}
-          onSrdUpdate={setSrd}
+          onSrdUpdate={(patch) => setSrd((prev) => (prev ? { ...prev, ...patch } : prev))}
           onHeaderContent={setExcelHeaderContent}
           onHeaderRightContent={setExcelHeaderRightContent}
           onSaveRef={(fn) => { saveRef.current = fn; }}
         />
-
-        {/* Wash Analysis Reports */}
-        <div className="mt-2 px-0">
-          <WashReportUploader
-            srd={srd}
-            canEdit={userRole === 'vmd' || userRole === 'admin' || userRole === 'mmc'}
-            onSrdUpdate={(data) => setSrd(prev => ({ ...prev, ...data }))}
-          />
-        </div>
 
         {/* Dispatch Panel — always visible for VMD/Admin */}
         {/* {(userRole === 'vmd' || userRole === 'admin') && (

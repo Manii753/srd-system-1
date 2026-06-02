@@ -25,6 +25,7 @@ import {
 } from '@/lib/assetUtils';
 import { getAttachedImageLabels, getAttachedFieldInfos } from '@/lib/fieldConnectionUtils';
 import DispatchCardPrint from '@/app/dispatch/components/DispatchCardPrint';
+import ExcelPreview from './ExcelPreview';
 // Dynamically import DispatchPanel to avoid circular dependency
 const DispatchPanel = dynamic(() => import('./DispatchPanel'), {
   loading: () => <div className="p-4 text-center">Loading Dispatch Panel...</div>
@@ -241,6 +242,7 @@ export default function DepartmentPanelExcel({
   const [isPrinting, setIsPrinting] = useState(false);
   const [fileViewerUrl, setFileViewerUrl] = useState(null);
   const [fileViewerName, setFileViewerName] = useState('');
+  const [fileViewerFieldId, setFileViewerFieldId] = useState(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [sections, setSections] = useState([]);
   const [formPagination, setFormPagination] = useState({ enabled: true, itemsPerPage: 12 });
@@ -858,6 +860,72 @@ export default function DepartmentPanelExcel({
     handleFieldChange(info.sourceFieldId, sourceFieldDef.name, info.type === 'image' ? [] : null, sourceFieldDef.department, sourceFieldDef);
     toast({ title: 'Attachment removed', description: 'Click Save to apply changes.' });
   }, [handleFieldChange, toast]);
+
+  // Handle Excel file save from preview/editor
+  const handleExcelSave = useCallback(async (blob, fileName) => {
+    if (!fileViewerFieldId || !srd?._id) {
+      toast({
+        title: 'Save failed',
+        description: 'Missing field information',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      // Convert blob to base64
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      // Upload the updated file
+      const uploadRes = await fetch('/api/uploads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName,
+          fileData: base64,
+          srdId: srd._id,
+          fieldId: fileViewerFieldId,
+          fieldType: 'file',
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          size: blob.size,
+        }),
+      });
+
+      const uploadData = await uploadRes.json();
+      if (!uploadData.success) {
+        throw new Error(uploadData.error || 'Upload failed');
+      }
+
+      // Update the field with the new file URL
+      const newAsset = uploadData.asset || { url: uploadData.url, name: fileName };
+      
+      // Find the field definition
+      const fieldDef = allFieldDefs[fileViewerFieldId];
+      if (fieldDef) {
+        handleFieldChange(fileViewerFieldId, fieldDef.name, newAsset, fieldDef.department, fieldDef);
+        
+        // Update the viewer URL to the new file
+        setFileViewerUrl(newAsset.url || uploadData.url);
+      }
+
+      toast({
+        title: 'Excel file updated',
+        description: 'Changes saved successfully',
+      });
+    } catch (error) {
+      console.error('Failed to save Excel file:', error);
+      toast({
+        title: 'Save failed',
+        description: error.message || 'Failed to save changes',
+        variant: 'destructive',
+      });
+    }
+  }, [fileViewerFieldId, srd, allFieldDefs, handleFieldChange, toast]);
 
   // Handle status update for a department
   const handleStatusUpdate = useCallback(async () => {
@@ -1914,6 +1982,7 @@ export default function DepartmentPanelExcel({
   }
 
   return (
+    <>
     <div className="flex gap-0 bg-[#FBFCFE] rounded-lg p-1">
       {/* Main Form Area */}
       <div className="flex flex-col flex-1 pb-2 shadow-lg">
@@ -2126,7 +2195,11 @@ export default function DepartmentPanelExcel({
                                     <button
                                       type="button"
                                       className="h-4 w-4 inline-flex items-center justify-center rounded bg-blue-100 hover:bg-blue-200 text-blue-600"
-                                      onClick={() => { setFileViewerUrl(fileUrlForView); setFileViewerName(fileLabelForView); }}
+                                      onClick={() => { 
+                                        setFileViewerUrl(fileUrlForView); 
+                                        setFileViewerName(fileLabelForView); 
+                                        setFileViewerFieldId(info.sourceFieldId);
+                                      }}
                                       title={`View ${info.name}`}
                                     >
                                       <Eye className="h-3 w-3" />
@@ -2165,6 +2238,24 @@ export default function DepartmentPanelExcel({
                               />
                             );
                           })}
+                          {/* Add Wash Analysis Report here if on last page and this is the first cell with attachments */}
+                          {currentSection?.includeApprovals && cellIndex === 0 && (
+                            <WashReportUploader
+                              srd={srd}
+                              canEdit={!readOnly && (userRole === 'vmd' || userRole === 'admin' || userRole === 'mmc')}
+                              onSrdUpdate={onSrdUpdate}
+                            />
+                          )}
+                        </div>
+                      )}
+                      {/* Show Wash Analysis Report even if no other attachments, only on first cell of last page */}
+                      {attachmentInfos.length === 0 && currentSection?.includeApprovals && cellIndex === 0 && (
+                        <div className="flex flex-wrap gap-1 px-1 my-1 pb-0.5">
+                          <WashReportUploader
+                            srd={srd}
+                            canEdit={!readOnly && (userRole === 'vmd' || userRole === 'admin' || userRole === 'mmc')}
+                            onSrdUpdate={onSrdUpdate}
+                          />
                         </div>
                       )}
                     </div>
@@ -2179,6 +2270,7 @@ export default function DepartmentPanelExcel({
           {/* Approval Sections - Rendered inside grid on last page */}
           {currentSection?.includeApprovals && (
             <>
+
               {/* Status Update Section - Hidden in readOnly mode */}
               {!readOnly && (
                 <div className=" border-transparent p-3 hidden">
@@ -2345,6 +2437,40 @@ export default function DepartmentPanelExcel({
 
 
     </div>
+
+    {/* ── File Viewer Modal ── */}
+    {fileViewerUrl && (
+      <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setFileViewerUrl(null)}>
+        <div
+          className="bg-white rounded-lg shadow-2xl flex flex-col"
+          style={{ width: '90vw', maxWidth: 1200, height: '88vh' }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between px-4 py-2.5 border-b bg-gray-50 rounded-t-lg shrink-0">
+            <div className="flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5 text-green-700" />
+              <span className="font-semibold text-gray-800 text-sm truncate max-w-sm" title={fileViewerName}>{fileViewerName}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <a href={fileViewerUrl} download={fileViewerName}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-green-700 hover:bg-green-800 rounded">
+                ⬇ Download
+              </a>
+              <button onClick={() => setFileViewerUrl(null)} className="text-gray-400 hover:text-gray-700 text-xl px-1">×</button>
+            </div>
+          </div>
+          <div className="flex-1 min-h-0 overflow-hidden bg-gray-100 flex flex-col">
+            <ExcelPreview 
+              fileUrl={fileViewerUrl} 
+              fileName={fileViewerName} 
+              onSave={handleExcelSave}
+              editable={!readOnly}
+            />
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
