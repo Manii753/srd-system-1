@@ -87,7 +87,7 @@ export default function DynamicSidebar() {
   const fetchMenuItems = async () => {
     try {
       const samplesChildren = [
-        { name: 'Create SRD', href: userRole === 'admin' ? '/dashboard/admin/create' : `/dashboard/${userRole}/create`, icon: Plus },
+        // { name: 'Create SRD', href: userRole === 'admin' ? '/dashboard/admin/create' : `/dashboard/${userRole}/create`, icon: Plus },
         { name: 'Sample Request', href: '/srd', icon: FileText },
         { name: 'SR In Process', href: '/sample-management/sample-process', icon: Package },
         { name: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList },

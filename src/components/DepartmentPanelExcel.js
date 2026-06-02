@@ -1045,11 +1045,12 @@ export default function DepartmentPanelExcel({
                 key={dept}
                 className={cn(
                   "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-app-heading font-medium capitalize",
-                  val === 'approved' && 'bg-green-700 text-white',
+                  val === 'approved'    && 'bg-green-700 text-white',
                   val === 'in-progress' && 'bg-blue-700 text-white',
-                  val === 'flagged' && 'bg-red-700 text-white',
-                  isDelayed && 'bg-red-700 text-white',
-                  val === 'pending' && !isDelayed && 'bg-orange-600 text-white'
+                  val === 'flagged'     && 'bg-red-700 text-white',
+                  isDelayed             && 'bg-red-700 text-white',
+                  val === 'pending' && !isDelayed && fillPct > 0 && 'bg-green-600 text-white',
+                  val === 'pending' && !isDelayed && fillPct === 0 && 'bg-gray-200 text-gray-700',
                 )}
               >
                 {dept}
