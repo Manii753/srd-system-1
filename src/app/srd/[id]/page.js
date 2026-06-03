@@ -9,6 +9,7 @@ import ProductionControl from '@/components/ProductionControl';
 import { useToast } from '@/lib/use-toast';
 import { FileText } from 'lucide-react';
 import DispatchPanel from '@/components/DispatchPanel';
+import WashReportUploader from '@/components/WashReportUploader';
 
 export default function SRDDetailPage() {
   const { data: session, status } = useSession();
@@ -181,7 +182,7 @@ export default function SRDDetailPage() {
           srd={srd}
           userRole={userRole}
           onUpdate={(department, data, shouldRefresh) => handleDepartmentUpdate(department, data, shouldRefresh)}
-          onSrdUpdate={setSrd}
+          onSrdUpdate={(patch) => setSrd((prev) => (prev ? { ...prev, ...patch } : prev))}
           onHeaderContent={setExcelHeaderContent}
           onHeaderRightContent={setExcelHeaderRightContent}
           onSaveRef={(fn) => { saveRef.current = fn; }}

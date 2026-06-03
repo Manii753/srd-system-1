@@ -8,8 +8,8 @@ export default function SampleProcessReport({ srd }) {
   if (sampleProcess.length === 0) {
     return (
       <div className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
-        <h3 className="font-semibold text-gray-900 mb-2">SAMPLE PROCESS</h3>
-        <p className="text-sm text-gray-500">No sample process data available</p>
+        <h3 className="font-semibold text-gray-900 mb-2">SR IN PROCESS</h3>
+        <p className="text-sm text-gray-500">No SR in process data available</p>
       </div>
     );
   }
@@ -43,7 +43,7 @@ export default function SampleProcessReport({ srd }) {
     <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-white">
       {/* Header */}
       <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-4 py-2 border-b-2 border-gray-300">
-        <h3 className="font-bold text-gray-900 uppercase">Sample Process</h3>
+        <h3 className="font-bold text-gray-900 uppercase">SR In Process</h3>
       </div>
 
       {/* Summary Section */}

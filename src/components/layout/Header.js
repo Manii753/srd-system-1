@@ -8,7 +8,6 @@ import { useToast } from '@/lib/use-toast';
 import { initializePusher, bindPusherEvents } from '@/lib/pusher';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 
 export default function Header({ headerContent, headerRightContent }) {
   const { data: session } = useSession();
@@ -63,8 +62,6 @@ export default function Header({ headerContent, headerRightContent }) {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 h-14 flex items-center px-4 gap-3 shrink-0">
-      <SidebarTrigger className="text-gray-500 hover:text-gray-800 shrink-0" />
-
       {/* Page-specific content injected here */}
       <div className="flex-1 flex items-center gap-2 min-w-0">
         {headerContent ?? null}

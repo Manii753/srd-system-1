@@ -45,8 +45,13 @@ export default function LoginPage() {
         }
 
         const role = session.user.role;
+        const stageRoles = ['cutting', 'sewing', 'washing', 'finishing', 'dispatch'];
         if (role === 'admin' || role === 'vmd') {
           router.push('/home');
+        } else if (stageRoles.includes(role)) {
+          router.push('/dashboard/stage');
+        } else if (role === 'production-manager') {
+          router.push('/dashboard/production-manager');
         } else {
           router.push(`/dashboard/${role}`);
         }

@@ -385,37 +385,33 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   // Re-match buyer when Brand field changes — create if doesn't exist
   // Debounced to prevent excessive API calls
   useEffect(() => {
-    if (!buyers.length || !srd.dynamicFields) return;
-    
+    if (!buyers.length && !srd.dynamicFields) return;
     const brandField = srd.dynamicFields?.find(f => f.name === 'Brand' || f.name === 'Buyer');
     const brandName = brandField?.value?.trim();
     if (!brandName) return;
 
     const match = buyers.find(b => b.name.toLowerCase() === brandName.toLowerCase());
     if (match) {
+      // Only update if not already selected
       if (match._id?.toString() !== selectedBuyer?.toString()) {
         setSelectedBuyer(match._id);
         if (match.address) setDispatchAddress(match.address);
       }
     } else {
-      // Brand doesn't exist — create it automatically (debounced)
-      const timeoutId = setTimeout(() => {
-        fetch('/api/buyers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: brandName }),
+      // Brand doesn't exist — create it automatically
+      fetch('/api/buyers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: brandName }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            setBuyers(prev => [...prev, data.data]);
+            setSelectedBuyer(data.data._id);
+          }
         })
-          .then(r => r.json())
-          .then(data => {
-            if (data.success) {
-              setBuyers(prev => [...prev, data.data]);
-              setSelectedBuyer(data.data._id);
-            }
-          })
-          .catch(e => console.error('Failed to create buyer', e));
-      }, 500); // 500ms debounce
-
-      return () => clearTimeout(timeoutId);
+        .catch(e => console.error('Failed to create buyer', e));
     }
   }, [srd.dynamicFields?.find(f => f.name === 'Brand' || f.name === 'Buyer')?.value, buyers.length]);
 
@@ -510,7 +506,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     setSelectedMergeSRDs([srd._id?.toString()]); // pre-select current SRD
     if (mode === 'merge') {
       setLoadingSRDs(true);
-      fetch('/api/srd?limit=200')
+      fetch('/api/srd?limit=200&populateBuyer=true')
         .then(r => r.json())
         .then(data => {
           const list = data.data || data.srds || (Array.isArray(data) ? data : []);
@@ -597,7 +593,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         )}
       </div> */}
 
-      {/* Dispatch Approval - Excel Style */}
+      {/* Dispatch Approval - Excel Style — only visible to vmd and admin */}
+      {(session?.user?.role === 'admin' || session?.user?.role === 'vmd') && (
       <div className="border border-gray-300 bg-white">
         {/* Section Header */}
         <div className="flex justify-between bg-gray-100 border-b border-gray-300 px-2 py-0 items-center h-6">
@@ -783,8 +780,17 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
 
       </div>
+      )} {/* end vmd/admin only — Conditions */}
 
-      <div className="border border-gray-300 bg-white mt-2">
+      <div className={`border border-gray-300 bg-white mt-2 relative ${!srd.inDispatch && !srd.sampleDispatchedToBuyer ? 'pointer-events-none' : ''}`}>
+        {/* Locked overlay */}
+        {!srd.inDispatch && !srd.sampleDispatchedToBuyer && (
+          <div className="absolute inset-0 z-10 bg-white/60 flex items-center justify-center">
+            <span className="bg-white border border-orange-300 rounded-lg px-4 py-2 text-sm text-orange-700 font-medium shadow">
+              🔒 Available when production reaches the Dispatch stage
+            </span>
+          </div>
+        )}
         {/* Header */}
         <div className="flex bg-gray-100 border-b border-gray-300 h-6 items-center justify-between">
           <div className=" px-2 py-0.5">
@@ -797,7 +803,6 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           </div>
         </div>
 
-        {/* Sample Dispatch Date | Awb # | Attach Front Pic */}
         <div className="grid grid-cols-12 border-b border-gray-300">
           <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
             <span className="text-app-text font-semibold text-gray-700">Sample Dispatch Date</span>
@@ -1057,31 +1062,30 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           <div className="grid grid-cols-12 border-gray-300">
             <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
             <div className="col-span-10 px-2 py-0.5 flex gap-1.5 items-center">
-                <Button onClick={handleDispatchToBuyer} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white h-6 text-app-text rounded-none">
-                  Dispatch Sample to Buyer
+                <Button onClick={handleDispatchToBuyer} disabled={loading} className="bg-green-700 hover:bg-green-800 text-[white!important] h-6 text-app-text rounded-md">
+                  <span className='text-white'>Dispatch Sample to Buyer</span>
                 </Button>
                 <Button
                   onClick={() => openEmailModal('send')}
                   disabled={loading}
-                  variant="outline"
-                  className="h-6 text-app-text rounded-none border-blue-400 text-blue-700 hover:bg-blue-50"
+                  className="h-6 text-app-text rounded-md bg-green-700 hover:bg-green-800 text-white border-0"
                 >
                   ✉ Send Mail
                 </Button>
                 <Button
                   onClick={() => openEmailModal('merge')}
                   disabled={loading}
-                  variant="outline"
-                  className="h-6 text-app-text rounded-none border-purple-400 text-purple-700 hover:bg-purple-50"
+                  className="h-6 text-app-text rounded-md bg-green-700 hover:bg-green-800 text-white border-0"
                 >
                   ⊞ Merge & Send Mail
                 </Button>
             </div>
           </div>
         )}
+        {/* End of dispatch details content */}
       </div>
 
-      <div className="border border-gray-300 bg-white mt-2">
+      <div className={`border border-gray-300 bg-white mt-2 ${session?.user?.role !== 'admin' && session?.user?.role !== 'vmd' ? 'hidden' : ''}`}>
         {/* Header */}
         <div className="flex justify-between bg-gray-100 border-b border-gray-300 px-2 py-0 items-center h-6">
           <div className="">
@@ -1238,6 +1242,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           </div>
         </div>
       </div>
+
 
       {/* Email Modal */}
       <Dialog open={emailModalOpen} onOpenChange={setEmailModalOpen}>
@@ -1452,7 +1457,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <Button
               onClick={handleSendEmail}
               disabled={emailSending || !emailTo.trim() || (emailMode === 'merge' && selectedMergeSRDs.length === 0)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-green-700 hover:bg-green-800 text-white"
             >
               {emailSending ? 'Sending...' : emailMode === 'merge' ? `⊞ Merge & Send (${selectedMergeSRDs.length})` : '✉ Send Mail'}
             </Button>

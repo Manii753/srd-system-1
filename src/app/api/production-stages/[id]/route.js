@@ -47,17 +47,24 @@ export async function DELETE(request, { params }) {
   const { id } = await params;
   
   try {
-    const deletedStage = await ProductionStage.findByIdAndUpdate(
-      id,
-      { isActive: false, updatedAt: new Date() },
-      { new: true }
-    );
+    // Check if any SRDs are currently using this stage
+    const SRD = (await import('@/models/SRD')).default;
+    const inUseCount = await SRD.countDocuments({ currentProductionStage: id });
+    
+    if (inUseCount > 0) {
+      return NextResponse.json({
+        success: false,
+        error: `Cannot delete: ${inUseCount} SRD(s) are currently at this stage. Move them first.`
+      }, { status: 400 });
+    }
+
+    const deletedStage = await ProductionStage.findByIdAndDelete(id);
 
     if (!deletedStage) {
       return NextResponse.json({ success: false, error: 'Stage not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: deletedStage });
+    return NextResponse.json({ success: true, message: `Stage "${deletedStage.name}" deleted` });
   } catch (error) {
     console.error('Error deleting production stage:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

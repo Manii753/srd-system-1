@@ -4,7 +4,6 @@ import { useSession } from 'next-auth/react';
 import Header from './Header';
 import DynamicSidebar from './DynamicSidebar';
 import { Toaster } from '@/components/ui/sonner';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
 export default function Layout({ children, headerContent, headerRightContent }) {
   const { status } = useSession();
@@ -18,17 +17,18 @@ export default function Layout({ children, headerContent, headerRightContent }) 
   }
 
   return (
-    <SidebarProvider defaultOpen={true}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+      {/* Sidebar — fixed width, never overlaps content */}
       <DynamicSidebar />
-      <SidebarInset>
-        <div className="h-screen bg-white flex flex-col overflow-hidden">
-          <Header headerContent={headerContent} headerRightContent={headerRightContent} />
-          <main className="flex-1 min-h-0 overflow-y-auto">
-            {children}
-          </main>
-          <Toaster />
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+
+      {/* Main area — takes remaining space */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Header headerContent={headerContent} headerRightContent={headerRightContent} />
+        <main style={{ flex: 1, overflowY: 'auto' }}>
+          {children}
+        </main>
+        <Toaster />
+      </div>
+    </div>
   );
 }

@@ -3,474 +3,272 @@
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { useEffect, useState, useRef } from 'react';
 import {
-  LayoutDashboard,
-  FileText,
-  Settings,
-  Users,
-  Package,
-  ChevronRight,
-  PanelLeftClose,
-  PanelLeftOpen,
-  GitBranch,
-  Plus,
-  CheckCircle,
-  Inbox,
-  Factory,
-  Edit,
-  FileSpreadsheet,
-  BarChart3,
-  ChevronDown,
-  Truck,
-  MessageSquare,
-  ClipboardList,
-  DollarSign,
-  List,
-  Calendar,
-  LogOut,
-  Shield,
+  LayoutDashboard, FileText, Settings, Users, Package,
+  PanelLeftClose, PanelLeftOpen, Plus, FileSpreadsheet,
+  BarChart3, ChevronDown, Truck, MessageSquare, ClipboardList,
+  DollarSign, List, Calendar, LogOut, Shield, Factory, Wrench,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import {
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarGroup,
-  SidebarMenu,
-  SidebarMenuButton,
-  useSidebar,
-} from '@/components/ui/sidebar';
+
+const COLLAPSED_KEY = 'sidebar_collapsed';
+
+function MenuItem({ icon, label, collapsed, active, onClick, suffix }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex', alignItems: 'center',
+        gap: collapsed ? 0 : 10,
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        padding: collapsed ? '10px 0' : '10px 10px',
+        borderRadius: 8, border: 'none', cursor: 'pointer',
+        fontSize: 13, fontWeight: active ? 600 : 400,
+        width: '100%', transition: 'background-color 150ms',
+        backgroundColor: active ? '#eff6ff' : hovered ? '#f3f4f6' : 'transparent',
+        color: active ? '#1d4ed8' : '#374151',
+      }}
+    >
+      {icon}
+      {!collapsed && <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>{label}</span>}
+      {!collapsed && suffix}
+    </button>
+  );
+}
 
 export default function DynamicSidebar() {
   const { data: session } = useSession();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { open, toggleSidebar, state } = useSidebar();
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem(COLLAPSED_KEY) === 'true';
+    return false;
+  });
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [samplesExpanded, setSamplesExpanded] = useState(false);
-
-  const userRole = session?.user?.role;
+  const [samplesExpanded, setSamplesExpanded] = useState(true);
   const unreadIntervalRef = useRef(null);
   const lastFetchTimeRef = useRef(0);
+  const userRole = session?.user?.role;
 
-  const handleLogout = () => {
-    signOut({ callbackUrl: '/login' });
-  };
+  const toggle = () => setCollapsed(prev => {
+    const next = !prev;
+    localStorage.setItem(COLLAPSED_KEY, String(next));
+    return next;
+  });
 
-  // Fetch unread count
   useEffect(() => {
-    if (session?.user?.email) {
-      const fetchUnreadCount = async () => {
-        // Debounce: don't fetch if we fetched within the last 5 seconds
-        const now = Date.now();
-        if (now - lastFetchTimeRef.current < 5000) {
-          return;
-        }
-        lastFetchTimeRef.current = now;
-
-        try {
-          const res = await fetch('/api/messages/unread-count');
-          const data = await res.json();
-          if (data.success) {
-            setUnreadCount(data.count);
-          }
-        } catch (error) {
-          console.error('Error fetching unread count:', error);
-        }
-      };
-
-      fetchUnreadCount();
-
-      // Clear any existing interval before setting a new one
-      if (unreadIntervalRef.current) {
-        clearInterval(unreadIntervalRef.current);
-      }
-
-      // Refresh every 30 seconds (increased from 10)
-      unreadIntervalRef.current = setInterval(fetchUnreadCount, 30000);
-
-      // Listen for manual refresh events
-      const handleRefresh = () => fetchUnreadCount();
-      window.addEventListener('refreshUnreadCount', handleRefresh);
-
-      return () => {
-        if (unreadIntervalRef.current) {
-          clearInterval(unreadIntervalRef.current);
-          unreadIntervalRef.current = null;
-        }
-        window.removeEventListener('refreshUnreadCount', handleRefresh);
-      };
-    }
+    if (!session?.user?.email) return;
+    const fetchUnread = async () => {
+      const now = Date.now();
+      if (now - lastFetchTimeRef.current < 5000) return;
+      lastFetchTimeRef.current = now;
+      try {
+        const res = await fetch('/api/messages/unread-count');
+        const data = await res.json();
+        if (data.success) setUnreadCount(data.count);
+      } catch {}
+    };
+    fetchUnread();
+    unreadIntervalRef.current = setInterval(fetchUnread, 30000);
+    window.addEventListener('refreshUnreadCount', fetchUnread);
+    return () => {
+      clearInterval(unreadIntervalRef.current);
+      window.removeEventListener('refreshUnreadCount', fetchUnread);
+    };
   }, [session?.user?.email]);
 
-  useEffect(() => {
-    if (userRole) {
-      fetchMenuItems();
-    }
-  }, [userRole]);
+  useEffect(() => { if (userRole) fetchMenuItems(); }, [userRole]);
 
   const fetchMenuItems = async () => {
     try {
-      if (userRole === 'admin') {
-        // Admin gets all config pages
-        setMenuItems([
-          { name: 'Home', href: '/home', icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
-          { name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList, gradient: 'from-yellow-400 to-yellow-500' },
-          {
-            name: 'Samples Management',
-            icon: Package,
-            gradient: 'from-pink-500 to-rose-500',
-            isSubmenu: true,
-            children: [
-              { name: 'Create SRD', href: '/dashboard/admin/create', icon: Plus },
-              { name: 'Sample Request', href: '/srd', icon: FileText },
-              { name: 'Sample Process', href: '/sample-management/sample-process', icon: Package },
-              { name: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList },
-              { name: 'Dispatch Detail', href: '/samples/dispatch', icon: Truck },
-              { name: 'Reports', href: '/sample-management/reports', icon: BarChart3 },
-              { name: 'Buyer Comment', href: '/samples/buyer-comment', icon: MessageSquare },
-            ]
-          },
-          { name: 'Cost Sheets', href: '#', icon: DollarSign, gradient: 'from-yellow-400 to-yellow-500' },
-          { name: 'Bom', href: '#', icon: List, gradient: 'from-yellow-400 to-yellow-500' },
-          { name: 'Planning', href: '#', icon: Calendar, gradient: 'from-yellow-400 to-yellow-500' },
-          { name: 'All SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
-          { name: 'SRD Fields', href: '/srdfields', icon: FileSpreadsheet, gradient: 'from-green-500 to-emerald-500' },
-          { name: 'Users', href: '/users', icon: Users, gradient: 'from-orange-500 to-red-500' },
-          { name: 'Permissions', href: '/permissions', icon: Shield, gradient: 'from-indigo-500 to-purple-500' },
-          { name: 'Settings', href: '/settings', icon: Settings, gradient: 'from-gray-500 to-slate-600' },
-        ]);
-      } else if (['cutting', 'sewing', 'washing', 'finishing', 'dispatch'].includes(userRole)) {
-        // Production stage roles
-        const stageNames = {
-          cutting: 'Cutting',
-          sewing: 'Sewing',
-          washing: 'Washing',
-          finishing: 'Finishing',
-          dispatch: 'Dispatch'
-        };
+      const samplesChildren = [
+        // { name: 'Create SRD', href: userRole === 'admin' ? '/dashboard/admin/create' : `/dashboard/${userRole}/create`, icon: Plus },
+        { name: 'SR In Process', href: '/srd', icon: FileText },
+        { name: 'SR Progress', href: '/sample-management/sample-process', icon: Package },
+        { name: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList },
+        { name: 'Dispatch Detail', href: '/samples/dispatch', icon: Truck },
+        { name: 'Reports', href: '/sample-management/reports', icon: BarChart3 },
+        { name: 'Buyer Comment', href: '/samples/buyer-comment', icon: MessageSquare },
+      ];
 
+      if (userRole === 'admin') {
         setMenuItems([
-          {
-            name: `${stageNames[userRole]}`,
-            href: `/dashboard/${userRole}`,
-            icon: LayoutDashboard,
-            gradient: 'from-blue-500 to-cyan-500'
-          },
+          { name: 'Home', href: '/home', icon: LayoutDashboard },
+          { name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
+          { name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren },
+          { name: 'Cost Sheets', href: '#', icon: DollarSign },
+          { name: 'Bom', href: '#', icon: List },
+          { name: 'Planning', href: '#', icon: Calendar },
+          { name: 'Production', href: '/dashboard/production-manager', icon: Factory },
+          { name: 'All SRDs', href: '/srd', icon: FileText },
+          { name: 'SRD Fields', href: '/srdfields', icon: FileSpreadsheet },
+          { name: 'Users', href: '/users', icon: Users },
+          { name: 'Permissions', href: '/permissions', icon: Shield },
+          { name: 'Settings', href: '/settings', icon: Settings },
+          { name: 'SR Diagnostics', href: '/settings/diagnose', icon: Wrench },
+        ]);
+      } else if (['cutting','sewing','washing','finishing','dispatch'].includes(userRole)) {
+        const names = { cutting:'Cutting', sewing:'Sewing', washing:'Washing', finishing:'Finishing', dispatch:'Dispatch' };
+        setMenuItems([
+          { name: 'Home', href: '/home', icon: LayoutDashboard },
+          { name: names[userRole] + ' Stage', href: '/dashboard/stage', icon: Factory },
+        ]);
+      } else if (userRole === 'production-manager') {
+        setMenuItems([
+          { name: 'Home', href: '/home', icon: LayoutDashboard },
+          { name: 'Production', href: '/dashboard/production-manager', icon: Factory },
         ]);
       } else {
-        // Fetch department info for dynamic menu
-        const response = await fetch('/api/departments');
-        const data = await response.json();
-
-        if (data.success) {
-          // Find department by matching both uppercase and lowercase slugs
-          const userDept = data.data.find(d =>
-            d.slug === userRole ||
-            d.slug === userRole.toUpperCase() ||
-            d.slug.toLowerCase() === userRole
-          );
-
-          if (userDept) {
-            // Only VMD can create SRDs
-            const menuItems = [
-              {
-                name: 'Home',
-                href: '/home',
-                icon: LayoutDashboard,
-                gradient: 'from-blue-500 to-cyan-500'
-              },
-              {
-                name: 'Order Confirmation',
-                href: '/dashboard/vmd',
-                icon: ClipboardList,
-                gradient: 'from-yellow-400 to-yellow-500'
-              },
-            ];
-
-            // Add Samples Management submenu for VMD
-            if (userRole === 'vmd' || userRole === 'VMD') {
-              menuItems.push({
-                name: 'Samples Management',
-                icon: Package,
-                gradient: 'from-pink-500 to-rose-500',
-                isSubmenu: true,
-                children: [
-                  { name: 'Create SRD', href: `/dashboard/${userRole}/create`, icon: Plus },
-                  { name: 'Sample Request', href: '/srd', icon: FileText },
-                  { name: 'Sample Process', href: '/sample-management/sample-process', icon: Package },
-                  { name: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList },
-                  { name: 'Dispatch Detail', href: '/samples/dispatch', icon: Truck },
-                  { name: 'Reports', href: '/sample-management/reports', icon: BarChart3 },
-                  { name: 'Buyer Comment', href: '/samples/buyer-comment', icon: MessageSquare },
-                ]
-              });
-              
-              menuItems.push(
-                { name: 'Cost Sheets', href: '#', icon: DollarSign, gradient: 'from-yellow-400 to-yellow-500' },
-                { name: 'Bom', href: '#', icon: List, gradient: 'from-yellow-400 to-yellow-500' },
-                { name: 'Planning', href: '#', icon: Calendar, gradient: 'from-yellow-400 to-yellow-500' }
-              );
-            }
-
-            setMenuItems(menuItems);
-          } else {
-            // Fallback menu if department not found
-            setMenuItems([
-              { name: 'Home', href: `/dashboard/${userRole}`, icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
-              { name: 'SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
-            ]);
-          }
-        } else {
-          // Fallback menu if API fails
-          setMenuItems([
-            { name: 'Home', href: `/dashboard/${userRole}`, icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
-            { name: 'SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
-          ]);
+        const items = [
+          { name: 'Home', href: '/home', icon: LayoutDashboard },
+          { name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
+        ];
+        if (userRole === 'vmd' || userRole === 'VMD') {
+          items.push({ name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren });
+          items.push({ name: 'Cost Sheets', href: '#', icon: DollarSign });
+          items.push({ name: 'Bom', href: '#', icon: List });
+          items.push({ name: 'Planning', href: '#', icon: Calendar });
+          items.push({ name: 'Production', href: '/dashboard/vmd/production', icon: Factory });
         }
+        setMenuItems(items);
       }
-    } catch (error) {
-      console.error('Error fetching menu items:', error);
-      // Fallback to basic menu
-      setMenuItems([
-        { name: 'Home', href: `/dashboard/${userRole}`, icon: LayoutDashboard, gradient: 'from-blue-500 to-cyan-500' },
-        { name: 'SRDs', href: '/srd', icon: FileText, gradient: 'from-purple-500 to-pink-500' },
-      ]);
+    } catch {
+      setMenuItems([{ name: 'Home', href: `/dashboard/${userRole}`, icon: LayoutDashboard }]);
     } finally {
       setLoading(false);
     }
   };
 
-  const roleColors = {
-    admin: 'from-blue-600 via-blue-500 to-cyan-500',
-    vmd: 'from-purple-600 via-purple-500 to-pink-500',
-    cad: 'from-violet-600 via-violet-500 to-purple-500',
-    commercial: 'from-indigo-600 via-indigo-500 to-blue-500',
-    mmc: 'from-slate-700 via-slate-600 to-gray-600',
-  };
-
-  const roleGradient = roleColors[userRole] || roleColors.admin;
-
   const fullUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
-  let activeItemHref = '';
-  if (menuItems) {
-    for (const item of menuItems) {
-      if (fullUrl.startsWith(item.href)) {
-        if (item.href.length > activeItemHref.length) {
-          activeItemHref = item.href;
-        }
-      }
+  let activeHref = '';
+  for (const item of menuItems) {
+    if (item.href && fullUrl.startsWith(item.href) && item.href.length > activeHref.length) activeHref = item.href;
+    if (item.children) for (const c of item.children) {
+      if (c.href && fullUrl.startsWith(c.href) && c.href.length > activeHref.length) activeHref = c.href;
     }
   }
 
-  if (loading) {
-    return (
-      <Sidebar className="border-r-0 transition-all duration-400" collapsible="icon">
-        <div className="h-full bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      </Sidebar>
-    );
-  }
+  const W = collapsed ? 56 : 200;
 
   return (
-    <Sidebar className="border-r border-gray-200 transition-all duration-300" collapsible="icon">
-      <div className="h-full bg-white">
-        <SidebarHeader className={cn("relative border-b border-gray-200", open ? "p-6" : "p-4")}>
-          <div className={cn("relative", !open && "flex flex-col items-center")}>
-            {open && (
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-gray-900">
-                  SRD System
-                </h2>
-                <button
-                  onClick={toggleSidebar}
-                  className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors"
-                >
-                  <PanelLeftClose className="w-4 h-4 text-gray-600" />
-                </button>
-              </div>
-            )}
-
-            {!open && (
-              <button
-                onClick={toggleSidebar}
-                className="w-full rounded-lg p-2 hover:bg-gray-100 transition-colors"
-              >
-                <PanelLeftOpen className="w-4 h-4 text-gray-600 mx-auto" />
-              </button>
-            )}
-          </div>
-        </SidebarHeader>
-
-        <SidebarContent className="relative px-3 py-4">
-          <SidebarGroup>
-            <SidebarMenu className="space-y-1">
-              {menuItems.map((item, index) => {
-                const Icon = item.icon;
-                const isActive = item.href === activeItemHref;
-                const hasActiveChild = item.children?.some(child => child.href === activeItemHref);
-                // Create truly unique key using multiple properties
-                const uniqueKey = `menu-item-${index}-${item.name?.replace(/\s+/g, '-').toLowerCase() || 'unnamed'}`;
-
-                // Handle submenu items
-                if (item.isSubmenu) {
-                  return (
-                    <div key={uniqueKey} className="space-y-1">
-                      {/* Parent menu item */}
-                      <div className="relative">
-                        <SidebarMenuButton
-                          tooltip={!open ? item.name : undefined}
-                          className={cn(
-                            "relative rounded-lg transition-all",
-                            hasActiveChild
-                              ? "bg-pink-50 text-pink-700 font-medium"
-                              : "hover:bg-gray-100 text-gray-700",
-                            open ? "h-11 px-3" : "h-11 px-2 justify-center"
-                          )}
-                          onClick={() => setSamplesExpanded(!samplesExpanded)}
-                        >
-                          <div className={cn(
-                            "flex items-center w-full h-full",
-                            open ? "gap-3" : "justify-center"
-                          )}>
-                            <Icon className={cn(
-                              "h-5 w-5 shrink-0",
-                              hasActiveChild ? "text-pink-700" : "text-gray-600"
-                            )} />
-                            {open && (
-                              <>
-                                <span className="text-sm">
-                                  {item.name}
-                                </span>
-                                <ChevronDown className={cn(
-                                  "ml-auto h-4 w-4 shrink-0 transition-transform",
-                                  samplesExpanded ? "rotate-180" : ""
-                                )} />
-                              </>
-                            )}
-                          </div>
-                        </SidebarMenuButton>
-                      </div>
-
-                      {/* Child menu items */}
-                      {open && samplesExpanded && (
-                        <div className="ml-6 space-y-1 border-l-2 border-gray-200 pl-3">
-                          {item.children.map((child, childIndex) => {
-                            const ChildIcon = child.icon;
-                            const isChildActive = child.href === activeItemHref;
-                            // Create unique key for child items
-                            const childKey = `submenu-${index}-child-${childIndex}-${child.name?.replace(/\s+/g, '-').toLowerCase()}`;
-
-                            return (
-                              <div key={childKey} className="relative">
-                                <SidebarMenuButton
-                                  asChild
-                                  isActive={isChildActive}
-                                  className={cn(
-                                    "relative rounded-lg h-9 px-2",
-                                    isChildActive
-                                      ? "bg-blue-50 text-blue-700 font-medium"
-                                      : "hover:bg-gray-100 text-gray-700"
-                                  )}
-                                >
-                                  <Link href={child.href} className="flex items-center gap-2 w-full h-full">
-                                    <ChildIcon className={cn(
-                                      "h-4 w-4 shrink-0",
-                                      isChildActive ? "text-blue-700" : "text-gray-600"
-                                    )} />
-                                    <span className="text-xs">
-                                      {child.name}
-                                    </span>
-                                  </Link>
-                                </SidebarMenuButton>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                // Regular menu items
-                return (
-                  <div key={uniqueKey} className="relative">
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={!open ? item.name : undefined}
-                      className={cn(
-                        "relative rounded-lg transition-all",
-                        isActive
-                          ? "bg-blue-50 text-blue-700 font-medium"
-                          : "hover:bg-gray-100 text-gray-700",
-                        open ? "h-11 px-3" : "h-11 px-2 justify-center"
-                      )}
-                    >
-                      <Link href={item.href || '#'} className={cn(
-                        "flex items-center w-full h-full",
-                        open ? "gap-3" : "justify-center"
-                      )}>
-                        <Icon className={cn(
-                          "h-5 w-5 shrink-0",
-                          isActive ? "text-blue-700" : "text-gray-600"
-                        )} />
-                        {open && (
-                          <span className="text-sm">
-                            {item.name}
-                          </span>
-                        )}
-
-                        {/* Unread count badge */}
-                        {item.showBadge && unreadCount > 0 && open && (
-                          <span className="ml-auto px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">
-                            {unreadCount > 99 ? '99+' : unreadCount}
-                          </span>
-                        )}
-
-                        {/* Unread badge when collapsed */}
-                        {!open && item.showBadge && unreadCount > 0 && (
-                          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">
-                            {unreadCount > 9 ? '9+' : unreadCount}
-                          </span>
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </div>
-                );
-              })}
-              {/* Logout Button */}
-              <div className="relative mt-2">
-                <SidebarMenuButton
-                  asChild
-                  tooltip={!open ? "Logout" : undefined}
-                  className={cn(
-                    "relative rounded-lg transition-all hover:bg-red-50 text-gray-700 hover:text-red-600",
-                    open ? "h-11 px-3" : "h-11 px-2 justify-center"
-                  )}
-                >
-                  <button
-                    onClick={handleLogout}
-                    className={cn(
-                      "flex items-center w-full h-full",
-                      open ? "gap-3" : "justify-center"
-                    )}
-                  >
-                    <LogOut className="h-5 w-5 shrink-0" />
-                    {open && <span className="text-sm">Logout</span>}
-                  </button>
-                </SidebarMenuButton>
-              </div>
-            </SidebarMenu>
-          </SidebarGroup>
-        </SidebarContent>
+    <div style={{
+      width: W, minWidth: W, flexShrink: 0,
+      transition: 'width 200ms ease, min-width 200ms ease',
+      height: '100vh', display: 'flex', flexDirection: 'column',
+      backgroundColor: '#fff', borderRight: '1px solid #e5e7eb', overflow: 'hidden',
+    }}>
+      {/* Top bar */}
+      <div style={{
+        borderBottom: '1px solid #e5e7eb', padding: collapsed ? '12px 8px' : '0 12px',
+        display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between',
+        minHeight: 56, flexShrink: 0,
+      }}>
+        {!collapsed && <span style={{ fontWeight: 700, fontSize: 15, color: '#111827', whiteSpace: 'nowrap' }}>SRD System</span>}
+        <button onClick={toggle} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 32, height: 32, borderRadius: 8, border: 'none',
+          background: 'transparent', cursor: 'pointer', color: '#6b7280', flexShrink: 0,
+        }}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+        >
+          {collapsed ? <PanelLeftOpen style={{ width: 16, height: 16 }} /> : <PanelLeftClose style={{ width: 16, height: 16 }} />}
+        </button>
       </div>
-    </Sidebar>
+
+      {/* Nav */}
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '10px 8px' }}>
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 24 }}>
+            <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid transparent', borderBottomColor: '#2563eb', animation: 'spin 0.8s linear infinite' }} />
+          </div>
+        ) : (
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {menuItems.map((item, i) => {
+              const Icon = item.icon;
+              const isActive = item.href === activeHref;
+              const hasActiveChild = item.children?.some(c => c.href === activeHref);
+
+              if (item.isSubmenu) return (
+                <div key={i}>
+                  <MenuItem
+                    icon={<Icon style={{ width: 18, height: 18, flexShrink: 0, color: hasActiveChild ? '#be185d' : '#4b5563' }} />}
+                    label={item.name} collapsed={collapsed} active={hasActiveChild}
+                    onClick={() => setSamplesExpanded(p => !p)}
+                    suffix={<ChevronDown style={{ width: 13, height: 13, flexShrink: 0, color: '#9ca3af', transform: samplesExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }} />}
+                  />
+                  {!collapsed && samplesExpanded && (
+                    <div style={{ marginLeft: 14, paddingLeft: 10, borderLeft: '2px solid #e5e7eb', marginTop: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {item.children.map((child, ci) => {
+                        const CIcon = child.icon;
+                        const ca = child.href === activeHref;
+                        return (
+                          <Link key={ci} href={child.href} style={{
+                            display: 'flex', alignItems: 'center', gap: 7,
+                            padding: '6px 8px', borderRadius: 6, textDecoration: 'none',
+                            fontSize: 12, fontWeight: ca ? 600 : 400,
+                            color: ca ? '#1d4ed8' : '#374151',
+                            backgroundColor: ca ? '#eff6ff' : 'transparent',
+                          }}
+                            onMouseEnter={e => { if (!ca) e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                            onMouseLeave={e => { if (!ca) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                          >
+                            <CIcon style={{ width: 14, height: 14, flexShrink: 0, color: ca ? '#1d4ed8' : '#6b7280' }} />
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{child.name}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+
+              return (
+                <Link key={i} href={item.href || '#'} title={collapsed ? item.name : undefined}
+                  style={{
+                    display: 'flex', alignItems: 'center',
+                    gap: collapsed ? 0 : 10, justifyContent: collapsed ? 'center' : 'flex-start',
+                    padding: collapsed ? '10px 0' : '10px 10px',
+                    borderRadius: 8, textDecoration: 'none', fontSize: 13,
+                    fontWeight: isActive ? 600 : 400,
+                    color: isActive ? '#1d4ed8' : '#374151',
+                    backgroundColor: isActive ? '#eff6ff' : 'transparent',
+                    position: 'relative',
+                  }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = isActive ? '#eff6ff' : 'transparent'; }}
+                >
+                  <Icon style={{ width: 18, height: 18, flexShrink: 0, color: isActive ? '#1d4ed8' : '#4b5563' }} />
+                  {!collapsed && <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</span>}
+                </Link>
+              );
+            })}
+
+            {/* Logout */}
+            <button onClick={() => signOut({ callbackUrl: '/login' })} title={collapsed ? 'Logout' : undefined}
+              style={{
+                display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 10,
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                padding: collapsed ? '10px 0' : '10px 10px',
+                borderRadius: 8, border: 'none', background: 'transparent',
+                cursor: 'pointer', fontSize: 13, color: '#374151',
+                width: '100%', marginTop: 4,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#fef2f2'; e.currentTarget.style.color = '#dc2626'; }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#374151'; }}
+            >
+              <LogOut style={{ width: 18, height: 18, flexShrink: 0 }} />
+              {!collapsed && <span style={{ whiteSpace: 'nowrap' }}>Logout</span>}
+            </button>
+          </nav>
+        )}
+      </div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
   );
 }
-

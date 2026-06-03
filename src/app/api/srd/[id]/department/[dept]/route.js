@@ -68,9 +68,43 @@ export async function PATCH(request, context) {
         }
         srd.markModified('status');
 
-        // Progress calculation
-        const excludedDepts = ['admin', 'production-manager', 'vmd'];
-        const relevantEntries = srd.status.filter(s => !excludedDepts.includes(s.department));
+        // Auto-start production when all 4 departments approve
+        const REQUIRED_DEPTS = ['vmd', 'cad', 'commercial', 'mmc'];
+        const allApproved = REQUIRED_DEPTS.every(dept =>
+          srd.status.find(s => s.department === dept)?.value === 'approved'
+        );
+        if (allApproved && !srd.inProduction) {
+          // Fetch first production stage and auto-start
+          const ProductionStage = (await import('@/models/ProductionStage')).default;
+          const stages = await ProductionStage.find({ isActive: true }).sort({ order: 1 });
+          if (stages.length > 0) {
+            const firstStage = stages[0];
+            // Ensure SRD has productionStages populated
+            if (!srd.productionStages || srd.productionStages.length === 0) {
+              srd.productionStages = stages.map(s => s._id);
+            }
+            srd.readyForProduction = true;
+            srd.inProduction = true;
+            srd.productionStartDate = new Date();
+            srd.currentProductionStage = firstStage._id;
+            srd.productionProgress = 0;
+            if (!srd.productionHistory) srd.productionHistory = [];
+            srd.productionHistory.push({
+              stage: firstStage._id,
+              stageName: firstStage.name,
+              stageDisplayName: firstStage.displayName || firstStage.name,
+              startDate: new Date(),
+              status: 'in-progress',
+            });
+            srd.audit.push({
+              action: 'production_auto_started',
+              department: 'system',
+              author: 'System',
+              timestamp: new Date(),
+              details: { stage: firstStage.name, trigger: 'all_departments_approved' },
+            });
+          }
+        }
         const approvedCount = relevantEntries.filter(s => s.value === 'approved').length;
 
         if (relevantEntries.length > 0) {
