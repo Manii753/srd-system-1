@@ -7,12 +7,12 @@ import Link from 'next/link';
 import { ArrowLeft, FileText, Package, ClipboardList, Truck, BarChart2, MessageSquare } from 'lucide-react';
 
 const SAMPLE_APPS = [
-  { label: 'Sample Request', href: '/srd', icon: FileText, color: 'bg-yellow-400' },
-  { label: 'SR In Process', href: '/srd', icon: Package, color: 'bg-yellow-400' },
-  { label: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList, color: 'bg-yellow-400' },
-  { label: 'Dispatch Detail', href: '/samples/dispatch', icon: Truck, color: 'bg-yellow-400' },
-  { label: 'Reports', href: '/reports', icon: BarChart2, color: 'bg-yellow-400' },
-  { label: 'Buyer Comment', href: '/samples/buyer-comment', icon: MessageSquare, color: 'bg-yellow-400' },
+  { label: 'SR In Process', href: '/srd', icon: FileText, color: 'bg-blue-500', lightColor: 'bg-blue-50', textColor: 'text-blue-600' },
+  { label: 'SR Progress', href: '/sample-management/sample-process', icon: Package, color: 'bg-emerald-500', lightColor: 'bg-emerald-50', textColor: 'text-emerald-600' },
+  { label: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList, color: 'bg-amber-500', lightColor: 'bg-amber-50', textColor: 'text-amber-600' },
+  { label: 'Dispatch Detail', href: '/samples/dispatch', icon: Truck, color: 'bg-purple-500', lightColor: 'bg-purple-50', textColor: 'text-purple-600' },
+  { label: 'Reports', href: '/sample-management/reports', icon: BarChart2, color: 'bg-rose-500', lightColor: 'bg-rose-50', textColor: 'text-rose-600' },
+  { label: 'Buyer Comment', href: '/samples/buyer-comment', icon: MessageSquare, color: 'bg-indigo-500', lightColor: 'bg-indigo-50', textColor: 'text-indigo-600' },
 ];
 
 export default function SamplesPage() {
@@ -56,10 +56,12 @@ export default function SamplesPage() {
             return (
               <Link key={app.label} href={app.href}>
                 <div
-                  className={`${app.color} text-black rounded-lg p-4 h-28 flex flex-col items-center justify-center text-center font-semibold text-xs cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 border border-gray-200/50`}
+                  className={`${app.lightColor} rounded-xl p-4 h-32 flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border border-gray-100 group`}
                 >
-                  <Icon className="h-5 w-5 mb-2" />
-                  <span>{app.label}</span>
+                  <div className={`${app.color} w-12 h-12 rounded-xl flex items-center justify-center mb-3 shadow-md group-hover:scale-110 transition-transform`}>
+                    <Icon className="h-6 w-6 text-white" />
+                  </div>
+                  <span className={`font-semibold text-xs ${app.textColor}`}>{app.label}</span>
                 </div>
               </Link>
             );

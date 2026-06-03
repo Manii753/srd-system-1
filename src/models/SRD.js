@@ -98,7 +98,6 @@ const srdSchema = new mongoose.Schema({
   sampleProcess: [{
     stage: {
       type: String,
-      enum: ['pattern', 'sewing', 'washing', 'finishing', 'vmd'],
       required: true
     },
     stageDisplayName: String,

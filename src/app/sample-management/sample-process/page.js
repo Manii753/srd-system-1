@@ -323,7 +323,7 @@ export default function SampleProcessPage() {
         <div className="border-2 border-gray-300 bg-white overflow-hidden">
           {/* Header */}
           <div className="bg-gray-100 border-b-2 border-gray-300 px-3 py-2 flex items-center justify-between">
-            <h1 className="text-sm font-bold text-gray-900 uppercase">SR In Process Tracking</h1>
+            <h1 className="text-sm font-bold text-gray-900">SR Progress</h1>
             {totalTime && (
               <div className="flex items-center gap-2 text-xs">
                 <Clock className="h-3 w-3 text-gray-600" />
@@ -346,7 +346,7 @@ export default function SampleProcessPage() {
                 {/* Row 1 */}
                 <tr className="border-b border-gray-300 h-6">
                   <td className="bg-gray-50 border-r border-gray-300 px-2">
-                    <span className="text-xs font-semibold text-gray-700">SR Raised Date</span>
+                    <span className="text-xs font-semibold text-gray-700">Sr Raised Date</span>
                   </td>
                   <td className="px-2 border-r border-gray-300">
                     <span className="text-xs text-gray-900">
@@ -354,7 +354,7 @@ export default function SampleProcessPage() {
                     </span>
                   </td>
                   <td className="bg-gray-50 border-r border-gray-300 px-2">
-                    <span className="text-xs font-semibold text-gray-700">INO REF NO</span>
+                    <span className="text-xs font-semibold text-gray-700">Ino Ref No</span>
                   </td>
                   <td className="px-2">
                     <span className="text-xs text-gray-900 font-medium">{selectedSrd.refNo || '-'}</span>
@@ -364,7 +364,7 @@ export default function SampleProcessPage() {
                 {/* Row 2 */}
                 <tr className="border-b border-gray-300 h-6">
                   <td className="bg-gray-50 border-r border-gray-300 px-2">
-                    <span className="text-xs font-semibold text-gray-700">BRAND</span>
+                    <span className="text-xs font-semibold text-gray-700">Brand</span>
                   </td>
                   <td className="px-2 border-r border-gray-300">
                     <span className="text-xs text-gray-900">
@@ -373,7 +373,7 @@ export default function SampleProcessPage() {
                     </span>
                   </td>
                   <td className="bg-gray-50 border-r border-gray-300 px-2">
-                    <span className="text-xs font-semibold text-gray-700">SAMPLE TYPE</span>
+                    <span className="text-xs font-semibold text-gray-700">Sample Type</span>
                   </td>
                   <td className="px-2">
                     <span className="text-xs text-gray-900">
@@ -385,7 +385,7 @@ export default function SampleProcessPage() {
                 {/* Row 3 */}
                 <tr className="border-b border-gray-300 h-6">
                   <td className="bg-gray-50 border-r border-gray-300 px-2">
-                    <span className="text-xs font-semibold text-gray-700">BUYER STYLE REF #</span>
+                    <span className="text-xs font-semibold text-gray-700">Buyer Style Ref #</span>
                   </td>
                   <td className="px-2 border-r border-gray-300">
                     <span className="text-xs text-gray-900">
@@ -393,7 +393,7 @@ export default function SampleProcessPage() {
                     </span>
                   </td>
                   <td className="bg-gray-50 border-r border-gray-300 px-2">
-                    <span className="text-xs font-semibold text-gray-700">FIT</span>
+                    <span className="text-xs font-semibold text-gray-700">Fit</span>
                   </td>
                   <td className="px-2">
                     <span className="text-xs text-gray-900">
@@ -405,7 +405,7 @@ export default function SampleProcessPage() {
                 {/* Row 4 */}
                 <tr className="h-6">
                   <td className="bg-gray-50 border-r border-gray-300 px-2">
-                    <span className="text-xs font-semibold text-gray-700">DESCRIPTION</span>
+                    <span className="text-xs font-semibold text-gray-700">Description</span>
                   </td>
                   <td colSpan="3" className="px-2">
                     <span className="text-xs text-gray-900">

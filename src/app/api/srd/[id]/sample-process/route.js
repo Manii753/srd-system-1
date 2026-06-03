@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import SRD from '@/models/SRD';
+import ProductionStage from '@/models/ProductionStage';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -35,7 +36,8 @@ export async function PATCH(request, { params }) {
 
     const { id } = await params;
     const body = await request.json();
-    const { action, stage, notes } = body;
+    const { action, stage: stageParam, stageId, notes } = body;
+    const stage = stageParam || stageId; // Accept both 'stage' and 'stageId'
 
     const srd = await SRD.findById(id);
     
@@ -43,23 +45,73 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ success: false, error: 'SRD not found' }, { status: 404 });
     }
 
-    const stageNames = {
-      pattern: 'Pattern',
-      sewing: 'Sewing',
-      washing: 'Washing',
-      finishing: 'Finishing',
-      vmd: 'VMD'
-    };
+    // Fetch production stages dynamically
+    let productionStages = [];
+    try {
+      const stages = await ProductionStage.find({ isActive: true }).sort({ order: 1 });
+      productionStages = stages.map(stage => ({
+        id: stage.slug || stage.name.toLowerCase(),
+        name: stage.name,
+        order: stage.order
+      }));
+      
+      if (productionStages.length === 0) {
+        return NextResponse.json({ 
+          success: false, 
+          error: 'No active production stages found. Please configure production stages first.' 
+        }, { status: 400 });
+      }
+    } catch (err) {
+      console.error('Error fetching production stages:', err);
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Failed to fetch production stages' 
+      }, { status: 500 });
+    }
 
     // Initialize sample process if not exists
     if (!srd.sampleProcess || srd.sampleProcess.length === 0) {
-      srd.sampleProcess = [
-        { stage: 'pattern', stageDisplayName: 'Pattern', status: 'pending', order: 1 },
-        { stage: 'sewing', stageDisplayName: 'Sewing', status: 'pending', order: 2 },
-        { stage: 'washing', stageDisplayName: 'Washing', status: 'pending', order: 3 },
-        { stage: 'finishing', stageDisplayName: 'Finishing', status: 'pending', order: 4 },
-        { stage: 'vmd', stageDisplayName: 'VMD', status: 'pending', order: 5 }
-      ];
+      // Check if we should use productionHistory instead
+      const useProductionHistory = srd.productionHistory && srd.productionHistory.length > 0;
+      
+      if (useProductionHistory) {
+        // Start with all stages as pending
+        const allStages = productionStages.map(stage => ({
+          stage: stage.id,
+          stageDisplayName: stage.name,
+          status: 'pending',
+          order: stage.order
+        }));
+        
+        // Update stages that have history
+        srd.productionHistory.forEach((historyItem) => {
+          const stageName = historyItem.stage?.slug || historyItem.stageName?.toLowerCase();
+          const stageIndex = allStages.findIndex(s => s.stage === stageName);
+          
+          if (stageIndex !== -1) {
+            allStages[stageIndex] = {
+              ...allStages[stageIndex],
+              status: historyItem.status === 'completed' ? 'completed' : 
+                      historyItem.status === 'in-progress' ? 'received' : 'pending',
+              receivedDate: historyItem.startDate,
+              completedDate: historyItem.endDate,
+              completedBy: historyItem.completedBy ? { name: historyItem.completedBy } : null,
+              notes: historyItem.notes
+            };
+          }
+        });
+        
+        srd.sampleProcess = allStages;
+        console.log('API: Converted productionHistory to sampleProcess:', srd.sampleProcess.map(s => ({ stage: s.stage, status: s.status })));
+      } else {
+        // Initialize with all stages as pending
+        srd.sampleProcess = productionStages.map(stage => ({
+          stage: stage.id,
+          stageDisplayName: stage.name,
+          status: 'pending',
+          order: stage.order
+        }));
+      }
     }
 
     const stageIndex = srd.sampleProcess.findIndex(s => s.stage === stage);
@@ -106,13 +158,23 @@ export async function PATCH(request, { params }) {
         }, { status: 403 });
       }
 
-      // Validate previous stage is completed
+      // Validate previous stage is received, in-progress, or completed
       if (stageIndex > 0) {
         const prevStage = srd.sampleProcess[stageIndex - 1];
-        if (prevStage.status !== 'completed') {
+        console.log('API Receive validation:', {
+          currentStage: stage,
+          stageIndex,
+          prevStage: {
+            stage: prevStage.stage,
+            status: prevStage.status
+          },
+          isPending: prevStage.status === 'pending'
+        });
+        
+        if (prevStage.status === 'pending') {
           return NextResponse.json({ 
             success: false, 
-            error: 'Previous stage must be completed before receiving' 
+            error: 'Previous stage must be received before you can receive this stage' 
           }, { status: 400 });
         }
       }
@@ -145,6 +207,36 @@ export async function PATCH(request, { params }) {
     }
 
     srd.updatedAt = new Date();
+    
+    // Update currentProductionStage to reflect the current active stage
+    // Find the first stage that is 'received' or 'in-progress' (not completed)
+    const currentActiveStage = srd.sampleProcess.find(s => 
+      s.status === 'received' || s.status === 'in-progress'
+    );
+    
+    if (currentActiveStage) {
+      // Map stage ID back to ProductionStage ObjectId
+      const matchingStage = productionStages.find(ps => ps.id === currentActiveStage.stage);
+      if (matchingStage) {
+        const fullStage = await ProductionStage.findOne({ 
+          $or: [
+            { slug: matchingStage.id },
+            { name: { $regex: new RegExp('^' + matchingStage.name + '$', 'i') } }
+          ]
+        });
+        if (fullStage) {
+          srd.currentProductionStage = fullStage._id;
+        }
+      }
+    } else {
+      // Check if all stages are completed
+      const allCompleted = srd.sampleProcess.every(s => s.status === 'completed');
+      if (allCompleted) {
+        srd.isComplete = true;
+        srd.currentProductionStage = null; // Clear current stage when all are done
+      }
+    }
+    
     await srd.save();
 
     return NextResponse.json({ 

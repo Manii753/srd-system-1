@@ -52,7 +52,7 @@ export default function StageDashboard() {
     }
   };
 
-  // Called by the next-stage person: they type the SRD ref no to mark the previous stage done
+  // Called by the next-stage person: they type the SRD ref no to receive it at their stage
   const handleReceive = async () => {
     const ref = receiveInput.trim();
     if (!ref) return;
@@ -63,6 +63,9 @@ export default function StageDashboard() {
       const stagesRes = await fetch('/api/production-stages');
       const stagesData = await stagesRes.json();
       const allStages = stagesData.data || [];
+      
+      // Debug: Log stages to console
+      console.log('All production stages:', allStages);
 
       // 2. Find MY stage (the one I'm receiving INTO)
       const myStage = allStages.find(s =>
@@ -73,6 +76,8 @@ export default function StageDashboard() {
         setReceiveMsg({ type: 'error', text: 'Your production stage is not configured. Ask admin to create a stage matching your role.' });
         return;
       }
+      
+      console.log('My stage:', myStage);
 
       // 3. Find the SRD by refNo
       const res = await fetch(`/api/srd?search=${encodeURIComponent(ref)}`);
@@ -88,53 +93,30 @@ export default function StageDashboard() {
         setReceiveMsg({ type: 'error', text: `SRD "${ref}" is not in production yet.` });
         return;
       }
+      
+      console.log('Found SRD:', { refNo: srd.refNo, currentProductionStage: srd.currentProductionStage });
 
-      // 4. Find the CURRENT stage of the SRD (the one being completed)
-      const currentStage = allStages.find(s =>
-        String(s._id) === String(srd.currentProductionStage)
-      );
-      if (!currentStage) {
-        setReceiveMsg({ type: 'error', text: `Could not identify the current stage of SRD "${ref}".` });
-        return;
-      }
-
-      // 5. Validate: the SRD's current stage must come directly before mine
-      const sortedStages = [...allStages].sort((a, b) => a.order - b.order);
-      const currentIdx = sortedStages.findIndex(s => String(s._id) === String(currentStage._id));
-      const nextStageAfterCurrent = sortedStages[currentIdx + 1];
-
-      if (!nextStageAfterCurrent || String(nextStageAfterCurrent._id) !== String(myStage._id)) {
-        const nextName = nextStageAfterCurrent
-          ? (nextStageAfterCurrent.displayName || nextStageAfterCurrent.name)
-          : 'nobody (last stage)';
-        setReceiveMsg({
-          type: 'error',
-          text: `SRD "${ref}" is at "${currentStage.displayName || currentStage.name}". The next stage is ${nextName}, not your stage.`,
-        });
-        return;
-      }
-
-      // 6. Call complete-stage — this completes the current stage and moves to mine
-      const completeRes = await fetch(`/api/srd/${srd._id}/production/complete-stage`, {
-        method: 'POST',
+      // 4. Use the same endpoint as mobile: sample-process with action 'receive'
+      const myStageId = myStage.slug || myStage.name.toLowerCase();
+      const receiveRes = await fetch(`/api/srd/${srd._id}/sample-process`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          stageName: currentStage.name,
-          stageId: String(srd.currentProductionStage),
-          completedBy: session.user.name,
-          notes: `Received by ${session.user.name} at ${myStage.displayName || myStage.name}`,
+          stageId: myStageId,
+          action: 'receive'
         }),
       });
-      const completeData = await completeRes.json();
+      const receiveData = await receiveRes.json();
 
-      if (completeData.success) {
-        setReceiveMsg({ type: 'success', text: `✅ SRD "${ref}" received! ${completeData.message}` });
+      if (receiveData.success) {
+        setReceiveMsg({ type: 'success', text: `✅ SRD "${ref}" received successfully!` });
         setReceiveInput('');
         fetchData();
       } else {
-        setReceiveMsg({ type: 'error', text: completeData.error || 'Failed to receive SRD.' });
+        setReceiveMsg({ type: 'error', text: receiveData.error || 'Failed to receive SRD.' });
       }
     } catch (e) {
+      console.error('Receive error:', e);
       setReceiveMsg({ type: 'error', text: e.message });
     } finally {
       setReceiveLoading(false);

@@ -268,6 +268,7 @@ export default function DepartmentPanelExcel({
   const hasMeaningfulValueRef = useRef(null);
   const activeTemplateRef = useRef(null);
   activeTemplateRef.current = activeTemplate;
+  const autoApprovalTimeoutRef = useRef(null);
 
   // Check if user can edit a specific field based on its department
   const canEditField = useCallback((fieldDepartment) => {
@@ -730,6 +731,14 @@ export default function DepartmentPanelExcel({
 
     setHasUnsavedChanges(true);
     resetIdleTimer();
+    
+    // Trigger auto-approval check (debounced)
+    if (autoApprovalTimeoutRef.current) {
+      clearTimeout(autoApprovalTimeoutRef.current);
+    }
+    autoApprovalTimeoutRef.current = setTimeout(() => {
+      checkAndAutoApproveDepartments();
+    }, 1000); // Check 1 second after last change
   }, [allFieldDefs, buildFieldState, resetIdleTimer, findFieldIndex, normalizeFieldId]);
 
   // Handle field change with department tracking
@@ -1528,12 +1537,12 @@ export default function DepartmentPanelExcel({
 
                       // Apply department background color to table headers
                       const headerDeptBgColor = {
-                        vmd: 'bg-gray-100',
-                        cad: 'bg-amber-200',
-                        commercial: 'bg-emerald-100',
-                        mmc: 'bg-gray-200',
+                        vmd: 'bg-white',
+                        cad: 'bg-white',
+                        commercial: 'bg-white',
+                        mmc: 'bg-white',
                       };
-                      const headerBg = headerDeptBgColor[headerOwner] || 'bg-gray-50';
+                      const headerBg = headerDeptBgColor[headerOwner] || 'bg-white';
 
                       return (
                         <th key={colIdx} className={cn("border border-gray-200 p-0 relative group/col", headerBg)}>
@@ -1616,10 +1625,10 @@ export default function DepartmentPanelExcel({
 
                           // Apply department background color to table cells
                           const cellDeptBgColor = {
-                            vmd: 'bg-gray-100',
-                            cad: 'bg-amber-200',
-                            commercial: 'bg-emerald-100',
-                            mmc: 'bg-sky-200',
+                            vmd: 'bg-white',
+                            cad: 'bg-white',
+                            commercial: 'bg-white',
+                            mmc: 'bg-white',
                           };
                           const cellBg = cellDeptBgColor[colOwner] || 'bg-white';
 
@@ -2096,12 +2105,12 @@ export default function DepartmentPanelExcel({
                 const attachmentInfos = getAttachmentInfos(fieldIdStr);
 
                 const deptBgColor = {
-                  vmd: 'bg-gray-100',
-                  cad: 'bg-amber-200',
-                  commercial: 'bg-emerald-100',
-                  mmc: 'bg-sky-200',
+                  vmd: 'bg-white',
+                  cad: 'bg-white',
+                  commercial: 'bg-white',
+                  mmc: 'bg-white',
                 };
-                const deptBg = deptBgColor[fieldDef.department] || 'bg-gray-100';
+                const deptBg = deptBgColor[fieldDef.department] || 'bg-white';
 
                 if (isHidden) {
                   return (
@@ -2134,7 +2143,6 @@ export default function DepartmentPanelExcel({
                     style={{
                       gridColumn: `span ${colSpan} `,
                       gridRow: `span ${rowSpan} `,
-                      backgroundColor: !isHeading && fieldDef.department === 'cad' ? '#fef3c7' : undefined,
                     }}
                     title={!canEdit && !isHeading ? `${fieldDef.department?.toUpperCase()} field — no edit access` : undefined}
                   >

@@ -70,6 +70,13 @@ export default function MobileHome() {
   const [activeModule, setActiveModule] = useState(null);
 
   const handleModulePress = (module) => {
+    // For sample-management, go directly to the list page
+    if (module.key === 'sample-management') {
+      router.push('/mobile/sample-management');
+      return;
+    }
+    
+    // For other modules, show the SRD lookup modal
     setActiveModule(module);
   };
 
