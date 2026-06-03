@@ -383,8 +383,10 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   };
 
   // Re-match buyer when Brand field changes — create if doesn't exist
+  // Debounced to prevent excessive API calls
   useEffect(() => {
-    if (!buyers.length && !srd.dynamicFields) return;
+    if (!buyers.length || !srd.dynamicFields) return;
+    
     const brandField = srd.dynamicFields?.find(f => f.name === 'Brand' || f.name === 'Buyer');
     const brandName = brandField?.value?.trim();
     if (!brandName) return;
@@ -396,22 +398,26 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         if (match.address) setDispatchAddress(match.address);
       }
     } else {
-      // Brand doesn't exist — create it automatically
-      fetch('/api/buyers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: brandName }),
-      })
-        .then(r => r.json())
-        .then(data => {
-          if (data.success) {
-            setBuyers(prev => [...prev, data.data]);
-            setSelectedBuyer(data.data._id);
-          }
+      // Brand doesn't exist — create it automatically (debounced)
+      const timeoutId = setTimeout(() => {
+        fetch('/api/buyers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: brandName }),
         })
-        .catch(e => console.error('Failed to create buyer', e));
+          .then(r => r.json())
+          .then(data => {
+            if (data.success) {
+              setBuyers(prev => [...prev, data.data]);
+              setSelectedBuyer(data.data._id);
+            }
+          })
+          .catch(e => console.error('Failed to create buyer', e));
+      }, 500); // 500ms debounce
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [srd.dynamicFields, buyers.length]);
+  }, [srd.dynamicFields?.find(f => f.name === 'Brand' || f.name === 'Buyer')?.value, buyers.length]);
 
   const openApprovalDialog = (type) => {
     setApprovalDialogType(type);
@@ -1047,7 +1053,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         })()}
 
         {/* Buttons row */}
-        {canEdit && !srd.sampleDispatchedToBuyer && srd.DispatchDetails && (
+        {canEdit && !srd.sampleDispatchedToBuyer && (dispatchAWB || dispatchQty || dispatchAddress || dispatchDate || dispatchFrontImages.length > 0 || dispatchBackImages.length > 0) && (
           <div className="grid grid-cols-12 border-gray-300">
             <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
             <div className="col-span-10 px-2 py-0.5 flex gap-1.5 items-center">
