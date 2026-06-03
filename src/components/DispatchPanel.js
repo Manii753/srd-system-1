@@ -385,7 +385,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   // Re-match buyer when Brand field changes — create if doesn't exist
   // Debounced to prevent excessive API calls
   useEffect(() => {
-    if (!buyers.length && !srd.dynamicFields) return;
+    if (!buyers.length || !srd.dynamicFields) return;
+    
     const brandField = srd.dynamicFields?.find(f => f.name === 'Brand' || f.name === 'Buyer');
     const brandName = brandField?.value?.trim();
     if (!brandName) return;
