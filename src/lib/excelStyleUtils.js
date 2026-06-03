@@ -1,29 +1,108 @@
 /** Convert Excel ARGB / theme colors to CSS hex */
 export function argbToCss(color) {
   if (!color) return undefined;
-  const argb = typeof color === 'string' ? color : color.argb;
-  if (!argb) return undefined;
-  const hex = String(argb).replace(/^#/, '').toUpperCase();
-  if (hex.length === 8) return `#${hex.slice(2)}`;
-  if (hex.length === 6) return `#${hex}`;
+  
+  // Handle string ARGB format
+  if (typeof color === 'string') {
+    const hex = color.replace(/^#/, '').toUpperCase();
+    if (hex.length === 8) return `#${hex.slice(2)}`; // Remove alpha channel
+    if (hex.length === 6) return `#${hex}`;
+    return undefined;
+  }
+  
+  // Handle object format { argb: 'FF000000' }
+  if (color.argb) {
+    const hex = String(color.argb).replace(/^#/, '').toUpperCase();
+    if (hex.length === 8) return `#${hex.slice(2)}`; // Remove alpha channel
+    if (hex.length === 6) return `#${hex}`;
+  }
+  
+  // Handle RGB object format { rgb: 'FF0000' }
+  if (color.rgb) {
+    const hex = String(color.rgb).replace(/^#/, '').toUpperCase();
+    if (hex.length === 8) return `#${hex.slice(2)}`; // Remove alpha channel  
+    if (hex.length === 6) return `#${hex}`;
+  }
+  
+  // Handle theme colors (ExcelJS uses theme indices)
+  if (color.theme !== undefined) {
+    // Common Excel theme colors (approximations)
+    const themeColors = [
+      '#000000', // Text 1
+      '#FFFFFF', // Background 1
+      '#1F4E78', // Text 2 (dark blue)
+      '#EEECE1', // Background 2 (light gray)
+      '#4472C4', // Accent 1 (blue)
+      '#ED7D31', // Accent 2 (orange)
+      '#A5A5A5', // Accent 3 (gray)
+      '#FFC000', // Accent 4 (gold)
+      '#5B9BD5', // Accent 5 (light blue)
+      '#70AD47', // Accent 6 (green)
+    ];
+    
+    if (color.theme >= 0 && color.theme < themeColors.length) {
+      let themeColor = themeColors[color.theme];
+      
+      // Apply tint if present (-1 to 1, where negative is darker, positive is lighter)
+      if (color.tint && color.tint !== 0) {
+        themeColor = applyTintToColor(themeColor, color.tint);
+      }
+      
+      return themeColor;
+    }
+  }
+  
   return undefined;
+}
+
+/** Apply Excel tint to a hex color (-1 to 1) */
+function applyTintToColor(hexColor, tint) {
+  // Remove # if present
+  const hex = hexColor.replace(/^#/, '');
+  
+  // Convert hex to RGB
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  
+  // Apply tint (Excel formula for tint)
+  let newR, newG, newB;
+  if (tint < 0) {
+    // Darker
+    newR = Math.round(r * (1 + tint));
+    newG = Math.round(g * (1 + tint));
+    newB = Math.round(b * (1 + tint));
+  } else {
+    // Lighter
+    newR = Math.round(r * (1 - tint) + 255 * tint);
+    newG = Math.round(g * (1 - tint) + 255 * tint);
+    newB = Math.round(b * (1 - tint) + 255 * tint);
+  }
+  
+  // Clamp to 0-255
+  newR = Math.max(0, Math.min(255, newR));
+  newG = Math.max(0, Math.min(255, newG));
+  newB = Math.max(0, Math.min(255, newB));
+  
+  // Convert back to hex
+  return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`.toUpperCase();
 }
 
 const BORDER_WIDTH = {
   hair: '1px',
   thin: '1px',
-  medium: '2px',
-  thick: '3px',
-  double: '3px',
+  medium: '3px',
+  thick: '4px',
+  double: '4px',
   dashed: '1px',
   dotted: '1px',
   dashDot: '1px',
   dashDotDot: '1px',
-  mediumDashed: '2px',
-  mediumDashDot: '2px',
-  mediumDashDotDot: '2px',
-  slantDashDot: '1px',
-  mediumDashedAlt: '2px',
+  mediumDashed: '3px',
+  mediumDashDot: '3px',
+  mediumDashDotDot: '3px',
+  slantDashDot: '2px',
+  mediumDashedAlt: '3px',
 };
 
 const BORDER_LINE = {
@@ -52,6 +131,7 @@ export function excelStyleToCss(style) {
 
   const css = {};
 
+  // Font styling
   if (style.font) {
     const { font } = style;
     if (font.name) css.fontFamily = font.name;
@@ -66,6 +146,7 @@ export function excelStyleToCss(style) {
     if (fontColor) css.color = fontColor;
   }
 
+  // Alignment
   if (style.alignment) {
     const { alignment } = style;
     if (alignment.horizontal) {
@@ -89,32 +170,47 @@ export function excelStyleToCss(style) {
       css.whiteSpace = 'pre-wrap';
       css.wordBreak = 'break-word';
     }
-    if (alignment.indent) {
+    if (alignment.indent && alignment.indent > 0) {
       css.paddingLeft = `${alignment.indent * 12}px`;
     }
   }
 
+  // Fill/Background color
   if (style.fill) {
     const { fill } = style;
-    if (fill.type === 'pattern' && fill.pattern !== 'none') {
-      const bg = argbToCss(fill.fgColor) || argbToCss(fill.bgColor);
-      if (bg) css.backgroundColor = bg;
+    if (fill.type === 'pattern') {
+      // Pattern fills - most common in Excel
+      if (fill.pattern && fill.pattern !== 'none') {
+        // Try fgColor first (foreground color for patterns)
+        const bg = argbToCss(fill.fgColor) || argbToCss(fill.bgColor);
+        if (bg) {
+          css.backgroundColor = bg;
+        }
+      }
     } else if (fill.type === 'gradient' && fill.stops?.length) {
+      // Gradient fills - use first color
       const first = argbToCss(fill.stops[0]?.color);
       if (first) css.backgroundColor = first;
     }
   }
 
+  // Borders - enhanced to capture all border styles
   if (style.border) {
     const { border } = style;
     const top = borderSideToCss(border.top);
     const right = borderSideToCss(border.right);
     const bottom = borderSideToCss(border.bottom);
     const left = borderSideToCss(border.left);
+    const diagonal = borderSideToCss(border.diagonal);
+    
     if (top) css.borderTop = top;
     if (right) css.borderRight = right;
     if (bottom) css.borderBottom = bottom;
     if (left) css.borderLeft = left;
+    if (diagonal) {
+      // Diagonal borders are rare but should be noted
+      console.log('[ExcelStyle] Diagonal border detected (not fully supported in HTML tables)');
+    }
   }
 
   return css;
@@ -191,9 +287,22 @@ export function detectExcelFormat(fileName, arrayBuffer) {
 
 function sheetJsRgbToCss(rgb) {
   if (!rgb) return undefined;
-  const hex = String(rgb).replace(/^#/, '').toUpperCase();
-  if (hex.length === 8) return `#${hex.slice(2)}`;
-  if (hex.length === 6) return `#${hex}`;
+  
+  // Handle string format
+  if (typeof rgb === 'string') {
+    const hex = rgb.replace(/^#/, '').toUpperCase();
+    if (hex.length === 8) return `#${hex.slice(2)}`; // Remove alpha
+    if (hex.length === 6) return `#${hex}`;
+    return undefined;
+  }
+  
+  // Handle object format
+  if (rgb.rgb) {
+    const hex = String(rgb.rgb).replace(/^#/, '').toUpperCase();
+    if (hex.length === 8) return `#${hex.slice(2)}`;
+    if (hex.length === 6) return `#${hex}`;
+  }
+  
   return undefined;
 }
 
