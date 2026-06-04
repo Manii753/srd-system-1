@@ -131,7 +131,13 @@ export default function DynamicSidebar() {
           { name: 'Home', href: '/home', icon: LayoutDashboard },
           { name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
         ];
-        if (userRole === 'vmd' || userRole === 'VMD') {
+        if (userRole?.toLowerCase() === 'mmc') {
+          items.push(
+            { name: 'MMC Portal', href: '/dashboard/mmc', icon: Factory },
+            { name: 'Purchase Orders', href: '/dashboard/mmc/purchase-orders', icon: ClipboardList },
+          );
+        }
+        if (userRole?.toLowerCase() === 'vmd') {
           items.push({ name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren });
           items.push({ name: 'Cost Sheets', href: '#', icon: DollarSign });
           items.push({ name: 'Bom', href: '#', icon: List });

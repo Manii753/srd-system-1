@@ -26,6 +26,7 @@ export default function DynamicDepartmentDashboard() {
   const [srds, setSRDs] = useState([]);
   const [stages, setStages] = useState([]);
   const [fields, setFields] = useState([]);
+  const [purchaseRequests, setPurchaseRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('cards');
 
@@ -85,6 +86,18 @@ export default function DynamicDepartmentDashboard() {
         setFields(fieldsData.filter(f =>
           f.active && (f.department === departmentSlug || f.department === 'global')
         ));
+      }
+
+      if (departmentSlug === 'mmc') {
+        try {
+          const notifResponse = await fetch('/api/notifications');
+          const notifData = await notifResponse.json();
+          if (notifData.success && Array.isArray(notifData.data)) {
+            setPurchaseRequests(notifData.data.filter(n => n.action === 'purchase-request'));
+          }
+        } catch (notifError) {
+          console.error('Failed to fetch MMC purchase requests:', notifError);
+        }
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -235,6 +248,40 @@ export default function DynamicDepartmentDashboard() {
             );
           })}
         </div>
+
+        {/* MMC Buy Requests */}
+        {departmentSlug === 'mmc' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Buy Requests</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {purchaseRequests.length === 0 ? (
+                <p className="text-app-text text-gray-500">No purchase requests at the moment. Items are set to InStock by default.</p>
+              ) : (
+                <div className="space-y-3">
+                  {purchaseRequests.slice(0, 6).map((request) => (
+                    <div key={request._id} className="rounded-lg border border-gray-200 p-3 bg-white">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{request.metadata?.itemName || request.message}</p>
+                          <p className="text-xs text-gray-500 mt-1">SRD: {request.srd?.refNo || 'Unknown'}</p>
+                          <p className="text-xs text-gray-500 mt-1">{new Date(request.timestamp).toLocaleString()}</p>
+                        </div>
+                        {request.srd && (
+                          <Link href={`/srd/${request.srd._id}`} className="text-sm text-blue-600 hover:underline">View SRD</Link>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {purchaseRequests.length > 6 && (
+                    <p className="text-xs text-gray-500">Showing latest 6 purchase requests.</p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Department-Specific Info */}
         {fields.length > 0 && (

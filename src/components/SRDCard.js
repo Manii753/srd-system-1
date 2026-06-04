@@ -31,8 +31,15 @@ export default function SRDCard({ srd, department }) {
   const handleRedo = async () => {
     if (!confirm('Are you sure you want to create a "redo" version of this SRD?')) return;
 
+    const target = window.prompt('Optional: enter a department slug (vmd, cad, commercial, mmc) or production stage name to nudge. Leave blank to notify all users.');
+    if (target === null) return;
+
     try {
-      const response = await fetch(`/api/srd/${srd._id}/duplicate?action=redo`, { method: 'POST' });
+      const response = await fetch(`/api/srd/${srd._id}/duplicate?action=redo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nudgeTarget: target.trim() })
+      });
       const result = await response.json();
       if (result.success) {
         alert('SRD "redo" created successfully!');

@@ -33,6 +33,7 @@ export default function Header({ headerContent, headerRightContent }) {
       'srd:new': (data) => { toast({ title: 'New SRD', description: `${data.refNo} created` }); fetchNotifications(); },
       'srd:update': (data) => { toast({ title: 'SRD Updated', description: `SRD ${data.id} updated` }); fetchNotifications(); },
       'srd:flag': (data) => { toast({ title: 'SRD Flagged', description: data.comment?.text, variant: 'destructive' }); fetchNotifications(); },
+      'notification:new': () => { fetchNotifications(); },
     });
     return cleanup;
   }, [session, toast, fetchNotifications]);
@@ -103,11 +104,15 @@ export default function Header({ headerContent, headerRightContent }) {
                     <p className="text-app-text text-gray-400 mt-0.5">{new Date(n.timestamp).toLocaleString()}</p>
                   </div>
                   <div className="flex gap-2 mt-2">
-                    {n.srd && (
-                      <Link href={`/srd/${n.srd}`}>
-                        <button className="text-app-text text-blue-600 hover:underline">View SRD</button>
-                      </Link>
-                    )}
+                    {n.srd && (() => {
+                      const srdId = typeof n.srd === 'string' ? n.srd : n.srd?._id;
+                      if (!srdId) return null;
+                      return (
+                        <Link href={`/srd/${srdId}`}>
+                          <button className="text-app-text text-blue-600 hover:underline">View SRD</button>
+                        </Link>
+                      );
+                    })()}
                     {!n.read && (
                       <button onClick={() => markOneAsRead(n._id)} className="text-app-text text-gray-500 hover:text-gray-700">
                         Mark read

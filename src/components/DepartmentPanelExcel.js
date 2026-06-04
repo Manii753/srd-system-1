@@ -282,6 +282,8 @@ export default function DepartmentPanelExcel({
 
   // Check if user can edit a specific field based on its department
   const canEditField = useCallback((fieldDepartment) => {
+    // Global fields are editable by everyone
+    if (fieldDepartment === 'global') return true;
     return userRole === 'admin' || userRole === 'vmd' || userRole === fieldDepartment;
   }, [userRole]);
 
@@ -312,7 +314,7 @@ export default function DepartmentPanelExcel({
 
         // Fetch all field definitions from all departments
         const fieldDefsMap = {};
-        for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
+        for (const dept of ['vmd', 'cad', 'commercial', 'mmc', 'global']) {
           try {
             const res = await fetch(`/api/newField?department=${dept}`);
             const data = await res.json();
@@ -835,9 +837,8 @@ export default function DepartmentPanelExcel({
   const isFieldHighlighted = useCallback((fieldId, fieldDef, value = null) => {
     if (readOnly) return false;
 
-    // Check ownership: current user's role must match the field's department
-    // For VMD, they only get highlights for 'vmd' fields (as per requirement)
-    const isOwner = userRole === fieldDef.department;
+    // Global fields: highlight for everyone since anyone can edit them
+    const isOwner = fieldDef.department === 'global' || userRole === fieldDef.department;
     if (!isOwner) return false;
 
     // Check if empty
@@ -1094,16 +1095,29 @@ export default function DepartmentPanelExcel({
         >
           {isAutoSaving ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Saving...</> : <><DiscIcon className="h-3 w-3 mr-1" />Save</>}
         </Button>
+        {console.log(srd)}
+        {/* {console.log(userRole !== 'vmd' || (  ))} */}
         <Button
           size="sm"
           variant="outline"
           className="h-7 w-7 p-0 text-app-text"
+          disabled={userRole !== 'vmd'? true : srd?.BuyerRejectedReasons.length < 1 && srd?.internalRejectedReasons.length < 1 }
           title="Redo"
           onClick={async () => {
-            const res = await fetch(`/api/srd/${srd._id}/duplicate?action=redo`, { method: 'POST' });
+            const target = window.prompt('Optional: enter a department slug (vmd, cad, commercial, mmc) or production stage name to nudge. Leave blank to notify all users.');
+            if (target === null) return;
+
+            const res = await fetch(`/api/srd/${srd._id}/duplicate?action=redo`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ nudgeTarget: target.trim() })
+            });
             const data = await res.json();
-            if (data.success) window.open(`/srd/${data.data._id}`, '_blank');
-            else toast({ title: 'Error', description: data.error, variant: 'destructive' });
+            if (data.success) {
+              window.open(`/srd/${data.data._id}`, '_blank');
+            } else {
+              toast({ title: 'Error', description: data.error, variant: 'destructive' });
+            }
           }}
         >
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1115,6 +1129,7 @@ export default function DepartmentPanelExcel({
           variant="outline"
           className="h-7 w-7 p-0 text-app-text"
           title="Duplicate"
+          disabled={userRole !== 'vmd'}
           onClick={async () => {
             const res = await fetch(`/api/srd/${srd._id}/duplicate`, { method: 'POST' });
             const data = await res.json();
@@ -1389,38 +1404,85 @@ export default function DepartmentPanelExcel({
           rows: normalizedRows
         };
 
+        const shouldDefaultToInStock = /(?:before|after)?\s*wash|trim/i.test(fieldDef?.name || fieldDef?.slug || '');
+        const defaultPurchaseType = shouldDefaultToInStock ? 'instock' : 'purchase';
+
         // Ensure predefinedData array exists and matches row count
         const predefinedData = (Array.isArray(rawTableData.predefinedData) ? rawTableData.predefinedData : [])
           .slice(0, tableData.rows.length)
           .map((item) => ({
-            purchaseType: item?.purchaseType === 'instock' ? 'instock' : 'purchase',
+            purchaseType: item?.purchaseType === 'instock' ? 'instock' : defaultPurchaseType,
             opd: typeof item?.opd === 'string' ? item.opd : '',
             etd: typeof item?.etd === 'string' ? item.etd : ''
           }));
         // Fill missing entries so every row has predefined data
         while (predefinedData.length < tableData.rows.length) {
-          predefinedData.push({ purchaseType: 'purchase', opd: '', etd: '' });
+          predefinedData.push({ purchaseType: defaultPurchaseType, opd: '', etd: '' });
         }
 
+        const sendMmcPurchaseNotification = async (rowIdx) => {
+          const label = tableData.headers?.[0]?.name || tableData.headers?.[0] || fieldDef.name || 'Trim item';
+          const itemName = String(tableData.rows?.[rowIdx]?.[0] || label).trim() || 'Trim item';
+          const message = `MMC purchase requested for ${itemName} in ${fieldDef.name || fieldDef.slug}`;
+
+          try {
+            await fetch('/api/notifications', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                targetRole: 'mmc',
+                action: 'purchase-request',
+                srdId: srd?._id,
+                message,
+                metadata: {
+                  fieldName: fieldDef.name,
+                  fieldSlug: fieldDef.slug,
+                  rowIndex: rowIdx,
+                  itemName,
+                  purchaseType: 'purchase',
+                }
+              })
+            });
+          } catch (error) {
+            console.error('Failed to send MMC purchase notification:', error);
+          }
+        };
+
         const updatePredefined = (rowIdx, key, val) => {
-          const newPredefined = predefinedData.map((p, i) =>
+          const normalizedPredefined = Array.isArray(predefinedData) ? [...predefinedData] : [];
+          while (normalizedPredefined.length <= rowIdx) {
+            normalizedPredefined.push({ purchaseType: defaultPurchaseType, opd: '', etd: '' });
+          }
+
+          const wasPurchaseAlready = normalizedPredefined[rowIdx]?.purchaseType === 'purchase';
+          const newPredefined = normalizedPredefined.map((p, i) =>
             i === rowIdx ? { ...p, [key]: val } : { ...p }
           );
+
+          // Make sure the updated row object exists
+          if (!newPredefined[rowIdx]) {
+            newPredefined[rowIdx] = { purchaseType: defaultPurchaseType, opd: '', etd: '', [key]: val };
+          }
+
           // If switching to instock, clear dates
           if (key === 'purchaseType' && val === 'instock') {
-            newPredefined[rowIdx].opd = '';
-            newPredefined[rowIdx].etd = '';
+            newPredefined[rowIdx] = { ...newPredefined[rowIdx], opd: '', etd: '' };
           }
+
           // If switching to purchase, pre-fill dates with today's date
           if (key === 'purchaseType' && val === 'purchase') {
             const today = new Date().toISOString().split('T')[0];
-            if (!newPredefined[rowIdx].opd) {
-              newPredefined[rowIdx].opd = today;
-            }
-            if (!newPredefined[rowIdx].etd) {
-              newPredefined[rowIdx].etd = today;
+            newPredefined[rowIdx] = {
+              ...newPredefined[rowIdx],
+              opd: newPredefined[rowIdx].opd || today,
+              etd: newPredefined[rowIdx].etd || today,
+            };
+
+            if (!wasPurchaseAlready) {
+              sendMmcPurchaseNotification(rowIdx);
             }
           }
+
           handleFieldChange(fieldId, name, { ...tableData, predefinedData: newPredefined }, department, fieldDef);
         };
 
@@ -1434,7 +1496,7 @@ export default function DepartmentPanelExcel({
               {/* Data Cards */}
               <div className="flex flex-col gap-1">
                 {tableData.rows?.map((row, rowIdx) => {
-                  const rowPredefined = predefinedData[rowIdx] || { purchaseType: 'purchase', opd: '', etd: '' };
+                  const rowPredefined = predefinedData[rowIdx] || { purchaseType: defaultPurchaseType, opd: '', etd: '' };
                   const isInStock = rowPredefined.purchaseType === 'instock';
 
                   // Group items for 3-column layout
@@ -1531,6 +1593,7 @@ export default function DepartmentPanelExcel({
                               <td className='border border-gray-200 p-0'>
                                 <div className="flex items-center justify-center gap-1 py-0">
                                   <button
+                                    type="button"
                                     onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
                                     disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                                     className={cn(
@@ -1539,6 +1602,7 @@ export default function DepartmentPanelExcel({
                                     )}
                                   >Purchase</button>
                                   <button
+                                    type="button"
                                     onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'instock')}
                                     disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                                     className={cn(
@@ -1680,7 +1744,7 @@ export default function DepartmentPanelExcel({
                 </thead>
                 <tbody>
                   {tableData.rows?.map((row, rowIdx) => {
-                    const rowPredefined = predefinedData[rowIdx] || { purchaseType: 'purchase', opd: '', etd: '' };
+                    const rowPredefined = predefinedData[rowIdx] || { purchaseType: defaultPurchaseType, opd: '', etd: '' };
                     const isInStock = rowPredefined.purchaseType === 'instock';
 
                     return (
@@ -1716,7 +1780,7 @@ export default function DepartmentPanelExcel({
                                         const newRows = [...tableData.rows];
                                         newRows.splice(rowIdx + 1, 0, new Array(tableData.headers.length).fill(''));
                                         const newPredefined = [...predefinedData];
-                                        newPredefined.splice(rowIdx + 1, 0, { purchaseType: 'purchase', opd: '', etd: '' });
+                                        newPredefined.splice(rowIdx + 1, 0, { purchaseType: defaultPurchaseType, opd: '', etd: '' });
                                         handleFieldChange(fieldId, name, { ...tableData, rows: newRows, predefinedData: newPredefined }, department, fieldDef);
                                         setTimeout(() => {
                                           const nextInput = e.target.closest('tr')?.nextElementSibling?.querySelector('input');
@@ -1748,7 +1812,7 @@ export default function DepartmentPanelExcel({
                                 handleFieldChange(fieldId, name, {
                                   ...tableData,
                                   rows: newRows.length > 0 ? newRows : [new Array(tableData.headers.length).fill('')],
-                                  predefinedData: newPredefined.length > 0 ? newPredefined : [{ purchaseType: 'purchase', opd: '', etd: '' }]
+                                  predefinedData: newPredefined.length > 0 ? newPredefined : [{ purchaseType: defaultPurchaseType, opd: '', etd: '' }]
                                 }, department, fieldDef);
                               }}
                               className="w-full flex items-center justify-center py-0 opacity-0 group-hover/row:opacity-100 transition-opacity duration-150 text-red-400 hover:text-red-600 hover:bg-red-50"
@@ -1762,6 +1826,7 @@ export default function DepartmentPanelExcel({
                         <td className="border border-gray-200 p-0 bg-indigo-50/30">
                           <div className="flex items-center justify-center gap-0.5 px-0.5 py-0">
                             <button
+                              type="button"
                               onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
                               disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                               className={cn(
@@ -1772,9 +1837,11 @@ export default function DepartmentPanelExcel({
                                 !canEditField(fieldDef.predefinedFieldsOwner || 'global') && "opacity-50 cursor-not-allowed"
                               )}
                             >
+                              
                               Purchase
                             </button>
                             <button
+                              type="button"
                               onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'instock')}
                               disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                               className={cn(
@@ -1828,7 +1895,7 @@ export default function DepartmentPanelExcel({
                 <button
                   onClick={() => {
                     const newRows = [...tableData.rows, new Array(tableData.headers.length).fill('')];
-                    const newPredefined = [...predefinedData, { purchaseType: 'purchase', opd: '', etd: '' }];
+                    const newPredefined = [...predefinedData, { purchaseType: defaultPurchaseType, opd: '', etd: '' }];
                     handleFieldChange(fieldId, name, { ...tableData, rows: newRows, predefinedData: newPredefined }, department, fieldDef);
                   }}
                   className="text-app-text text-blue-600 hover:text-blue-700 flex items-center gap-1 px-2 py-1 border border-blue-200 rounded-md hover:bg-blue-50 hover:border-blue-300 transition-all duration-150 shadow-sm"
@@ -2163,8 +2230,10 @@ export default function DepartmentPanelExcel({
                 }
 
                 const isFieldActive = fieldDef.active !== false; // Active by default if property missing
-                // Allow all roles to edit table-type fields, unless in readOnly mode
+                // Specs (global dept) are viewable by all but only editable by admin/vmd
+                const isGlobalField = fieldDef?.department === 'global';
                 const canEdit = readOnly ? false : (fieldDef.type === 'table' ? isFieldActive : (canEditField(fieldDef.department) && isFieldActive));
+                // For global/specs fields: always render (never block), but canEdit stays as computed
                 const isHeading = fieldDef.type === 'heading';
                 const isHidden = isFieldHidden(fieldDef);
                 const isOptionalEnabled = isOptionalFieldEnabled(fieldIdStr, fieldDef);
@@ -2204,13 +2273,13 @@ export default function DepartmentPanelExcel({
                     className={cn(
                       "border-b border-gray-200",
                       isHeading ? "bg-gray-50" : deptBg,
-                      !canEdit && !isHeading && "cursor-not-allowed"
+                      !canEdit && !isHeading && !isGlobalField && ""
                     )}
                     style={{
                       gridColumn: `span ${colSpan} `,
                       gridRow: `span ${rowSpan} `,
                     }}
-                    title={!canEdit && !isHeading ? `${fieldDef.department?.toUpperCase()} field — no edit access` : undefined}
+                    title={!canEdit && !isHeading && !isGlobalField ? `${fieldDef.department?.toUpperCase()} field — no edit access` : undefined}
                   >
                     <div
                       className={cn(
@@ -2312,24 +2381,12 @@ export default function DepartmentPanelExcel({
                               />
                             );
                           })}
-                          {/* Add Wash Analysis Report here if on last page and this is the first cell with attachments */}
-                          {currentSection?.includeApprovals && cellIndex === 0 && (
-                            <WashReportUploader
-                              srd={srd}
-                              canEdit={!readOnly && (userRole === 'vmd' || userRole === 'admin' || userRole === 'mmc')}
-                              onSrdUpdate={onSrdUpdate}
-                            />
-                          )}
+                          {/* Attachment pills */}
                         </div>
                       )}
-                      {/* Show Wash Analysis Report even if no other attachments, only on first cell of last page */}
+                      {/* Spacer when no other attachments on first cell of last page */}
                       {attachmentInfos.length === 0 && currentSection?.includeApprovals && cellIndex === 0 && (
                         <div className="flex flex-wrap gap-1 px-1 my-1 pb-0.5">
-                          <WashReportUploader
-                            srd={srd}
-                            canEdit={!readOnly && (userRole === 'vmd' || userRole === 'admin' || userRole === 'mmc')}
-                            onSrdUpdate={onSrdUpdate}
-                          />
                         </div>
                       )}
                     </div>

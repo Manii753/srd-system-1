@@ -10,6 +10,16 @@ const notificationSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'SRD',
   },
+  action: {
+    type: String,
+    default: 'info',
+  },
+  targetDepartment: String,
+  targetProductionStage: String,
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
+  },
   message: {
     type: String,
     required: true,

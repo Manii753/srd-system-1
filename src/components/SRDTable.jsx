@@ -17,9 +17,11 @@ import {
   getAssetUrl,
   getImageAssetsFromDynamicFields,
 } from '@/lib/assetUtils';
+import { useSession } from 'next-auth/react';
 
 
 export default function SRDTable({ srds, department, searchTerm: searchTermProp, filterStatus: filterStatusProp }) {
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
@@ -97,8 +99,15 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
   const handleRedo = async (srdId) => {
     if (!confirm('Are you sure you want to create a "redo" version of this SRD?')) return;
 
+    const target = window.prompt('Optional: enter a department slug (vmd, cad, commercial, mmc) or production stage name to nudge. Leave blank to notify all users.');
+    if (target === null) return;
+
     try {
-      const response = await fetch(`/api/srd/${srdId}/duplicate?action=redo`, { method: 'POST' });
+      const response = await fetch(`/api/srd/${srdId}/duplicate?action=redo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nudgeTarget: target.trim() })
+      });
       const result = await response.json();
       if (result.success) {
         alert('SRD "redo" created successfully!');
@@ -304,7 +313,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
             </tr>
           </thead>
           <tbody className="bg-white">
-            {paginatedSRDs.map((srd) => { 
+            {paginatedSRDs.map((srd) => {
               const isExpanded = !!expandedRows[srd._id];
               const depts = [
                 { key: 'vmd', label: 'VMD' },
@@ -358,16 +367,16 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                           const relevantStages = srdStageIds.length > 0
                             ? productionStages.filter(s => srdStageIds.includes(String(s._id)))
                             : productionStages;
-                          
+
                           // Check if all stages are completed using multiple sources
                           const allCompletedFromHistory = relevantStages.length > 0 && relevantStages.every(stage => {
                             const historyEntry = (srd.productionHistory || []).find(h => String(h.stage) === String(stage._id));
                             return historyEntry?.status === 'completed';
                           });
-                          
+
                           const allCompletedFromSampleProcess = srd.sampleProcess && srd.sampleProcess.length > 0 &&
                             srd.sampleProcess.every(s => s.status === 'completed');
-                          
+
                           const allCompleted = srd.isComplete || allCompletedFromHistory || allCompletedFromSampleProcess;
 
                           if (allCompleted) {
@@ -416,10 +425,12 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                             <Eye className="h-4 w-4" />
                           </Button>
                         </Link>
+                        
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleRedo(srd._id)}
+                          disabled={session?.user?.role !== 'vmd' ? true : srd?.BuyerRejectedReasons.length < 1 && srd?.internalRejectedReasons.length < 1}
                           title="Redo SRD"
                           className="border-gray-300 hover:border-green-500 hover:text-green-600 transition-colors duration-200"
                         >
@@ -429,6 +440,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                           size="sm"
                           variant="outline"
                           onClick={() => handleDuplicate(srd._id)}
+                          disabled={session?.user?.role !== 'vmd' ? true : false}
                           title="Duplicate SRD"
                           className="border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-colors duration-200"
                         >
@@ -459,32 +471,46 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                                 const historyEntry = (srd.productionHistory || []).find(
                                   h => String(h.stage) === String(stage._id)
                                 );
-                                const isCompleted = historyEntry?.status === 'completed';
-                                const isCurrent = srd.inProduction && String(srd.currentProductionStage) === String(stage._id);
+                                // Also check sampleProcess (slug/name-based matching)
+                                const stageName = (stage.name || '').toLowerCase();
+                                const stageSlug = (stage.slug || stageName).toLowerCase();
+                                const sampleEntry = (srd.sampleProcess || []).find(
+                                  s => {
+                                    const sStage = (s.stage || '').toLowerCase();
+                                    return sStage === stageName || sStage === stageSlug;
+                                  }
+                                );
+
+                                const isCompleted = historyEntry?.status === 'completed' || sampleEntry?.status === 'completed';
+                                const isCurrent = !isCompleted && (
+                                  (srd.inProduction && String(srd.currentProductionStage) === String(stage._id)) ||
+                                  sampleEntry?.status === 'in-progress' || sampleEntry?.status === 'received'
+                                );
                                 const isLast = idx === arr.length - 1;
 
                                 return (
                                   <div key={stage._id} className="flex items-center">
                                     <div className="flex flex-col items-center min-w-[80px]">
                                       {/* Dot */}
-                                      <div className={`w-3 h-3 rounded-full border-2 border-white shadow ${
-                                        isCompleted ? 'bg-green-500' :
-                                        isCurrent ? 'bg-blue-500 ring-2 ring-blue-300 animate-pulse' :
-                                        'bg-gray-300'
-                                      }`} />
+                                      <div className={`w-3 h-3 rounded-full border-2 border-white shadow ${isCompleted ? 'bg-green-500' :
+                                          isCurrent ? 'bg-blue-500 ring-2 ring-blue-300 animate-pulse' :
+                                            'bg-gray-300'
+                                        }`} />
                                       {/* Stage name */}
                                       <div className="text-[10px] font-semibold text-gray-700 mt-1 text-center leading-tight">
                                         {stage.displayName || stage.name}
                                       </div>
                                       {/* Date / indicator */}
-                                      {isCompleted && historyEntry.endDate ? (
+                                      {isCompleted ? (
                                         <div className="text-[9px] text-green-600 text-center mt-0.5">
-                                          {new Date(historyEntry.endDate).toLocaleDateString()}
+                                          {new Date(historyEntry?.endDate || sampleEntry?.completedDate || sampleEntry?.handoverDate || historyEntry?.startDate || sampleEntry?.receivedDate).toLocaleDateString()}
                                         </div>
-                                      ) : isCurrent && historyEntry?.startDate ? (
+                                      ) : isCurrent ? (
                                         <div className="flex flex-col items-center gap-0.5 mt-0.5">
                                           <span className="text-[9px] text-blue-500 text-center">
-                                            {new Date(historyEntry.startDate).toLocaleDateString()}
+                                            {historyEntry?.startDate || sampleEntry?.receivedDate
+                                              ? new Date(historyEntry?.startDate || sampleEntry?.receivedDate).toLocaleDateString()
+                                              : '—'}
                                           </span>
                                           <span className="text-[9px] bg-blue-100 text-blue-700 px-1 rounded font-medium">In Progress</span>
                                         </div>

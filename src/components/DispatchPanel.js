@@ -144,6 +144,13 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   const [loading, setLoading] = useState(false);
   const [showExcel, setShowExcel] = useState(false);
 
+  // Buyer comment/image editable only by those with canAddBuyerComments permission or admin/vmd
+  const canEditBuyer = canEdit && (
+    session?.user?.role === 'admin' ||
+    session?.user?.role === 'vmd' ||
+    session?.user?.permissions?.canAddBuyerComments === true
+  );
+
   // Form states
   const [internalComments, setInternalComments] = useState(srd.internalComments || '');
   const [buyerComments, setBuyerComments] = useState(srd.BuyerComments || '');
@@ -595,7 +602,6 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       </div> */}
 
       {/* Dispatch Approval - Excel Style — only visible to vmd and admin */}
-      {(session?.user?.role === 'admin' || session?.user?.role === 'vmd') && (
       <div className="border border-gray-300 bg-white">
         {/* Section Header */}
         <div className="flex justify-between bg-gray-100 border-b border-gray-300 px-2 py-0 items-center h-6">
@@ -657,7 +663,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
                 <button
                   className="inline-flex items-center justify-center w-36 px-2 rounded bg-green-700 text-white text-app-text font-medium hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                  disabled={!!srd.internalApprovedDate || !canEdit}
+                  disabled={!!srd.internalApprovedDate || !canEdit || !srd.inDispatch}
                   onClick={() => setActiveAction(activeAction === 'approve' ? null : 'approve')}
                 >
                   Approved For Dispatch
@@ -700,7 +706,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
                 <button
                   className="inline-flex items-center justify-center w-36 px-2 rounded bg-red-700 text-white text-app-text font-medium hover:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                  disabled={!!srd.internalApprovedDate || !canEdit}
+                  disabled={!!srd.internalApprovedDate || !canEdit || !srd.inDispatch}
                   onClick={() => setActiveAction(activeAction === 'reject' ? null : 'reject')}
                 >
                   Internal Rejected
@@ -781,7 +787,6 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
 
       </div>
-      )} {/* end vmd/admin only — Conditions */}
 
       <div className={`border border-gray-300 bg-white mt-2 relative ${!srd.inDispatch && !srd.sampleDispatchedToBuyer ? 'pointer-events-none' : ''}`}>
         {/* Locked overlay */}
@@ -1086,7 +1091,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         {/* End of dispatch details content */}
       </div>
 
-      <div className={`border border-gray-300 bg-white mt-2 ${session?.user?.role !== 'admin' && session?.user?.role !== 'vmd' ? 'hidden' : ''}`}>
+      <div className={`border border-gray-300 bg-white mt-2`}>
         {/* Header */}
         <div className="flex justify-between bg-gray-100 border-b border-gray-300 px-2 py-0 items-center h-6">
           <div className="">
@@ -1097,151 +1102,182 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           </span>
         </div>
 
-        {/* Row 1: Approved */}
-        <div className="grid grid-cols-12 border-b border-gray-300">
-          <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
-            <button
-              className="inline-flex items-center justify-center w-40 px-2 rounded bg-green-700 text-white text-app-text font-medium hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed"
-              disabled={!!srd.BuyerApprovedDate || !canEdit}
-              onClick={() => setBuyerActiveAction(buyerActiveAction === 'approved' ? null : 'approved')}
-            >
-              Approved
-            </button>
-          </div>
-          <div className="col-span-9 px-2 py-0.5 flex items-center">
-            {buyerActiveAction === 'approved' && !srd.BuyerApprovedDate && (
-              <div className="flex items-center gap-2">
-                <button onClick={() => { handleBuyerApproval(true); setBuyerActiveAction(null); }} disabled={loading}
-                  className="inline-flex items-center justify-center w-36 px-2 rounded bg-green-700 text-white text-app-text font-medium hover:bg-green-800 disabled:opacity-40">
-                  Confirm Approval
+        {canEditBuyer ? (
+          /* ── EDITABLE VIEW: action buttons + comment fields ── */
+          <>
+            {/* Row 1: Approved */}
+            <div className="grid grid-cols-12 border-b border-gray-300">
+              <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
+                <button
+                  className="inline-flex items-center justify-center w-40 px-2 rounded bg-green-700 text-white text-app-text font-medium hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={!!srd.BuyerApprovedDate || !srd.sampleDispatchedToBuyer}
+                  onClick={() => setBuyerActiveAction(buyerActiveAction === 'approved' ? null : 'approved')}
+                >
+                  Approved
                 </button>
-                <button onClick={() => setBuyerActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>
               </div>
-            )}
-            {srd.BuyerApproved && !srd.BuyerComments && (
-              <span className="text-app-text text-green-700 font-medium">Approved by {srd.BuyerApprovedBy}</span>
-            )}
-          </div>
-        </div>
+              <div className="col-span-9 px-2 py-0.5 flex items-center">
+                {buyerActiveAction === 'approved' && !srd.BuyerApprovedDate && (
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => { handleBuyerApproval(true); setBuyerActiveAction(null); }} disabled={loading}
+                      className="inline-flex items-center justify-center w-36 px-2 rounded bg-green-700 text-white text-app-text font-medium hover:bg-green-800 disabled:opacity-40">
+                      Confirm Approval
+                    </button>
+                    <button onClick={() => setBuyerActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>
+                  </div>
+                )}
+                {srd.BuyerApproved && !srd.BuyerComments && (
+                  <span className="text-app-text text-green-700 font-medium">Approved by {srd.BuyerApprovedBy}</span>
+                )}
+              </div>
+            </div>
 
-        {/* Row 2: Approved With Comments */}
-        <div className="grid grid-cols-12 border-b border-gray-300">
-          <div className="col-span-3 border-r border-gray-300 px-2 flex items-center">
-            <button
-              className="inline-flex items-center justify-center w-40 px-0 rounded bg-yellow-600 text-white text-app-text font-medium hover:bg-yellow-700 disabled:opacity-40 disabled:cursor-not-allowed"
-              disabled={!!srd.BuyerApprovedDate || !canEdit}
-              onClick={() => setBuyerActiveAction(buyerActiveAction === 'approved-comments' ? null : 'approved-comments')}
-            >
-              Approved With Comments
-            </button>
-          </div>
-          <div className="col-span-6 px-2 flex items-center gap-2 border-r border-gray-300">
-            {buyerActiveAction === 'approved-comments' && !srd.BuyerApprovedDate && (
-              <div className="flex items-center gap-2 flex-1">
-                <Input
-                  placeholder="Enter comments..."
-                  value={buyerComments}
-                  onChange={e => setBuyerComments(e.target.value)}
-                  className="border-gray-300 rounded-none h-6 flex-1"
-                  autoFocus
+            {/* Row 2: Approved With Comments */}
+            <div className="grid grid-cols-12 border-b border-gray-300">
+              <div className="col-span-3 border-r border-gray-300 px-2 flex items-center">
+                <button
+                  className="inline-flex items-center justify-center w-40 px-0 rounded bg-yellow-600 text-white text-app-text font-medium hover:bg-yellow-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={!!srd.BuyerApprovedDate || !srd.sampleDispatchedToBuyer}
+                  onClick={() => setBuyerActiveAction(buyerActiveAction === 'approved-comments' ? null : 'approved-comments')}
+                >
+                  Approved With Comments
+                </button>
+              </div>
+              <div className="col-span-6 px-2 flex items-center gap-2 border-r border-gray-300">
+                {!srd.BuyerApprovedDate && (
+                  <div className="flex items-center gap-2 flex-1">
+                    <Input
+                      placeholder="Enter comments..."
+                      value={buyerComments}
+                      disabled={!srd.sampleDispatchedToBuyer? true: session?.user?.role !== 'dispatch' && session?.user?.role !== 'vmd' && session?.user?.role !== 'admin'}
+                      onChange={e => setBuyerComments(e.target.value)}
+                      className="border-gray-300 rounded-none h-6 flex-1"
+                      autoFocus
+                    />
+                    <button onClick={() => {
+                      if (!buyerComments.trim()) { toast({ title: 'Error', description: 'Enter a comment', variant: 'destructive' }); return; }
+                      handleBuyerApproval(true);
+                      setBuyerActiveAction(null);
+                    }} disabled={loading} className="inline-flex items-center justify-center w-36 px-2 rounded bg-yellow-600 text-white text-app-text font-medium hover:bg-yellow-700 disabled:opacity-40">
+                      Confirm
+                    </button>
+                    <button onClick={() => setBuyerActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>
+                  </div>
+                )}
+                {srd.BuyerApproved && srd.BuyerComments && (
+                  <span className="text-app-text text-yellow-700 font-medium">{srd.BuyerComments}</span>
+                )}
+              </div>
+              <div className="col-span-3 px-2 py-0.5 flex items-center">
+                <DispatchImageCell
+                  label="Attach Comment"
+                  images={buyerCommentImages}
+                  canEdit={!srd.BuyerApprovedDate}
+                  onUploaded={(urls) => setBuyerCommentImages(prev => [...prev, ...urls])}
+                  onRemove={(i) => setBuyerCommentImages(prev => prev.filter((_, idx) => idx !== i))}
                 />
-                <button onClick={() => {
-                  if (!buyerComments.trim()) { toast({ title: 'Error', description: 'Enter a comment', variant: 'destructive' }); return; }
-                  handleBuyerApproval(true);
-                  setBuyerActiveAction(null);
-                }} disabled={loading} className="inline-flex items-center justify-center w-36 px-2 rounded bg-yellow-600 text-white text-app-text font-medium hover:bg-yellow-700 disabled:opacity-40">
-                  Confirm
-                </button>
-                <button onClick={() => setBuyerActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>
               </div>
-            )}
-            {srd.BuyerApproved && srd.BuyerComments && (
-              <span className="text-app-text text-yellow-700 font-medium">{srd.BuyerComments}</span>
-            )}
-          </div>
-          <div className="col-span-3 px-2 py-0.5 flex items-center">
-            <DispatchImageCell
-              label="Attach Comment"
-              images={buyerCommentImages}
-              canEdit={canEdit && !srd.BuyerApprovedDate}
-              onUploaded={(urls) => setBuyerCommentImages(prev => [...prev, ...urls])}
-              onRemove={(i) => setBuyerCommentImages(prev => prev.filter((_, idx) => idx !== i))}
-            />
-          </div>
-        </div>
+            </div>
 
-        {/* Row 3: Rejected */}
-        <div className="grid grid-cols-12 border-b border-gray-300">
-          <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
-            <button
-              className="inline-flex items-center justify-center w-40 px-2 rounded bg-red-700 text-white text-app-text font-medium hover:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed"
-              disabled={!!srd.BuyerApprovedDate || !canEdit}
-              onClick={() => setBuyerActiveAction(buyerActiveAction === 'rejected' ? null : 'rejected')}
-            >
-              Rejected
-            </button>
-          </div>
-          <div className="col-span-9 px-2 py-0.5 flex items-center gap-2 flex-wrap">
-            {/* Show added reasons */}
-            {buyerRejectedReasons.length > 0 && (
-              <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                {buyerRejectedReasons.map((r, i) => (
-                  <span key={i} className="text-app-text text-gray-800 text-sm">
-                    <span className="font-bold mr-1">{i + 1}</span>{r.reason}
-                    {canEdit && !srd.BuyerApprovedDate && (
-                      <button onClick={() => setBuyerRejectedReasons(prev => prev.filter((_, idx) => idx !== i))} className="ml-1 text-gray-400 hover:text-red-600"><X className="h-2.5 w-2.5 inline" /></button>
-                    )}
+            {/* Row 3: Rejected */}
+            <div className="grid grid-cols-12 border-b border-gray-300">
+              <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
+                <button
+                  className="inline-flex items-center justify-center w-40 px-2 rounded bg-red-700 text-white text-app-text font-medium hover:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={!!srd.BuyerApprovedDate || !srd.sampleDispatchedToBuyer}
+                  onClick={() => setBuyerActiveAction(buyerActiveAction === 'rejected' ? null : 'rejected')}
+                >
+                  Rejected
+                </button>
+              </div>
+              <div className="col-span-9 px-2 py-0.5 flex items-center gap-2 flex-wrap">
+                {buyerRejectedReasons.length > 0 && (
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                    {buyerRejectedReasons.map((r, i) => (
+                      <span key={i} className="text-app-text text-gray-800 text-sm">
+                        <span className="font-bold mr-1">{i + 1}</span>{r.reason}
+                        {!srd.BuyerApprovedDate && (
+                          <button onClick={() => setBuyerRejectedReasons(prev => prev.filter((_, idx) => idx !== i))} className="ml-1 text-gray-400 hover:text-red-600"><X className="h-2.5 w-2.5 inline" /></button>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {buyerActiveAction === 'rejected' && !srd.BuyerApprovedDate && (
+                  <div className="flex items-center gap-1.5">
+                    <div className="relative flex items-center border border-gray-300 rounded h-6 bg-white overflow-hidden">
+                      <input
+                        className="h-full px-1.5 text-app-text text-sm bg-transparent focus:outline-none w-32"
+                        value={buyerNewReason}
+                        onChange={e => setBuyerNewReason(e.target.value)}
+                        placeholder="Reason..."
+                        autoFocus
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && buyerNewReason.trim()) {
+                            const val = buyerNewReason.trim();
+                            if (!buyerReasonOptions.includes(val)) setBuyerReasonOptions(prev => [...prev, val]);
+                            setBuyerRejectedReasons(prev => [...prev, { department: '', reason: val }]);
+                            setBuyerNewReason('');
+                          }
+                        }}
+                      />
+                      <select className="h-full w-6 border-l border-gray-300 bg-white text-gray-600 focus:outline-none cursor-pointer appearance-none text-center text-xs"
+                        value="" onChange={e => { if (e.target.value) setBuyerNewReason(e.target.value); }}>
+                        <option value="">▾</option>
+                        {buyerReasonOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                    <button onClick={() => {
+                      const val = buyerNewReason.trim();
+                      const pending = val ? [{ department: '', reason: val }] : [];
+                      if (!buyerReasonOptions.includes(val) && val) setBuyerReasonOptions(prev => [...prev, val]);
+                      const reasons = [...buyerRejectedReasons, ...pending];
+                      if (!reasons.length) { toast({ title: 'Error', description: 'Add at least one reason', variant: 'destructive' }); return; }
+                      handleBuyerApproval(false);
+                      setBuyerActiveAction(null);
+                      setBuyerNewReason('');
+                    }} disabled={loading} className="inline-flex items-center justify-center w-36 px-2 py-0.5 rounded bg-red-700 text-white text-app-text font-medium hover:bg-red-800 disabled:opacity-40">
+                      Reject
+                    </button>
+                    <button onClick={() => setBuyerActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>
+                  </div>
+                )}
+                {srd.BuyerApprovedDate && !srd.BuyerApproved && (
+                  <span className="text-app-text text-red-700 font-medium">Rejected by {srd.BuyerApprovedBy}</span>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          /* ── READ-ONLY VIEW: comment text + image only ── */
+          <div className="px-3 py-2 flex items-center gap-4">
+            {srd.BuyerComments ? (
+              <span className="text-app-text text-gray-800">{srd.BuyerComments}</span>
+            ) : srd.BuyerApproved ? (
+              <span className="text-app-text text-green-700 font-medium">Approved by {srd.BuyerApprovedBy}</span>
+            ) : srd.BuyerApprovedDate ? (
+              <span className="text-app-text text-red-700 font-medium">
+                Rejected by {srd.BuyerApprovedBy}
+                {(srd.BuyerRejectedReasons || []).length > 0 && (
+                  <span className="ml-1 text-gray-600 font-normal">
+                    — {srd.BuyerRejectedReasons.map(r => r.reason).join(', ')}
                   </span>
-                ))}
-              </div>
+                )}
+              </span>
+            ) : (
+              <span className="text-app-text text-gray-400 italic">No comment yet</span>
             )}
-
-            {buyerActiveAction === 'rejected' && !srd.BuyerApprovedDate && (
-              <div className="flex items-center gap-1.5">
-                {/* Combobox */}
-                <div className="relative flex items-center border border-gray-300 rounded h-6 bg-white overflow-hidden">
-                  <input
-                    className="h-full px-1.5 text-app-text text-sm bg-transparent focus:outline-none w-32"
-                    value={buyerNewReason}
-                    onChange={e => setBuyerNewReason(e.target.value)}
-                    placeholder="Reason..."
-                    autoFocus
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && buyerNewReason.trim()) {
-                        const val = buyerNewReason.trim();
-                        if (!buyerReasonOptions.includes(val)) setBuyerReasonOptions(prev => [...prev, val]);
-                        setBuyerRejectedReasons(prev => [...prev, { department: '', reason: val }]);
-                        setBuyerNewReason('');
-                      }
-                    }}
-                  />
-                  <select className="h-full w-6 border-l border-gray-300 bg-white text-gray-600 focus:outline-none cursor-pointer appearance-none text-center text-xs"
-                    value="" onChange={e => { if (e.target.value) setBuyerNewReason(e.target.value); }}>
-                    <option value="">▾</option>
-                    {buyerReasonOptions.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                </div>
-                <button onClick={() => {
-                  const val = buyerNewReason.trim();
-                  const pending = val ? [{ department: '', reason: val }] : [];
-                  if (!buyerReasonOptions.includes(val) && val) setBuyerReasonOptions(prev => [...prev, val]);
-                  const reasons = [...buyerRejectedReasons, ...pending];
-                  if (!reasons.length) { toast({ title: 'Error', description: 'Add at least one reason', variant: 'destructive' }); return; }
-                  handleBuyerApproval(false);
-                  setBuyerActiveAction(null);
-                  setBuyerNewReason('');
-                }} disabled={loading} className="inline-flex items-center justify-center w-36 px-2 py-0.5 rounded bg-red-700 text-white text-app-text font-medium hover:bg-red-800 disabled:opacity-40">
-                  Reject
-                </button>
-                <button onClick={() => setBuyerActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>
-              </div>
-            )}
-
-            {srd.BuyerApprovedDate && !srd.BuyerApproved && (
-              <span className="text-app-text text-red-700 font-medium">Rejected by {srd.BuyerApprovedBy}</span>
+            {buyerCommentImages.length > 0 && (
+              <DispatchImageCell
+                label="Comment Image"
+                images={buyerCommentImages}
+                canEdit={false}
+                onUploaded={() => {}}
+                onRemove={() => {}}
+              />
             )}
           </div>
-        </div>
+        )}
       </div>
 
 

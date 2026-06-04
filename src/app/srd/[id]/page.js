@@ -135,7 +135,7 @@ export default function SRDDetailPage() {
     );
   }
 
-  const userRole = session.user.role;
+  const userRole = session?.user?.role;
 
   if (userRole === 'dispatch') {
     return (

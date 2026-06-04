@@ -1,6 +1,43 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import SRD from '@/models/SRD';
+import User from '@/models/User';
+import ProductionStage from '@/models/ProductionStage';
+import Notification from '@/models/Notification';
+import pusher from '@/lib/pusher-server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+const DEPARTMENT_SLUGS = ['vmd', 'cad', 'commercial', 'mmc'];
+
+const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+
+const getTargetUsers = async (target) => {
+  if (!target || !target.trim()) {
+    return await User.find({});
+  }
+
+  const normalizedTarget = target.trim().toLowerCase();
+
+  if (DEPARTMENT_SLUGS.includes(normalizedTarget)) {
+    const users = await User.find({ department: new RegExp(`^${escapeRegExp(normalizedTarget)}$`, 'i') });
+    if (users.length > 0) return users;
+  }
+
+  const stage = await ProductionStage.findOne({
+    $or: [
+      { name: new RegExp(`^${escapeRegExp(normalizedTarget)}$`, 'i') },
+      { displayName: new RegExp(`^${escapeRegExp(normalizedTarget)}$`, 'i') }
+    ]
+  }).lean();
+
+  if (stage) {
+    const users = await User.find({ 'permissions.stages': normalizedTarget });
+    if (users.length > 0) return users;
+  }
+
+  return await User.find({});
+};
 
 // Function to generate the next available refNo for duplicates/redos
 const getNextRefNo = async (baseRefNo, isRedo) => {
@@ -52,15 +89,24 @@ export async function POST(request, { params }) {
   try {
     await dbConnect();
     const { id } = await params;
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
     const isRedo = action === 'redo';
 
-    // TODO: Add authentication to get the actual user
-    // const session = await getServerSession();
-    // if (!session) {
-    //   return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    // }
+    let requestBody = {};
+    try {
+      requestBody = await request.json();
+    } catch (err) {
+      requestBody = {};
+    }
+
+    const nudgeTarget = requestBody.nudgeTarget?.trim();
+    const targetUsers = await getTargetUsers(nudgeTarget);
 
     const originalSrd = await SRD.findById(id).lean();
 
@@ -164,8 +210,35 @@ export async function POST(request, { params }) {
 
     await newSrd.save();
 
+    const notificationMessage = nudgeTarget
+      ? `📣 ${session.user.name} created a redo for SRD ${newSrd.refNo} and nudged ${nudgeTarget}`
+      : `📣 ${session.user.name} created a redo for SRD ${newSrd.refNo}`;
 
+    const notifications = targetUsers.map((user) => ({
+      user: user._id,
+      srd: newSrd._id,
+      action: isRedo ? 'redo' : 'duplicate',
+      targetDepartment: DEPARTMENT_SLUGS.includes(nudgeTarget?.toLowerCase?.() ?? '') ? nudgeTarget : undefined,
+      targetProductionStage: !DEPARTMENT_SLUGS.includes(nudgeTarget?.toLowerCase?.() ?? '') ? nudgeTarget : undefined,
+      message: notificationMessage,
+      read: false,
+    }));
 
+    if (notifications.length > 0) {
+      await Notification.insertMany(notifications);
+    }
+
+    try {
+      if (process.env.PUSHER_APP_ID && process.env.PUSHER_SECRET) {
+        await pusher.trigger('srd-events', 'srd:new', {
+          refNo: newSrd.refNo,
+          _id: newSrd._id,
+          action: 'redo'
+        });
+      }
+    } catch (pusherError) {
+      console.warn('Pusher trigger failed for redo event:', pusherError.message);
+    }
 
     return NextResponse.json({ success: true, data: newSrd });
 

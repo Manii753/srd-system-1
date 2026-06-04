@@ -28,7 +28,8 @@ const DEPARTMENTS = [
   'vmd',
   'cad',
   'commercial',
-  'mmc'
+  'mmc',
+  'global'
 ];
 
 const DEFAULT_TABLE_HEADERS = [
@@ -659,7 +660,7 @@ export default function Page() {
           >
             {DEPARTMENTS.map((dept) => (
               <option key={dept} value={dept}>
-                {dept.toUpperCase()}
+                {dept === 'global' ? '🌐 Global' : dept.toUpperCase()}
               </option>
             ))}
           </select>
@@ -1022,7 +1023,7 @@ export default function Page() {
                       >
                         {DEPARTMENTS.map((d) => (
                           <option key={d} value={d}>
-                            {d.toUpperCase()}
+                            {d === 'global' ? '🌐 GLOBAL (All Departments)' : d.toUpperCase()}
                           </option>
                         ))}
                       </select>

@@ -60,7 +60,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 
-const DEPARTMENTS = ['vmd', 'cad', 'commercial', 'mmc'];
+const DEPARTMENTS = ['vmd', 'cad', 'commercial', 'mmc','global'];
 
 const GRID_SIZES = [
   { value: 1, label: '1 Column', icon: '│' },
