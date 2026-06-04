@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -53,6 +53,18 @@ export default function PaginatedSRDForm({ srd, onSave, userRole }) {
     
     fetchAllFields();
   }, [srd]);
+
+  // Ctrl+S keyboard shortcut to save current page
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        savePage();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentPage, fieldsByDepartment, formData]);
 
   const handleFieldChange = (fieldId, value) => {
     setFormData(prev => ({
