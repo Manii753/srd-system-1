@@ -10,11 +10,46 @@ const APP_GROUPS = [
   {
     label: 'Home Page',
     apps: [
-      { label: 'Order Confirmation', icon: ClipboardList, href: '/dashboard/vmd', color: 'bg-yellow-400', textColor: 'text-black' },
-      { label: 'Samples Management', icon: Package, href: '/samples', color: 'bg-yellow-400', textColor: 'text-black' },
-      { label: 'Cost Sheets', icon: DollarSign, href: '#', color: 'bg-yellow-400', textColor: 'text-black' },
-      { label: 'Bom', icon: List, href: '#', color: 'bg-yellow-400', textColor: 'text-black' },
-      { label: 'Planning', icon: Calendar, href: '#', color: 'bg-yellow-400', textColor: 'text-black' },
+      { 
+        label: 'Order Confirmation', 
+        icon: ClipboardList, 
+        href: '/dashboard/vmd', 
+        color: 'bg-indigo-500', 
+        lightColor: 'bg-indigo-50', 
+        textColor: 'text-indigo-600' 
+      },
+      { 
+        label: 'Samples Management', 
+        icon: Package, 
+        href: '/samples', 
+        color: 'bg-emerald-500', 
+        lightColor: 'bg-emerald-50', 
+        textColor: 'text-emerald-600' 
+      },
+      { 
+        label: 'Cost Sheets', 
+        icon: DollarSign, 
+        href: '#', 
+        color: 'bg-amber-500', 
+        lightColor: 'bg-amber-50', 
+        textColor: 'text-amber-600' 
+      },
+      { 
+        label: 'Bom', 
+        icon: List, 
+        href: '#', 
+        color: 'bg-rose-500', 
+        lightColor: 'bg-rose-50', 
+        textColor: 'text-rose-600' 
+      },
+      { 
+        label: 'Planning', 
+        icon: Calendar, 
+        href: '#', 
+        color: 'bg-violet-500', 
+        lightColor: 'bg-violet-50', 
+        textColor: 'text-violet-600' 
+      },
     ],
   },
 ];
@@ -177,10 +212,12 @@ export default function HomePage() {
                 return (
                   <Link key={app.label} href={app.href}>
                     <div
-                      className={`${app.color} text-black rounded-lg p-4 h-28 flex flex-col items-center justify-center text-center font-semibold text-xs cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 border border-gray-200/50`}
+                      className={`${app.lightColor} rounded-xl p-4 h-32 flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border border-gray-100 group`}
                     >
-                      <Icon className="h-5 w-5 mb-2" />
-                      <span>{app.label}</span>
+                      <div className={`${app.color} w-12 h-12 rounded-xl flex items-center justify-center mb-3 shadow-md group-hover:scale-110 transition-transform`}>
+                        <Icon className="h-6 w-6 text-white" />
+                      </div>
+                      <span className={`font-semibold text-xs ${app.textColor}`}>{app.label}</span>
                     </div>
                   </Link>
                 );

@@ -315,10 +315,10 @@ export default function SRReportPage() {
   // ── CSV Export ──────────────────────────────────────────────────────────────
   const handleExport = () => {
     const headers = [
-      'S.No', 'Inquiry #', 'S.Request Date', 'SR Raised Date', 'Delay Days',
+      'Sr#', 'Inq#', 'SR. Date', 'SR. Raised Date', 'D.D',
       'Buyer', 'Sample Type', 'Priority', 'Buyer Style Ref', 'Description',
-      'Color/Wash', 'Size', 'Qty', 'Current Status', 'Target Dispatch Date',
-      'Actual Dispatch Date', 'Approval Status', 'Reason',
+      'Color/Wash', 'Size', 'Qty', 'Status', 'TDD',
+      'Dis. Date', 'App.Status', 'Reason',
     ];
 
     const rows = filtered.map((srd, idx) => {
@@ -668,24 +668,24 @@ export default function SRReportPage() {
           <table className="text-app-text border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
             <thead>
               <tr className="bg-gray-100 border-b border-gray-300">
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '48px' }}>S.No</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '110px' }}>Inquiry #</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '120px' }}>S.Request Date</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '120px' }}>SR Raised Date</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '90px' }}>Delay Days</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '120px' }}>Buyer</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '130px' }}>Sample Type</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '90px' }}>Priority</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '130px' }}>Buyer Style Ref</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '180px' }}>Description</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '120px' }}>Color/Wash</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '70px' }}>Size</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '60px' }}>Qty</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '160px' }}>Current Status Summary</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '140px' }}>Target Dispatch Date</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '140px' }}>Actual Dispatch Date</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ minWidth: '140px' }}>Approval Status</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase whitespace-nowrap" style={{ minWidth: '120px' }}>Reason</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>S.#</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Inq#</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>SR. Date</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>SR. Raised Date</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Delay Days</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Buyer</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Sample Type</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Priority</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Style Ref</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Description</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Color/Wash</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Size</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Qty</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Summary</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Dis. Date</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Act. Dis. Date</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Approval Status</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase whitespace-nowrap" style={{ width: 'fit-content' }}>Reason</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -724,8 +724,8 @@ export default function SRReportPage() {
                 return (
                   <React.Fragment key={srd._id}>
                     <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => toggleRow(srd._id)}>
-                      <td className="px-3 py-2.5 text-gray-500 border-r border-gray-200 whitespace-nowrap">{idx + 1}</td>
-                      <td className="px-3 py-2.5 border-r border-gray-200 whitespace-nowrap">
+                      <td className="px-1.5 py-1.5 text-gray-500 border-r border-gray-200 whitespace-nowrap">{idx + 1}</td>
+                      <td className="px-1.5 py-1.5 border-r border-gray-200 whitespace-nowrap">
                         <button
                           onClick={e => { e.stopPropagation(); router.push(`/srd/${srd._id}`); }}
                           className="text-blue-600 hover:underline font-medium"
@@ -733,43 +733,43 @@ export default function SRReportPage() {
                           {srd.refNo}
                         </button>
                       </td>
-                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{fmtDate(srd.createdAt)}</td>
-                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{fmtDate(srd.createdAt)}</td>
-                      <td className={`px-3 py-2.5 border-r border-gray-200 whitespace-nowrap font-medium ${delay > 7 ? 'text-red-600' : delay > 3 ? 'text-orange-500' : 'text-gray-700'}`}>
+                      <td className="px-1.5 py-1.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{fmtDate(srd.createdAt)}</td>
+                      <td className="px-1.5 py-1.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{fmtDate(srd.createdAt)}</td>
+                      <td className={`px-1.5 py-1.5 border-r border-gray-200 whitespace-nowrap font-medium ${delay > 7 ? 'text-red-600' : delay > 3 ? 'text-orange-500' : 'text-gray-700'}`}>
                         {delay > 0 ? delay : '-'}
                       </td>
-                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{brand || '-'}</td>
-                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{sampleType || '-'}</td>
-                      <td className="px-3 py-2.5 border-r border-gray-200 whitespace-nowrap">
+                      <td className="px-1.5 py-1.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{brand || '-'}</td>
+                      <td className="px-1.5 py-1.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{sampleType || '-'}</td>
+                      <td className="px-1.5 py-1.5 border-r border-gray-200 whitespace-nowrap">
                         {priority ? (
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${priority.toLowerCase() === 'high' ? 'bg-red-100 text-red-700' : priority.toLowerCase() === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
+                          <span className={`px-1.5 py-1.5 rounded text-xs font-medium ${priority.toLowerCase() === 'high' ? 'bg-red-100 text-red-700' : priority.toLowerCase() === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
                             {priority}
                           </span>
                         ) : '-'}
                       </td>
-                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{styleRef || '-'}</td>
-                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200" style={{ maxWidth: '180px' }}>
+                      <td className="px-1.5 py-1.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{styleRef || '-'}</td>
+                      <td className="px-1.5 py-1.5 text-gray-700 border-r border-gray-200" style={{ maxWidth: '180px' }}>
                         <span className="block truncate" title={desc}>{desc || '-'}</span>
                       </td>
-                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{color || '-'}</td>
-                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{size || '-'}</td>
-                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{qty || '-'}</td>
-                      <td className={`px-3 py-2.5 border-r border-gray-200 whitespace-nowrap ${osCls}`}>
+                      <td className="px-1.5 py-1.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{color || '-'}</td>
+                      <td className="px-1.5 py-1.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{size || '-'}</td>
+                      <td className="px-1.5 py-1.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{qty || '-'}</td>
+                      <td className={`px-1.5 py-1.5 border-r border-gray-200 whitespace-nowrap ${osCls}`}>
                         <div className="flex items-center gap-1">
                           <span>{os}</span>
-                          <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
+                          <ChevronDown className={`h-1.5 w-1.5 text-gray-400 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
                         </div>
                       </td>
-                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">
+                      <td className="px-1.5 py-1.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">
                         {fmtDate(getDyn(srd, 'sample etd', 'target dispatch date', 'etd', 'dispatch date')) || '-'}
                       </td>
-                      <td className="px-3 py-2.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">
+                      <td className="px-1.5 py-1.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">
                         {srd.sampleDispatchedToBuyer ? fmtDate(srd.sampleDipatchedtoBuyerDate) : '-'}
                       </td>
-                      <td className={`px-3 py-2.5 border-r border-gray-200 whitespace-nowrap text-xs font-medium ${approvalStatus.includes('Rejected') ? 'text-red-600' : approvalStatus ? 'text-green-700' : 'text-gray-400'}`}>
+                      <td className={`px-1.5 py-1.5 border-r border-gray-200 whitespace-nowrap text-xs font-medium ${approvalStatus.includes('Rejected') ? 'text-red-600' : approvalStatus ? 'text-green-700' : 'text-gray-400'}`}>
                         {approvalStatus || '-'}
                       </td>
-                      <td className="px-3 py-2.5 text-red-600 text-xs whitespace-nowrap">{reason || ''}</td>
+                      <td className="px-1.5 py-1.5 text-red-600 text-xs whitespace-nowrap">{reason || ''}</td>
                     </tr>
 
                     {/* Expanded stage sub-row */}

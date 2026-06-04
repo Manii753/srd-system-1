@@ -383,8 +383,10 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   };
 
   // Re-match buyer when Brand field changes — create if doesn't exist
+  // Debounced to prevent excessive API calls
   useEffect(() => {
     if (!buyers.length || !srd.dynamicFields) return;
+    
     const brandField = srd.dynamicFields?.find(f => f.name === 'Brand' || f.name === 'Buyer');
     const brandName = brandField?.value?.trim();
     if (!brandName) return;
@@ -396,22 +398,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         setSelectedBuyer(match._id);
         if (match.address) setDispatchAddress(match.address);
       }
-      // Always refresh the buyer record to get latest contactPerson data
-      fetch(`/api/buyers/${match._id}`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.success && data.data) {
-            setBuyers(prev => prev.map(b =>
-              b._id?.toString() === match._id?.toString() ? data.data : b
-            ));
-            if (data.data.address && !dispatchAddress) {
-              setDispatchAddress(data.data.address);
-            }
-          }
-        })
-        .catch(e => console.error('Failed to refresh buyer', e));
-    } else if (!selectedBuyer) {
-      // Only auto-create if no buyer is selected at all
+    } else {
+      // Brand doesn't exist — create it automatically
       fetch('/api/buyers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -426,7 +414,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         })
         .catch(e => console.error('Failed to create buyer', e));
     }
-  }, [srd.dynamicFields, buyers.length]);
+  }, [srd.dynamicFields?.find(f => f.name === 'Brand' || f.name === 'Buyer')?.value, buyers.length]);
 
   const openApprovalDialog = (type) => {
     setApprovalDialogType(type);
@@ -1071,7 +1059,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         })()}
 
         {/* Buttons row */}
-        {canEdit && !srd.sampleDispatchedToBuyer && srd.DispatchDetails && (
+        {canEdit && !srd.sampleDispatchedToBuyer && (dispatchAWB || dispatchQty || dispatchAddress || dispatchDate || dispatchFrontImages.length > 0 || dispatchBackImages.length > 0) && (
           <div className="grid grid-cols-12 border-gray-300">
             <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
             <div className="col-span-10 px-2 py-0.5 flex gap-1.5 items-center">

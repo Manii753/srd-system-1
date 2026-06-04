@@ -358,10 +358,21 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                           const relevantStages = srdStageIds.length > 0
                             ? productionStages.filter(s => srdStageIds.includes(String(s._id)))
                             : productionStages;
-                          const allCompleted = relevantStages.length > 0 && relevantStages.every(stage => {
+                          
+                          // Check if all stages are completed using multiple sources
+                          const allCompletedFromHistory = relevantStages.length > 0 && relevantStages.every(stage => {
                             const historyEntry = (srd.productionHistory || []).find(h => String(h.stage) === String(stage._id));
                             return historyEntry?.status === 'completed';
                           });
+                          
+                          const allCompletedFromSampleProcess = srd.sampleProcess && srd.sampleProcess.length > 0 &&
+                            srd.sampleProcess.every(s => s.status === 'completed');
+                          
+                          const allCompleted = srd.isComplete || allCompletedFromHistory || allCompletedFromSampleProcess;
+
+                          if (allCompleted) {
+                            return <span className="text-app-text font-medium text-green-700">Completed</span>;
+                          }
 
                           if (srd.inProduction && srd.currentProductionStage) {
                             const stage = productionStages.find(s => String(s._id) === String(srd.currentProductionStage));
@@ -378,10 +389,6 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                                 )}
                               </div>
                             );
-                          }
-
-                          if (allCompleted) {
-                            return <span className="text-app-text font-medium text-green-700">Completed</span>;
                           }
 
                           return <span className="text-app-text text-gray-400">Pending</span>;
