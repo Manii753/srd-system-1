@@ -21,6 +21,31 @@ const CompanySchema = new mongoose.Schema({
   },
   // Number of days before a pending SRD is marked as delayed
   delayThresholdDays: { type: Number, default: 3 },
+  
+  // Auto-approval settings for department status
+  autoApprovalSettings: {
+    enabled: { type: Boolean, default: true }, // Enable/disable auto-approval globally
+    threshold: { type: Number, default: 80, min: 0, max: 100 }, // Percentage threshold (0-100)
+    // Per-department overrides (optional)
+    departments: {
+      vmd: { 
+        enabled: { type: Boolean, default: true },
+        threshold: { type: Number, default: 80, min: 0, max: 100 }
+      },
+      cad: { 
+        enabled: { type: Boolean, default: true },
+        threshold: { type: Number, default: 80, min: 0, max: 100 }
+      },
+      commercial: { 
+        enabled: { type: Boolean, default: true },
+        threshold: { type: Number, default: 80, min: 0, max: 100 }
+      },
+      mmc: { 
+        enabled: { type: Boolean, default: true },
+        threshold: { type: Number, default: 80, min: 0, max: 100 }
+      },
+    }
+  },
 }, { timestamps: true, strict: false });
 
 // Delete cached model to pick up schema changes in dev

@@ -109,8 +109,11 @@ export default function DynamicSidebar() {
           { name: 'SRD Fields', href: '/srdfields', icon: FileSpreadsheet },
           { name: 'Users', href: '/users', icon: Users },
           { name: 'Permissions', href: '/permissions', icon: Shield },
-          { name: 'Settings', href: '/settings', icon: Settings },
-          { name: 'SR Diagnostics', href: '/settings/diagnose', icon: Wrench },
+          { name: 'Settings', icon: Settings, isSubmenu: true, children: [
+            { name: 'Company Settings', href: '/settings' },
+            { name: 'Auto-Approval', href: '/settings/auto-approval' },
+            { name: 'SR Diagnostics', href: '/settings/diagnose' },
+          ]},
         ]);
       } else if (['cutting','sewing','washing','finishing','dispatch'].includes(userRole)) {
         const names = { cutting:'Cutting', sewing:'Sewing', washing:'Washing', finishing:'Finishing', dispatch:'Dispatch' };

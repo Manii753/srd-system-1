@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -11,6 +11,7 @@ export default function page() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
+  const hasCreated = useRef(false); // Prevent double creation
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -25,7 +26,12 @@ export default function page() {
       router.push(`/dashboard/${session.user.role}`);
       return;
     }
-    handleRaiseSrd()
+    
+    // Only call once, even in React Strict Mode
+    if (!hasCreated.current) {
+      hasCreated.current = true;
+      handleRaiseSrd();
+    }
   }, [session, status, router]);
 
 
@@ -53,9 +59,11 @@ export default function page() {
         router.push(`/srd/${data.data._id}`);
       } else {
         console.error('Failed to create SRD:', data.error);
+        setIsCreating(false);
       }
     } catch (error) {
       console.error('Error creating SRD:', error);
+      setIsCreating(false);
     }
   }
   return (

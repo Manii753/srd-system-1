@@ -247,6 +247,16 @@ export default function DepartmentPanelExcel({
   const [sections, setSections] = useState([]);
   const [formPagination, setFormPagination] = useState({ enabled: true, itemsPerPage: 12 });
   const [delayThresholdDays, setDelayThresholdDays] = useState(3);
+  const [autoApprovalSettings, setAutoApprovalSettings] = useState({
+    enabled: true,
+    threshold: 80,
+    departments: {
+      vmd: { enabled: true, threshold: 80 },
+      cad: { enabled: true, threshold: 80 },
+      commercial: { enabled: true, threshold: 80 },
+      mmc: { enabled: true, threshold: 80 },
+    }
+  });
   const [pendingUpdates, setPendingUpdates] = useState({}); // Track updates per department
   const [showActivityConsole, setShowActivityConsole] = useState(false); // Activity console visibility - default hidden
 
@@ -328,6 +338,9 @@ export default function DepartmentPanelExcel({
           }
           if (companyData?.delayThresholdDays !== undefined) {
             setDelayThresholdDays(companyData.delayThresholdDays);
+          }
+          if (companyData?.autoApprovalSettings) {
+            setAutoApprovalSettings(companyData.autoApprovalSettings);
           }
         } catch (err) {
           console.error('Failed to fetch pagination settings:', err);
@@ -415,9 +428,17 @@ export default function DepartmentPanelExcel({
         const savedFields = currentFields;
         const templateCells = activeTemplateRef.current?.cells || [];
 
+        console.log('[Auto-Approve] Checking departments for auto-approval...');
+
         for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
           const currentStatus = (data.data?.status || []).find(s => s.department === dept)?.value;
-          if (currentStatus === 'approved') continue;
+          
+          console.log(`[Auto-Approve] ${dept} current status:`, currentStatus);
+          
+          if (currentStatus === 'approved') {
+            console.log(`[Auto-Approve] ${dept} already approved, skipping`);
+            continue;
+          }
 
           // Collect all field IDs that belong to this dept via template cells
           const deptFieldIds = new Set();
@@ -434,24 +455,40 @@ export default function DepartmentPanelExcel({
               const headers = Array.isArray(fDef.tableHeaders) ? fDef.tableHeaders : [];
               const hasDeptCol = headers.some(h => (typeof h === 'object' ? h.owner : 'global') === dept);
               const predefinedOwner = fDef.predefinedFieldsOwner || fDef.department;
-              if (hasDeptCol || predefinedOwner === dept) deptFieldIds.add(fieldId);
+              if (hasDeptCol || predefinedOwner === dept) {
+                deptFieldIds.add(fieldId);
+              }
             } else if (fDef.department === dept) {
               deptFieldIds.add(fieldId);
             }
           }
 
-          if (!deptFieldIds.size) continue;
+          console.log(`[Auto-Approve] ${dept} field count:`, deptFieldIds.size);
+
+          if (!deptFieldIds.size) {
+            console.log(`[Auto-Approve] ${dept} has no fields, skipping`);
+            continue;
+          }
 
           // Count filled fields for this dept
           let filled = 0;
           let total = 0;
+          
           for (const fId of deptFieldIds) {
             const fDef = allFieldDefsRef.current?.[fId];
-            if (!fDef || fDef.isOptional || fDef.type === 'heading') continue;
+            
+            // Skip optional fields and headings
+            if (!fDef || fDef.isOptional || fDef.type === 'heading') {
+              console.log(`[Auto-Approve] ${dept} skipping optional/heading field:`, fDef?.name);
+              continue;
+            }
+            
             total++;
+            
             const fieldState = savedFields.find(sf =>
               (sf.originalFieldId?.toString() || sf.field?.toString()) === fId
             );
+            
             if (fDef.type === 'table') {
               // Check if dept's columns have data OR predefined data
               const headers = Array.isArray(fDef.tableHeaders) ? fDef.tableHeaders : [];
@@ -460,6 +497,7 @@ export default function DepartmentPanelExcel({
                 if (owner === dept || (owner === 'global' && fDef.department === dept)) acc.push(i);
                 return acc;
               }, []);
+              
               const predefinedOwner = fDef.predefinedFieldsOwner || fDef.department;
               const predefined = Array.isArray(fieldState?.value?.predefinedData) ? fieldState.value.predefinedData : [];
               const hasPredefined = predefinedOwner === dept && predefined.some(p =>
@@ -467,15 +505,34 @@ export default function DepartmentPanelExcel({
                 (typeof p?.opd === 'string' && p.opd.trim() !== '') ||
                 (typeof p?.etd === 'string' && p.etd.trim() !== '')
               );
+              
               const rows = fieldState?.value?.rows || [];
-              const hasRowData = rows.some(row => deptCols.some(i => { const v = row[i]; return typeof v === 'string' ? v.trim() !== '' : !!v; }));
-              if (hasPredefined || hasRowData) filled++;
+              const hasRowData = rows.some(row => deptCols.some(i => { 
+                const v = row[i]; 
+                return typeof v === 'string' ? v.trim() !== '' : !!v; 
+              }));
+              
+              if (hasPredefined || hasRowData) {
+                filled++;
+                console.log(`[Auto-Approve] ${dept} table field "${fDef.name}" is filled`);
+              } else {
+                console.log(`[Auto-Approve] ${dept} table field "${fDef.name}" is empty`);
+              }
             } else {
-              if (hasMeaningfulValueRef.current?.(fieldState?.value, fDef.type)) filled++;
+              if (hasMeaningfulValueRef.current?.(fieldState?.value, fDef.type)) {
+                filled++;
+                console.log(`[Auto-Approve] ${dept} field "${fDef.name}" is filled with:`, fieldState?.value);
+              } else {
+                console.log(`[Auto-Approve] ${dept} field "${fDef.name}" is empty`);
+              }
             }
           }
 
+          const fillPercentage = total > 0 ? (filled / total) * 100 : 0;
+          console.log(`[Auto-Approve] ${dept} filled ${filled}/${total} (${fillPercentage.toFixed(1)}%)`);
+
           if (total > 0 && filled / total >= 0.8) {
+            console.log(`[Auto-Approve] ${dept} reached 80% threshold, auto-approving...`);
             try {
               const r = await fetch(`/api/srd/${srdRef.current._id}/department/${dept}`, {
                 method: 'PATCH',
@@ -483,8 +540,22 @@ export default function DepartmentPanelExcel({
                 body: JSON.stringify({ status: 'approved', fields: [] }),
               });
               const rd = await r.json();
-              if (rd.success) onSrdUpdate?.(rd.data);
-            } catch (e) { /* silent */ }
+              if (rd.success) {
+                console.log(`[Auto-Approve] ${dept} successfully auto-approved`);
+                onSrdUpdate?.(rd.data);
+                toast({
+                  title: 'Auto-Approved',
+                  description: `${dept.toUpperCase()} department has been automatically approved (${fillPercentage.toFixed(0)}% complete)`,
+                  duration: 3000,
+                });
+              } else {
+                console.error(`[Auto-Approve] ${dept} approval failed:`, rd.error);
+              }
+            } catch (e) {
+              console.error(`[Auto-Approve] ${dept} approval request failed:`, e);
+            }
+          } else {
+            console.log(`[Auto-Approve] ${dept} below 80% threshold, not auto-approving`);
           }
         }
       } else {
@@ -732,13 +803,8 @@ export default function DepartmentPanelExcel({
     setHasUnsavedChanges(true);
     resetIdleTimer();
     
-    // Trigger auto-approval check (debounced)
-    if (autoApprovalTimeoutRef.current) {
-      clearTimeout(autoApprovalTimeoutRef.current);
-    }
-    autoApprovalTimeoutRef.current = setTimeout(() => {
-      checkAndAutoApproveDepartments();
-    }, 1000); // Check 1 second after last change
+    // Note: Auto-approval happens when user saves (in saveAllChanges function)
+    // No need for automatic timeout-based approval
   }, [allFieldDefs, buildFieldState, resetIdleTimer, findFieldIndex, normalizeFieldId]);
 
   // Handle field change with department tracking

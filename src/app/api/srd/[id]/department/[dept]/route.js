@@ -105,6 +105,10 @@ export async function PATCH(request, context) {
             });
           }
         }
+        
+        // Calculate progress based on approved departments
+        const RELEVANT_DEPTS = ['vmd', 'cad', 'commercial', 'mmc'];
+        const relevantEntries = srd.status.filter(s => RELEVANT_DEPTS.includes(s.department));
         const approvedCount = relevantEntries.filter(s => s.value === 'approved').length;
 
         if (relevantEntries.length > 0) {
