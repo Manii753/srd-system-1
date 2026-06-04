@@ -1447,7 +1447,7 @@ export default function DepartmentPanelExcel({
                                 <span className="font-semibold text-center text-indigo-700 px-2 py-0.5 block text-[11px]">OPD</span>
                               </th>
                               <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
-                                <span className="font-semibold text-center text-indigo-700 px-2 py-0.5 block text-[11px]">ETD</span>
+                                <span className="font-semibold text-center text-indigo-700 px-2 py-0.5 block text-[11px]">IHD</span>
                               </th>
                             </tr>
                           </thead>
@@ -1599,7 +1599,7 @@ export default function DepartmentPanelExcel({
                       <span className="font-semibold text-center text-indigo-700 px-1.5 py-0 block text-[11px]">OPD</span>
                     </th>
                     <th className="border border-gray-200 p-0 bg-indigo-50" style={{ width: '11.11%' }}>
-                      <span className="font-semibold text-center text-indigo-700 px-1.5 py-0 block text-[11px]">ETD</span>
+                      <span className="font-semibold text-center text-indigo-700 px-1.5 py-0 block text-[11px]">IHD</span>
                     </th>
                   </tr>
                 </thead>
