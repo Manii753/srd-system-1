@@ -221,7 +221,7 @@ export default function DynamicSidebar() {
                             onMouseEnter={e => { if (!ca) e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
                             onMouseLeave={e => { if (!ca) e.currentTarget.style.backgroundColor = 'transparent'; }}
                           >
-                            <CIcon style={{ width: 14, height: 14, flexShrink: 0, color: ca ? '#1d4ed8' : '#6b7280' }} />
+                            <Icon style={{ width: 14, height: 14, flexShrink: 0, color: ca ? '#1d4ed8' : '#6b7280' }} />
                             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{child.name}</span>
                           </Link>
                         );
