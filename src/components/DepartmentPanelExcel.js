@@ -1202,6 +1202,7 @@ export default function DepartmentPanelExcel({
             const hasPending = deptTotal > 0 && deptFilled < deptTotal;
             const fillPct = deptTotal > 0 ? deptFilled / deptTotal : 0;
             return (
+              // bg-colors for dept pills
               <span
                 key={dept}
                 className={cn(
@@ -1210,7 +1211,7 @@ export default function DepartmentPanelExcel({
                   val === 'in-progress' && 'bg-blue-700 text-white',
                   val === 'flagged'     && 'bg-red-700 text-white',
                   isDelayed             && 'bg-red-700 text-white',
-                  val === 'pending' && !isDelayed && fillPct > 0 && 'bg-green-600 text-white',
+                  val === 'pending' && !isDelayed && fillPct > 0 && 'bg-orange-600 text-white',
                   val === 'pending' && !isDelayed && fillPct === 0 && 'bg-gray-200 text-gray-700',
                 )}
               >

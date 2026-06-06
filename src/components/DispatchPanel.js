@@ -662,7 +662,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <div className="grid grid-cols-12 border-b border-gray-300">
               <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
                 <button
-                  className="inline-flex items-center justify-center w-36 px-2 rounded bg-green-700 text-white text-app-text font-medium hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center w-36 px-2 rounded-full bg-green-700 text-white text-app-text font-medium hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed"
                   disabled={!!srd.internalApprovedDate || !canEdit || !srd.inDispatch}
                   onClick={() => setActiveAction(activeAction === 'approve' ? null : 'approve')}
                 >
@@ -688,7 +688,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                         setActiveAction(null);
                       }}
                       disabled={loading}
-                      className="inline-flex items-center justify-center w-36 px-2 rounded bg-green-700 text-white text-app-text font-medium hover:bg-green-800 disabled:opacity-40"
+                      className="inline-flex items-center justify-center w-36 px-2 rounded-full bg-green-700 text-white text-app-text font-medium hover:bg-green-800 disabled:opacity-40"
                     >
                       Confirm
                     </button>
@@ -705,7 +705,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <div className="grid grid-cols-12">
               <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
                 <button
-                  className="inline-flex items-center justify-center w-36 px-2 rounded bg-red-700 text-white text-app-text font-medium hover:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center w-36 px-2 rounded-full bg-red-700 text-white text-app-text font-medium hover:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed"
                   disabled={!!srd.internalApprovedDate || !canEdit || !srd.inDispatch}
                   onClick={() => setActiveAction(activeAction === 'reject' ? null : 'reject')}
                 >
@@ -1109,7 +1109,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <div className="grid grid-cols-12 border-b border-gray-300">
               <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
                 <button
-                  className="inline-flex items-center justify-center w-40 px-2 rounded bg-green-700 text-white text-app-text font-medium hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center w-40 px-2 rounded-full bg-green-700 text-white text-app-text font-medium hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed"
                   disabled={!!srd.BuyerApprovedDate || !srd.sampleDispatchedToBuyer}
                   onClick={() => setBuyerActiveAction(buyerActiveAction === 'approved' ? null : 'approved')}
                 >
@@ -1120,7 +1120,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                 {buyerActiveAction === 'approved' && !srd.BuyerApprovedDate && (
                   <div className="flex items-center gap-2">
                     <button onClick={() => { handleBuyerApproval(true); setBuyerActiveAction(null); }} disabled={loading}
-                      className="inline-flex items-center justify-center w-36 px-2 rounded bg-green-700 text-white text-app-text font-medium hover:bg-green-800 disabled:opacity-40">
+                      className="inline-flex items-center justify-center w-36 px-2 rounded-full bg-green-700 text-white text-app-text font-medium hover:bg-green-800 disabled:opacity-40">
                       Confirm Approval
                     </button>
                     <button onClick={() => setBuyerActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>
@@ -1136,7 +1136,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <div className="grid grid-cols-12 border-b border-gray-300">
               <div className="col-span-3 border-r border-gray-300 px-2 flex items-center">
                 <button
-                  className="inline-flex items-center justify-center w-40 px-0 rounded bg-yellow-600 text-white text-app-text font-medium hover:bg-yellow-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center w-40 px-0 rounded-full bg-yellow-600 text-white text-app-text font-medium hover:bg-yellow-700 disabled:opacity-40 disabled:cursor-not-allowed"
                   disabled={!!srd.BuyerApprovedDate || !srd.sampleDispatchedToBuyer}
                   onClick={() => setBuyerActiveAction(buyerActiveAction === 'approved-comments' ? null : 'approved-comments')}
                 >
@@ -1158,7 +1158,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                       if (!buyerComments.trim()) { toast({ title: 'Error', description: 'Enter a comment', variant: 'destructive' }); return; }
                       handleBuyerApproval(true);
                       setBuyerActiveAction(null);
-                    }} disabled={loading} className="inline-flex items-center justify-center w-36 px-2 rounded bg-yellow-600 text-white text-app-text font-medium hover:bg-yellow-700 disabled:opacity-40">
+                    }} disabled={loading} className="inline-flex items-center justify-center w-36 px-2 rounded-full bg-yellow-600 text-white text-app-text font-medium hover:bg-yellow-700 disabled:opacity-40">
                       Confirm
                     </button>
                     <button onClick={() => setBuyerActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>
@@ -1183,7 +1183,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <div className="grid grid-cols-12 border-b border-gray-300">
               <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
                 <button
-                  className="inline-flex items-center justify-center w-40 px-2 rounded bg-red-700 text-white text-app-text font-medium hover:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center w-40 px-2 rounded-full bg-red-700 text-white text-app-text font-medium hover:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed"
                   disabled={!!srd.BuyerApprovedDate || !srd.sampleDispatchedToBuyer}
                   onClick={() => setBuyerActiveAction(buyerActiveAction === 'rejected' ? null : 'rejected')}
                 >
@@ -1236,7 +1236,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                       handleBuyerApproval(false);
                       setBuyerActiveAction(null);
                       setBuyerNewReason('');
-                    }} disabled={loading} className="inline-flex items-center justify-center w-36 px-2 py-0.5 rounded bg-red-700 text-white text-app-text font-medium hover:bg-red-800 disabled:opacity-40">
+                    }} disabled={loading} className="inline-flex items-center justify-center w-36 px-2 py-0.5 rounded-full
+                     bg-red-700 text-white text-app-text font-medium hover:bg-red-800 disabled:opacity-40">
                       Reject
                     </button>
                     <button onClick={() => setBuyerActiveAction(null)} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>

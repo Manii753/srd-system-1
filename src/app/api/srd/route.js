@@ -295,7 +295,14 @@ export async function POST(request) {
     const newSRD = await SRD.create(body);
 
     // --- Create notifications for all users ---
-    const users = await User.find({});
+    // 1. Get the departments
+    const departments = await Department.find({ type: 'support' });
+
+    // 2. Extract the slugs into a flat array: ['slug1', 'slug2', ...]
+    const departmentSlugs = departments.map(d => d.slug);
+
+    // 3. Find users where their department field matches any slug in that array
+    const users = await User.find({ department: { $in: departmentSlugs } });
     const notificationPromises = users.map((user) =>
       Notification.create({
         user: user._id,
