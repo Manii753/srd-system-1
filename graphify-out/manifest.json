@@ -1,0 +1,1527 @@
+{
+  "E:\\srd-system-1\\.claude\\settings.local.json": {
+    "mtime": 1781000788.01972,
+    "ast_hash": "42dca9fe5c6ea613a9e8a4089497601f",
+    "semantic_hash": "42dca9fe5c6ea613a9e8a4089497601f"
+  },
+  "E:\\srd-system-1\\.mcp.json": {
+    "mtime": 1775388660.863987,
+    "ast_hash": "f90770fda62e51dddf3cfa3de440ca48",
+    "semantic_hash": "f90770fda62e51dddf3cfa3de440ca48"
+  },
+  "E:\\srd-system-1\\components.json": {
+    "mtime": 1775388633.519381,
+    "ast_hash": "a732c6cfc60a96b8e0a7e1d1b277fc30",
+    "semantic_hash": "a732c6cfc60a96b8e0a7e1d1b277fc30"
+  },
+  "E:\\srd-system-1\\create-fields-simple.ps1": {
+    "mtime": 1775388660.8649848,
+    "ast_hash": "65ed5b4f0dbfa77c2724320a961ff33e",
+    "semantic_hash": "65ed5b4f0dbfa77c2724320a961ff33e"
+  },
+  "E:\\srd-system-1\\create-fields.mjs": {
+    "mtime": 1775388660.8649848,
+    "ast_hash": "a11512e926c4ce42da33b5a909207926",
+    "semantic_hash": "a11512e926c4ce42da33b5a909207926"
+  },
+  "E:\\srd-system-1\\create-sample-fields.js": {
+    "mtime": 1775388660.865986,
+    "ast_hash": "ca7277e14e560d5148a132353db9d739",
+    "semantic_hash": "ca7277e14e560d5148a132353db9d739"
+  },
+  "E:\\srd-system-1\\create-sample-fields.ps1": {
+    "mtime": 1775388660.865986,
+    "ast_hash": "7f41790f4f741025d3792426ddbdf27a",
+    "semantic_hash": "7f41790f4f741025d3792426ddbdf27a"
+  },
+  "E:\\srd-system-1\\eslint.config.js": {
+    "mtime": 1775388633.5223887,
+    "ast_hash": "6c878b9aab6565bcc52c401ce4bb59e6",
+    "semantic_hash": "6c878b9aab6565bcc52c401ce4bb59e6"
+  },
+  "E:\\srd-system-1\\jsconfig.json": {
+    "mtime": 1775388660.865986,
+    "ast_hash": "f90c42a5e5b372404d75b89fcd890077",
+    "semantic_hash": "f90c42a5e5b372404d75b89fcd890077"
+  },
+  "E:\\srd-system-1\\next.config.js": {
+    "mtime": 1780992877.733097,
+    "ast_hash": "39608b7fa2434dd4ec9ba87d6868b1d1",
+    "semantic_hash": "39608b7fa2434dd4ec9ba87d6868b1d1"
+  },
+  "E:\\srd-system-1\\package.json": {
+    "mtime": 1780992877.7390924,
+    "ast_hash": "ea79b6f78a7fb2baad047503db2a34ee",
+    "semantic_hash": "ea79b6f78a7fb2baad047503db2a34ee"
+  },
+  "E:\\srd-system-1\\postcss.config.js": {
+    "mtime": 1775388633.6084,
+    "ast_hash": "0082aca57349f1cf9d40ee09ace55ccb",
+    "semantic_hash": "0082aca57349f1cf9d40ee09ace55ccb"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\auth\\[...nextauth]\\route.js": {
+    "mtime": 1775388633.6951,
+    "ast_hash": "7af72c3d17565dd1a2662aa41e56629a",
+    "semantic_hash": "7af72c3d17565dd1a2662aa41e56629a"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\backup\\cleanup\\route.js": {
+    "mtime": 1775388660.949896,
+    "ast_hash": "f54ee50f6c4f9c32d3043b7e8c63e128",
+    "semantic_hash": "f54ee50f6c4f9c32d3043b7e8c63e128"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\backup\\create\\route.js": {
+    "mtime": 1775388660.950867,
+    "ast_hash": "392e09ae64a283597792aa3d67841e6f",
+    "semantic_hash": "392e09ae64a283597792aa3d67841e6f"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\backup\\delete\\[id]\\route.js": {
+    "mtime": 1775388660.950867,
+    "ast_hash": "3eb3e5ed381f9400f962f3e12638c9ee",
+    "semantic_hash": "3eb3e5ed381f9400f962f3e12638c9ee"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\backup\\download\\[id]\\route.js": {
+    "mtime": 1775388660.950867,
+    "ast_hash": "49473d7ba471e8dd2067f62a5ec34f6d",
+    "semantic_hash": "49473d7ba471e8dd2067f62a5ec34f6d"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\backup\\list\\route.js": {
+    "mtime": 1775388660.9518664,
+    "ast_hash": "d2b77ac9b7304447bac8a481957c5f89",
+    "semantic_hash": "d2b77ac9b7304447bac8a481957c5f89"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\backup\\restore\\[id]\\route.js": {
+    "mtime": 1775388660.9518664,
+    "ast_hash": "1a8bee1523d6e302f24388a10e0cc942",
+    "semantic_hash": "1a8bee1523d6e302f24388a10e0cc942"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\backup\\settings\\route.js": {
+    "mtime": 1775388660.9528663,
+    "ast_hash": "3cc4373beb81a60c5657c0ba464eac44",
+    "semantic_hash": "3cc4373beb81a60c5657c0ba464eac44"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\backup\\upload\\route.js": {
+    "mtime": 1775388660.9528663,
+    "ast_hash": "2b96c6a06bcefc59579b97c2ec15303a",
+    "semantic_hash": "2b96c6a06bcefc59579b97c2ec15303a"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\buyers\\[id]\\route.js": {
+    "mtime": 1780992877.7400923,
+    "ast_hash": "7d5f47bf8464a435aa21aed8544b5f19",
+    "semantic_hash": "7d5f47bf8464a435aa21aed8544b5f19"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\buyers\\route.js": {
+    "mtime": 1775388660.953865,
+    "ast_hash": "55a67afc7c4c74895e690171a0e778f5",
+    "semantic_hash": "55a67afc7c4c74895e690171a0e778f5"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\company\\logo\\route.js": {
+    "mtime": 1775388660.953865,
+    "ast_hash": "575a27f98a8b21de5363e489dfb0e811",
+    "semantic_hash": "575a27f98a8b21de5363e489dfb0e811"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\company\\route.js": {
+    "mtime": 1775388660.953865,
+    "ast_hash": "022892af9d940876b039d5057ec353db",
+    "semantic_hash": "022892af9d940876b039d5057ec353db"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\dashboard\\[department]\\route.js": {
+    "mtime": 1775388633.6990974,
+    "ast_hash": "a7b3aa1da68eb624f0344ba1437485b3",
+    "semantic_hash": "a7b3aa1da68eb624f0344ba1437485b3"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\departments\\[id]\\route.js": {
+    "mtime": 1775388633.7000968,
+    "ast_hash": "a8e754abcffc3c29b85632720c23f5e9",
+    "semantic_hash": "a8e754abcffc3c29b85632720c23f5e9"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\departments\\route.js": {
+    "mtime": 1775388633.7000968,
+    "ast_hash": "606ab73e2533d8d38fb2ff20bf7fbb3b",
+    "semantic_hash": "606ab73e2533d8d38fb2ff20bf7fbb3b"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\dispatchCardFields\\route.js": {
+    "mtime": 1775388660.954883,
+    "ast_hash": "af5fbd27a89ad163a27f2d12916e2627",
+    "semantic_hash": "af5fbd27a89ad163a27f2d12916e2627"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\mail\\dispatch\\route.js": {
+    "mtime": 1780992877.7410915,
+    "ast_hash": "7bed1a3b724ea17a4d7c04eeec5407ff",
+    "semantic_hash": "7bed1a3b724ea17a4d7c04eeec5407ff"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\messages\\[id]\\read\\route.js": {
+    "mtime": 1775388633.7010963,
+    "ast_hash": "a62fbc9caad0534c8ab9243a0697a90a",
+    "semantic_hash": "a62fbc9caad0534c8ab9243a0697a90a"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\messages\\[id]\\route.js": {
+    "mtime": 1775388633.7010963,
+    "ast_hash": "e9c9a5c896f69f79687d792b9cece43d",
+    "semantic_hash": "e9c9a5c896f69f79687d792b9cece43d"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\messages\\route.js": {
+    "mtime": 1775388633.7010963,
+    "ast_hash": "2a2e4513c570ae4cd8f35115f37fbd7e",
+    "semantic_hash": "2a2e4513c570ae4cd8f35115f37fbd7e"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\messages\\unread-count\\route.js": {
+    "mtime": 1775388633.7020957,
+    "ast_hash": "8ee15954310ab5294e44d66124c085fd",
+    "semantic_hash": "8ee15954310ab5294e44d66124c085fd"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\mobile\\srd\\route.js": {
+    "mtime": 1775466137.6282666,
+    "ast_hash": "43b6af7d53af41f7005b7545eee67dca",
+    "semantic_hash": "43b6af7d53af41f7005b7545eee67dca"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\newField\\reorder\\route.js": {
+    "mtime": 1775388660.954883,
+    "ast_hash": "2365c7ce32bb4b2b70c5eca901e1ae33",
+    "semantic_hash": "2365c7ce32bb4b2b70c5eca901e1ae33"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\newField\\route.js": {
+    "mtime": 1775721055.1457071,
+    "ast_hash": "ce777c65c00d074f953417620833ace5",
+    "semantic_hash": "ce777c65c00d074f953417620833ace5"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\notifications\\[id]\\route.js": {
+    "mtime": 1775388660.955865,
+    "ast_hash": "9ff6c2807881f25ea1a2b2958d461904",
+    "semantic_hash": "9ff6c2807881f25ea1a2b2958d461904"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\notifications\\route.js": {
+    "mtime": 1780992877.7410915,
+    "ast_hash": "6903a4c56f1f958957f1756dca681fec",
+    "semantic_hash": "6903a4c56f1f958957f1756dca681fec"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\permissions\\[id]\\route.js": {
+    "mtime": 1780992877.7420907,
+    "ast_hash": "0704f4736942b235b82fc46a8d957fcb",
+    "semantic_hash": "0704f4736942b235b82fc46a8d957fcb"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\permissions\\route.js": {
+    "mtime": 1780992877.7420907,
+    "ast_hash": "ca48101a8747bf66fa5ade5514c24db1",
+    "semantic_hash": "ca48101a8747bf66fa5ade5514c24db1"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\printTemplate\\active\\route.js": {
+    "mtime": 1775388660.955865,
+    "ast_hash": "81873517abc4d31cd0ce4fd0b5beba48",
+    "semantic_hash": "81873517abc4d31cd0ce4fd0b5beba48"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\printTemplate\\route.js": {
+    "mtime": 1775388660.956864,
+    "ast_hash": "dd21c54c95be41f2d0fb568f8b25b7d7",
+    "semantic_hash": "dd21c54c95be41f2d0fb568f8b25b7d7"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\printTemplate\\setActive\\route.js": {
+    "mtime": 1775388660.956864,
+    "ast_hash": "057c7efdd523ea2c866836fe1775c086",
+    "semantic_hash": "057c7efdd523ea2c866836fe1775c086"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\production-stages\\[id]\\route.js": {
+    "mtime": 1780992877.7430909,
+    "ast_hash": "f960b0cb7973bc21589984ec1a8b0024",
+    "semantic_hash": "f960b0cb7973bc21589984ec1a8b0024"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\production-stages\\route.js": {
+    "mtime": 1775737430.32929,
+    "ast_hash": "4091e2c58d55d6cf204ea44bfc080328",
+    "semantic_hash": "4091e2c58d55d6cf204ea44bfc080328"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\production-stages\\seed\\route.js": {
+    "mtime": 1775388660.956864,
+    "ast_hash": "c9fc34a20ade3532bb19621923733f17",
+    "semantic_hash": "c9fc34a20ade3532bb19621923733f17"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\purchase-order\\mark-inhouse\\route.js": {
+    "mtime": 1780992877.7430909,
+    "ast_hash": "e43aa7bc7e1a3fa187670be9918a0feb",
+    "semantic_hash": "e43aa7bc7e1a3fa187670be9918a0feb"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\push\\send\\route.js": {
+    "mtime": 1775388633.7040958,
+    "ast_hash": "9021d685e4b623e729083bc9c9c679ec",
+    "semantic_hash": "9021d685e4b623e729083bc9c9c679ec"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\push\\subscribe\\route.js": {
+    "mtime": 1775388633.7040958,
+    "ast_hash": "4f0dde13d8286055605fd1fb87d68175",
+    "semantic_hash": "4f0dde13d8286055605fd1fb87d68175"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\push\\unsubscribe\\route.js": {
+    "mtime": 1775388633.7050946,
+    "ast_hash": "f6e2a379d056d4bedf97c3960e3c52c9",
+    "semantic_hash": "f6e2a379d056d4bedf97c3960e3c52c9"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\pusher\\route.js": {
+    "mtime": 1775388633.7050946,
+    "ast_hash": "ebc870897344a3dff083977623a3c283",
+    "semantic_hash": "ebc870897344a3dff083977623a3c283"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\report-groups\\[id]\\route.js": {
+    "mtime": 1780992877.74409,
+    "ast_hash": "7ada538a5febb21f3db952b61a38843a",
+    "semantic_hash": "7ada538a5febb21f3db952b61a38843a"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\report-groups\\route.js": {
+    "mtime": 1780992877.74409,
+    "ast_hash": "467b834a942e1efdee2d09c00bf61604",
+    "semantic_hash": "467b834a942e1efdee2d09c00bf61604"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\reportTemplate\\active\\route.js": {
+    "mtime": 1775388660.9578629,
+    "ast_hash": "36519c55cc814ed4208d90145b396600",
+    "semantic_hash": "36519c55cc814ed4208d90145b396600"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\reportTemplate\\route.js": {
+    "mtime": 1775388660.9578629,
+    "ast_hash": "903a4eca777db50f4d1d5132236cbf2e",
+    "semantic_hash": "903a4eca777db50f4d1d5132236cbf2e"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\reportTemplate\\setActive\\route.js": {
+    "mtime": 1775388660.9578629,
+    "ast_hash": "a97a370f152dce0ac929b66776a122b9",
+    "semantic_hash": "a97a370f152dce0ac929b66776a122b9"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\srd\\[id]\\customer-approval\\route.js": {
+    "mtime": 1775388660.9588623,
+    "ast_hash": "bb2bd8b4d313a80b451ef283f47dae80",
+    "semantic_hash": "bb2bd8b4d313a80b451ef283f47dae80"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\srd\\[id]\\department\\[dept]\\route.js": {
+    "mtime": 1780992877.7450893,
+    "ast_hash": "6978a083d6d386d104479985d9f1b17e",
+    "semantic_hash": "6978a083d6d386d104479985d9f1b17e"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\srd\\[id]\\diagnose\\route.js": {
+    "mtime": 1775388660.9598618,
+    "ast_hash": "b7746d88defe47598757d94134e0f32f",
+    "semantic_hash": "b7746d88defe47598757d94134e0f32f"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\srd\\[id]\\dispatch\\route.js": {
+    "mtime": 1775652485.3157506,
+    "ast_hash": "f5b822f5b80d9ad5007a8e944e64d879",
+    "semantic_hash": "f5b822f5b80d9ad5007a8e944e64d879"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\srd\\[id]\\duplicate\\route.js": {
+    "mtime": 1780992877.7450893,
+    "ast_hash": "3b10d12b6e1ded4ab8f8cebc89eed04a",
+    "semantic_hash": "3b10d12b6e1ded4ab8f8cebc89eed04a"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\srd\\[id]\\flag\\route.js": {
+    "mtime": 1775388660.9628606,
+    "ast_hash": "64fc7f4feb093bf91a24b67ae3817cda",
+    "semantic_hash": "64fc7f4feb093bf91a24b67ae3817cda"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\srd\\[id]\\production\\complete-stage\\route.js": {
+    "mtime": 1775736950.4919748,
+    "ast_hash": "65a16a60a8c881a2f8fd9fc18c24a102",
+    "semantic_hash": "65a16a60a8c881a2f8fd9fc18c24a102"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\srd\\[id]\\production\\route.js": {
+    "mtime": 1775736938.491919,
+    "ast_hash": "2efe1f34ab348f554391b5820b4ff03e",
+    "semantic_hash": "2efe1f34ab348f554391b5820b4ff03e"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\srd\\[id]\\route.js": {
+    "mtime": 1775388660.9638596,
+    "ast_hash": "d0772e53e014d108d2b3a1435e149f40",
+    "semantic_hash": "d0772e53e014d108d2b3a1435e149f40"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\srd\\[id]\\sample-process\\route.js": {
+    "mtime": 1780992877.7460892,
+    "ast_hash": "10684841ad78f6bf11f36452a31c64f4",
+    "semantic_hash": "10684841ad78f6bf11f36452a31c64f4"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\srd\\[id]\\timeline\\route.js": {
+    "mtime": 1775388633.7080922,
+    "ast_hash": "f7ab340bfc0cb1219151d24f91154116",
+    "semantic_hash": "f7ab340bfc0cb1219151d24f91154116"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\srd\\[id]\\wash-report\\route.js": {
+    "mtime": 1780992877.7470891,
+    "ast_hash": "a29af5e668abd40de608ec0ac774afff",
+    "semantic_hash": "a29af5e668abd40de608ec0ac774afff"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\srd\\bulk-diagnose\\route.js": {
+    "mtime": 1780992877.7470891,
+    "ast_hash": "81538261042b9365ed1ccadf99cc4648",
+    "semantic_hash": "81538261042b9365ed1ccadf99cc4648"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\srd\\fix-status\\route.js": {
+    "mtime": 1775388633.7080922,
+    "ast_hash": "3f8876ffbc1c75eaa9ae1a2b625330b9",
+    "semantic_hash": "3f8876ffbc1c75eaa9ae1a2b625330b9"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\srd\\route.js": {
+    "mtime": 1780992877.7480876,
+    "ast_hash": "c2d6849bcd0b4fd0f1ab6de7156457cc",
+    "semantic_hash": "c2d6849bcd0b4fd0f1ab6de7156457cc"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\stages\\[id]\\route.js": {
+    "mtime": 1775388633.709092,
+    "ast_hash": "86bf4a27806c595a555096e3c1d29ae6",
+    "semantic_hash": "86bf4a27806c595a555096e3c1d29ae6"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\stages\\route.js": {
+    "mtime": 1775388633.709092,
+    "ast_hash": "2d27c3af1dc7095be7acdb22da1f6166",
+    "semantic_hash": "2d27c3af1dc7095be7acdb22da1f6166"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\upload-audio\\route.js": {
+    "mtime": 1775388633.710091,
+    "ast_hash": "7a0221c7669cc20200ec7fb94f05ea5f",
+    "semantic_hash": "7a0221c7669cc20200ec7fb94f05ea5f"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\uploads\\route.js": {
+    "mtime": 1776167194.9870327,
+    "ast_hash": "c79e9e924baa0dcf7fd8139046102c64",
+    "semantic_hash": "c79e9e924baa0dcf7fd8139046102c64"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\users\\[id]\\route.js": {
+    "mtime": 1775388633.710091,
+    "ast_hash": "3af3f93ebb6ec92c21611946934e8e78",
+    "semantic_hash": "3af3f93ebb6ec92c21611946934e8e78"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\users\\route.js": {
+    "mtime": 1775388633.710091,
+    "ast_hash": "0e5b08c65611c7550b85884abe5d0e31",
+    "semantic_hash": "0e5b08c65611c7550b85884abe5d0e31"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\users\\status\\route.js": {
+    "mtime": 1775388633.7110903,
+    "ast_hash": "35d5fe7998f068e35c3e769474bcb9da",
+    "semantic_hash": "35d5fe7998f068e35c3e769474bcb9da"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\webrtc\\signal\\route.js": {
+    "mtime": 1775388633.7110903,
+    "ast_hash": "85b7c690f55b56b597d686c8a2191b90",
+    "semantic_hash": "85b7c690f55b56b597d686c8a2191b90"
+  },
+  "E:\\srd-system-1\\src\\app\\api\\webrtc\\simple-signal\\route.js": {
+    "mtime": 1775388660.9658582,
+    "ast_hash": "b1e959af6f3f35c1304faf98894c0794",
+    "semantic_hash": "b1e959af6f3f35c1304faf98894c0794"
+  },
+  "E:\\srd-system-1\\src\\app\\call-test\\page.js": {
+    "mtime": 1775388660.9658582,
+    "ast_hash": "9129cd7da15dd0650f611c55e253e43d",
+    "semantic_hash": "9129cd7da15dd0650f611c55e253e43d"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\[department]\\create\\page.jsx": {
+    "mtime": 1780992877.7480876,
+    "ast_hash": "a831d6cb0b0f46d5638ab6104529abae",
+    "semantic_hash": "a831d6cb0b0f46d5638ab6104529abae"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\[department]\\page.jsx": {
+    "mtime": 1780992877.7490876,
+    "ast_hash": "580e7c1e797c055cf746e799caa86930",
+    "semantic_hash": "580e7c1e797c055cf746e799caa86930"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\admin\\departments\\[id]\\page.js": {
+    "mtime": 1775388633.7130895,
+    "ast_hash": "c0b2d8d0396adb966f0a503553439321",
+    "semantic_hash": "c0b2d8d0396adb966f0a503553439321"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\admin\\departments\\page.js": {
+    "mtime": 1775388660.9678566,
+    "ast_hash": "9b3afc54323a90bbf133356721eb5d74",
+    "semantic_hash": "9b3afc54323a90bbf133356721eb5d74"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\admin\\page.js": {
+    "mtime": 1775388660.9678566,
+    "ast_hash": "ed73e996b141efbd83bd6bf6acdb0201",
+    "semantic_hash": "ed73e996b141efbd83bd6bf6acdb0201"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\admin\\stages\\page.js": {
+    "mtime": 1775388660.9678566,
+    "ast_hash": "72a75753ec7b5b9e41a6d3343b09cf94",
+    "semantic_hash": "72a75753ec7b5b9e41a6d3343b09cf94"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\cad\\create\\page.js": {
+    "mtime": 1775388660.968856,
+    "ast_hash": "e6b388ae2b5be9b3920d0cc5229c8410",
+    "semantic_hash": "e6b388ae2b5be9b3920d0cc5229c8410"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\cad\\page.js": {
+    "mtime": 1775900159.3734567,
+    "ast_hash": "8fc80970953e43a2f6327d3223663c61",
+    "semantic_hash": "8fc80970953e43a2f6327d3223663c61"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\commercial\\create\\page.js": {
+    "mtime": 1775388660.968856,
+    "ast_hash": "97513ed60e34cd55d119933131264b86",
+    "semantic_hash": "97513ed60e34cd55d119933131264b86"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\commercial\\page.js": {
+    "mtime": 1775900159.3734567,
+    "ast_hash": "00ae8e90f70bdacf92f3d507ae4b1b28",
+    "semantic_hash": "00ae8e90f70bdacf92f3d507ae4b1b28"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\dispatch\\page.js": {
+    "mtime": 1775388660.9698558,
+    "ast_hash": "71e973a64649b092444f88577cefeed6",
+    "semantic_hash": "71e973a64649b092444f88577cefeed6"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\mmc\\create\\page.js": {
+    "mtime": 1775388660.9698558,
+    "ast_hash": "d0348803dba7668453893395d9b64726",
+    "semantic_hash": "d0348803dba7668453893395d9b64726"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\mmc\\page.js": {
+    "mtime": 1775900159.3734567,
+    "ast_hash": "f19d44e8b8bb511691148138485d01ea",
+    "semantic_hash": "f19d44e8b8bb511691148138485d01ea"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\mmc\\purchase-orders\\page.jsx": {
+    "mtime": 1780992877.7490876,
+    "ast_hash": "da2e34bfdd924d11895e9bde62e307b9",
+    "semantic_hash": "da2e34bfdd924d11895e9bde62e307b9"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\production-manager\\page.jsx": {
+    "mtime": 1775388660.970855,
+    "ast_hash": "a3f84f058bbae54f4fc31bc50b513351",
+    "semantic_hash": "a3f84f058bbae54f4fc31bc50b513351"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\stage\\page.jsx": {
+    "mtime": 1780992877.7500868,
+    "ast_hash": "a483d06cca1e36ae616228d7db8c6b7b",
+    "semantic_hash": "a483d06cca1e36ae616228d7db8c6b7b"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\vmd\\page.js": {
+    "mtime": 1775900159.3734567,
+    "ast_hash": "e3335389423ca6c8b2979945738f4232",
+    "semantic_hash": "e3335389423ca6c8b2979945738f4232"
+  },
+  "E:\\srd-system-1\\src\\app\\dashboard\\vmd\\production\\page.jsx": {
+    "mtime": 1775388660.9718544,
+    "ast_hash": "fc66cf23117dd86a633fa28a90090cee",
+    "semantic_hash": "fc66cf23117dd86a633fa28a90090cee"
+  },
+  "E:\\srd-system-1\\src\\app\\departments\\page.jsx": {
+    "mtime": 1775900159.3744564,
+    "ast_hash": "07a5ef583f1c8fd9f9a9f2efe0f28092",
+    "semantic_hash": "07a5ef583f1c8fd9f9a9f2efe0f28092"
+  },
+  "E:\\srd-system-1\\src\\app\\dispatch\\components\\AirwayBillPrint.jsx": {
+    "mtime": 1775388660.972854,
+    "ast_hash": "a341a543a9197103bb4f0065398589ba",
+    "semantic_hash": "a341a543a9197103bb4f0065398589ba"
+  },
+  "E:\\srd-system-1\\src\\app\\dispatch\\components\\DispatchCardPrint.jsx": {
+    "mtime": 1775388660.972854,
+    "ast_hash": "191bc5c4f1630b450abc4e056612669a",
+    "semantic_hash": "191bc5c4f1630b450abc4e056612669a"
+  },
+  "E:\\srd-system-1\\src\\app\\home\\page.js": {
+    "mtime": 1780992877.7500868,
+    "ast_hash": "f45d0e5ea536f2fd08c964144224aefa",
+    "semantic_hash": "f45d0e5ea536f2fd08c964144224aefa"
+  },
+  "E:\\srd-system-1\\src\\app\\inbox\\page.js": {
+    "mtime": 1775388660.9738536,
+    "ast_hash": "20f4444a2b81bd169f53d643593530b5",
+    "semantic_hash": "20f4444a2b81bd169f53d643593530b5"
+  },
+  "E:\\srd-system-1\\src\\app\\layout.js": {
+    "mtime": 1775557294.4024734,
+    "ast_hash": "942cba70d2b51ff0d8d045f17fd684a8",
+    "semantic_hash": "942cba70d2b51ff0d8d045f17fd684a8"
+  },
+  "E:\\srd-system-1\\src\\app\\login\\page.js": {
+    "mtime": 1780992877.751086,
+    "ast_hash": "d1465d479d945cf782236f7de801f81d",
+    "semantic_hash": "d1465d479d945cf782236f7de801f81d"
+  },
+  "E:\\srd-system-1\\src\\app\\mobile\\_components\\ModuleHeader.js": {
+    "mtime": 1775557294.4044697,
+    "ast_hash": "b2f63d96ec0a2c6467e5d0214f4ec7a3",
+    "semantic_hash": "b2f63d96ec0a2c6467e5d0214f4ec7a3"
+  },
+  "E:\\srd-system-1\\src\\app\\mobile\\_components\\useSRD.js": {
+    "mtime": 1775466155.1778533,
+    "ast_hash": "bb1f2c5aae3b944b96545e1a7474da19",
+    "semantic_hash": "bb1f2c5aae3b944b96545e1a7474da19"
+  },
+  "E:\\srd-system-1\\src\\app\\mobile\\bom\\page.js": {
+    "mtime": 1775466225.22295,
+    "ast_hash": "d05c75df5b81a2c6f47344eb9c47c86f",
+    "semantic_hash": "d05c75df5b81a2c6f47344eb9c47c86f"
+  },
+  "E:\\srd-system-1\\src\\app\\mobile\\cost-sheets\\page.js": {
+    "mtime": 1775466207.7326903,
+    "ast_hash": "8b9692e3b76aa9af147539688f36ce4d",
+    "semantic_hash": "8b9692e3b76aa9af147539688f36ce4d"
+  },
+  "E:\\srd-system-1\\src\\app\\mobile\\home\\SRDLookupModal.js": {
+    "mtime": 1775468092.5634966,
+    "ast_hash": "46b87bd43b54d6dc7f5344a9ea81d420",
+    "semantic_hash": "46b87bd43b54d6dc7f5344a9ea81d420"
+  },
+  "E:\\srd-system-1\\src\\app\\mobile\\home\\page.js": {
+    "mtime": 1780992877.751086,
+    "ast_hash": "938bbd8da918a5176b8b7582d6b02c9d",
+    "semantic_hash": "938bbd8da918a5176b8b7582d6b02c9d"
+  },
+  "E:\\srd-system-1\\src\\app\\mobile\\layout.js": {
+    "mtime": 1775557294.4054701,
+    "ast_hash": "abeb70cacc94eaf982d35370af0998bb",
+    "semantic_hash": "abeb70cacc94eaf982d35370af0998bb"
+  },
+  "E:\\srd-system-1\\src\\app\\mobile\\order-confirmation\\page.js": {
+    "mtime": 1775466175.5254798,
+    "ast_hash": "60ac34696ba35e6881eaf942f9bd8283",
+    "semantic_hash": "60ac34696ba35e6881eaf942f9bd8283"
+  },
+  "E:\\srd-system-1\\src\\app\\mobile\\page.js": {
+    "mtime": 1775466084.392473,
+    "ast_hash": "4d35733ce721f0c24506214768e642d2",
+    "semantic_hash": "4d35733ce721f0c24506214768e642d2"
+  },
+  "E:\\srd-system-1\\src\\app\\mobile\\planning\\page.js": {
+    "mtime": 1775466380.344004,
+    "ast_hash": "53662edd392230e38c3c8a859422afda",
+    "semantic_hash": "53662edd392230e38c3c8a859422afda"
+  },
+  "E:\\srd-system-1\\src\\app\\mobile\\sample-management\\page.js": {
+    "mtime": 1780992877.751086,
+    "ast_hash": "4d5532acf87f31d65c821de224cf970b",
+    "semantic_hash": "4d5532acf87f31d65c821de224cf970b"
+  },
+  "E:\\srd-system-1\\src\\app\\mobile\\sample-process\\page.js": {
+    "mtime": 1780992877.7520857,
+    "ast_hash": "6ee06a17da033a2aebeb6ef237284f9a",
+    "semantic_hash": "6ee06a17da033a2aebeb6ef237284f9a"
+  },
+  "E:\\srd-system-1\\src\\app\\page.js": {
+    "mtime": 1775388633.7240837,
+    "ast_hash": "0615d6b83c0b534826435aa9f925cb84",
+    "semantic_hash": "0615d6b83c0b534826435aa9f925cb84"
+  },
+  "E:\\srd-system-1\\src\\app\\permissions\\page.jsx": {
+    "mtime": 1780992877.7530856,
+    "ast_hash": "3c67a49a18d4865de4a8b7f5857a4db3",
+    "semantic_hash": "3c67a49a18d4865de4a8b7f5857a4db3"
+  },
+  "E:\\srd-system-1\\src\\app\\print-templates\\page.jsx": {
+    "mtime": 1780992877.7540848,
+    "ast_hash": "9b4a9588acf27fc4ddfe7e57dac6bd4a",
+    "semantic_hash": "9b4a9588acf27fc4ddfe7e57dac6bd4a"
+  },
+  "E:\\srd-system-1\\src\\app\\production-stages\\page.jsx": {
+    "mtime": 1780992877.7540848,
+    "ast_hash": "a1238cad07fa61756cb036bcf7c0e7ed",
+    "semantic_hash": "a1238cad07fa61756cb036bcf7c0e7ed"
+  },
+  "E:\\srd-system-1\\src\\app\\production\\page.jsx": {
+    "mtime": 1775388660.9768543,
+    "ast_hash": "9426acfed7b9954c81935521c05acb08",
+    "semantic_hash": "9426acfed7b9954c81935521c05acb08"
+  },
+  "E:\\srd-system-1\\src\\app\\providers.js": {
+    "mtime": 1775388633.7250826,
+    "ast_hash": "57ff5573bc22613133a8869972a63625",
+    "semantic_hash": "57ff5573bc22613133a8869972a63625"
+  },
+  "E:\\srd-system-1\\src\\app\\reports\\page.jsx": {
+    "mtime": 1775388660.9768543,
+    "ast_hash": "0982fb5bf6144f0bb41ceb38486dba13",
+    "semantic_hash": "0982fb5bf6144f0bb41ceb38486dba13"
+  },
+  "E:\\srd-system-1\\src\\app\\reports\\print\\page.jsx": {
+    "mtime": 1775388660.9768543,
+    "ast_hash": "f36a3bafddfe1db45808f35c3eacf31f",
+    "semantic_hash": "f36a3bafddfe1db45808f35c3eacf31f"
+  },
+  "E:\\srd-system-1\\src\\app\\reports\\templates\\page.jsx": {
+    "mtime": 1775388660.977851,
+    "ast_hash": "c00a089bbc41f50f65880f8e67ecaafe",
+    "semantic_hash": "c00a089bbc41f50f65880f8e67ecaafe"
+  },
+  "E:\\srd-system-1\\src\\app\\sample-management\\layout.js": {
+    "mtime": 1780992877.755084,
+    "ast_hash": "a93f414dce7c5aa0f0d6631dea727b0d",
+    "semantic_hash": "a93f414dce7c5aa0f0d6631dea727b0d"
+  },
+  "E:\\srd-system-1\\src\\app\\sample-management\\reports\\page.js": {
+    "mtime": 1780992877.755084,
+    "ast_hash": "d743e6e4a8c30f8a77a157cfdd9f525a",
+    "semantic_hash": "d743e6e4a8c30f8a77a157cfdd9f525a"
+  },
+  "E:\\srd-system-1\\src\\app\\sample-management\\sample-process\\page.js": {
+    "mtime": 1780992877.756083,
+    "ast_hash": "639a8902a2c183e52bb337d667edfb03",
+    "semantic_hash": "639a8902a2c183e52bb337d667edfb03"
+  },
+  "E:\\srd-system-1\\src\\app\\samples\\buyer-comment\\page.js": {
+    "mtime": 1778315626.355275,
+    "ast_hash": "3f8185c8119e71defa3c211ae0b4bbaa",
+    "semantic_hash": "3f8185c8119e71defa3c211ae0b4bbaa"
+  },
+  "E:\\srd-system-1\\src\\app\\samples\\dispatch\\page.js": {
+    "mtime": 1778315626.3562744,
+    "ast_hash": "5216c5eb7db8c44a2f69c9fafe02e714",
+    "semantic_hash": "5216c5eb7db8c44a2f69c9fafe02e714"
+  },
+  "E:\\srd-system-1\\src\\app\\samples\\page.js": {
+    "mtime": 1780992877.756083,
+    "ast_hash": "dcead9853c4c37bc5e8de52459513d22",
+    "semantic_hash": "dcead9853c4c37bc5e8de52459513d22"
+  },
+  "E:\\srd-system-1\\src\\app\\samples\\sample-card\\page.js": {
+    "mtime": 1778315626.3582728,
+    "ast_hash": "18b5b29f69e8ab029fc6916024aa5f7d",
+    "semantic_hash": "18b5b29f69e8ab029fc6916024aa5f7d"
+  },
+  "E:\\srd-system-1\\src\\app\\settings\\auto-approval\\page.js": {
+    "mtime": 1780992877.7570827,
+    "ast_hash": "008fa0e59481e524ced97f1191874c96",
+    "semantic_hash": "008fa0e59481e524ced97f1191874c96"
+  },
+  "E:\\srd-system-1\\src\\app\\settings\\backup\\page.jsx": {
+    "mtime": 1775388660.978851,
+    "ast_hash": "0b9ce8a9ecdc7baff4a77a6910c264ad",
+    "semantic_hash": "0b9ce8a9ecdc7baff4a77a6910c264ad"
+  },
+  "E:\\srd-system-1\\src\\app\\settings\\company\\page.jsx": {
+    "mtime": 1775553855.7276633,
+    "ast_hash": "e87f302f0a9326e35f534aa7d7388493",
+    "semantic_hash": "e87f302f0a9326e35f534aa7d7388493"
+  },
+  "E:\\srd-system-1\\src\\app\\settings\\diagnose\\page.jsx": {
+    "mtime": 1780992877.7570827,
+    "ast_hash": "c8b5e8aec18d508d48df26a768e7cf07",
+    "semantic_hash": "c8b5e8aec18d508d48df26a768e7cf07"
+  },
+  "E:\\srd-system-1\\src\\app\\settings\\page.jsx": {
+    "mtime": 1775388660.9798505,
+    "ast_hash": "9248b98e47a497f9bede8c4c9b7d7306",
+    "semantic_hash": "9248b98e47a497f9bede8c4c9b7d7306"
+  },
+  "E:\\srd-system-1\\src\\app\\settings\\pagination\\page.jsx": {
+    "mtime": 1777464432.582936,
+    "ast_hash": "369d3470336ad8eea64c034fa307152b",
+    "semantic_hash": "369d3470336ad8eea64c034fa307152b"
+  },
+  "E:\\srd-system-1\\src\\app\\srd\\[id]\\details\\page.js": {
+    "mtime": 1775736994.8697772,
+    "ast_hash": "206f6927a120b487a3ecda39b16f382c",
+    "semantic_hash": "206f6927a120b487a3ecda39b16f382c"
+  },
+  "E:\\srd-system-1\\src\\app\\srd\\[id]\\page.js": {
+    "mtime": 1780992877.7580822,
+    "ast_hash": "330104ccd7bb3f221a4eaffe806fb39d",
+    "semantic_hash": "330104ccd7bb3f221a4eaffe806fb39d"
+  },
+  "E:\\srd-system-1\\src\\app\\srd\\page.js": {
+    "mtime": 1778315626.3592727,
+    "ast_hash": "f8332abb5f79f62a09060c4cec88d374",
+    "semantic_hash": "f8332abb5f79f62a09060c4cec88d374"
+  },
+  "E:\\srd-system-1\\src\\app\\srd\\print\\page.js": {
+    "mtime": 1775388660.9818487,
+    "ast_hash": "87023d8442039bf63268169351247053",
+    "semantic_hash": "87023d8442039bf63268169351247053"
+  },
+  "E:\\srd-system-1\\src\\app\\srdfields\\page.jsx": {
+    "mtime": 1780992877.7580822,
+    "ast_hash": "a9f10336f1527ea0f04281148851cc7a",
+    "semantic_hash": "a9f10336f1527ea0f04281148851cc7a"
+  },
+  "E:\\srd-system-1\\src\\app\\stages\\page.jsx": {
+    "mtime": 1775388660.9838479,
+    "ast_hash": "16a2ffef3e3cdcb102c5432013a1fd86",
+    "semantic_hash": "16a2ffef3e3cdcb102c5432013a1fd86"
+  },
+  "E:\\srd-system-1\\src\\app\\test-call\\page.js": {
+    "mtime": 1775388660.9838479,
+    "ast_hash": "4c0a4cc8e065cb5acec6edf7e00815d3",
+    "semantic_hash": "4c0a4cc8e065cb5acec6edf7e00815d3"
+  },
+  "E:\\srd-system-1\\src\\app\\users\\page.jsx": {
+    "mtime": 1780992877.7590816,
+    "ast_hash": "8d26b681666dab6295e790986ada35b2",
+    "semantic_hash": "8d26b681666dab6295e790986ada35b2"
+  },
+  "E:\\srd-system-1\\src\\components\\AutoSaveIndicator.jsx": {
+    "mtime": 1778315626.3592727,
+    "ast_hash": "734fd11f60bb2ad38618565d7b6b352f",
+    "semantic_hash": "734fd11f60bb2ad38618565d7b6b352f"
+  },
+  "E:\\srd-system-1\\src\\components\\DepartmentPanel.js": {
+    "mtime": 1775388660.9848468,
+    "ast_hash": "59d459efe860c79c04c02ee97d727868",
+    "semantic_hash": "59d459efe860c79c04c02ee97d727868"
+  },
+  "E:\\srd-system-1\\src\\components\\DepartmentPanelExcel.js": {
+    "mtime": 1780992877.760082,
+    "ast_hash": "ef975e6959c8ebb8dfc39b6fab64b5cc",
+    "semantic_hash": "ef975e6959c8ebb8dfc39b6fab64b5cc"
+  },
+  "E:\\srd-system-1\\src\\components\\DispatchPanel.js": {
+    "mtime": 1780992877.7610805,
+    "ast_hash": "21e660a524d9aee2c74d58a9098a6525",
+    "semantic_hash": "21e660a524d9aee2c74d58a9098a6525"
+  },
+  "E:\\srd-system-1\\src\\components\\DynamicFieldsRenderer.js": {
+    "mtime": 1775388660.986847,
+    "ast_hash": "40e4f21dc21dbcc51b7cc1fde9baf528",
+    "semantic_hash": "40e4f21dc21dbcc51b7cc1fde9baf528"
+  },
+  "E:\\srd-system-1\\src\\components\\ExcelPreview.jsx": {
+    "mtime": 1780992877.76208,
+    "ast_hash": "796d0d9d3eac1bbdf2ba23661eeb1163",
+    "semantic_hash": "796d0d9d3eac1bbdf2ba23661eeb1163"
+  },
+  "E:\\srd-system-1\\src\\components\\ImageModal.jsx": {
+    "mtime": 1775388633.7300797,
+    "ast_hash": "e586f2c0792927cf7b342326f89c0a00",
+    "semantic_hash": "e586f2c0792927cf7b342326f89c0a00"
+  },
+  "E:\\srd-system-1\\src\\components\\ImageModel.jsx": {
+    "mtime": 1775388660.986847,
+    "ast_hash": "070f4175ee47961781c47dd172cb1199",
+    "semantic_hash": "070f4175ee47961781c47dd172cb1199"
+  },
+  "E:\\srd-system-1\\src\\components\\MobileSRDCard.jsx": {
+    "mtime": 1780992877.76208,
+    "ast_hash": "2b746d34a01efa11026d41ef02bab51a",
+    "semantic_hash": "2b746d34a01efa11026d41ef02bab51a"
+  },
+  "E:\\srd-system-1\\src\\components\\MobileSampleStageCard.jsx": {
+    "mtime": 1780992877.76208,
+    "ast_hash": "0e941f8743197273a3b50ce2dde44a2e",
+    "semantic_hash": "0e941f8743197273a3b50ce2dde44a2e"
+  },
+  "E:\\srd-system-1\\src\\components\\PaginatedSRDForm.jsx": {
+    "mtime": 1780992877.76208,
+    "ast_hash": "f809f31e989af5ca6093c47e4c4de9bb",
+    "semantic_hash": "f809f31e989af5ca6093c47e4c4de9bb"
+  },
+  "E:\\srd-system-1\\src\\components\\ProductionControl.jsx": {
+    "mtime": 1775388660.9878452,
+    "ast_hash": "ad67439d2b973ab2e032ad117386fde5",
+    "semantic_hash": "ad67439d2b973ab2e032ad117386fde5"
+  },
+  "E:\\srd-system-1\\src\\components\\ProductionStageDashboard.jsx": {
+    "mtime": 1775388660.9878452,
+    "ast_hash": "7c33a69895d6e0a15605c19a8195d622",
+    "semantic_hash": "7c33a69895d6e0a15605c19a8195d622"
+  },
+  "E:\\srd-system-1\\src\\components\\SRDCard.js": {
+    "mtime": 1780992877.763079,
+    "ast_hash": "be8a4ba5b2e8bcc53effeb7180628763",
+    "semantic_hash": "be8a4ba5b2e8bcc53effeb7180628763"
+  },
+  "E:\\srd-system-1\\src\\components\\SRDDiagnostic.jsx": {
+    "mtime": 1775388660.9888449,
+    "ast_hash": "f1f13688f7e1337042cd8e25a2c8a198",
+    "semantic_hash": "f1f13688f7e1337042cd8e25a2c8a198"
+  },
+  "E:\\srd-system-1\\src\\components\\SRDLookup.jsx": {
+    "mtime": 1778315626.3642702,
+    "ast_hash": "77e17beeb934a9e9ec43f55d130c5975",
+    "semantic_hash": "77e17beeb934a9e9ec43f55d130c5975"
+  },
+  "E:\\srd-system-1\\src\\components\\SRDPrintDialog.jsx": {
+    "mtime": 1775388660.9888449,
+    "ast_hash": "c9b1b0401726b272c72f2e1b6b59bf2a",
+    "semantic_hash": "c9b1b0401726b272c72f2e1b6b59bf2a"
+  },
+  "E:\\srd-system-1\\src\\components\\SRDReports.jsx": {
+    "mtime": 1775388660.9898448,
+    "ast_hash": "78874983b4b49560cd0c41482521c9fd",
+    "semantic_hash": "78874983b4b49560cd0c41482521c9fd"
+  },
+  "E:\\srd-system-1\\src\\components\\SRDTable.jsx": {
+    "mtime": 1780992877.763079,
+    "ast_hash": "8602624f632fb7ccccc137a3c5673d28",
+    "semantic_hash": "8602624f632fb7ccccc137a3c5673d28"
+  },
+  "E:\\srd-system-1\\src\\components\\SRDTracker.js": {
+    "mtime": 1775736969.0607991,
+    "ast_hash": "0427247fadc02596a09df3193daa51f9",
+    "semantic_hash": "0427247fadc02596a09df3193daa51f9"
+  },
+  "E:\\srd-system-1\\src\\components\\SampleProcessReport.jsx": {
+    "mtime": 1780992877.7640786,
+    "ast_hash": "0969ccf61a43f7cd603d32f96fa7bc9b",
+    "semantic_hash": "0969ccf61a43f7cd603d32f96fa7bc9b"
+  },
+  "E:\\srd-system-1\\src\\components\\SimpleCall.js": {
+    "mtime": 1775388660.9908442,
+    "ast_hash": "cfccbe1081616c856bcdf9aa11064d3a",
+    "semantic_hash": "cfccbe1081616c856bcdf9aa11064d3a"
+  },
+  "E:\\srd-system-1\\src\\components\\UploadFile.jsx": {
+    "mtime": 1776167194.9970274,
+    "ast_hash": "5efbea96c6e351c62fca646baf45384d",
+    "semantic_hash": "5efbea96c6e351c62fca646baf45384d"
+  },
+  "E:\\srd-system-1\\src\\components\\UploadImage.jsx": {
+    "mtime": 1778315626.366268,
+    "ast_hash": "9c53e0740a88b0bf8592498fb73c72f3",
+    "semantic_hash": "9c53e0740a88b0bf8592498fb73c72f3"
+  },
+  "E:\\srd-system-1\\src\\components\\UserPermissionsModal.jsx": {
+    "mtime": 1780992877.7640786,
+    "ast_hash": "edf5e12046fd4557348b8af5739715c6",
+    "semantic_hash": "edf5e12046fd4557348b8af5739715c6"
+  },
+  "E:\\srd-system-1\\src\\components\\WashReportUploader.jsx": {
+    "mtime": 1780992877.7640786,
+    "ast_hash": "852ad2e79bce36fffb65f9612567dbb3",
+    "semantic_hash": "852ad2e79bce36fffb65f9612567dbb3"
+  },
+  "E:\\srd-system-1\\src\\components\\departmentPanelExcelPrint.js": {
+    "mtime": 1778316931.4496398,
+    "ast_hash": "861ed064a45bd369311320eeba8d37fb",
+    "semantic_hash": "861ed064a45bd369311320eeba8d37fb"
+  },
+  "E:\\srd-system-1\\src\\components\\layout\\DynamicSidebar.js": {
+    "mtime": 1780992877.7650776,
+    "ast_hash": "685b9e353e29460f6d95c4c3f53b1be6",
+    "semantic_hash": "685b9e353e29460f6d95c4c3f53b1be6"
+  },
+  "E:\\srd-system-1\\src\\components\\layout\\Header.js": {
+    "mtime": 1780992877.7650776,
+    "ast_hash": "7e18bd235eb6d1af464763be7fb4945b",
+    "semantic_hash": "7e18bd235eb6d1af464763be7fb4945b"
+  },
+  "E:\\srd-system-1\\src\\components\\layout\\Layout.js": {
+    "mtime": 1780992877.7660775,
+    "ast_hash": "bb476528fd20464747ee69907b4618e1",
+    "semantic_hash": "bb476528fd20464747ee69907b4618e1"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\alert.jsx": {
+    "mtime": 1775388660.993842,
+    "ast_hash": "f4a030a2e3c2e423c7d67c413f9015bf",
+    "semantic_hash": "f4a030a2e3c2e423c7d67c413f9015bf"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\badge.jsx": {
+    "mtime": 1775388660.993842,
+    "ast_hash": "735d5b0e3d4bcbdf419793d0e58aff9e",
+    "semantic_hash": "735d5b0e3d4bcbdf419793d0e58aff9e"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\button.jsx": {
+    "mtime": 1775388660.995842,
+    "ast_hash": "081a7da35c8d85ac557351fa884c5bd5",
+    "semantic_hash": "081a7da35c8d85ac557351fa884c5bd5"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\card.jsx": {
+    "mtime": 1775388660.996843,
+    "ast_hash": "f9aad669ad680d3d10efdb415b32f4ab",
+    "semantic_hash": "f9aad669ad680d3d10efdb415b32f4ab"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\checkbox.jsx": {
+    "mtime": 1775388633.735078,
+    "ast_hash": "ff369b5eb023e05d9ea716890a3c68d4",
+    "semantic_hash": "ff369b5eb023e05d9ea716890a3c68d4"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\dialog.jsx": {
+    "mtime": 1775388660.996843,
+    "ast_hash": "dde212484798d68b61742155fe7f1847",
+    "semantic_hash": "dde212484798d68b61742155fe7f1847"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\input.jsx": {
+    "mtime": 1775388660.99784,
+    "ast_hash": "612c532cb9a1b19907d92d0661c9e27f",
+    "semantic_hash": "612c532cb9a1b19907d92d0661c9e27f"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\label.jsx": {
+    "mtime": 1775388660.99784,
+    "ast_hash": "0ab320e81a570d37d0d86e234dcd2cd0",
+    "semantic_hash": "0ab320e81a570d37d0d86e234dcd2cd0"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\popover.jsx": {
+    "mtime": 1775388633.7370768,
+    "ast_hash": "ae7217d83c5a913674ca178f9f671162",
+    "semantic_hash": "ae7217d83c5a913674ca178f9f671162"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\progress.jsx": {
+    "mtime": 1775388633.7370768,
+    "ast_hash": "22d643a654bb67d98f99a92ace2e34e0",
+    "semantic_hash": "22d643a654bb67d98f99a92ace2e34e0"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\select.jsx": {
+    "mtime": 1775388660.99784,
+    "ast_hash": "7439e01d40eb9494d65a8193414fd14a",
+    "semantic_hash": "7439e01d40eb9494d65a8193414fd14a"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\separator.jsx": {
+    "mtime": 1775388660.9988434,
+    "ast_hash": "8ac3332e9516c185d855039cafe2cb24",
+    "semantic_hash": "8ac3332e9516c185d855039cafe2cb24"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\sheet.jsx": {
+    "mtime": 1775388660.9988434,
+    "ast_hash": "8a874892978b22b17120ebb12a00d2a9",
+    "semantic_hash": "8a874892978b22b17120ebb12a00d2a9"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\sidebar.jsx": {
+    "mtime": 1780992877.767077,
+    "ast_hash": "518b246d28324785ca9dfbbfd33d9020",
+    "semantic_hash": "518b246d28324785ca9dfbbfd33d9020"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\skeleton.jsx": {
+    "mtime": 1775388633.738076,
+    "ast_hash": "21ae0c4be942e1905c6a405b430bf890",
+    "semantic_hash": "21ae0c4be942e1905c6a405b430bf890"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\sonner.jsx": {
+    "mtime": 1775388633.7390757,
+    "ast_hash": "ee6f850b65502eee6f72e6b4b672eae1",
+    "semantic_hash": "ee6f850b65502eee6f72e6b4b672eae1"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\switch.jsx": {
+    "mtime": 1775388633.7390757,
+    "ast_hash": "fc98a597404e4ed74893ca52c0042ed9",
+    "semantic_hash": "fc98a597404e4ed74893ca52c0042ed9"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\tabs.jsx": {
+    "mtime": 1775388660.9998395,
+    "ast_hash": "b2272337559599af08d7349a6b00d283",
+    "semantic_hash": "b2272337559599af08d7349a6b00d283"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\textarea.jsx": {
+    "mtime": 1775388660.9998395,
+    "ast_hash": "d78fa193c14a91eb3fe6b2a434e7f9e8",
+    "semantic_hash": "d78fa193c14a91eb3fe6b2a434e7f9e8"
+  },
+  "E:\\srd-system-1\\src\\components\\ui\\tooltip.jsx": {
+    "mtime": 1775388661.0008376,
+    "ast_hash": "e6072e566d13e3830108db2635aacc90",
+    "semantic_hash": "e6072e566d13e3830108db2635aacc90"
+  },
+  "E:\\srd-system-1\\src\\hooks\\use-mobile.jsx": {
+    "mtime": 1775388633.7410736,
+    "ast_hash": "21cadcc97434bd72c2e17fe9cdadb88a",
+    "semantic_hash": "21cadcc97434bd72c2e17fe9cdadb88a"
+  },
+  "E:\\srd-system-1\\src\\hooks\\useFormPersist.js": {
+    "mtime": 1778315626.3672674,
+    "ast_hash": "16871d1e790ba6adafc36cd2c662ca1b",
+    "semantic_hash": "16871d1e790ba6adafc36cd2c662ca1b"
+  },
+  "E:\\srd-system-1\\src\\lib\\assetUtils.js": {
+    "mtime": 1775388661.0008376,
+    "ast_hash": "08b1b226de862c96542e04718ce5904f",
+    "semantic_hash": "08b1b226de862c96542e04718ce5904f"
+  },
+  "E:\\srd-system-1\\src\\lib\\auth.js": {
+    "mtime": 1775388661.0018375,
+    "ast_hash": "008e420ca1c4376d4f2d97ff931182ad",
+    "semantic_hash": "008e420ca1c4376d4f2d97ff931182ad"
+  },
+  "E:\\srd-system-1\\src\\lib\\backupScheduler.js": {
+    "mtime": 1775388661.0018375,
+    "ast_hash": "07087643661b39b873a7aa8e511a8485",
+    "semantic_hash": "07087643661b39b873a7aa8e511a8485"
+  },
+  "E:\\srd-system-1\\src\\lib\\backupUtils.js": {
+    "mtime": 1775388661.002837,
+    "ast_hash": "3a9aa938ccf33ec0ecfcf2a56d2b429b",
+    "semantic_hash": "3a9aa938ccf33ec0ecfcf2a56d2b429b"
+  },
+  "E:\\srd-system-1\\src\\lib\\createBackup.js": {
+    "mtime": 1775388661.002837,
+    "ast_hash": "cfc3090d55c82fd21677b3a6f8e10036",
+    "semantic_hash": "cfc3090d55c82fd21677b3a6f8e10036"
+  },
+  "E:\\srd-system-1\\src\\lib\\db.js": {
+    "mtime": 1775388661.002837,
+    "ast_hash": "2435d62f979abde5b4ae8a93079c813e",
+    "semantic_hash": "2435d62f979abde5b4ae8a93079c813e"
+  },
+  "E:\\srd-system-1\\src\\lib\\excelStyleUtils.js": {
+    "mtime": 1780992877.767077,
+    "ast_hash": "0d766180fb0182d3b09a06da7d184727",
+    "semantic_hash": "0d766180fb0182d3b09a06da7d184727"
+  },
+  "E:\\srd-system-1\\src\\lib\\fieldConnectionUtils.js": {
+    "mtime": 1775721055.1487057,
+    "ast_hash": "cf3dd2a6539f4331d1014b0874c5d6c3",
+    "semantic_hash": "cf3dd2a6539f4331d1014b0874c5d6c3"
+  },
+  "E:\\srd-system-1\\src\\lib\\fixSRDStatus.js": {
+    "mtime": 1775388633.7420735,
+    "ast_hash": "f3b6ebd6ca5c610f8d3ec896f300a2ba",
+    "semantic_hash": "f3b6ebd6ca5c610f8d3ec896f300a2ba"
+  },
+  "E:\\srd-system-1\\src\\lib\\migrateUploadAssets.js": {
+    "mtime": 1775388661.003836,
+    "ast_hash": "244ab0905d67a1560d49f30ca31d7b86",
+    "semantic_hash": "244ab0905d67a1560d49f30ca31d7b86"
+  },
+  "E:\\srd-system-1\\src\\lib\\migrateUsers.js": {
+    "mtime": 1775388633.7420735,
+    "ast_hash": "d2d8f8d2020500f2cd8124fed9420a2c",
+    "semantic_hash": "d2d8f8d2020500f2cd8124fed9420a2c"
+  },
+  "E:\\srd-system-1\\src\\lib\\permissions.js": {
+    "mtime": 1780992877.767077,
+    "ast_hash": "4a0a3ae7485a9a12052a286c96a04d0f",
+    "semantic_hash": "4a0a3ae7485a9a12052a286c96a04d0f"
+  },
+  "E:\\srd-system-1\\src\\lib\\pusher-server.js": {
+    "mtime": 1775388633.7430725,
+    "ast_hash": "b9206f915c30e0ad8926b63d6a249c39",
+    "semantic_hash": "b9206f915c30e0ad8926b63d6a249c39"
+  },
+  "E:\\srd-system-1\\src\\lib\\pusher.js": {
+    "mtime": 1775388633.7430725,
+    "ast_hash": "730d0e5740f63a69cab02823d502c93a",
+    "semantic_hash": "730d0e5740f63a69cab02823d502c93a"
+  },
+  "E:\\srd-system-1\\src\\lib\\reportTemplateServer.js": {
+    "mtime": 1775388661.003836,
+    "ast_hash": "dfed821c5d76dc8c2d31d6d475cc353c",
+    "semantic_hash": "dfed821c5d76dc8c2d31d6d475cc353c"
+  },
+  "E:\\srd-system-1\\src\\lib\\reportTemplateUtils.js": {
+    "mtime": 1775388661.0048358,
+    "ast_hash": "1bca11262009dd8a090ea4823973fb1d",
+    "semantic_hash": "1bca11262009dd8a090ea4823973fb1d"
+  },
+  "E:\\srd-system-1\\src\\lib\\seed.js": {
+    "mtime": 1775388633.7430725,
+    "ast_hash": "0e1fd20f7a8967847a1abb4302936299",
+    "semantic_hash": "0e1fd20f7a8967847a1abb4302936299"
+  },
+  "E:\\srd-system-1\\src\\lib\\seedDynamic.js": {
+    "mtime": 1775388633.7430725,
+    "ast_hash": "16a8c8a6fa8178d8bb468c600d9e6346",
+    "semantic_hash": "16a8c8a6fa8178d8bb468c600d9e6346"
+  },
+  "E:\\srd-system-1\\src\\lib\\seedProductionStages.js": {
+    "mtime": 1775388633.744072,
+    "ast_hash": "80ddaeea706787539c97621b3f1d68c7",
+    "semantic_hash": "80ddaeea706787539c97621b3f1d68c7"
+  },
+  "E:\\srd-system-1\\src\\lib\\seedProductionUsers.js": {
+    "mtime": 1775388633.744072,
+    "ast_hash": "48ba1481ef5522e5ae8a40502c12c5d0",
+    "semantic_hash": "48ba1481ef5522e5ae8a40502c12c5d0"
+  },
+  "E:\\srd-system-1\\src\\lib\\seedSRDs.js": {
+    "mtime": 1775388661.0048358,
+    "ast_hash": "db373da5b17859ccfda3ef749a7ef20b",
+    "semantic_hash": "db373da5b17859ccfda3ef749a7ef20b"
+  },
+  "E:\\srd-system-1\\src\\lib\\seedUsers.js": {
+    "mtime": 1775388633.744072,
+    "ast_hash": "259bafce80ad0f34248148c4d2783f27",
+    "semantic_hash": "259bafce80ad0f34248148c4d2783f27"
+  },
+  "E:\\srd-system-1\\src\\lib\\seed_srd.js": {
+    "mtime": 1775388633.744072,
+    "ast_hash": "1721aedee631832ae993ebc060102301",
+    "semantic_hash": "1721aedee631832ae993ebc060102301"
+  },
+  "E:\\srd-system-1\\src\\lib\\seed_user.js": {
+    "mtime": 1775388633.7450712,
+    "ast_hash": "f41650daafc6f6128352f8833fb9664c",
+    "semantic_hash": "f41650daafc6f6128352f8833fb9664c"
+  },
+  "E:\\srd-system-1\\src\\lib\\serverAssetUtils.js": {
+    "mtime": 1775388661.0058353,
+    "ast_hash": "d6f8f7619e0b1b6672d801d40649e769",
+    "semantic_hash": "d6f8f7619e0b1b6672d801d40649e769"
+  },
+  "E:\\srd-system-1\\src\\lib\\sheetJsWorkbook.js": {
+    "mtime": 1780992877.7680764,
+    "ast_hash": "ea4160f95f55ebcd58621e954136df19",
+    "semantic_hash": "ea4160f95f55ebcd58621e954136df19"
+  },
+  "E:\\srd-system-1\\src\\lib\\startBackupScheduler.js": {
+    "mtime": 1775388661.0058353,
+    "ast_hash": "4b145ef1dd3bc4e49d2be4df56a898e5",
+    "semantic_hash": "4b145ef1dd3bc4e49d2be4df56a898e5"
+  },
+  "E:\\srd-system-1\\src\\lib\\use-toast.js": {
+    "mtime": 1775388633.7450712,
+    "ast_hash": "916c8566ee07ebe0bf960b105ebc2a56",
+    "semantic_hash": "916c8566ee07ebe0bf960b105ebc2a56"
+  },
+  "E:\\srd-system-1\\src\\lib\\utils.js": {
+    "mtime": 1775388633.7450712,
+    "ast_hash": "1bc4c7c3c7e275ce4e1f56b595ef5a4e",
+    "semantic_hash": "1bc4c7c3c7e275ce4e1f56b595ef5a4e"
+  },
+  "E:\\srd-system-1\\src\\models\\Buyer.js": {
+    "mtime": 1776943697.347462,
+    "ast_hash": "eac302e6134978dc7d4e5c013efe7707",
+    "semantic_hash": "eac302e6134978dc7d4e5c013efe7707"
+  },
+  "E:\\srd-system-1\\src\\models\\Company.js": {
+    "mtime": 1780992877.7680764,
+    "ast_hash": "ead6973ab40cf68de1e76d326275fb48",
+    "semantic_hash": "ead6973ab40cf68de1e76d326275fb48"
+  },
+  "E:\\srd-system-1\\src\\models\\Department.js": {
+    "mtime": 1775900159.376455,
+    "ast_hash": "aa62d032d103f06556fe60644f86e0ad",
+    "semantic_hash": "aa62d032d103f06556fe60644f86e0ad"
+  },
+  "E:\\srd-system-1\\src\\models\\Dispatch.js": {
+    "mtime": 1775477766.417449,
+    "ast_hash": "f168b6c8c51d2b14ff0780b04f90f968",
+    "semantic_hash": "f168b6c8c51d2b14ff0780b04f90f968"
+  },
+  "E:\\srd-system-1\\src\\models\\Field.js": {
+    "mtime": 1775388661.0068347,
+    "ast_hash": "956e47c9ed87cd1068d3b7c8ee05f54b",
+    "semantic_hash": "956e47c9ed87cd1068d3b7c8ee05f54b"
+  },
+  "E:\\srd-system-1\\src\\models\\Message.js": {
+    "mtime": 1775388633.746071,
+    "ast_hash": "2151e0a986e26d395b55c075b0992fa5",
+    "semantic_hash": "2151e0a986e26d395b55c075b0992fa5"
+  },
+  "E:\\srd-system-1\\src\\models\\Notification.js": {
+    "mtime": 1780992877.7690756,
+    "ast_hash": "a2d85600e0641949a6527c92fd4f1357",
+    "semantic_hash": "a2d85600e0641949a6527c92fd4f1357"
+  },
+  "E:\\srd-system-1\\src\\models\\PrintTemplate.js": {
+    "mtime": 1775388661.0078347,
+    "ast_hash": "4316fb6ef3e843de48c11077486b61f0",
+    "semantic_hash": "4316fb6ef3e843de48c11077486b61f0"
+  },
+  "E:\\srd-system-1\\src\\models\\ProductionManager.js": {
+    "mtime": 1775388633.746071,
+    "ast_hash": "39c4802a4cbff653d40a0698cfb8bd04",
+    "semantic_hash": "39c4802a4cbff653d40a0698cfb8bd04"
+  },
+  "E:\\srd-system-1\\src\\models\\ProductionProgress.js": {
+    "mtime": 1775388633.7470698,
+    "ast_hash": "648b54854ab0c36d9b00553b8580034e",
+    "semantic_hash": "648b54854ab0c36d9b00553b8580034e"
+  },
+  "E:\\srd-system-1\\src\\models\\ProductionStage.js": {
+    "mtime": 1775737706.773033,
+    "ast_hash": "9156e16c47a8c895599364b3f9ed3c3c",
+    "semantic_hash": "9156e16c47a8c895599364b3f9ed3c3c"
+  },
+  "E:\\srd-system-1\\src\\models\\ReportGroup.js": {
+    "mtime": 1780992877.7690756,
+    "ast_hash": "95913ead1ef80072eed4290dc61c5c7c",
+    "semantic_hash": "95913ead1ef80072eed4290dc61c5c7c"
+  },
+  "E:\\srd-system-1\\src\\models\\ReportTemplate.js": {
+    "mtime": 1775388661.0078347,
+    "ast_hash": "d564510af730e229673144bc320f6e2c",
+    "semantic_hash": "d564510af730e229673144bc320f6e2c"
+  },
+  "E:\\srd-system-1\\src\\models\\ReportTemplateState.js": {
+    "mtime": 1775388661.0088336,
+    "ast_hash": "a711ab14648ec07df2a6ced1249fca13",
+    "semantic_hash": "a711ab14648ec07df2a6ced1249fca13"
+  },
+  "E:\\srd-system-1\\src\\models\\RolePermission.js": {
+    "mtime": 1780992877.7690756,
+    "ast_hash": "acc62ea0751d0f61a387a015499d520d",
+    "semantic_hash": "acc62ea0751d0f61a387a015499d520d"
+  },
+  "E:\\srd-system-1\\src\\models\\SRD.js": {
+    "mtime": 1780992877.770075,
+    "ast_hash": "820cf59b7019b5dea103cef7910c760f",
+    "semantic_hash": "820cf59b7019b5dea103cef7910c760f"
+  },
+  "E:\\srd-system-1\\src\\models\\Stage.js": {
+    "mtime": 1775388633.7470698,
+    "ast_hash": "091274d79fc0e5fabdd9642076496189",
+    "semantic_hash": "091274d79fc0e5fabdd9642076496189"
+  },
+  "E:\\srd-system-1\\src\\models\\User.js": {
+    "mtime": 1780992877.770075,
+    "ast_hash": "c2e14046ff18adf32ad200db2f660c6e",
+    "semantic_hash": "c2e14046ff18adf32ad200db2f660c6e"
+  },
+  "E:\\srd-system-1\\src\\scripts\\seed-permissions.js": {
+    "mtime": 1780992877.771075,
+    "ast_hash": "32680196077438a5a2bda12b5027eb4e",
+    "semantic_hash": "32680196077438a5a2bda12b5027eb4e"
+  },
+  "E:\\srd-system-1\\tailwind.config.js": {
+    "mtime": 1775388661.009833,
+    "ast_hash": "6e665cb39ee42119381347efb9c7f6b1",
+    "semantic_hash": "6e665cb39ee42119381347efb9c7f6b1"
+  },
+  "E:\\srd-system-1\\test-create-srd.js": {
+    "mtime": 1775388661.009833,
+    "ast_hash": "80592756b84d2b8276f897ccbd3eb11a",
+    "semantic_hash": "80592756b84d2b8276f897ccbd3eb11a"
+  },
+  "E:\\srd-system-1\\test-print-logic.js": {
+    "mtime": 1775388661.0108325,
+    "ast_hash": "895c632a114abc07cde790162fbf82c2",
+    "semantic_hash": "895c632a114abc07cde790162fbf82c2"
+  },
+  "E:\\srd-system-1\\update-font-sizes.ps1": {
+    "mtime": 1775388661.0108325,
+    "ast_hash": "dcca95c15223477f3420759130bbf05e",
+    "semantic_hash": "dcca95c15223477f3420759130bbf05e"
+  },
+  "E:\\srd-system-1\\ALL-FIXES-SUMMARY.md": {
+    "mtime": 1780992877.7161024,
+    "ast_hash": "d77559dec4af96b40a0045b532275685",
+    "semantic_hash": "d77559dec4af96b40a0045b532275685"
+  },
+  "E:\\srd-system-1\\API-RELEVANTENTRIES-FIX.md": {
+    "mtime": 1780992877.7161024,
+    "ast_hash": "ebe5cb1077734fc300cd7c0677e1b791",
+    "semantic_hash": "ebe5cb1077734fc300cd7c0677e1b791"
+  },
+  "E:\\srd-system-1\\AUTO-APPROVAL-CONFIGURATION-GUIDE.md": {
+    "mtime": 1780992877.7171056,
+    "ast_hash": "60d0eeafcac1197c67ab7a766e0d415e",
+    "semantic_hash": "60d0eeafcac1197c67ab7a766e0d415e"
+  },
+  "E:\\srd-system-1\\CHANGELOG-EXCEL-EDITOR.md": {
+    "mtime": 1780992877.7171056,
+    "ast_hash": "2a544b5e39925449900f5b4c5c62d8b7",
+    "semantic_hash": "2a544b5e39925449900f5b4c5c62d8b7"
+  },
+  "E:\\srd-system-1\\COMPLETE-FEATURE-SUMMARY.md": {
+    "mtime": 1780992877.7171056,
+    "ast_hash": "a86dda5b898de0bbab2d120490cc66b7",
+    "semantic_hash": "a86dda5b898de0bbab2d120490cc66b7"
+  },
+  "E:\\srd-system-1\\DEPARTMENT-PANEL-FIXES-SUMMARY.md": {
+    "mtime": 1780992877.718105,
+    "ast_hash": "54a61d253ac85a26222d275a5452582d",
+    "semantic_hash": "54a61d253ac85a26222d275a5452582d"
+  },
+  "E:\\srd-system-1\\DESKTOP-MOBILE-STAGE-FIX.md": {
+    "mtime": 1780992877.718105,
+    "ast_hash": "1740e8cb2067fd38b5bf2fe20bf14de3",
+    "semantic_hash": "1740e8cb2067fd38b5bf2fe20bf14de3"
+  },
+  "E:\\srd-system-1\\DISPATCH-PANEL-PERFORMANCE-FIX.md": {
+    "mtime": 1780992877.7191043,
+    "ast_hash": "f842fc0791189d20ac9e813dfa3b6fa2",
+    "semantic_hash": "f842fc0791189d20ac9e813dfa3b6fa2"
+  },
+  "E:\\srd-system-1\\EXCEL-EDITOR-SUMMARY.md": {
+    "mtime": 1780992877.7191043,
+    "ast_hash": "ec9c1f55e9aab392bd76e5a8690c4a94",
+    "semantic_hash": "ec9c1f55e9aab392bd76e5a8690c4a94"
+  },
+  "E:\\srd-system-1\\EXCEL-FEATURES-SUMMARY.md": {
+    "mtime": 1780992877.7191043,
+    "ast_hash": "ce97846b48488158d33a1eb0baa3a63a",
+    "semantic_hash": "ce97846b48488158d33a1eb0baa3a63a"
+  },
+  "E:\\srd-system-1\\EXCEL-FORMATTING-GUIDE.md": {
+    "mtime": 1780992877.720104,
+    "ast_hash": "ae2bdb31bf5472b6e5292937f7456cf3",
+    "semantic_hash": "ae2bdb31bf5472b6e5292937f7456cf3"
+  },
+  "E:\\srd-system-1\\EXCEL-FORMULA-BAR-GUIDE.md": {
+    "mtime": 1780992877.720104,
+    "ast_hash": "695fab0d546582a6e216fbb5a4808771",
+    "semantic_hash": "695fab0d546582a6e216fbb5a4808771"
+  },
+  "E:\\srd-system-1\\EXCEL-PREVIEW-IMPLEMENTATION.md": {
+    "mtime": 1780992877.7211225,
+    "ast_hash": "6e0af72f4a45c7963961459539a8b748",
+    "semantic_hash": "6e0af72f4a45c7963961459539a8b748"
+  },
+  "E:\\srd-system-1\\EXCEL-STYLING-DEBUG.md": {
+    "mtime": 1780992877.7211225,
+    "ast_hash": "de5cce282976323edc76f8e5270d7a79",
+    "semantic_hash": "de5cce282976323edc76f8e5270d7a79"
+  },
+  "E:\\srd-system-1\\EXCEL-STYLING-FIX.md": {
+    "mtime": 1780992877.7221034,
+    "ast_hash": "f12fd2a1a9cc30344d31e1a76309a77f",
+    "semantic_hash": "f12fd2a1a9cc30344d31e1a76309a77f"
+  },
+  "E:\\srd-system-1\\EXCEL-STYLING-HOTFIX.md": {
+    "mtime": 1780992877.7221034,
+    "ast_hash": "295480974728eec999f1040b0312f6c9",
+    "semantic_hash": "295480974728eec999f1040b0312f6c9"
+  },
+  "E:\\srd-system-1\\FONT-SIZE-CUSTOMIZATION.md": {
+    "mtime": 1775388660.8649848,
+    "ast_hash": "6f2fb29beeb0039fa33d10cbbb82603d",
+    "semantic_hash": "6f2fb29beeb0039fa33d10cbbb82603d"
+  },
+  "E:\\srd-system-1\\Gemini.md": {
+    "mtime": 1775388633.4952588,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "E:\\srd-system-1\\HOW-TO-RESIZE-EXCEL.md": {
+    "mtime": 1780992877.7231023,
+    "ast_hash": "36a6c3133f86797c4fcd92586f76b2c2",
+    "semantic_hash": "36a6c3133f86797c4fcd92586f76b2c2"
+  },
+  "E:\\srd-system-1\\MANUAL-UPDATE-INSTRUCTIONS.md": {
+    "mtime": 1780992877.7231023,
+    "ast_hash": "0a6471af88653386d258ff74b36f077d",
+    "semantic_hash": "0a6471af88653386d258ff74b36f077d"
+  },
+  "E:\\srd-system-1\\MONGOOSE-MODEL-REGISTRATION-FIX.md": {
+    "mtime": 1780992877.7231023,
+    "ast_hash": "d6e96121b683b63f40754396d7439725",
+    "semantic_hash": "d6e96121b683b63f40754396d7439725"
+  },
+  "E:\\srd-system-1\\PERMISSIONS-MIGRATION-GUIDE.md": {
+    "mtime": 1780992877.7241018,
+    "ast_hash": "6626800a8188ad30675429b9afbd8ded",
+    "semantic_hash": "6626800a8188ad30675429b9afbd8ded"
+  },
+  "E:\\srd-system-1\\PERMISSIONS-QUICK-REFERENCE.md": {
+    "mtime": 1780992877.7251198,
+    "ast_hash": "69269d5e9f22fde02cb5c0d810888739",
+    "semantic_hash": "69269d5e9f22fde02cb5c0d810888739"
+  },
+  "E:\\srd-system-1\\PERMISSIONS-SYSTEM.md": {
+    "mtime": 1780992877.7261014,
+    "ast_hash": "fe60aceb14b17038e63fc62685356b82",
+    "semantic_hash": "fe60aceb14b17038e63fc62685356b82"
+  },
+  "E:\\srd-system-1\\PERMISSIONS-UI-GUIDE.md": {
+    "mtime": 1780992877.7261014,
+    "ast_hash": "e55d869982ac6cc2946335e2686a4c56",
+    "semantic_hash": "e55d869982ac6cc2946335e2686a4c56"
+  },
+  "E:\\srd-system-1\\PERMISSIONS-UPDATE-SUMMARY.md": {
+    "mtime": 1780992877.7271008,
+    "ast_hash": "6f47570036f87eb8edbc074fb21eaf7a",
+    "semantic_hash": "6f47570036f87eb8edbc074fb21eaf7a"
+  },
+  "E:\\srd-system-1\\PRODUCTION-STATUS-FIX.md": {
+    "mtime": 1780992877.7280996,
+    "ast_hash": "31595d1abd19c4b8d5163c14042dc2c0",
+    "semantic_hash": "31595d1abd19c4b8d5163c14042dc2c0"
+  },
+  "E:\\srd-system-1\\QUICK-FIX-REFERENCE.md": {
+    "mtime": 1780992877.7280996,
+    "ast_hash": "af4939ffec323cc0f88fb20cb77d1630",
+    "semantic_hash": "af4939ffec323cc0f88fb20cb77d1630"
+  },
+  "E:\\srd-system-1\\QUICK-START-GUIDE.md": {
+    "mtime": 1780992877.7280996,
+    "ast_hash": "74a46304514badd1886f9c32ee808672",
+    "semantic_hash": "74a46304514badd1886f9c32ee808672"
+  },
+  "E:\\srd-system-1\\README.md": {
+    "mtime": 1775388633.5072513,
+    "ast_hash": "e807bc6308d14a1222bc3aad502fe8cd",
+    "semantic_hash": "e807bc6308d14a1222bc3aad502fe8cd"
+  },
+  "E:\\srd-system-1\\RUNTIME-ERROR-FIX.md": {
+    "mtime": 1780992877.7280996,
+    "ast_hash": "2c2e253a634a3d3704fd475a4b5d152d",
+    "semantic_hash": "2c2e253a634a3d3704fd475a4b5d152d"
+  },
+  "E:\\srd-system-1\\SAMPLE-PROCESS-FEATURE.md": {
+    "mtime": 1780992877.7300987,
+    "ast_hash": "00e6ab5dff4dfe120f54128505498a59",
+    "semantic_hash": "00e6ab5dff4dfe120f54128505498a59"
+  },
+  "E:\\srd-system-1\\SAMPLE-PROCESS-IMPLEMENTATION-GUIDE.md": {
+    "mtime": 1780992877.7311165,
+    "ast_hash": "b41dd5bd24c7bbb80dea00d4ba2c2346",
+    "semantic_hash": "b41dd5bd24c7bbb80dea00d4ba2c2346"
+  },
+  "E:\\srd-system-1\\SAMPLE-PROCESS-MOBILE-UPDATE.md": {
+    "mtime": 1780992877.7311165,
+    "ast_hash": "98d6b33ef20b8da7cc4f6aeb28fa3f19",
+    "semantic_hash": "98d6b33ef20b8da7cc4f6aeb28fa3f19"
+  },
+  "E:\\srd-system-1\\SRD-CREATION-AND-STATUS-FIXES.md": {
+    "mtime": 1780992877.7311165,
+    "ast_hash": "91dcdbc613fdedd23ae2ed2de52f6936",
+    "semantic_hash": "91dcdbc613fdedd23ae2ed2de52f6936"
+  },
+  "E:\\srd-system-1\\USER-BASED-PERMISSIONS-SUMMARY.md": {
+    "mtime": 1780992877.733097,
+    "ast_hash": "3efe8ecec820a012e14406caed4ec952",
+    "semantic_hash": "3efe8ecec820a012e14406caed4ec952"
+  },
+  "E:\\srd-system-1\\public\\offline.html": {
+    "mtime": 1775388633.6143827,
+    "ast_hash": "3d3afe037d9549f175141c1a616bda03",
+    "semantic_hash": "3d3afe037d9549f175141c1a616bda03"
+  },
+  "E:\\srd-system-1\\test-excel-preview.html": {
+    "mtime": 1780992877.772074,
+    "ast_hash": "403d69033e03832fa506a40094b4b743",
+    "semantic_hash": "403d69033e03832fa506a40094b4b743"
+  },
+  "E:\\srd-system-1\\public\\icons\\cutting.png": {
+    "mtime": 1775471909.778663,
+    "ast_hash": "0a848db93263e2341d5af9b0cc3f452f",
+    "semantic_hash": "0a848db93263e2341d5af9b0cc3f452f"
+  },
+  "E:\\srd-system-1\\public\\icons\\fabric.png": {
+    "mtime": 1775469080.1141725,
+    "ast_hash": "a98ad53bb000d273726147b22e77bea4",
+    "semantic_hash": "a98ad53bb000d273726147b22e77bea4"
+  },
+  "E:\\srd-system-1\\public\\icons\\icon-128x128.svg": {
+    "mtime": 1775388633.6103852,
+    "ast_hash": "007d1a8ecbd1ceee24da05c4bb5d091a",
+    "semantic_hash": "007d1a8ecbd1ceee24da05c4bb5d091a"
+  },
+  "E:\\srd-system-1\\public\\icons\\icon-144x144.svg": {
+    "mtime": 1775388633.6113846,
+    "ast_hash": "67b0365aea225266fa3ce0e3fb6e92f1",
+    "semantic_hash": "67b0365aea225266fa3ce0e3fb6e92f1"
+  },
+  "E:\\srd-system-1\\public\\icons\\icon-152x152.svg": {
+    "mtime": 1775388633.6113846,
+    "ast_hash": "7b5c71fe3d17717fb5b802c87e754891",
+    "semantic_hash": "7b5c71fe3d17717fb5b802c87e754891"
+  },
+  "E:\\srd-system-1\\public\\icons\\icon-192x192.png": {
+    "mtime": 1775388633.6113846,
+    "ast_hash": "291befbb3acb8b5ee60ac7b9908d12c1",
+    "semantic_hash": "291befbb3acb8b5ee60ac7b9908d12c1"
+  },
+  "E:\\srd-system-1\\public\\icons\\icon-192x192.svg": {
+    "mtime": 1775388633.6123836,
+    "ast_hash": "539c8ec7bc36b1731d48ae885d2cc5bc",
+    "semantic_hash": "539c8ec7bc36b1731d48ae885d2cc5bc"
+  },
+  "E:\\srd-system-1\\public\\icons\\icon-384x384.svg": {
+    "mtime": 1775388633.6123836,
+    "ast_hash": "fcf2f91d884fa347d99ea8717b03daed",
+    "semantic_hash": "fcf2f91d884fa347d99ea8717b03daed"
+  },
+  "E:\\srd-system-1\\public\\icons\\icon-512x512.png": {
+    "mtime": 1775388633.6123836,
+    "ast_hash": "f47bea6d7912b42adee1321686f48533",
+    "semantic_hash": "f47bea6d7912b42adee1321686f48533"
+  },
+  "E:\\srd-system-1\\public\\icons\\icon-512x512.svg": {
+    "mtime": 1775388633.613383,
+    "ast_hash": "da2ecea6fa43275e6fd7792dbae32b5d",
+    "semantic_hash": "da2ecea6fa43275e6fd7792dbae32b5d"
+  },
+  "E:\\srd-system-1\\public\\icons\\icon-72x72.svg": {
+    "mtime": 1775388633.613383,
+    "ast_hash": "ddbe493bbc43f75e2dc25e2365796563",
+    "semantic_hash": "ddbe493bbc43f75e2dc25e2365796563"
+  },
+  "E:\\srd-system-1\\public\\icons\\icon-96x96.svg": {
+    "mtime": 1775388633.613383,
+    "ast_hash": "033f8528289123e8f6946e0b2c3f66f0",
+    "semantic_hash": "033f8528289123e8f6946e0b2c3f66f0"
+  },
+  "E:\\srd-system-1\\public\\audio\\voice-1763408131627.webm": {
+    "mtime": 1775388633.6103852,
+    "ast_hash": "51d5b86fcc1e40491e92a72af09ff9c1",
+    "semantic_hash": "51d5b86fcc1e40491e92a72af09ff9c1"
+  },
+  "E:\\srd-system-1\\public\\ringtone.mp3": {
+    "mtime": 1775388633.6163814,
+    "ast_hash": "d03a0f54b562ada85b6f8ee6d3912e8f",
+    "semantic_hash": "d03a0f54b562ada85b6f8ee6d3912e8f"
+  }
+}

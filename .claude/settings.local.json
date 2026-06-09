@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(ls -la /c/Users/Manii/Desktop/refresh/srd-system-1/src/app/api/srd/[id]/)",
-      "Bash(grep -r MONGODB_URI /c/Users/Manii/Desktop/refresh/srd-system-1 --include=*.js --include=*.env*)"
+      "Bash(grep -r MONGODB_URI /c/Users/Manii/Desktop/refresh/srd-system-1 --include=*.js --include=*.env*)",
+      "Bash(uv tool:*)",
+      "Read(//c/Users/abdul/.local/bin/**)",
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(ls:*)",
+      "Bash(uv python:*)",
+      "Bash(graphify export:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
