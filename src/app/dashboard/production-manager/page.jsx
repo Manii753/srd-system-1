@@ -68,14 +68,6 @@ export default function ProductionManagerDashboard() {
 
   const handleStartProduction = async (srdId) => {
     try {
-      // Get the first production stage (cutting)
-      const firstStage = productionStages.find(s => s.order === 1) || productionStages[0];
-
-      if (!firstStage) {
-        alert('No production stages configured. Please set up production stages first.');
-        return;
-      }
-
       const response = await fetch(`/api/srd/${srdId}`, {
         method: 'PATCH',
         headers: {
@@ -85,14 +77,14 @@ export default function ProductionManagerDashboard() {
           inProduction: true,
           readyForProduction: true,
           productionStartDate: new Date(),
-          currentProductionStage: firstStage._id,
+          currentProductionStage: null, // No stage assigned - first stage must receive manually
           productionProgress: 0
         }),
       });
 
       const result = await response.json();
       if (result.success) {
-        alert(`Production started! SRD moved to ${firstStage.displayName} stage.`);
+        alert(`Production started! First stage must now scan and receive the SRD.`);
         fetchData(); // Refresh data after starting production
       } else {
         console.error('Failed to start production:', result.error);

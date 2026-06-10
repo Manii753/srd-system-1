@@ -137,26 +137,7 @@ export default function SRDDetailPage() {
 
   const userRole = session?.user?.role;
 
-  if (userRole === 'dispatch') {
-    return (
-      <Layout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dispatch Verification: {srd.refNo}</h1>
-              <p className="text-gray-600 mt-2">{srd.description || 'No description provided.'}</p>
-            </div>
-          </div>
-          <DispatchPanel
-            srd={srd}
-            onUpdate={(data) => setSrd(data)}
-            canEdit={true}
-          />
-        </div>
-      </Layout>
-    );
-  }
-
+  // Dispatch users can view all departments but only edit dispatch section
   return (
     <Layout
       headerContent={
@@ -188,16 +169,16 @@ export default function SRDDetailPage() {
           onSaveRef={(fn) => { saveRef.current = fn; }}
         />
 
-        {/* Dispatch Panel — always visible for VMD/Admin */}
-        {/* {(userRole === 'vmd' || userRole === 'admin') && (
+        {/* Dispatch Panel — visible for dispatch users and VMD/Admin */}
+        {(userRole === 'dispatch' || userRole === 'vmd' || userRole === 'admin') && (
           <div className="mt-2">
             <DispatchPanel
               srd={srd}
               onUpdate={(data) => setSrd(data)}
-              canEdit={userRole === 'vmd' || userRole === 'admin'}
+              canEdit={userRole === 'dispatch' || userRole === 'vmd' || userRole === 'admin'}
             />
           </div>
-        )} */}
+        )}
       </div>
     </Layout>
   );

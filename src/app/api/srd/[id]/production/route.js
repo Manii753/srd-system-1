@@ -36,18 +36,13 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Start production
+    // Start production - DO NOT automatically assign to first stage
+    // First stage (sewing) must manually receive the SRD by scanning
     srd.inProduction = true;
     srd.productionStartDate = new Date();
-    srd.currentProductionStage = firstStage._id;
+    srd.currentProductionStage = null; // No stage assigned yet
     srd.productionProgress = 0;
-    srd.productionHistory = [{
-      stage: firstStage._id,
-      stageName: firstStage.name,
-      stageDisplayName: firstStage.displayName || firstStage.name,
-      startDate: new Date(),
-      status: 'in-progress'
-    }];
+    srd.productionHistory = []; // Empty, waiting for first stage to receive
 
     // Add audit entry
     srd.audit.push({
@@ -55,7 +50,7 @@ export async function POST(request, { params }) {
       department: 'production',
       author: 'System',
       timestamp: new Date(),
-      details: { stage: firstStage.name }
+      details: { message: 'Production started, awaiting first stage to receive' }
     });
 
     await srd.save();
@@ -63,7 +58,7 @@ export async function POST(request, { params }) {
     return NextResponse.json({
       success: true,
       data: srd,
-      message: `Production started at stage: ${firstStage.name}`
+      message: `Production started. First stage must now receive the SRD.`
     });
   } catch (error) {
     console.error('Error starting production:', error);

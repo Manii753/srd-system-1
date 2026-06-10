@@ -26,10 +26,7 @@ import {
 import { getAttachedImageLabels, getAttachedFieldInfos } from '@/lib/fieldConnectionUtils';
 import DispatchCardPrint from '@/app/dispatch/components/DispatchCardPrint';
 import ExcelPreview from './ExcelPreview';
-// Dynamically import DispatchPanel to avoid circular dependency
-const DispatchPanel = dynamic(() => import('./DispatchPanel'), {
-  loading: () => <div className="p-4 text-center">Loading Dispatch Panel...</div>
-});
+// DispatchPanel removed - now rendered separately in page.js
 import { Send } from 'lucide-react';
 import WashReportUploader from './WashReportUploader';
 import { checkCustomRoutes } from 'next/dist/lib/load-custom-routes';
@@ -1412,7 +1409,10 @@ export default function DepartmentPanelExcel({
         const predefinedData = (Array.isArray(rawTableData.predefinedData) ? rawTableData.predefinedData : [])
           .slice(0, tableData.rows.length)
           .map((item) => ({
-            purchaseType: item?.purchaseType === 'instock' ? 'instock' : defaultPurchaseType,
+            // Preserve the actual purchaseType if it exists, otherwise use default
+            purchaseType: (item?.purchaseType === 'instock' || item?.purchaseType === 'purchase') 
+              ? item.purchaseType 
+              : defaultPurchaseType,
             opd: typeof item?.opd === 'string' ? item.opd : '',
             etd: typeof item?.etd === 'string' ? item.etd : ''
           }));
@@ -1595,7 +1595,7 @@ export default function DepartmentPanelExcel({
                                 <div className="flex items-center justify-center gap-1 py-0">
                                   <button
                                     type="button"
-                                    onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
+                                    onClick={() => updatePredefined(rowIdx, 'purchaseType', 'purchase')}
                                     disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                                     className={cn(
                                       "px-1.5 py-0 rounded text-app-text font-medium border",
@@ -1604,7 +1604,7 @@ export default function DepartmentPanelExcel({
                                   >Purchase</button>
                                   <button
                                     type="button"
-                                    onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'instock')}
+                                    onClick={() => updatePredefined(rowIdx, 'purchaseType', 'instock')}
                                     disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                                     className={cn(
                                       "px-1.5 py-0 rounded text-[10px] font-medium border",
@@ -1828,7 +1828,7 @@ export default function DepartmentPanelExcel({
                           <div className="flex items-center justify-center gap-0.5 px-0.5 py-0">
                             <button
                               type="button"
-                              onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'purchase')}
+                              onClick={() => updatePredefined(rowIdx, 'purchaseType', 'purchase')}
                               disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                               className={cn(
                                 "px-1 py-0 rounded text-[9px] leading-none font-medium transition-all duration-150 border h-4",
@@ -1843,7 +1843,7 @@ export default function DepartmentPanelExcel({
                             </button>
                             <button
                               type="button"
-                              onClick={() => canEditField(fieldDef.predefinedFieldsOwner || 'global') && updatePredefined(rowIdx, 'purchaseType', 'instock')}
+                              onClick={() => updatePredefined(rowIdx, 'purchaseType', 'instock')}
                               disabled={!canEditField(fieldDef.predefinedFieldsOwner || 'global')}
                               className={cn(
                                 "px-1 py-0 rounded text-[9px] leading-none font-medium transition-all duration-150 border h-4",
@@ -2470,11 +2470,7 @@ export default function DepartmentPanelExcel({
                 </div>
               )}
 
-              <DispatchPanel
-                srd={srd}
-                onUpdate={(data) => setSrd(data)}
-                canEdit={true}
-              />
+              {/* DispatchPanel removed - now rendered separately in page.js */}
             </>
           )}
         </div>

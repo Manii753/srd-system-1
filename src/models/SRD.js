@@ -164,7 +164,7 @@ const srdSchema = new mongoose.Schema({
   audit: [auditSchema],
 });
 
-const REQUIRED_DEPTS = ['vmd', 'cad', 'commercial', 'mmc'];
+const REQUIRED_DEPTS = ['vmd', 'cad']; // Only VMD and CAD approval needed for production
 
 srdSchema.pre('save', function (next) {
   if (this.isModified('status')) {
