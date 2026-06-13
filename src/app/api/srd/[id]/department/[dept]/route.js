@@ -89,12 +89,16 @@ export async function PATCH(request, context) {
             srd.productionProgress = 0;
             if (!srd.productionHistory) srd.productionHistory = [];
             // Don't add any history - waiting for first stage to receive
+            const firstStageName = stages[0]?.displayName || stages[0]?.name || 'first stage';
             srd.audit.push({
               action: 'production_auto_started',
               department: 'system',
               author: 'System',
               timestamp: new Date(),
-              details: { stage: firstStage.name, trigger: 'all_departments_approved' },
+              details: { 
+                message: `Production started. Awaiting ${firstStageName} to receive.`,
+                trigger: 'vmd_cad_approved' 
+              },
             });
           }
         }
