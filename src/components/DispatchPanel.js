@@ -663,7 +663,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
                 <button
                   className="inline-flex items-center justify-center w-36 px-2 rounded-full bg-green-700 text-white text-app-text font-medium hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                  disabled={!!srd.internalApprovedDate || !canEdit || !srd.inDispatch}
+                  disabled={!!srd.internalApprovedDate || !canEdit || (!srd.inProduction && !srd.inDispatch)}
                   onClick={() => setActiveAction(activeAction === 'approve' ? null : 'approve')}
                 >
                   Approved For Dispatch
@@ -706,7 +706,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
                 <button
                   className="inline-flex items-center justify-center w-36 px-2 rounded-full bg-red-700 text-white text-app-text font-medium hover:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                  disabled={!!srd.internalApprovedDate || !canEdit || !srd.inDispatch}
+                  disabled={!!srd.internalApprovedDate || !canEdit || (!srd.inProduction && !srd.inDispatch)}
                   onClick={() => setActiveAction(activeAction === 'reject' ? null : 'reject')}
                 >
                   Internal Rejected
@@ -788,12 +788,12 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
       </div>
 
-      <div className={`border border-gray-300 bg-white mt-2 relative ${!srd.inDispatch && !srd.sampleDispatchedToBuyer ? 'pointer-events-none' : ''}`}>
+      <div className={`border border-gray-300 bg-white mt-2 relative ${!srd.inProduction && !srd.inDispatch && !srd.sampleDispatchedToBuyer ? 'pointer-events-none' : ''}`}>
         {/* Locked overlay */}
-        {!srd.inDispatch && !srd.sampleDispatchedToBuyer && (
+        {!srd.inProduction && !srd.inDispatch && !srd.sampleDispatchedToBuyer && (
           <div className="absolute inset-0 z-10 bg-white/60 flex items-center justify-center">
             <span className="bg-white border border-orange-300 rounded-lg px-4 py-2 text-sm text-orange-700 font-medium shadow">
-              🔒 Available when production reaches the Dispatch stage
+              🔒 Available when SR is in production
             </span>
           </div>
         )}
