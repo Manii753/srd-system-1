@@ -92,4 +92,13 @@ const costingSchema = new mongoose.Schema({
   updatedBy: { type: String, default: '' },
 }, { timestamps: true });
 
+// Force model cache bust when schema changes — delete cached model
+if (mongoose.models.Costing) {
+  // Check if the cached model has the new schema fields
+  const cachedPaths = mongoose.models.Costing.schema.paths;
+  if (!cachedPaths['preCost.fabrics'] && !cachedPaths['postCost.fabrics']) {
+    delete mongoose.models.Costing;
+  }
+}
+
 export default mongoose.models.Costing || mongoose.model('Costing', costingSchema);

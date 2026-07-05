@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { Plus, Trash2, CheckCircle2, Clock, AlertCircle, Send, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Clock, AlertCircle, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/lib/use-toast';
 import { useSession } from 'next-auth/react';
@@ -18,99 +17,107 @@ function rowAmount(row) { return n(row.consumption) * n(row.price); }
 function sectionSum(rows) { return (rows || []).reduce((s, r) => s + rowAmount(r), 0); }
 
 function calcAll(d) {
-  const fabricAmt    = sectionSum(d.fabrics);
-  const bwtAmt       = sectionSum(d.beforeWashTrims);
-  const awtAmt       = sectionSum(d.afterWashTrims);
-  const packAmt      = sectionSum(d.packaging);
-  const embAmt       = sectionSum(d.embellishment);
-  const testing      = n(d.testingCharges);
-  const patches      = n(d.patchesAttachment);
-  const gusset       = n(d.gussetAttachment);
-  const badges       = n(d.badgesAttachments);
-  const cmtCargo     = n(d.cmtCargo);
-  const cmtsPocket   = n(d.cmtsPocket);
-  const oh           = n(d.oh);
-  const washing      = n(d.washing);
-  const extraCut     = n(d.extraCut);
-  const fob          = n(d.fob);
+  const total =
+    sectionSum(d.fabrics) +
+    sectionSum(d.beforeWashTrims) +
+    sectionSum(d.afterWashTrims) +
+    sectionSum(d.packaging) +
+    sectionSum(d.embellishment) +
+    n(d.testingCharges) +
+    n(d.patchesAttachment) +
+    n(d.gussetAttachment) +
+    n(d.badgesAttachments) +
+    n(d.cmtCargo) +
+    n(d.cmtsPocket) +
+    n(d.oh) +
+    n(d.washing) +
+    n(d.extraCut) +
+    n(d.fob);
 
-  const total = fabricAmt + bwtAmt + awtAmt + packAmt + embAmt
-    + testing + patches + gusset + badges + cmtCargo + cmtsPocket
-    + oh + washing + extraCut + fob;
+  const linds       = n(d.linds) || 1;
+  const finalFobUs  = (total + n(d.loMargin)) / linds;
+  const totalCost   = finalFobUs * (1 + n(d.pchErrorPct) / 100);
 
-  const loMargin   = n(d.loMargin);
-  const linds      = n(d.linds) || 1;
-  const priceIsPkr = n(d.priceIsPkr);
-  const pchErrorPct= n(d.pchErrorPct);
-
-  const finalFobUs = (total + loMargin) / linds;
-  const totalCost  = finalFobUs * (1 + pchErrorPct / 100);
-
-  return { fabricAmt, bwtAmt, awtAmt, packAmt, embAmt, total, finalFobUs, totalCost };
+  return { total, finalFobUs, totalCost };
 }
 
 const STATUS_META = {
-  draft:     { label: 'Draft',     bg: 'bg-gray-100 text-gray-600',   Icon: Clock },
-  submitted: { label: 'Submitted', bg: 'bg-blue-100 text-blue-700',   Icon: Send },
-  approved:  { label: 'Approved',  bg: 'bg-green-100 text-green-700', Icon: CheckCircle2 },
-  rejected:  { label: 'Rejected',  bg: 'bg-red-100 text-red-700',     Icon: AlertCircle },
+  draft:     { label: 'Draft',     bg: 'bg-gray-100 text-gray-500',   Icon: Clock },
+  submitted: { label: 'Submitted', bg: 'bg-blue-50 text-blue-600',    Icon: Send },
+  approved:  { label: 'Approved',  bg: 'bg-green-50 text-green-600',  Icon: CheckCircle2 },
+  rejected:  { label: 'Rejected',  bg: 'bg-red-50 text-red-500',      Icon: AlertCircle },
 };
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Shared cell styles ───────────────────────────────────────────────────────
 
-/** A single editable row in a section table */
-function ItemRow({ row, onChange, onRemove, canEdit, rowIndex, isGray }) {
-  const amt = rowAmount(row);
+// Editable number input — right-aligned, no border, fills the cell
+function NumCell({ value, onChange, disabled, placeholder = '0' }) {
   return (
-    <tr className={`border-b border-gray-200 group ${isGray ? 'bg-[#dce6f1]' : 'bg-white'}`}>
-      {/* Row number */}
-      <td className="w-7 text-center text-[10px] text-gray-400 border-r border-gray-200 py-0.5">
-        {rowIndex + 1}
-      </td>
+    <input
+      type="number"
+      min="0"
+      step="any"
+      value={value === 0 || value === '0' ? '' : (value ?? '')}
+      onChange={e => onChange(e.target.value)}
+      disabled={disabled}
+      placeholder={placeholder}
+      className="w-full h-full text-right text-xs bg-transparent outline-none focus:bg-blue-50 transition-colors px-2 py-1 disabled:cursor-default"
+    />
+  );
+}
+
+// ─── Item row (section lines) ─────────────────────────────────────────────────
+
+function ItemRow({ row, onChange, onRemove, canEdit, descriptionLocked }) {
+  const amt = rowAmount(row);
+  // For SRD-sourced rows: description & consumption are read-only, only price is editable
+  const canEditDesc   = canEdit && !descriptionLocked;
+  const canEditConsump = canEdit && !descriptionLocked;
+  const canEditPrice  = canEdit; // always editable when canEdit
+
+  return (
+    <tr className="border-b border-gray-100 group hover:bg-gray-50/60">
       {/* Description */}
-      <td className="border-r border-gray-200 py-0.5 px-1">
-        {canEdit ? (
+      <td className="py-0 pl-6 pr-1 border-r border-gray-100 w-[45%]">
+        {canEditDesc ? (
           <input
             value={row.description}
             onChange={e => onChange({ ...row, description: e.target.value })}
-            className="w-full text-xs bg-transparent outline-none px-0.5"
+            placeholder="Item name"
+            className="w-full text-xs bg-transparent outline-none focus:bg-blue-50 transition-colors px-1 py-1"
           />
         ) : (
-          <span className="text-xs px-0.5 uppercase tracking-wide">{row.description}</span>
+          <span className="text-xs text-gray-700 px-1 py-1 block">{row.description}</span>
         )}
       </td>
-      {/* Consumption */}
-      <td className="w-20 border-r border-gray-200 py-0.5 px-1">
-        <input
-          type="number" min="0" step="any"
-          value={row.consumption || ''}
-          onChange={e => onChange({ ...row, consumption: e.target.value })}
-          disabled={!canEdit}
-          className="w-full text-xs text-right bg-transparent outline-none px-0.5 disabled:opacity-60"
+      {/* Consump */}
+      <td className="border-r border-gray-100 w-[16%]">
+        <NumCell
+          value={row.consumption}
+          onChange={v => onChange({ ...row, consumption: v })}
+          disabled={!canEditConsump}
         />
       </td>
-      {/* Price */}
-      <td className="w-20 border-r border-gray-200 py-0.5 px-1">
-        <input
-          type="number" min="0" step="0.01"
-          value={row.price || ''}
-          onChange={e => onChange({ ...row, price: e.target.value })}
-          disabled={!canEdit}
-          className="w-full text-xs text-right bg-transparent outline-none px-0.5 disabled:opacity-60"
+      {/* Price — always editable when canEdit */}
+      <td className="border-r border-gray-100 w-[16%]">
+        <NumCell
+          value={row.price}
+          onChange={v => onChange({ ...row, price: v })}
+          disabled={!canEditPrice}
         />
       </td>
-      {/* Amount */}
-      <td className="w-24 py-0.5 px-2 text-right text-xs font-medium text-gray-800">
-        {amt > 0 ? fmt2(amt) : '0'}
+      {/* Amount (read-only computed) */}
+      <td className="w-[18%] text-right text-xs text-gray-800 px-2 py-1">
+        {amt > 0 ? fmt2(amt) : <span className="text-gray-300">—</span>}
       </td>
-      {/* Remove */}
-      <td className="w-6">
-        {canEdit && (
+      {/* Remove — only for non-locked rows */}
+      <td className="w-6 pr-1">
+        {canEdit && !descriptionLocked && (
           <button
             onClick={onRemove}
-            className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-600 px-1"
+            className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 flex items-center justify-center w-full py-1"
           >
-            <Trash2 size={11} />
+            <Trash2 size={10} />
           </button>
         )}
       </td>
@@ -118,81 +125,113 @@ function ItemRow({ row, onChange, onRemove, canEdit, rowIndex, isGray }) {
   );
 }
 
-/** Section heading row (red background, matching the spreadsheet) */
-function SectionHeader({ label, total, currency }) {
-  return (
-    <tr className="bg-white border-b border-gray-200">
-      <td colSpan={3} className="py-1 px-2">
-        <span className="text-xs font-bold text-red-600 uppercase tracking-wider">{label}</span>
-      </td>
-      <td className="py-1 px-2 text-right text-xs font-bold text-red-600 uppercase tracking-wider">
-        {total > 0 ? fmt2(total) : ''}
-      </td>
-      <td className="text-right text-xs text-red-600 font-bold px-2">
-        {total > 0 ? fmt2(total) : '0'}
-      </td>
-      <td />
-    </tr>
-  );
-}
+// ─── Section block ────────────────────────────────────────────────────────────
 
-/** Column header row (yellow background like spreadsheet) */
-function ColHeader() {
+function SectionBlock({ title, sectionKey, rows, onUpdateRow, onRemoveRow, onAddRow, canEdit, fromSrd }) {
+  const total = sectionSum(rows);
   return (
-    <tr className="bg-[#ffff00] border-b-2 border-gray-400 text-xs font-bold text-black uppercase tracking-wide">
-      <th className="w-7 border-r border-gray-300 py-1 text-center">#</th>
-      <th className="border-r border-gray-300 py-1 px-2 text-left">Description</th>
-      <th className="w-20 border-r border-gray-300 py-1 px-2 text-right">Consump</th>
-      <th className="w-20 border-r border-gray-300 py-1 px-2 text-right">Price</th>
-      <th className="w-24 py-1 px-2 text-right">Amount</th>
-      <th className="w-6" />
-    </tr>
-  );
-}
+    <>
+      {/* Section title row */}
+      <tr className="bg-gray-50 border-y border-gray-200">
+        <td className="py-1 px-3 w-[45%]">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">{title}</span>
+            {fromSrd && (
+              <span className="text-[10px] text-blue-400 font-medium bg-blue-50 px-1.5 py-0.5 rounded">
+                from SRD
+              </span>
+            )}
+          </div>
+        </td>
+        <td className="border-l border-gray-200 w-[16%]" />
+        <td className="border-l border-gray-200 w-[16%]" />
+        <td className="border-l border-gray-200 w-[18%] text-right px-2 py-1">
+          {total > 0 && (
+            <span className="text-[11px] font-semibold text-gray-600">{fmt2(total)}</span>
+          )}
+        </td>
+        <td className="w-6" />
+      </tr>
 
-/** A fixed-value row (non-repeating — e.g. Testing Charges, CMT, OH) */
-function FixedRow({ label, value, onChange, canEdit, isGray, highlight }) {
-  return (
-    <tr className={`border-b border-gray-200 ${isGray ? 'bg-[#dce6f1]' : 'bg-white'} ${highlight ? 'font-semibold' : ''}`}>
-      <td className="w-7 border-r border-gray-200" />
-      <td className="border-r border-gray-200 py-0.5 px-2">
-        <span className={`text-xs uppercase tracking-wide ${highlight ? 'font-bold text-red-600' : ''}`}>{label}</span>
-      </td>
-      <td className="border-r border-gray-200" />
-      <td className="border-r border-gray-200" />
-      <td className="w-24 py-0.5 px-2">
-        <input
-          type="number" min="0" step="any"
-          value={value || ''}
-          onChange={e => onChange(e.target.value)}
-          disabled={!canEdit}
-          className={`w-full text-xs text-right bg-transparent outline-none disabled:opacity-60 ${highlight ? 'font-bold text-red-600' : ''}`}
+      {/* Rows */}
+      {rows.map((row, idx) => (
+        <ItemRow
+          key={idx}
+          row={row}
+          canEdit={canEdit}
+          descriptionLocked={fromSrd}   // SRD-sourced rows: description & consumption locked, price editable
+          onChange={updated => onUpdateRow(sectionKey, idx, updated)}
+          onRemove={() => onRemoveRow(sectionKey, idx)}
         />
+      ))}
+
+      {/* Add row — only allowed if not exclusively from SRD, or if canEdit */}
+      {canEdit && !fromSrd && (
+        <tr className="border-b border-gray-100">
+          <td colSpan={5} className="py-0.5 pl-6">
+            <button
+              onClick={() => onAddRow(sectionKey)}
+              className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-500 transition-colors py-0.5"
+            >
+              <Plus size={10} /> add row
+            </button>
+          </td>
+        </tr>
+      )}
+      {/* Allow adding extra rows even on SRD-synced sections */}
+      {canEdit && fromSrd && (
+        <tr className="border-b border-gray-100">
+          <td colSpan={5} className="py-0.5 pl-6">
+            <button
+              onClick={() => onAddRow(sectionKey)}
+              className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-500 transition-colors py-0.5"
+            >
+              <Plus size={10} /> add extra row
+            </button>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+// ─── Fixed charge row (single amount, no qty × price) ────────────────────────
+
+function FixedRow({ label, value, onChange, canEdit }) {
+  return (
+    <tr className="border-b border-gray-100 hover:bg-gray-50/60">
+      <td className="py-0 px-3 w-[45%]">
+        <span className="text-xs text-gray-700 py-1 block">{label}</span>
+      </td>
+      {/* Consump — empty */}
+      <td className="border-l border-gray-100 w-[18%]" />
+      {/* Price — empty */}
+      <td className="border-l border-gray-100 w-[18%]" />
+      {/* Amount — editable */}
+      <td className="border-l border-gray-100 w-[18%]">
+        <NumCell value={value} onChange={onChange} disabled={!canEdit} />
       </td>
       <td className="w-6" />
     </tr>
   );
 }
 
-/** Summary rows at the bottom */
-function SummaryRow({ label, value, isYellow, isGray, currency, editable, onChange, canEdit }) {
-  const bgClass = isYellow ? 'bg-[#ffff00]' : isGray ? 'bg-[#dce6f1]' : 'bg-white';
+// ─── Summary row ──────────────────────────────────────────────────────────────
+
+function SummaryRow({ label, value, onChange, canEdit, editable, bold, highlight }) {
   return (
-    <tr className={`border-b border-gray-200 ${bgClass}`}>
-      <td colSpan={4} className="py-0.5 px-2 text-xs font-medium uppercase tracking-wide">{label}</td>
-      <td className="py-0.5 px-2 text-right text-xs font-medium">
+    <tr className={`border-b border-gray-200 ${highlight ? 'bg-gray-50' : 'bg-white'}`}>
+      <td colSpan={3} className={`py-- px-3 text-xs uppercase tracking-wide ${bold ? 'font-bold text-gray-900' : 'text-gray-600'}`}>
+        {label}
+      </td>
+      <td className={`text-right text-xs px-2 py-0 ${bold ? 'font-bold text-gray-900' : 'text-gray-700'}`}>
         {editable && canEdit ? (
-          <input
-            type="number" step="any"
-            value={value || ''}
-            onChange={e => onChange(e.target.value)}
-            className="text-right bg-transparent outline-none w-full text-xs font-medium"
-          />
+          <NumCell value={value} onChange={onChange} disabled={false} />
         ) : (
-          <span>{fmt2(value)}</span>
+          fmt2(value)
         )}
       </td>
-      <td />
+      <td className="w-6" />
     </tr>
   );
 }
@@ -203,7 +242,6 @@ export default function CostingSheet({ type, costData, srd, onSave, saving }) {
   const { data: session } = useSession();
   const { toast } = useToast();
   const isAdmin = ['admin', 'vmd'].includes(session?.user?.role);
-
   const label = type === 'pre' ? 'Pre-Costing' : 'Post-Costing';
 
   // ── Local state ──────────────────────────────────────────────────────────────
@@ -211,32 +249,18 @@ export default function CostingSheet({ type, costData, srd, onSave, saving }) {
   const [d, setD] = useState(() => ({
     currency: 'USD',
     date: '', buyer: '', style: '', fit: '', fabric: '', wash: '',
-    fabrics:          [],
-    beforeWashTrims:  [],
-    afterWashTrims:   [],
-    packaging:        [],
-    embellishment:    [],
-    testingCharges:   0,
-    patchesAttachment: 0,
-    gussetAttachment:  0,
-    badgesAttachments: 0,
-    cmtCargo:    0,
-    cmtsPocket:  0,
-    oh:          0,
-    washing:     0,
-    extraCut:    0,
-    fob:         0,
-    loMargin:    0,
-    priceIsPkr:  0,
-    linds:       245,
-    pchErrorPct: 0,
-    notes:       '',
-    status:      'draft',
+    fabrics: [], beforeWashTrims: [], afterWashTrims: [],
+    packaging: [], embellishment: [],
+    testingCharges: 0,
+    patchesAttachment: 0, gussetAttachment: 0, badgesAttachments: 0,
+    cmtCargo: 0, cmtsPocket: 0, oh: 0, washing: 0, extraCut: 0, fob: 0,
+    loMargin: 0, priceIsPkr: 0, linds: 245, pchErrorPct: 0,
+    notes: '', status: 'draft',
     ...costData,
   }));
   const [isDirty, setIsDirty] = useState(false);
 
-  // Sync when costData prop changes (e.g. after reload)
+  // Sync when costData prop changes
   const [lastCostData, setLastCostData] = useState(costData);
   if (costData !== lastCostData) {
     setLastCostData(costData);
@@ -248,10 +272,9 @@ export default function CostingSheet({ type, costData, srd, onSave, saving }) {
   const canEdit  = isAdmin && ['draft', 'rejected'].includes(status);
   const sm       = STATUS_META[status] || STATUS_META.draft;
   const StatusIcon = sm.Icon;
+  const totals   = useMemo(() => calcAll(d), [d]);
 
-  const totals = useMemo(() => calcAll(d), [d]);
-
-  // ── Helpers ──────────────────────────────────────────────────────────────────
+  // ── Updaters ─────────────────────────────────────────────────────────────────
 
   const set = useCallback((key, val) => {
     setD(prev => ({ ...prev, [key]: val }));
@@ -284,18 +307,14 @@ export default function CostingSheet({ type, costData, srd, onSave, saving }) {
 
   const handleSave = async () => {
     const result = await onSave(type, 'save', d, session?.user?.name || session?.user?.email);
-    if (result?.success) {
-      toast({ title: `${label} saved` });
-      setIsDirty(false);
-    } else {
-      toast({ title: 'Save failed', description: result?.error, variant: 'destructive' });
-    }
+    if (result?.success) { toast({ title: `${label} saved` }); setIsDirty(false); }
+    else toast({ title: 'Save failed', description: result?.error, variant: 'destructive' });
     return result;
   };
 
   const handleSubmit = async () => {
-    const saveRes = await handleSave();
-    if (!saveRes?.success) return;
+    const r = await handleSave();
+    if (!r?.success) return;
     const result = await onSave(type, 'submit', {}, session?.user?.name || session?.user?.email);
     if (result?.success) toast({ title: `${label} submitted for approval` });
   };
@@ -310,252 +329,268 @@ export default function CostingSheet({ type, costData, srd, onSave, saving }) {
     if (result?.success) toast({ title: `${label} rejected`, variant: 'destructive' });
   };
 
-  // ── Render sections ──────────────────────────────────────────────────────────
-
-  const renderSection = (sectionKey, label) => {
-    const rows = d[sectionKey] || [];
-    return (
-      <>
-        <SectionHeader label={label} total={sectionSum(rows)} currency={d.currency} />
-        {rows.map((row, idx) => (
-          <ItemRow
-            key={idx}
-            row={row}
-            rowIndex={idx}
-            isGray={idx % 2 === 1}
-            canEdit={canEdit}
-            onChange={updated => updateRow(sectionKey, idx, updated)}
-            onRemove={() => removeRow(sectionKey, idx)}
-          />
-        ))}
-        {canEdit && (
-          <tr className="bg-white">
-            <td colSpan={6} className="py-1 px-2">
-              <button
-                onClick={() => addRow(sectionKey)}
-                className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800"
-              >
-                <Plus size={11} /> Add row
-              </button>
-            </td>
-          </tr>
-        )}
-      </>
-    );
-  };
-
   // ── Render ───────────────────────────────────────────────────────────────────
 
+  const FIXED_CHARGES = [
+    { label: 'Patches Attachment', key: 'patchesAttachment' },
+    { label: 'Gusset Attachment',  key: 'gussetAttachment' },
+    { label: 'Badges Attachments', key: 'badgesAttachments' },
+    { label: 'CMT Cargo',          key: 'cmtCargo' },
+    { label: "CMT's Pocket",       key: 'cmtsPocket' },
+    { label: 'OH',                 key: 'oh' },
+    { label: 'Washing',            key: 'washing' },
+    { label: 'Extra Cut',          key: 'extraCut' },
+    { label: 'FOB',                key: 'fob' },
+  ];
+
   return (
-    <div className="space-y-4">
-      {/* Top bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h2 className="text-base font-bold text-gray-900">{label}</h2>
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${sm.bg}`}>
-            <StatusIcon size={11} />
-            {sm.label}
-          </span>
-          {isDirty && <span className="text-[11px] text-amber-600">● Unsaved</span>}
-        </div>
+    <div className="space-y-3">
+      {/* ── Top bar ── */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <select
-            value={d.currency}
-            onChange={e => set('currency', e.target.value)}
-            disabled={!canEdit}
-            className="border border-gray-200 rounded px-1.5 py-0.5 text-xs text-gray-700"
-          >
-            {['USD', 'EUR', 'GBP', 'INR', 'AUD', 'PKR'].map(c => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
+          <h2 className="text-sm font-bold text-gray-900">{label}</h2>
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${sm.bg}`}>
+            <StatusIcon size={10} />{sm.label}
+          </span>
+          {isDirty && <span className="text-[11px] text-amber-500 font-medium">● unsaved</span>}
         </div>
       </div>
 
-      {/* Approval metadata */}
+      {/* Submission metadata */}
       {d.submittedBy && (
-        <div className="text-[11px] text-gray-500">
-          Submitted by <strong>{d.submittedBy}</strong>
-          {d.submittedAt && ` on ${new Date(d.submittedAt).toLocaleDateString()}`}
+        <p className="text-[11px] text-gray-400">
+          Submitted by <strong className="text-gray-600">{d.submittedBy}</strong>
+          {d.submittedAt && ` · ${new Date(d.submittedAt).toLocaleDateString()}`}
           {d.approvedBy && (
-            <> · Approved by <strong>{d.approvedBy}</strong>
-              {d.approvedAt && ` on ${new Date(d.approvedAt).toLocaleDateString()}`}
+            <> · Approved by <strong className="text-gray-600">{d.approvedBy}</strong>
+              {d.approvedAt && ` · ${new Date(d.approvedAt).toLocaleDateString()}`}
             </>
           )}
-        </div>
+        </p>
       )}
 
-      {/* ── SPREADSHEET ── */}
-      <div className="border-2 border-gray-400 rounded-lg overflow-hidden bg-white shadow-sm">
-        <table className="w-full text-xs border-collapse">
+      {/* ── Main table ── */}
+      <div className="rounded-lg border border-gray-200 overflow-hidden bg-white shadow-sm">
+        <table className="w-full text-xs border-collapse" style={{ tableLayout: 'fixed' }}>
+
+          {/* ── Column widths ── */}
+          <colgroup>
+            <col style={{ width: '45%' }} />
+            <col style={{ width: '16%' }} />
+            <col style={{ width: '16%' }} />
+            <col style={{ width: '18%' }} />
+            <col style={{ width: '24px' }} />
+          </colgroup>
+
+          {/* ── Table header ── */}
           <thead>
-            {/* Header info rows */}
-            <tr className="bg-[#dce6f1] border-b border-gray-300">
-              <td colSpan={2} className="py-1 px-2 font-bold text-xs uppercase text-center tracking-wider" />
-              <td colSpan={2} className="py-1 px-2 text-center text-xs font-bold text-blue-800 uppercase">
-                {srd?.refNo}
-              </td>
-              <td colSpan={2} />
+            {/* SRD ref + label row */}
+            <tr className="border-b border-gray-200 bg-gray-50">
+              <th colSpan={3} className="py-2 px-3 text-left text-xs font-semibold text-gray-700 tracking-wide">
+                {srd?.refNo && <span className="font-mono text-gray-500 mr-2">{srd.refNo}</span>}
+                <span className="text-gray-700">{label}</span>
+              </th>
+              <th colSpan={2} className="py-2 px-3 text-right">
+                <select
+                  value={d.currency}
+                  onChange={e => set('currency', e.target.value)}
+                  disabled={!canEdit}
+                  className="border border-gray-200 rounded px-1.5 py-0.5 text-xs text-gray-600 bg-white"
+                >
+                  {['USD', 'EUR', 'GBP', 'INR', 'AUD', 'PKR'].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </th>
             </tr>
-          </thead>
-          <tbody>
-            {/* Meta fields */}
+
+            {/* Meta fields — 2 rows × 3 cols, each cell label + value */}
             {[
-              { label: 'DATE',   key: 'date' },
-              { label: 'BUYER',  key: 'buyer' },
-              { label: 'STYLE',  key: 'style' },
-              { label: 'FIT',    key: 'fit' },
-              { label: 'FABRIC', key: 'fabric' },
-              { label: 'WASH',   key: 'wash' },
-            ].map(({ label: lbl, key }, i) => (
-              <tr key={key} className={`border-b border-gray-200 ${i % 2 === 0 ? 'bg-[#dce6f1]' : 'bg-white'}`}>
-                <td className="w-7 border-r border-gray-200" />
-                <td className="border-r border-gray-200 py-0.5 px-2">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-gray-700">{lbl}</span>
+              [{ label: 'Date', key: 'date' }, { label: 'Buyer', key: 'buyer' }, { label: 'Style', key: 'style' }],
+              [{ label: 'Fit',  key: 'fit'  }, { label: 'Fabric', key: 'fabric' }, { label: 'Wash', key: 'wash' }],
+            ].map((row, ri) => (
+              <tr key={ri} className="border-b border-gray-200 bg-white">
+                <td colSpan={5} className="p-0">
+                  <div className="grid grid-cols-3 divide-x divide-gray-100">
+                    {row.map(({ label: lbl, key }) => (
+                      <div key={key} className="flex items-center gap-1.5 px-3 py-1.5">
+                        <span className="text-[10px] font-semibold text-gray-400 uppercase shrink-0 w-9">{lbl}</span>
+                        {canEdit ? (
+                          <input
+                            value={d[key] || ''}
+                            onChange={e => set(key, e.target.value)}
+                            className="flex-1 text-xs bg-transparent outline-none text-gray-800 focus:bg-gray-50 rounded px-0.5 min-w-0"
+                          />
+                        ) : (
+                          <span className="text-xs text-gray-700 truncate">{d[key] || <span className="text-gray-300">—</span>}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </td>
-                <td colSpan={3} className="py-0.5 px-2">
-                  {canEdit ? (
-                    <input
-                      value={d[key]}
-                      onChange={e => set(key, e.target.value)}
-                      className="w-full text-xs bg-transparent outline-none"
-                    />
-                  ) : (
-                    <span className="text-xs text-gray-800">{d[key]}</span>
-                  )}
-                </td>
-                <td />
               </tr>
             ))}
 
             {/* Column headers */}
-            <ColHeader />
+            <tr className="bg-gray-100 border-b border-gray-200 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+              <th className="py-1.5 px-3 text-left">Description</th>
+              <th className="py-1.5 px-2 text-right border-l border-gray-200">Consump</th>
+              <th className="py-1.5 px-2 text-right border-l border-gray-200">Price</th>
+              <th className="py-1.5 px-2 text-right border-l border-gray-200">Amount</th>
+              <th className="w-6" />
+            </tr>
+          </thead>
 
-            {/* FABRICS */}
-            {renderSection('fabrics', 'FABRICS')}
+          <tbody>
+            {/* ── FABRICS ── */}
+            <SectionBlock
+              title="Fabrics" sectionKey="fabrics"
+              rows={d.fabrics} canEdit={canEdit}
+              fromSrd={type === 'post'}
+              onUpdateRow={updateRow} onRemoveRow={removeRow} onAddRow={addRow}
+            />
 
-            {/* BEFORE WASH TRIMS */}
-            {renderSection('beforeWashTrims', 'BEFORE WASH TRIMS')}
+            {/* ── BEFORE WASH TRIMS ── */}
+            <SectionBlock
+              title="Before Wash Trims" sectionKey="beforeWashTrims"
+              rows={d.beforeWashTrims} canEdit={canEdit}
+              fromSrd={type === 'post'}
+              onUpdateRow={updateRow} onRemoveRow={removeRow} onAddRow={addRow}
+            />
 
-            {/* AFTER WASH TRIMS */}
-            {renderSection('afterWashTrims', 'AFTER WASH TRIMS')}
+            {/* ── AFTER WASH TRIMS ── */}
+            <SectionBlock
+              title="After Wash Trims" sectionKey="afterWashTrims"
+              rows={d.afterWashTrims} canEdit={canEdit}
+              fromSrd={type === 'post'}
+              onUpdateRow={updateRow} onRemoveRow={removeRow} onAddRow={addRow}
+            />
 
-            {/* PACKAGING */}
-            {renderSection('packaging', 'PACKAGING')}
+            {/* ── PACKAGING ── */}
+            <SectionBlock
+              title="Packaging" sectionKey="packaging"
+              rows={d.packaging} canEdit={canEdit}
+              fromSrd={false}
+              onUpdateRow={updateRow} onRemoveRow={removeRow} onAddRow={addRow}
+            />
 
-            {/* EMBELLISHMENT */}
-            {renderSection('embellishment', 'EMBELLISHMENT')}
+            {/* ── EMBELLISHMENT ── */}
+            <SectionBlock
+              title="Embellishment" sectionKey="embellishment"
+              rows={d.embellishment} canEdit={canEdit}
+              fromSrd={type === 'post'}
+              onUpdateRow={updateRow} onRemoveRow={removeRow} onAddRow={addRow}
+            />
 
-            {/* TESTING CHARGES */}
-            <tr className="bg-white border-b border-gray-200">
-              <td className="w-7 border-r border-gray-200" />
-              <td colSpan={2} className="py-1 px-2">
-                <span className="text-xs font-bold text-red-600 uppercase">TESTING CHARGES</span>
+            {/* ── TESTING CHARGES (single value) ── */}
+            <tr className="bg-gray-50 border-y border-gray-200">
+              <td className="py-1 px-3">
+                <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">Testing Charges</span>
               </td>
-              <td className="border-r border-gray-200 py-0.5 px-2">
-                <input
-                  type="number" min="0" step="any"
-                  value={d.testingCharges || ''}
-                  onChange={e => set('testingCharges', e.target.value)}
-                  disabled={!canEdit}
-                  className="w-full text-xs text-right bg-transparent outline-none disabled:opacity-60 text-red-600 font-bold"
-                />
+              <td className="border-l border-gray-200" />
+              <td className="border-l border-gray-200" />
+              <td className="border-l border-gray-200">
+                <NumCell value={d.testingCharges} onChange={v => set('testingCharges', v)} disabled={!canEdit} />
               </td>
-              <td className="py-1 px-2 text-right text-xs font-bold text-red-600">
-                {n(d.testingCharges) > 0 ? fmt2(n(d.testingCharges)) : '0'}
-              </td>
-              <td />
+              <td className="w-6" />
             </tr>
 
-            {/* Spacer */}
-            <tr className="bg-white border-b border-gray-100"><td colSpan={6} className="py-0.5" /></tr>
-
-            {/* Fixed labour/charge rows */}
-            {[
-              { label: 'PATCHES ATTACHMENT', key: 'patchesAttachment' },
-              { label: 'GUSSET ATTACHMENT',  key: 'gussetAttachment' },
-              { label: 'BADGES ATTACHMENTS', key: 'badgesAttachments' },
-              { label: 'CMT CARGO',          key: 'cmtCargo' },
-              { label: "CMT'S POCKET",       key: 'cmtsPocket' },
-              { label: 'OH',                 key: 'oh' },
-              { label: 'WASHING',            key: 'washing' },
-            ].map(({ label: lbl, key }, i) => (
+            {/* ── FIXED CHARGES ── */}
+            <tr className="bg-gray-50 border-y border-gray-200">
+              <td colSpan={5} className="py-1 px-3">
+                <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">Charges</span>
+              </td>
+            </tr>
+            {FIXED_CHARGES.map(({ label: lbl, key }) => (
               <FixedRow
                 key={key}
                 label={lbl}
                 value={d[key]}
                 onChange={v => set(key, v)}
                 canEdit={canEdit}
-                isGray={i % 2 === 0}
               />
             ))}
 
-            {/* Spacer */}
-            <tr className="bg-white border-b border-gray-100"><td colSpan={6} className="py-0.5" /></tr>
+            {/* ── DIVIDER ── */}
+            <tr><td colSpan={5} className="py-0 border-t-2 border-gray-200" /></tr>
 
-            {/* Extra Cut & FOB */}
-            <FixedRow label="EXTRA CUT" value={d.extraCut} onChange={v => set('extraCut', v)} canEdit={canEdit} isGray={false} />
-            <FixedRow label="FOB" value={d.fob} onChange={v => set('fob', v)} canEdit={canEdit} isGray={true} />
-
-            {/* Spacer */}
-            <tr className="bg-white border-b border-gray-100"><td colSpan={6} className="py-0.5" /></tr>
-
-            {/* TOTAL */}
-            <tr className="bg-[#dce6f1] border-b-2 border-gray-400">
-              <td colSpan={4} className="py-1.5 px-2 font-bold text-sm uppercase tracking-wide">TOTAL</td>
-              <td className="py-1.5 px-2 text-right font-bold text-sm">{fmt2(totals.total)}</td>
+            {/* ── TOTAL ── */}
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <td colSpan={3} className="py-2 px-3 text-xs font-bold text-gray-900 uppercase tracking-wide">Total</td>
+              <td className="text-right font-bold text-xs text-gray-900 px-2 py-2">{fmt2(totals.total)}</td>
               <td />
             </tr>
 
-            {/* Summary rows */}
-            <SummaryRow label="LO MARGIN"  value={d.loMargin}   isGray editable canEdit={canEdit} onChange={v => set('loMargin', v)} currency={d.currency} />
-            <SummaryRow label="PRICE IS PKR" value={d.priceIsPkr} isGray editable canEdit={canEdit} onChange={v => set('priceIsPkr', v)} currency={d.currency} />
-            <SummaryRow label="LINDS"      value={d.linds}      isGray editable canEdit={canEdit} onChange={v => set('linds', v)} currency={d.currency} />
-            <SummaryRow label={`FINAL FOB US$`} value={totals.finalFobUs} isYellow currency={d.currency} />
-            <SummaryRow label={`P.CH + ERROR % (${d.pchErrorPct}%)`} value={d.pchErrorPct} isGray editable canEdit={canEdit} onChange={v => set('pchErrorPct', v)} currency={d.currency} />
+            {/* ── SUMMARY ── */}
+            <SummaryRow label="LO Margin"     value={d.loMargin}   onChange={v => set('loMargin', v)}   canEdit={canEdit} editable />
+            <SummaryRow label="Price is PKR"  value={d.priceIsPkr} onChange={v => set('priceIsPkr', v)} canEdit={canEdit} editable />
+            <SummaryRow label="Linds"         value={d.linds}      onChange={v => set('linds', v)}      canEdit={canEdit} editable />
 
-            {/* Total Cost — highlighted green */}
-            <tr className="bg-[#92d050] border-t-2 border-gray-400">
-              <td colSpan={4} className="py-2 px-2 font-bold text-sm uppercase tracking-wide">Total Cost</td>
-              <td className="py-2 px-2 text-right font-bold text-sm">${fmt2(totals.totalCost)}</td>
+            <tr className="border-b border-gray-200 bg-gray-50">
+              <td colSpan={3} className="py-1.5 px-3 text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                Final FOB US$
+              </td>
+              <td className="text-right text-xs font-semibold text-gray-900 px-2 py-0">
+                {fmt2(totals.finalFobUs)}
+              </td>
+              <td />
+            </tr>
+
+            <SummaryRow
+              label={`P.CH + Error %`}
+              value={d.pchErrorPct}
+              onChange={v => set('pchErrorPct', v)}
+              canEdit={canEdit}
+              editable
+            />
+
+            {/* ── TOTAL COST ── */}
+            <tr className="border-t-2 border-gray-300 bg-gray-900 text-white">
+              <td colSpan={3} className="py-2.5 px-3 text-xs font-bold uppercase tracking-widest">
+                Total Cost
+              </td>
+              <td className="text-right text-sm font-bold px-2 py-2.5">
+                {d.currency} {fmt2(totals.totalCost)}
+              </td>
               <td />
             </tr>
           </tbody>
         </table>
       </div>
 
-      {/* Notes */}
-      <div>
-        <label className="block text-[11px] text-gray-500 mb-1 font-medium uppercase tracking-wide">Notes</label>
-        <Textarea
-          value={d.notes}
-          onChange={e => set('notes', e.target.value)}
-          disabled={!canEdit}
-          placeholder="Notes or assumptions..."
-          rows={2}
-          className="text-xs resize-none"
-        />
-      </div>
+      {/* ── Notes ── */}
+      <Textarea
+        value={d.notes}
+        onChange={e => set('notes', e.target.value)}
+        disabled={!canEdit}
+        placeholder="Notes or assumptions…"
+        rows={2}
+        className="text-xs resize-none border-gray-200"
+      />
 
-      {/* Action buttons */}
+      {/* ── Actions ── */}
       {isAdmin && (
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
+        <div className="flex flex-wrap gap-2">
           {canEdit && (
-            <Button onClick={handleSave} disabled={saving || !isDirty} size="sm" variant="outline">
+            <Button onClick={handleSave} disabled={saving || !isDirty} size="sm" variant="outline"
+              className="h-7 text-xs px-3">
               {saving ? 'Saving…' : 'Save Draft'}
             </Button>
           )}
           {canEdit && status === 'draft' && (
-            <Button onClick={handleSubmit} disabled={saving} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button onClick={handleSubmit} disabled={saving} size="sm"
+              className="h-7 text-xs px-3 bg-gray-900 hover:bg-gray-800 text-white">
               Submit for Approval
             </Button>
           )}
           {status === 'submitted' && (
             <>
-              <Button onClick={handleApprove} disabled={saving} size="sm" className="bg-green-600 hover:bg-green-700 text-white">
+              <Button onClick={handleApprove} disabled={saving} size="sm"
+                className="h-7 text-xs px-3 bg-green-600 hover:bg-green-700 text-white">
                 Approve
               </Button>
-              <Button onClick={handleReject} disabled={saving} size="sm" variant="destructive">
+              <Button onClick={handleReject} disabled={saving} size="sm" variant="destructive"
+                className="h-7 text-xs px-3">
                 Reject
               </Button>
             </>

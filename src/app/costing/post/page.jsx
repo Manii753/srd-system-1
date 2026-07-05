@@ -21,25 +21,48 @@ function PostCostingContent() {
   const { costing, srd, loading, error, saving, mutate, reload } = useCosting(srdId);
   const { toast } = useToast();
   const [resyncing, setResyncing] = useState(false);
+  const [autoSynced, setAutoSynced] = useState(false);
 
-  // Re-sync trim rows from SRD dynamic fields
-  const handleResync = async () => {
+  // Auto-resync on load if all SRD-sourced sections are empty or have no real data
+  useEffect(() => {
+    if (!costing || autoSynced || loading || resyncing) return;
+    const post = costing.postCost;
+    const isEmpty = (arr) => !arr?.length || arr.every(r => !r?.description?.trim());
+    const needsSync =
+      isEmpty(post?.fabrics) ||
+      isEmpty(post?.beforeWashTrims) ||
+      isEmpty(post?.afterWashTrims) ||
+      isEmpty(post?.embellishment);
+    if (needsSync && srdId) {
+      setAutoSynced(true);
+      doResync(true);
+    }
+  }, [costing, loading, autoSynced, resyncing, srdId]);
+
+  const doResync = async (silent = false) => {
     if (!srdId) return;
     setResyncing(true);
     try {
-      // Delete existing costing so the GET auto-creates a fresh one from SRD fields
       const res = await fetch(`/api/costing/${srdId}/resync`, { method: 'POST' });
       const json = await res.json();
+      console.log('[PostCosting] resync result:', json);
       if (json.success) {
         await reload();
-        toast({ title: 'Re-synced from SRD form', description: 'Trim rows updated from SRD dynamic fields.' });
+        if (!silent) toast({ title: 'Re-synced from SRD form', description: 'Rows updated from SRD dynamic fields.' });
+      } else {
+        console.error('[PostCosting] resync failed:', json.error);
+        if (!silent) toast({ title: 'Re-sync failed', description: json.error, variant: 'destructive' });
       }
-    } catch {
-      toast({ title: 'Re-sync failed', variant: 'destructive' });
+    } catch (e) {
+      console.error('[PostCosting] resync error:', e);
+      if (!silent) toast({ title: 'Re-sync failed', variant: 'destructive' });
     } finally {
       setResyncing(false);
     }
   };
+
+  // Re-sync trim rows from SRD dynamic fields (manual button)
+  const handleResync = () => doResync(false);
 
   if (!srdId) {
     return (
@@ -53,10 +76,13 @@ function PostCostingContent() {
     );
   }
 
-  if (loading) {
+  if (loading || resyncing) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex items-center justify-center py-20 gap-3">
         <Loader2 size={28} className="animate-spin text-emerald-400" />
+        <span className="text-sm text-gray-500">
+          {resyncing ? 'Syncing from SRD…' : 'Loading…'}
+        </span>
       </div>
     );
   }
