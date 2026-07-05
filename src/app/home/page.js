@@ -29,7 +29,7 @@ const APP_GROUPS = [
       { 
         label: 'Cost Sheets', 
         icon: DollarSign, 
-        href: '#', 
+        href: '/costing', 
         color: 'bg-amber-500', 
         lightColor: 'bg-amber-50', 
         textColor: 'text-amber-600' 

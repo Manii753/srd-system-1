@@ -50,7 +50,8 @@ export default function DynamicSidebar() {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [samplesExpanded, setSamplesExpanded] = useState(true);
+  const [expandedMenus, setExpandedMenus] = useState({ 'Samples Management': true, 'Cost Sheets': true });
+  const toggleMenu = (name) => setExpandedMenus(prev => ({ ...prev, [name]: !prev[name] }));
   const unreadIntervalRef = useRef(null);
   const lastFetchTimeRef = useRef(0);
   const userRole = session?.user?.role;
@@ -101,7 +102,11 @@ export default function DynamicSidebar() {
           { name: 'Home', href: '/home', icon: LayoutDashboard },
           { name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
           { name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren },
-          { name: 'Cost Sheets', href: '#', icon: DollarSign },
+          { name: 'Cost Sheets', icon: DollarSign, isSubmenu: true, children: [
+            { name: 'Pre-Costing',  href: '/costing/pre',  icon: DollarSign },
+            { name: 'Post-Costing', href: '/costing/post', icon: DollarSign },
+            { name: 'All Costing',  href: '/costing',      icon: DollarSign },
+          ]},
           { name: 'Bom', href: '#', icon: List },
           { name: 'Planning', href: '#', icon: Calendar },
           { name: 'Production', href: '/dashboard/production-manager', icon: Factory },
@@ -139,7 +144,11 @@ export default function DynamicSidebar() {
         }
         if (userRole?.toLowerCase() === 'vmd') {
           items.push({ name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren });
-          items.push({ name: 'Cost Sheets', href: '#', icon: DollarSign });
+          items.push({ name: 'Cost Sheets', icon: DollarSign, isSubmenu: true, children: [
+            { name: 'Pre-Costing',  href: '/costing/pre',  icon: DollarSign },
+            { name: 'Post-Costing', href: '/costing/post', icon: DollarSign },
+            { name: 'All Costing',  href: '/costing',      icon: DollarSign },
+          ]});
           items.push({ name: 'Bom', href: '#', icon: List });
           items.push({ name: 'Planning', href: '#', icon: Calendar });
           items.push({ name: 'Production', href: '/dashboard/vmd/production', icon: Factory });
@@ -208,10 +217,10 @@ export default function DynamicSidebar() {
                   <MenuItem
                     icon={<Icon style={{ width: 18, height: 18, flexShrink: 0, color: hasActiveChild ? '#be185d' : '#4b5563' }} />}
                     label={item.name} collapsed={collapsed} active={hasActiveChild}
-                    onClick={() => setSamplesExpanded(p => !p)}
-                    suffix={<ChevronDown style={{ width: 13, height: 13, flexShrink: 0, color: '#9ca3af', transform: samplesExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }} />}
+                    onClick={() => toggleMenu(item.name)}
+                    suffix={<ChevronDown style={{ width: 13, height: 13, flexShrink: 0, color: '#9ca3af', transform: expandedMenus[item.name] ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }} />}
                   />
-                  {!collapsed && samplesExpanded && (
+                  {!collapsed && expandedMenus[item.name] && (
                     <div style={{ marginLeft: 14, paddingLeft: 10, borderLeft: '2px solid #e5e7eb', marginTop: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
                       {item.children.map((child, ci) => {
                         const CIcon = child.icon;
