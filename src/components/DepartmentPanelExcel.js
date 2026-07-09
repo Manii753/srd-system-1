@@ -314,6 +314,7 @@ export default function DepartmentPanelExcel({
         for (const dept of ['vmd', 'cad', 'commercial', 'mmc', 'global']) {
           try {
             const res = await fetch(`/api/newField?department=${dept}`);
+            if (!res.ok) { console.warn(`newField?department=${dept} returned ${res.status}`); continue; }
             const data = await res.json();
             if (Array.isArray(data)) {
               data.forEach(f => {

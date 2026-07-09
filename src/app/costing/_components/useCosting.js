@@ -19,6 +19,7 @@ export function useCosting(srdId) {
     setError(null);
     try {
       const res  = await fetch(`/api/costing/${srdId}`);
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Failed to load costing');
 
@@ -31,6 +32,7 @@ export function useCosting(srdId) {
         // Delete the stale doc and reload — server will recreate with new schema
         await fetch(`/api/costing/${srdId}`, { method: 'DELETE' });
         const res2  = await fetch(`/api/costing/${srdId}`);
+        if (!res2.ok) throw new Error(`Server error ${res2.status}`);
         const json2 = await res2.json();
         if (json2.success) {
           setCosting(json2.data);
@@ -60,6 +62,7 @@ export function useCosting(srdId) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type, action, data, author }),
       });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
       const json = await res.json();
       if (json.success) setCosting(json.data);
       return json;
