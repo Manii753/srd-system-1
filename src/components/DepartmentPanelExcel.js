@@ -2230,11 +2230,9 @@ export default function DepartmentPanelExcel({
                   );
                 }
 
-                const isFieldActive = fieldDef.active !== false; // Active by default if property missing
-                // Specs (global dept) are viewable by all but only editable by admin/vmd
+                const isFieldActive = fieldDef.active !== false;
                 const isGlobalField = fieldDef?.department === 'global';
                 const canEdit = readOnly ? false : (fieldDef.type === 'table' ? isFieldActive : (canEditField(fieldDef.department) && isFieldActive));
-                // For global/specs fields: always render (never block), but canEdit stays as computed
                 const isHeading = fieldDef.type === 'heading';
                 const isHidden = isFieldHidden(fieldDef);
                 const isOptionalEnabled = isOptionalFieldEnabled(fieldIdStr, fieldDef);
@@ -2405,7 +2403,7 @@ export default function DepartmentPanelExcel({
 
               {/* Status Update Section - Hidden in readOnly mode */}
               {!readOnly && (
-                <div className=" border-transparent p-3 hidden">
+                <div className="border-transparent p-3">
                   <div className="grid grid-cols-6 gap-2 items-end">
                     <div>
                       <Label className="text-app-text font-medium text-gray-700">Department</Label>
