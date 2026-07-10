@@ -16,18 +16,6 @@ function PreCostingContent() {
   const srdId = searchParams.get('srdId');
   const { costing, srd, loading, error, saving, mutate } = useCosting(srdId);
 
-  if (!srdId) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-        <AlertCircle size={32} className="text-amber-400" />
-        <p className="text-gray-600 text-sm">No SRD selected.</p>
-        <Link href="/costing" className="text-blue-600 hover:underline text-sm font-medium">
-          ← Back to Costing
-        </Link>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -56,8 +44,12 @@ function PreCostingContent() {
           <ArrowLeft size={14} /> Costing
         </Link>
         <span>/</span>
-        <span className="font-medium text-gray-800">{srd?.refNo}</span>
-        <span>/</span>
+        {srd?.refNo && (
+          <>
+            <span className="font-medium text-gray-800">{srd.refNo}</span>
+            <span>/</span>
+          </>
+        )}
         <span className="text-blue-700 font-semibold flex items-center gap-1">
           <ClipboardList size={13} /> Pre-Costing
         </span>

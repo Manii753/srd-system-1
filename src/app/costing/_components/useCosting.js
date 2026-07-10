@@ -54,7 +54,7 @@ export function useCosting(srdId) {
   useEffect(() => { load(); }, [load]);
 
   const mutate = useCallback(async (type, action, data, author) => {
-    if (!srdId) return { success: false };
+    if (!srdId) return { success: false, error: 'No SRD linked — select an SRD to save.' };
     setSaving(true);
     try {
       const res  = await fetch(`/api/costing/${srdId}`, {
