@@ -107,7 +107,7 @@ export default function DynamicSidebar() {
             { name: 'Post-Costing', href: '/costing/post', icon: DollarSign },
             { name: 'All Costing',  href: '/costing',      icon: DollarSign },
           ]},
-          { name: 'Bom', href: '#', icon: List },
+          { name: 'BOM', href: '/bom', icon: List },
           { name: 'Planning', href: '#', icon: Calendar },
           { name: 'Production', href: '/dashboard/production-manager', icon: Factory },
           { name: 'All SRDs', href: '/srd', icon: FileText },
@@ -149,7 +149,7 @@ export default function DynamicSidebar() {
             { name: 'Post-Costing', href: '/costing/post', icon: DollarSign },
             { name: 'All Costing',  href: '/costing',      icon: DollarSign },
           ]});
-          items.push({ name: 'Bom', href: '#', icon: List });
+          items.push({ name: 'BOM', href: '/bom', icon: List });
           items.push({ name: 'Planning', href: '#', icon: Calendar });
           items.push({ name: 'Production', href: '/dashboard/vmd/production', icon: Factory });
         }

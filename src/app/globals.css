@@ -278,3 +278,11 @@
   );
   background-size: 1000px 100%;
 }
+
+/* ─── BOM Print Styles ─────────────────────────────────────────────────────── */
+@media print {
+  body * { visibility: hidden; }
+  #bom-print, #bom-print * { visibility: visible; }
+  #bom-print { position: fixed; inset: 0; overflow: visible; }
+  .print\:hidden { display: none !important; }
+}
