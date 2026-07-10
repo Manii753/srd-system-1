@@ -2399,10 +2399,8 @@ export default function DepartmentPanelExcel({
           </div>
 
           {/* Approval Sections - Rendered inside grid on last page */}
-          {currentSection?.includeApprovals && (
+          {/* {currentSection?.includeApprovals && (
             <>
-
-              {/* Status Update Section - Hidden in readOnly mode */}
               {!readOnly && (
                 <div className="border-transparent p-3">
                   <div className="grid grid-cols-6 gap-2 items-end">
@@ -2468,10 +2466,8 @@ export default function DepartmentPanelExcel({
                   </p>
                 </div>
               )}
-
-              {/* DispatchPanel removed - now rendered separately in page.js */}
             </>
-          )}
+          )} */}
         </div>
         {/* Pagination Controls */}
         {sections.length > 1 && (
