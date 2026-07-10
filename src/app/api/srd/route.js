@@ -6,6 +6,7 @@ import User from '@/models/User';
 import Notification from '@/models/Notification';
 import Field from '@/models/Field';
 import ProductionStage from '@/models/ProductionStage';
+import Department from '@/models/Department';
 import Buyer from '@/models/Buyer';
 import Dispatch from '@/models/Dispatch';
 import pusher from '@/lib/pusher-server';
@@ -254,7 +255,6 @@ export async function POST(request) {
 
     // Use the status from the request body if it exists, otherwise initialize for all departments
     if (!body.status || (Array.isArray(body.status) && body.status.length === 0)) {
-      const Department = require('@/models/Department').default;
       const allDepartments = await Department.find({});
       const excludedRoles = ['admin', 'production-manager'];
       body.status = allDepartments
