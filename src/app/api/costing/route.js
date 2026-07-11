@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Costing from '@/models/Costing';
+import '@/models/SRD'; // Import to register the SRD schema for populate()
 
 /**
  * GET /api/costing
@@ -50,7 +51,9 @@ export async function GET(request) {
  */
 export async function POST(request) {
   try {
+    console.log('[costing POST] Starting...');
     await dbConnect();
+    console.log('[costing POST] DB connected');
 
     // Auto-increment: find highest existing pocNumber
     const last = await Costing.findOne({ pocNumber: { $ne: null } })
@@ -58,6 +61,7 @@ export async function POST(request) {
       .select('pocNumber')
       .lean();
     const nextPoc = (last?.pocNumber || 0) + 1;
+    console.log('[costing POST] Next POC number:', nextPoc);
 
     const DEFAULT_PRE = {
       currency: 'USD',
@@ -93,17 +97,22 @@ export async function POST(request) {
       status: 'draft', notes: '',
     };
 
-    const costing = await Costing.create({
-      srd: null,
+    console.log('[costing POST] Creating costing document...');
+    // For standalone: omit srd field entirely (undefined) to avoid unique index conflict
+    const costingData = {
       standalone: true,
       pocNumber: nextPoc,
       preCost: DEFAULT_PRE,
       postCost: {},
-    });
+    };
+    // Don't include srd field at all for standalone documents
+    const costing = await Costing.create(costingData);
+    console.log('[costing POST] Created successfully:', costing._id);
 
     return NextResponse.json({ success: true, data: { _id: costing._id, pocNumber: costing.pocNumber } }, { status: 201 });
   } catch (err) {
-    console.error('[costing create POST]', err);
+    console.error('[costing create POST] Error:', err);
+    console.error('[costing create POST] Stack:', err.stack);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }

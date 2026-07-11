@@ -20,8 +20,8 @@ const DEFAULT_BEFORE_WASH_TRIMS = [
   { description: 'Web Elastic Hem', consumption: 0, price: 0, amount: 0 },
 ];
 const DEFAULT_AFTER_WASH_TRIMS = [
-  { description: 'PJ Patch',      consumption: 0,    price: 0, amount: 0 },
-  { description: 'Grand Label',   consumption: 4.0,  price: 0, amount: 0 },
+  { description: 'PU Patch',      consumption: 0,    price: 0, amount: 0 },
+  { description: 'Brand Label',   consumption: 4.0,  price: 0, amount: 0 },
   { description: 'Size Label',    consumption: 1.1,  price: 0, amount: 0 },
   { description: 'Buttons/Metal', consumption: 11.5, price: 0, amount: 0 },
   { description: 'Rivets',        consumption: 8.7,  price: 0, amount: 0 },
@@ -30,7 +30,7 @@ const DEFAULT_AFTER_WASH_TRIMS = [
   { description: 'Buckle',        consumption: 93,   price: 0, amount: 0 },
   { description: 'Draw Cord',     consumption: 15,   price: 0, amount: 0 },
   { description: 'Swing Tag',     consumption: 4,    price: 0, amount: 0 },
-  { description: 'Hans Tag',      consumption: 6,    price: 0, amount: 0 },
+  { description: 'Hang Tag',      consumption: 6,    price: 0, amount: 0 },
   { description: 'Cord',          consumption: 2,    price: 0, amount: 0 },
 ];
 const DEFAULT_PACKAGING = [

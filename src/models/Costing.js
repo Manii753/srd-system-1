@@ -84,7 +84,7 @@ const costingSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'SRD',
     required: false,
-    default: null,
+    // No default value - field won't exist if not provided
   },
   standalone: { type: Boolean, default: false }, // true = not linked to any SRD
   pocNumber: { type: Number, default: null },     // auto-incrementing: 1, 2, 3...
@@ -94,7 +94,8 @@ const costingSchema = new mongoose.Schema({
   updatedBy: { type: String, default: '' },
 }, { timestamps: true });
 
-// Force model cache bust when schema changes
-delete mongoose.models['Costing'];
+// Create sparse unique index on srd - allows multiple null values
+// Only non-null srd values must be unique (one costing per SRD)
+costingSchema.index({ srd: 1 }, { unique: true, sparse: true });
 
 export default mongoose.models.Costing || mongoose.model('Costing', costingSchema);
