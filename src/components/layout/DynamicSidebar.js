@@ -103,7 +103,7 @@ export default function DynamicSidebar() {
           { name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
           { name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren },
           { name: 'Cost Sheets', icon: DollarSign, isSubmenu: true, children: [
-            { name: 'Pre-Costing',  href: '/costing/pre',  icon: DollarSign },
+            // { name: 'Pre-Costing',  href: '/costing/pre',  icon: DollarSign },  // commented out for now
             { name: 'Post-Costing', href: '/costing/post', icon: DollarSign },
             { name: 'All Costing',  href: '/costing',      icon: DollarSign },
           ]},
@@ -145,7 +145,7 @@ export default function DynamicSidebar() {
         if (userRole?.toLowerCase() === 'vmd') {
           items.push({ name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren });
           items.push({ name: 'Cost Sheets', icon: DollarSign, isSubmenu: true, children: [
-            { name: 'Pre-Costing',  href: '/costing/pre',  icon: DollarSign },
+            // { name: 'Pre-Costing',  href: '/costing/pre',  icon: DollarSign },  // commented out for now
             { name: 'Post-Costing', href: '/costing/post', icon: DollarSign },
             { name: 'All Costing',  href: '/costing',      icon: DollarSign },
           ]});
