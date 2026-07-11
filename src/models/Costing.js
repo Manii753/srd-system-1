@@ -83,22 +83,18 @@ const costingSchema = new mongoose.Schema({
   srd: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'SRD',
-    required: true,
-    unique: true,
+    required: false,
+    default: null,
   },
+  standalone: { type: Boolean, default: false }, // true = not linked to any SRD
+  pocNumber: { type: Number, default: null },     // auto-incrementing: 1, 2, 3...
   preCost:  { type: costingDataSchema, default: () => ({}) },
   postCost: { type: costingDataSchema, default: () => ({}) },
   createdBy: { type: String, default: '' },
   updatedBy: { type: String, default: '' },
 }, { timestamps: true });
 
-// Force model cache bust when schema changes — delete cached model
-if (mongoose.models.Costing) {
-  // Check if the cached model has the new schema fields
-  const cachedPaths = mongoose.models.Costing.schema.paths;
-  if (!cachedPaths['preCost.fabrics'] && !cachedPaths['postCost.fabrics']) {
-    delete mongoose.models.Costing;
-  }
-}
+// Force model cache bust when schema changes
+delete mongoose.models['Costing'];
 
 export default mongoose.models.Costing || mongoose.model('Costing', costingSchema);

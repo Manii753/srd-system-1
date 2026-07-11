@@ -348,6 +348,17 @@ export async function GET(request, { params }) {
     await dbConnect();
     const { srdId } = await params;
 
+    // First: check if this is a standalone costing doc (id is a Costing _id)
+    let standaloneCosting = await Costing.findById(srdId).lean();
+    if (standaloneCosting?.standalone) {
+      return NextResponse.json({
+        success: true,
+        data: standaloneCosting,
+        srd: null,
+        pocNumber: standaloneCosting.pocNumber,
+      });
+    }
+
     const srd = await SRD.findById(srdId)
       .select('refNo title createdAt dynamicFields BuyerDetails')
       .populate('BuyerDetails', 'name')
@@ -405,7 +416,13 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ success: false, error: 'type must be "pre" or "post"' }, { status: 400 });
     }
 
-    let costing = await Costing.findOne({ srd: srdId });
+    // Try standalone costing by _id first
+    let costing = await Costing.findById(srdId);
+    if (!costing || !costing.standalone) {
+      // Fall back to SRD-linked costing
+      costing = await Costing.findOne({ srd: srdId });
+    }
+
     if (!costing) {
       const srd = await SRD.findById(srdId)
         .select('refNo createdAt dynamicFields BuyerDetails')
@@ -462,7 +479,6 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
-
 // ─── DELETE — wipe costing doc so GET recreates it fresh from SRD ────────────
 
 export async function DELETE(request, { params }) {

@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
 export function useCosting(srdId) {
   const [costing, setCosting] = useState(null);
   const [srd, setSrd]         = useState(null);
+  const [pocNumber, setPocNumber] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
   const [saving, setSaving]   = useState(false);
@@ -37,12 +38,14 @@ export function useCosting(srdId) {
         if (json2.success) {
           setCosting(json2.data);
           setSrd(json2.srd);
+          setPocNumber(json2.data?.pocNumber ?? json2.pocNumber ?? null);
         } else {
           throw new Error(json2.error || 'Failed to recreate costing');
         }
       } else {
         setCosting(json.data);
         setSrd(json.srd);
+        setPocNumber(json.data?.pocNumber ?? json.pocNumber ?? null);
       }
     } catch (err) {
       setError(err.message);
@@ -54,7 +57,7 @@ export function useCosting(srdId) {
   useEffect(() => { load(); }, [load]);
 
   const mutate = useCallback(async (type, action, data, author) => {
-    if (!srdId) return { success: false, error: 'No SRD linked — select an SRD to save.' };
+    if (!srdId) return { success: false, error: 'No costing ID provided.' };
     setSaving(true);
     try {
       const res  = await fetch(`/api/costing/${srdId}`, {
@@ -73,5 +76,5 @@ export function useCosting(srdId) {
     }
   }, [srdId]);
 
-  return { costing, srd, loading, error, saving, reload: load, mutate };
+  return { costing, srd, pocNumber, loading, error, saving, reload: load, mutate };
 }

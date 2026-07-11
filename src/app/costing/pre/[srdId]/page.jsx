@@ -11,7 +11,7 @@ import { useCosting } from '../../_components/useCosting';
 
 function PreCostingDetailContent() {
   const { srdId } = useParams();
-  const { costing, srd, loading, error, saving, mutate } = useCosting(srdId);
+  const { costing, srd, pocNumber, loading, error, saving, mutate } = useCosting(srdId);
 
   if (!srdId) {
     return (
@@ -49,14 +49,9 @@ function PreCostingDetailContent() {
           <ArrowLeft size={14} /> Pre-Costing
         </Link>
         <span>/</span>
-        {srd?.refNo && (
-          <>
-            <span className="font-medium text-gray-800">{srd.refNo}</span>
-            <span>/</span>
-          </>
-        )}
         <span className="text-blue-700 font-semibold flex items-center gap-1">
-          <ClipboardList size={13} /> Pre-Costing
+          <ClipboardList size={13} />
+          {pocNumber ? `POC-${pocNumber}` : srd?.refNo || 'Pre-Costing'}
         </span>
       </div>
 
@@ -64,6 +59,7 @@ function PreCostingDetailContent() {
         type="pre"
         costData={costing?.preCost}
         srd={srd}
+        pocNumber={pocNumber}
         onSave={mutate}
         saving={saving}
       />
