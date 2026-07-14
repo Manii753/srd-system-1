@@ -3,18 +3,25 @@ import { Loader2, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
-const DispatchCardPrint = ({ srd }) => {
+const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
   const [isPrinting, setIsPrinting] = useState(false);
 
   const handlePrint = async () => {
     setIsPrinting(true);
     try {
-      const [fieldsRes, companyRes] = await Promise.all([
+      const [fieldsRes, companyRes, buyerRes] = await Promise.all([
         fetch('/api/dispatchCardFields'),
         fetch('/api/company'),
+        srd.BuyerDetails && typeof srd.BuyerDetails === 'object' 
+          ? Promise.resolve({ json: async () => ({ success: true, data: srd.BuyerDetails }) })
+          : srd.BuyerDetails 
+            ? fetch(`/api/buyers/${srd.BuyerDetails}`)
+            : Promise.resolve({ json: async () => ({ success: false }) })
       ]);
       const { dispatchCardFields } = await fieldsRes.json();
       const company = await companyRes.json();
+      const buyerData = await buyerRes.json();
+      const buyer = buyerData.success ? buyerData.data : null;
 
       const dispatchFieldIds = new Set(dispatchCardFields.map(f => f._id.toString()));
       const filteredFields = (srd.dynamicFields || []).filter(df => {
@@ -22,43 +29,105 @@ const DispatchCardPrint = ({ srd }) => {
         return id && dispatchFieldIds.has(id);
       });
 
-      if (!filteredFields.length) {
+      // Add Date, Buyer and Department as first rows if available
+      const extraRows = [];
+      
+      // Format and display dispatch date if available
+      if (dispatchDate) {
+        try {
+          const date = new Date(dispatchDate);
+          if (!isNaN(date.getTime())) {
+            const formattedDate = date.toLocaleDateString('en-GB', { 
+              day: '2-digit', 
+              month: 'short', 
+              year: 'numeric' 
+            });
+            extraRows.push({ name: 'Date', value: formattedDate, type: 'text' });
+          }
+        } catch (e) {
+          console.error('Error formatting date:', e);
+        }
+      }
+      
+      // Get brand name from dynamic fields
+      const brandField = srd.dynamicFields?.find(f => {
+        const fieldName = typeof f.field === 'object' ? f.field?.name : f.name;
+        return fieldName?.toLowerCase() === 'brand';
+      });
+      const brandName = brandField?.value || buyer?.name || '';
+      
+      if (brandName) {
+        extraRows.push({ name: 'Buyer', value: brandName, type: 'text' });
+      }
+      
+      // Use passed department value or buyer department
+      const deptValue = departmentValue || buyer?.department || '';
+      
+      // Always add Department row (even if empty - will show as dash)
+      extraRows.push({ name: 'Department', value: deptValue || '—', type: 'text' });
+
+      if (!filteredFields.length && !extraRows.length) {
         alert('No dispatch card fields found for this SRD.');
         return;
       }
 
+      // Find and add Color field from "Wash / Color" dynamic field
+      const washColorField = srd.dynamicFields?.find(f => {
+        const fieldName = typeof f.field === 'object' ? f.field?.name : f.name;
+        return fieldName?.toLowerCase() === 'wash / color' || 
+               fieldName?.toLowerCase() === 'wash/color' ||
+               fieldName?.toLowerCase() === 'color';
+      });
+      
+      if (washColorField?.value) {
+        extraRows.push({ name: 'Color', value: washColorField.value, type: 'text' });
+      }
+
       const renderValue = (field) => {
         const val = field.value;
-        if (val === null || val === undefined || val === '') return '-';
+        if (val === null || val === undefined || val === '') return '—';
         if (field.type === 'boolean') return val ? 'Yes' : 'No';
         if (field.type === 'image') {
           const imgs = Array.isArray(val) ? val : [val];
           return imgs.map(img => {
             const src = typeof img === 'object' ? (img.url || img.path || '') : img;
-            return `<img src="${src}" style="max-height:40px;max-width:80px;object-fit:contain;" />`;
+            return `<img src="${src}" style="max-height:8mm;max-width:25mm;object-fit:contain;margin:0.5mm;" />`;
           }).join('');
         }
         if (field.type === 'table' && typeof val === 'object' && !Array.isArray(val)) {
           const headers = val.headers || [];
           const rows = val.rows || [];
-          if (!headers.length) return '-';
-          return `<table style="width:100%;border-collapse:collapse;font-size:9px;">
-            <thead><tr>${headers.map(h => `<th style="border:1px solid #000;padding:2px 4px;">${typeof h === 'object' ? (h.name || '') : h}</th>`).join('')}</tr></thead>
-            <tbody>${rows.map(row => `<tr>${(Array.isArray(row) ? row : []).map(cell => `<td style="border:1px solid #000;padding:2px 4px;">${cell || ''}</td>`).join('')}</tr>`).join('')}</tbody>
+          if (!headers.length) return '—';
+          return `<table style="width:100%;border-collapse:collapse;font-size:6pt;margin:0.5mm 0;">
+            <thead><tr>${headers.map(h => `<th style="border:0.5px solid #999;padding:0.5mm 1mm;background:#f5f5f5;font-size:6pt;">${typeof h === 'object' ? (h.name || '') : h}</th>`).join('')}</tr></thead>
+            <tbody>${rows.map(row => `<tr>${(Array.isArray(row) ? row : []).map(cell => `<td style="border:0.5px solid #999;padding:0.5mm 1mm;font-size:6pt;">${cell || ''}</td>`).join('')}</tr>`).join('')}</tbody>
           </table>`;
         }
         return String(val);
       };
 
-      const rowsHTML = filteredFields.map(f => `
-        <tr>
-          <td style="border:1.5px solid #000;padding:4px 8px;font-weight:bold;white-space:nowrap;width:40%;">${f.name || ''}</td>
-          <td style="border:1.5px solid #000;padding:4px 8px;text-align:center;">${renderValue(f)}</td>
-        </tr>`).join('');
+      // Map field names for display - rename "Sample Request Size" to "Sample Size"
+      // Also filter out "Brand" field since it's duplicate of Buyer
+      const rowsHTML = filteredFields
+        .filter(f => f.name !== 'Brand') // Remove Brand field
+        .map(f => {
+          const displayName = f.name === 'Sample Request Size' ? 'Sample Size' : f.name;
+          return `
+        <div class="info-row">
+          <div class="label">${displayName || ''}</div>
+          <div class="value value-highlight">${renderValue(f)}</div>
+        </div>`;
+        }).join('');
 
-      const logoHTML = company.logo
-        ? `<img src="${company.logo}" alt="logo" style="max-height:35px;max-width:70px;object-fit:contain;" />`
-        : '<span style="font-size:20px;font-weight:bold;">LOGO</span>';
+      // Prepend buyer and department rows
+      const allRowsHTML = [
+        ...extraRows.map(r => `
+          <div class="info-row">
+            <div class="label">${r.name}</div>
+            <div class="value value-highlight">${r.value}</div>
+          </div>`),
+        rowsHTML
+      ].join('');
 
       const printWindow = window.open('', '_blank');
       if (!printWindow) { alert('Please allow popups to print.'); return; }
@@ -68,34 +137,86 @@ const DispatchCardPrint = ({ srd }) => {
 <head>
   <title>Dispatch Card</title>
   <style>
-    @page { size: 7.4cm 7.4cm; margin: 0.2cm; }
+    @page { size: 6.5cm 9cm; margin: 0; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      width: 7.4cm;
-      font-family: Arial, sans-serif;
-      font-size: 10px;
+      width: 6.5cm;
+      height: 9cm;
+      font-family: 'Arial', 'Helvetica', sans-serif;
+      font-size: 8pt;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+      color: #000;
+      line-height: 1.2;
+    }
+    .card {
+      width: 100%;
+      height: 100%;
+      border: 2px solid #000;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      background: #000;
+      color: #fff;
+      padding: 2.5mm 2mm;
+      text-align: center;
+      border-bottom: 2px solid #000;
+    }
+    .card-title {
+      font-size: 9pt;
+      font-weight: bold;
+      letter-spacing: 1.5px;
+    }
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .info-row {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+      min-height: 5.5mm;
+    }
+    .info-row:last-child {
+      border-bottom: none;
+    }
+    .label {
+      width: 35%;
+      background: #f0f0f0;
+      padding: 1mm 1.5mm;
+      font-weight: 600;
+      font-size: 7pt;
+      border-right: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+    }
+    .value {
+      flex: 1;
+      padding: 1mm 1.5mm;
+      font-size: 7.5pt;
+      display: flex;
+      align-items: center;
+      word-break: break-word;
+    }
+    .value-highlight {
+      font-weight: 600;
+      color: #000;
     }
   </style>
 </head>
 <body>
-      <div style="border:1.5px solid #000;border-bottom:none;border-left:none;border-left:none;display:flex; justify-content: space-between;">
-      <div style="width:70%;display:flex;flex-direction:column;justify-content: center;">
-       <div style="border-right: 1.5px solid #000;border-left: 1.5px solid #000;">
-          <div style="font-size:11px;font-weight:bold;padding:5px 8px;text-transform:uppercase;border-bottom:1.5px solid #000;">
-            ${company.name || 'Company Name'}
-          </div>
-          <div style="font-size:11px;font-weight:bold;padding:5px 8px;">
-            SAMPLE DISPATCH CARD
-          </div>
-        </div>
-      </div>
-      <div style=";display:flex;flex-direction:column;justify-content: center; padding:5px 8px; width:30%;">${logoHTML}</div>
-      </div>
-  <table style="width:100%;border-collapse:collapse;">
-    ${rowsHTML}
-  </table>
+  <div class="card">
+    <!-- Header -->
+    <div class="header">
+      <div class="card-title">SAMPLE DISPATCH CARD</div>
+    </div>
+    
+    <!-- Content -->
+    <div class="content">
+      ${allRowsHTML}
+    </div>
+  </div>
   <script>window.onload = () => window.print();</script>
 </body>
 </html>`);

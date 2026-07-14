@@ -1070,11 +1070,70 @@ export default function DepartmentPanelExcel({
     });
   }, [fields, hasUnsavedChanges, isAutoSaving, isFieldHidden, srd, toast]);
 
+  // Fetch buyer and dispatch details
+  const [buyerDepartment, setBuyerDepartment] = useState('');
+  const [dispatchDate, setDispatchDate] = useState('');
+  
+  useEffect(() => {
+    const fetchDispatchData = async () => {
+      // Fetch buyer department
+      if (srd?.BuyerDetails) {
+        try {
+          // If BuyerDetails is already an object with department, use it directly
+          if (typeof srd.BuyerDetails === 'object' && srd.BuyerDetails !== null) {
+            setBuyerDepartment(srd.BuyerDetails.department || '');
+          } else {
+            // Otherwise fetch it from API
+            const buyerId = typeof srd.BuyerDetails === 'object' ? srd.BuyerDetails?._id : srd.BuyerDetails;
+            if (buyerId) {
+              const response = await fetch(`/api/buyers/${buyerId}`);
+              const data = await response.json();
+              if (data.success && data.data) {
+                setBuyerDepartment(data.data.department || '');
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch buyer department:', error);
+        }
+      } else {
+        setBuyerDepartment('');
+      }
+      
+      // Get dispatch date from DispatchDetails
+      if (srd?.DispatchDetails) {
+        if (typeof srd.DispatchDetails === 'object' && srd.DispatchDetails !== null && srd.DispatchDetails.sampleDispatchDate) {
+          setDispatchDate(srd.DispatchDetails.sampleDispatchDate);
+        } else if (srd.sampleDispatchDate) {
+          // Fallback to top-level sampleDispatchDate
+          setDispatchDate(srd.sampleDispatchDate);
+        }
+      } else {
+        setDispatchDate('');
+      }
+    };
+    
+    fetchDispatchData();
+  }, [
+    srd?._id, 
+    srd?.BuyerDetails, 
+    srd?.DispatchDetails, 
+    srd?.sampleDispatchDate,
+    // Track the actual department value if BuyerDetails is an object
+    typeof srd?.BuyerDetails === 'object' ? srd?.BuyerDetails?.department : null,
+    // Track the actual date value if DispatchDetails is an object
+    typeof srd?.DispatchDetails === 'object' ? srd?.DispatchDetails?.sampleDispatchDate : null
+  ]);
+
   useEffect(() => {
     if (!onHeaderContent) return;
     onHeaderContent(
       <div className="flex items-center gap-2">
-        <DispatchCardPrint srd={srd} />
+        <DispatchCardPrint 
+          srd={srd} 
+          departmentValue={buyerDepartment} 
+          dispatchDate={dispatchDate}
+        />
         <Button
           onClick={handlePrint}
           size="sm"
