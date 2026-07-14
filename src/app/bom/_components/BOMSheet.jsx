@@ -318,7 +318,7 @@ export default function BOMSheet({ bomData, srd, company, onSave, saving, onRese
   ];
 
   return (
-    <div className="space-y-3 print:space-y-2">
+    <div className="space-y-3 print:space-y-1">
 
       {/* ── Action bar (hidden on print) ── */}
       <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
@@ -366,7 +366,7 @@ export default function BOMSheet({ bomData, srd, company, onSave, saving, onRese
       </div>
 
       {/* ── BOM Document ── */}
-      <div className="bg-white border border-gray-300 rounded-lg overflow-hidden shadow-sm print:shadow-none print:border-0" id="bom-print">
+      <div className="bg-white border border-gray-300 rounded-lg overflow-hidden shadow-sm print:shadow-none print:border-2 print:border-gray-400" id="bom-print">
 
         {/* ── Company Header ── */}
         <div className="border-b-2 border-gray-800 px-4 py-3 flex items-start justify-between bg-white">
@@ -462,7 +462,7 @@ export default function BOMSheet({ bomData, srd, company, onSave, saving, onRese
         </div>
 
         {/* ── Footer ── */}
-        <div className="grid grid-cols-3 divide-x divide-gray-200 border-t border-gray-300">
+        <div className="grid grid-cols-3 divide-x divide-gray-200 border-t border-gray-300 print:page-break-after-always">
           {[
             { label: 'Prepared by',  key: 'preparedBy' },
             { label: 'Verified by',  key: 'verifiedBy' },
@@ -476,6 +476,45 @@ export default function BOMSheet({ bomData, srd, company, onSave, saving, onRese
               }
             </div>
           ))}
+        </div>
+
+        {/* ── Page 2: Attached Excel Form & Images ── */}
+        <div className="print:page-break-before-always border-t-2 border-gray-800 p-4 space-y-4">
+          <h3 className="text-sm font-bold uppercase text-gray-700 tracking-widest">Attached Excel Form Details</h3>
+          
+          {/* Images Section */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold text-gray-500 uppercase">EMB Picture</p>
+              <div className="border border-gray-300 rounded-lg h-48 bg-gray-50 flex items-center justify-center">
+                <span className="text-xs text-gray-400">EMB Picture placeholder</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold text-gray-500 uppercase">Wash Pictures</p>
+              <div className="border border-gray-300 rounded-lg h-48 bg-gray-50 flex items-center justify-center">
+                <span className="text-xs text-gray-400">Wash Pictures placeholder</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Excel Specs Placeholder */}
+          <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50 min-h-[400px]">
+            <p className="text-xs text-gray-500 italic">
+              Excel specification sheet will be displayed here. 
+              <br/>
+              This section will show the full SRD dynamic fields data in spreadsheet format.
+            </p>
+          </div>
+
+          {/* QR Code Section */}
+          <div className="flex items-center justify-center py-4">
+            <div className="border-2 border-gray-400 rounded-lg p-3 bg-white">
+              <div className="w-32 h-32 bg-gray-100 flex items-center justify-center">
+                <span className="text-xs text-gray-400">QR Code</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

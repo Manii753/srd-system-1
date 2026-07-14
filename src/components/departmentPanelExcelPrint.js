@@ -1189,16 +1189,17 @@ export async function printDepartmentPanelExcel({
 
     /* Excel Print Styles */
     .excel-container {
-      
-      
+      margin-bottom: 6px;
+      break-inside: avoid;
     }
 
     .excel-title {
-
-      font-size: 11px;
+      font-size: 9px;
       font-weight: 700;
       text-transform: capitalize;
       background: #f3f4f6;
+      padding: 2px 4px;
+      margin-bottom: 2px;
     }
 
     .excel-table-wrapper {
@@ -1211,15 +1212,15 @@ export async function printDepartmentPanelExcel({
       display: flex;
       flex-wrap: wrap;
       align-items: flex-start;
-      gap: 12px;
+      gap: 6px;
       width: 100%;
     }
 
     .excel-sheet-card {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      flex: 1 1 320px;
+      gap: 3px;
+      flex: 1 1 280px;
       min-width: 0;
       break-inside: avoid;
     }
@@ -1230,18 +1231,16 @@ export async function printDepartmentPanelExcel({
 
     .excel-sheet-title {
       text-align: center;
-      font-size: 10px;
+      font-size: 8px;
       font-weight: 700;
-      padding: 3px 6px;
+      padding: 1px 4px;
       background: #f9fafb;
-      
       text-transform: none;
     }
 
     table {
-      
       border-collapse: collapse;
-      
+      font-size: 7px;
     }
 
     table, th, td {
@@ -1249,148 +1248,113 @@ export async function printDepartmentPanelExcel({
     }
 
     th, td {
-      padding: 2px 4px;
+      padding: 1px 2px;
       text-align: left;
       word-wrap: break-word;
-      height: 12px; /* Enforce minimum height for rows */
+      height: 10px;
       vertical-align: middle;
     }
 
     th {
-      font-size: 11px;
+      font-size: 7px;
       font-weight: bold;
       background-color: #f9f9f9;
-      height: 12px; /* Ensure header has same height */
+      height: 10px;
     }
 
     td {
-      font-size: 8px;
+      font-size: 7px;
     }
 
     /* Attachments second page */
     .attachments-page {
       page-break-before: always;
-      
+      max-height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
-
-  
 
     .attachments-flex {
       display: flex;
       gap: 8px;
       width: 100%;
       align-items: flex-start;
+      flex-shrink: 0;
+      flex: 1;
     }
 
     .attachments-col {
       flex: 1;
       min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .attachments-col-excel {
+      flex: 1.2;
+    }
+
+    .attachments-col-images {
+      flex: 0.8;
     }
 
     .attachments-col-title {
-      font-size: 11px;
+      font-size: 9px;
       font-weight: 700;
       color: #333;
       text-transform: uppercase;
-      padding: 4px 6px;
+      padding: 2px 4px;
       background: #f3f4f6;
       border-bottom: 1px solid #ddd;
-      margin-bottom: 6px;
-    }
-
-    .attached-file-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 6px;
-      border-bottom: 0.5px solid #e5e7eb;
-    }
-
-    .attached-file-icon {
-      flex-shrink: 0;
-      width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .attached-file-info {
-      min-width: 0;
-    }
-
-    .attached-file-label {
-      font-size: 10px;
-      font-weight: 700;
-      color: #333;
-      text-transform: capitalize;
-    }
-
-    .attached-file-name {
-      font-size: 9px;
-      color: #666;
-      word-break: break-all;
+      margin-bottom: 3px;
     }
 
     .attached-image-group {
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
 
     .attached-image-label {
-      font-size: 10px;
+      font-size: 8px;
       font-weight: 700;
       color: #333;
       text-transform: capitalize;
-      padding: 2px 6px;
+      padding: 1px 4px;
       background: #f9fafb;
       border-bottom: 0.5px solid #ddd;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
     }
 
     .attached-image-grid {
       display: grid;
       grid-template-columns: repeat(1, 1fr);
-      gap: 4px;
-      padding: 0 4px;
+      gap: 2px;
+      padding: 0 2px;
     }
 
     .attached-img-wrapper {
-      
       background: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      aspect-ratio: 4 / 3;
+      max-height: 140px;
       overflow: hidden;
     }
 
     .attached-img {
       max-width: 100%;
-      max-height: 100%;
-      width: 100%;
-      height: 100%;
+      max-height: 140px;
+      width: auto;
+      height: auto;
       object-fit: contain;
       display: block;
     }
 
-    .attached-file-type {
-      font-size: 8px;
-      font-weight: 700;
-      color: #2563eb;
-      background: #eff6ff;
-      border: 0.5px solid #bfdbfe;
-      border-radius: 2px;
-      padding: 0 3px;
-      text-transform: uppercase;
-      display: inline-block;
-      margin-left: 4px;
-    }
-
     .attachments-empty {
-      font-size: 9px;
+      font-size: 7px;
       color: #999;
       font-style: italic;
-      padding: 8px 6px;
+      padding: 4px;
     }
 
     @media print {
@@ -1416,6 +1380,17 @@ export async function printDepartmentPanelExcel({
 
       .attachments-page {
         page-break-before: always;
+        max-height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .attachments-flex {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        flex: 1;
       }
 
       .attachments-col-title {
@@ -1424,8 +1399,38 @@ export async function printDepartmentPanelExcel({
         background-color: #f3f4f6 !important;
       }
 
-      .attachments-col-files{
-        flex: 2;
+      .attachments-col-excel {
+        flex: 1.2 !important;
+      }
+
+      .attachments-col-images {
+        flex: 0.8 !important;
+      }
+
+      .excel-container {
+        page-break-inside: avoid;
+        max-height: none;
+      }
+
+      .excel-sheet-card {
+        page-break-inside: avoid;
+      }
+
+      .attached-img-wrapper {
+        max-height: 120px !important;
+      }
+
+      .attached-img {
+        max-height: 120px !important;
+      }
+
+      #excel-sections {
+        max-height: 80vh;
+        overflow: hidden;
+      }
+
+      #attached-excel-sections {
+        max-height: none;
       }
      
     }
@@ -1445,17 +1450,11 @@ export async function printDepartmentPanelExcel({
   ${hasAttachments ? `
   <div class="attachments-page">
     <div class="attachments-flex">
-      <div class="attachments-col attachments-col-files">
-        
-        ${attachedFiles.length > 0 ? attachedFiles.map(f => {
-          const ext = f.name.includes('.') ? f.name.split('.').pop().toUpperCase() : '';
-          return `
-          
-        `}).join('') : '<div class="attachments-empty">No file attachments</div>'}
+      <div class="attachments-col attachments-col-excel">
+        <div id="excel-sections"></div>
         <div id="attached-excel-sections"></div>
       </div>
       <div class="attachments-col attachments-col-images">
-        
         ${attachedImages.length > 0 ? attachedImages.map(group => `
           <div class="attached-image-group">
             <div class="attached-image-label">${escapeHtmlAttribute(group.label)}</div>
@@ -1470,10 +1469,9 @@ export async function printDepartmentPanelExcel({
         `).join('') : '<div class="attachments-empty">No image attachments</div>'}
       </div>
     </div>
-    <div id="excel-sections"></div>
     ${srdQrUrl ? `
-      <div class="header-qr" style="margin-top: 12px;">
-        <div class="header-qr-frame">
+      <div class="header-qr" style="margin-top: 6px; display: flex; justify-content: center;">
+        <div class="header-qr-frame" style="width: 100px; height: 70px;">
           <img src="${srdQrUrl}" alt="SRD detail QR code" class="header-qr-image" data-srd-qr loading="eager" decoding="sync" />
         </div>
       </div>
