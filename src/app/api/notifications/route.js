@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Notification from '@/models/Notification';
 import User from '@/models/User';
+import '@/models/SRD'; // Import to register the SRD schema for populate()
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import pusher from '@/lib/pusher-server';

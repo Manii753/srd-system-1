@@ -63,7 +63,7 @@ export default function CostingPage() {
         {/* Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
-            onClick={() => router.push(`/costing/pre${selectedSrd ? `?srdId=${selectedSrd._id}` : ''}`)}
+            onClick={() => router.push(`/costing/pre${selectedSrd ? `/${selectedSrd._id}` : ''}`)}
             className="group flex flex-col items-start p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-blue-400 hover:shadow-md transition-all text-left"
           >
             <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center mb-3 group-hover:bg-blue-100 transition-colors">

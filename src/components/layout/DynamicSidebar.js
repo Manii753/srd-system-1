@@ -104,7 +104,7 @@ export default function DynamicSidebar() {
           { name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren },
           { name: 'Cost Sheets', icon: DollarSign, isSubmenu: true, children: [
             { name: 'Pre-Costing',  href: '/costing/pre',  icon: DollarSign },
-            { name: 'Post-Costing', href: '/costing/post', icon: DollarSign },
+            // { name: 'Post-Costing', href: '/costing/post', icon: DollarSign },  // commented out for now
             { name: 'All Costing',  href: '/costing',      icon: DollarSign },
           ]},
           { name: 'BOM', href: '/bom', icon: List },
@@ -146,7 +146,7 @@ export default function DynamicSidebar() {
           items.push({ name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren });
           items.push({ name: 'Cost Sheets', icon: DollarSign, isSubmenu: true, children: [
             { name: 'Pre-Costing',  href: '/costing/pre',  icon: DollarSign },
-            { name: 'Post-Costing', href: '/costing/post', icon: DollarSign },
+            // { name: 'Post-Costing', href: '/costing/post', icon: DollarSign },  // commented out for now
             { name: 'All Costing',  href: '/costing',      icon: DollarSign },
           ]});
           items.push({ name: 'BOM', href: '/bom', icon: List });

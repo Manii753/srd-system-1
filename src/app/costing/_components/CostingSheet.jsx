@@ -238,7 +238,7 @@ function SummaryRow({ label, value, onChange, canEdit, editable, bold, highlight
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function CostingSheet({ type, costData, srd, onSave, saving }) {
+export default function CostingSheet({ type, costData, srd, pocNumber, onSave, saving }) {
   const { data: session } = useSession();
   const { toast } = useToast();
   const isAdmin = ['admin', 'vmd'].includes(session?.user?.role);
@@ -387,7 +387,11 @@ export default function CostingSheet({ type, costData, srd, onSave, saving }) {
             {/* SRD ref + label row */}
             <tr className="border-b border-gray-200 bg-gray-50">
               <th colSpan={3} className="py-2 px-3 text-left text-xs font-semibold text-gray-700 tracking-wide">
-                {srd?.refNo && <span className="font-mono text-gray-500 mr-2">{srd.refNo}</span>}
+                {pocNumber
+                  ? <span className="font-mono font-bold text-blue-700 mr-2">POC-{pocNumber}</span>
+                  : srd?.refNo
+                    ? <span className="font-mono text-gray-500 mr-2">{srd.refNo}</span>
+                    : null}
                 <span className="text-gray-700">{label}</span>
               </th>
               <th colSpan={2} className="py-2 px-3 text-right">

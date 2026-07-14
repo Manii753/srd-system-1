@@ -122,7 +122,7 @@ const DEFAULTS = {
     { description: 'Web Elastic Hem', consumption: 0, price: 0, amount: 0 },
   ],
   afterWashTrims: [
-    { description: 'PJ Patch',      consumption: 0,    price: 0, amount: 0 },
+    { description: 'PU Patch',      consumption: 0,    price: 0, amount: 0 },
     { description: 'Grand Label',   consumption: 4.0,  price: 0, amount: 0 },
     { description: 'Size Label',    consumption: 1.1,  price: 0, amount: 0 },
     { description: 'Buttons/Metal', consumption: 11.5, price: 0, amount: 0 },
