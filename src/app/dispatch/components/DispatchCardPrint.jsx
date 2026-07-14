@@ -156,17 +156,9 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
       display: flex;
       flex-direction: column;
     }
-    .header {
-      background: #000;
-      color: #fff;
+    .spacer {
       padding: 2.5mm 2mm;
-      text-align: center;
       border-bottom: 2px solid #000;
-    }
-    .card-title {
-      font-size: 9pt;
-      font-weight: bold;
-      letter-spacing: 1.5px;
     }
     .content {
       flex: 1;
@@ -207,10 +199,8 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
 </head>
 <body>
   <div class="card">
-    <!-- Header -->
-    <div class="header">
-      <div class="card-title">SAMPLE DISPATCH CARD</div>
-    </div>
+    <!-- Spacer to maintain top margin -->
+    <div class="spacer"></div>
     
     <!-- Content -->
     <div class="content">
