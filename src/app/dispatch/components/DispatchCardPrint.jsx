@@ -137,21 +137,23 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
 <head>
   <title>Dispatch Card</title>
   <style>
-    @page { size: 9cm 9cm; margin: 0; }
+    @page { size: 6.5cm 9cm; margin: 0; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      width: 9cm;
-      height: 6.5cm;
-      font-family: 'Arial', 'Helvetica', sans-serif;
+      width: 6.5cm;
+      height: 9cm;
+      font-family: Arial, Helvetica, sans-serif;
       font-size: 8pt;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
       color: #000;
-      line-height: 1.2;
+      line-height: 1.3;
     }
     .card {
       width: 6.5cm;
+      height: 8cm;
       border: 2px solid #000;
+      transform: rotate(90deg);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -210,7 +212,6 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
 </html>`);
       printWindow.document.close();
       printWindow.focus();
-      setTimeout(() => { try { printWindow.print(); } catch(e) {} }, 300);
     } catch (err) {
       console.error('Print failed', err);
       alert('Failed to print dispatch card');
