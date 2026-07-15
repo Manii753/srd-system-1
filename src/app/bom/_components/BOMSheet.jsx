@@ -320,6 +320,21 @@ export default function BOMSheet({ bomData, srd, company, onSave, saving, onRese
   return (
     <div className="space-y-3 print:space-y-1">
 
+      {/* ── Scoped print styles (only applied when BOMSheet is mounted) ── */}
+      <style>{`
+        @media print {
+          @page { size: A4 portrait; margin: 10mm; }
+          body > * { visibility: hidden !important; }
+          #bom-print, #bom-print * { visibility: visible !important; }
+          #bom-print {
+            position: absolute; left: 0; top: 0; width: 100%; overflow: visible;
+            transform: scale(0.75); transform-origin: top left;
+          }
+          #bom-print table { font-size: 9px !important; }
+          #bom-print td, #bom-print th { padding: 2px 4px !important; }
+        }
+      `}</style>
+
       {/* ── Action bar (hidden on print) ── */}
       <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
         <div className="flex items-center gap-2">

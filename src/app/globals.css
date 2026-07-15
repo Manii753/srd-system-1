@@ -279,37 +279,8 @@
   background-size: 1000px 100%;
 }
 
-/* ─── BOM Print Styles ─────────────────────────────────────────────────────── */
+/* ─── Print Utilities ─────────────────────────────────────────────────────── */
 @media print {
-  @page {
-    size: A4 portrait;
-    margin: 10mm;
-  }
-  
-  body * { visibility: hidden; }
-  #bom-print, #bom-print * { visibility: visible; }
-  #bom-print { 
-    position: absolute; 
-    left: 0;
-    top: 0;
-    width: 100%;
-    overflow: visible;
-  }
-  
-  /* Scale down to fit page */
-  #bom-print {
-    transform: scale(0.75);
-    transform-origin: top left;
-  }
-  
-  /* Reduce padding and spacing for print */
-  #bom-print table {
-    font-size: 9px !important;
-  }
-  #bom-print td, #bom-print th {
-    padding: 2px 4px !important;
-  }
-  
   .print\:hidden { display: none !important; }
   .print\:space-y-0 { margin-top: 0 !important; margin-bottom: 0 !important; }
 }

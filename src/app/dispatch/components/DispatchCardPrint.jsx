@@ -137,10 +137,11 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
 <head>
   <title>Dispatch Card</title>
   <style>
-    @page { size: 6.5cm 9cm; margin: 0; }
-    * { margin: 5; padding: 2; box-sizing: border-box; }
+    @page { size: 9cm 6.5cm; margin: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      width: 6.5cm;
+      width: 9cm;
+      height: 6.5cm;
       font-family: 'Arial', 'Helvetica', sans-serif;
       font-size: 8pt;
       -webkit-print-color-adjust: exact;
@@ -149,17 +150,11 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
       line-height: 1.2;
     }
     .card {
-      width: 9cm;
+      width: 6.5cm;
       border: 2px solid #000;
       display: flex;
       flex-direction: column;
-      transform: rotate(90deg);
-      transform-origin: top left;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      margin-left: -4.5cm;
-      margin-top: -3.25cm;
+      overflow: hidden;
     }
     .spacer {
       padding: 2.5mm 2mm;
@@ -169,6 +164,7 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
       flex: 1;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
     .info-row {
       display: flex;
@@ -204,18 +200,17 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
 </head>
 <body>
   <div class="card">
-    <!-- Spacer to maintain top margin -->
     <div class="spacer"></div>
-    
-    <!-- Content -->
     <div class="content">
       ${allRowsHTML}
     </div>
   </div>
-  <script>window.onload = () => window.print();</script>
+  <script>window.print();</script>
 </body>
 </html>`);
       printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => { try { printWindow.print(); } catch(e) {} }, 300);
     } catch (err) {
       console.error('Print failed', err);
       alert('Failed to print dispatch card');
