@@ -137,11 +137,11 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
 <head>
   <title>Dispatch Card</title>
   <style>
-    @page { size: 9cm 6.5cm; margin: 0; }
+    @page { size: 6.5cm 9cm; margin: 0; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      width: 9cm;
-      height: 6.5cm;
+      width: 6.5cm;
+      height: 9cm;
       font-family: 'Arial', 'Helvetica', sans-serif;
       font-size: 8pt;
       -webkit-print-color-adjust: exact;
@@ -150,11 +150,18 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
       line-height: 1.2;
     }
     .card {
-      width: 100%;
-      height: 100%;
+      width: 9cm;
+      height: 6.5cm;
       border: 2px solid #000;
       display: flex;
       flex-direction: column;
+      transform: rotate(90deg);
+      transform-origin: top left;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      margin-left: -4.5cm;
+      margin-top: -3.25cm;
     }
     .spacer {
       padding: 2.5mm 2mm;
