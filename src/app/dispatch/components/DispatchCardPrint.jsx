@@ -138,10 +138,9 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
   <title>Dispatch Card</title>
   <style>
     @page { size: 6.5cm 9cm; margin: 0; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin: 5; padding: 2; box-sizing: border-box; }
     html, body {
       width: 6.5cm;
-      height: 9cm;
       font-family: 'Arial', 'Helvetica', sans-serif;
       font-size: 8pt;
       -webkit-print-color-adjust: exact;
