@@ -155,6 +155,7 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
       border: 2px solid #000;
       display: flex;
       flex-direction: column;
+      margin:2px;
       overflow: hidden;
     }
     .spacer {
