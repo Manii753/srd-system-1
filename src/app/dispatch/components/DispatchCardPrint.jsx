@@ -162,10 +162,6 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
       margin:2px;
       overflow: hidden;
     }
-    .spacer {
-      padding: 2.5mm 2mm;
-      border-bottom: 2px solid #000;
-    }
     .content {
       flex: 1;
       display: flex;
@@ -206,7 +202,6 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
 </head>
 <body>
   <div class="card">
-    <div class="spacer"></div>
     <div class="content">
       ${allRowsHTML}
     </div>
