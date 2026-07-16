@@ -160,6 +160,7 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
       display: flex;
       flex-direction: column;
       margin:2px;
+      margin-top 10px
       overflow: hidden;
     }
     .content {
@@ -167,6 +168,7 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      padding-top: 3mm;
     }
     .info-row {
       display: flex;
