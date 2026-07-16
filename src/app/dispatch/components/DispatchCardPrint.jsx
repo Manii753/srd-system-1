@@ -36,6 +36,7 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
       const effectiveDate = dispatchDate
         || (srd?.DispatchDetails?.sampleDispatchDate)
         || (srd?.sampleDispatchDate)
+        || (srd?.dispatchDate)
         || '';
       if (effectiveDate) {
         try {
@@ -168,12 +169,15 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      padding-top: 3mm;
+      padding-top: 5mm;
     }
     .info-row {
       display: flex;
       border-bottom: 1px solid #000;
       min-height: 5.5mm;
+    }
+    .info-row:first-child {
+      border-top: 1px solid #000;
     }
     .info-row:last-child {
       border-bottom: 1px solid #000;
