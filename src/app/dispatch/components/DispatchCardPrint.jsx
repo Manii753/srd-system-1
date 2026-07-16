@@ -151,7 +151,7 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
     }
     .card {
       width: 6.3cm;
-      height: 8.7cm;
+      height: 8.9cm;
       border: 2px solid #000;
       display: flex;
       flex-direction: column;
