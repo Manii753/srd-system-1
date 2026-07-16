@@ -33,9 +33,13 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
       const extraRows = [];
       
       // Format and display dispatch date if available
-      if (dispatchDate) {
+      const effectiveDate = dispatchDate
+        || (srd?.DispatchDetails?.sampleDispatchDate)
+        || (srd?.sampleDispatchDate)
+        || '';
+      if (effectiveDate) {
         try {
-          const date = new Date(dispatchDate);
+          const date = new Date(effectiveDate);
           if (!isNaN(date.getTime())) {
             const formattedDate = date.toLocaleDateString('en-GB', { 
               day: '2-digit', 
@@ -170,7 +174,7 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
     }
     .info-row {
       display: flex;
-      border-bottom: 1px solid #ddd;
+      border-bottom: 1px solid #000;
       min-height: 5.5mm;
     }
     .info-row:last-child {
@@ -178,11 +182,11 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
     }
     .label {
       width: 35%;
-      background: #f0f0f0;
+      background: #fff;
       padding: 1mm 1.5mm;
       font-weight: 600;
       font-size: 7pt;
-      border-right: 1px solid #ddd;
+      border-right: 1px solid #000;
       display: flex;
       align-items: center;
     }
