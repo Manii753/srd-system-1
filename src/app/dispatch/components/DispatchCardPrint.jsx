@@ -178,7 +178,7 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
       min-height: 5.5mm;
     }
     .info-row:last-child {
-      border-bottom: none;
+      border-bottom: 1px solid #000;
     }
     .label {
       width: 35%;
