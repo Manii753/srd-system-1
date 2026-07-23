@@ -3,68 +3,77 @@ import mongoose from 'mongoose';
 // A single item row: description + consumption/qty + price + amount (auto)
 const costRowSchema = new mongoose.Schema({
   description: { type: String, default: '' },
+  code:        { type: String, default: '' },  // Fabric code (for fabrics section)
   consumption:  { type: Number, default: 0 },  // CONSUMP column
   price:        { type: Number, default: 0 },  // PRICE column
   amount:       { type: Number, default: 0 },  // AMOUNT = consumption * price (auto)
+}, { _id: false });
+
+const imageSchema = new mongoose.Schema({
+  url:     { type: String, default: '' },
+  caption: { type: String, default: '' },
 }, { _id: false });
 
 const costingDataSchema = new mongoose.Schema({
   currency: { type: String, default: 'USD' },
 
   // ── Header info ──────────────────────────────────────────────────
-  date:   { type: String, default: '' },
-  buyer:  { type: String, default: '' },
-  style:  { type: String, default: '' },
-  fit:    { type: String, default: '' },
-  fabric: { type: String, default: '' },
-  wash:   { type: String, default: '' },
+  date:             { type: String, default: '' },
+  brand:            { type: String, default: '' },
+  fitSpecsCode:     { type: String, default: '' },
+  fit:              { type: String, default: '' },
+  description:      { type: String, default: '' },
+  fabricType:       { type: String, default: '' },
+  embellishmentYesNo: { type: String, default: 'No' },  // "Yes" or "No"
+  costingBase:      { type: String, default: 'Image' },  // "Image" or "CAD"
+  sampleSize:       { type: String, default: '' },
+  // Legacy fields (kept for backward compatibility)
+  buyer:            { type: String, default: '' },
+  style:            { type: String, default: '' },
+  fabric:           { type: String, default: '' },
+  wash:             { type: String, default: '' },
 
   // ── FABRICS ──────────────────────────────────────────────────────
   fabrics: { type: [costRowSchema], default: [] },
-  // default rows: Fabric, Fabric 2, Pocketing
 
   // ── BEFORE WASH TRIMS ────────────────────────────────────────────
   beforeWashTrims: { type: [costRowSchema], default: [] },
-  // default rows from SRD field or: Thread, Wash Care Label, Knee DP OFF, EL FLIP,
-  //   Pocket Zip, Cord, Web Elastic Hem
 
   // ── AFTER WASH TRIMS ─────────────────────────────────────────────
   afterWashTrims: { type: [costRowSchema], default: [] },
-  // default rows from SRD field or: PJ Patch, Grand Label, Size Label,
-  //   Buttons/Metal, Rivets, Fly Button, Popper, Buckle, Draw Cord,
-  //   Swing Tag, Hans Tag, Cord
-
-  // ── PACKAGING ────────────────────────────────────────────────────
-  packaging: { type: [costRowSchema], default: [] },
-  // default: Barcode Sticker, Polybag, Carton, Carton Sticker, Carton Tape
 
   // ── EMBELLISHMENT ────────────────────────────────────────────────
   embellishment: { type: [costRowSchema], default: [] },
-  // default: Hotfix, Screen Print, Rhinestone, Applique Fabric, Applique Cutting,
-  //   Text Applique Fabric, Text Applique Cutting, Text Print, RIP & Repair Fabric
 
-  // ── TESTING CHARGES (single fixed value, editable) ───────────────
+  // ── PRODUCTION COST ──────────────────────────────────────────────
+  cmtLevel:    { type: Number, default: 0 },  // CMT Codes Req Level 1 2 3
+  washingLevel:{ type: Number, default: 0 },  // Washing Codes Req Level 1 2 3
+  fob:         { type: Number, default: 0 },
+
+  // ── FREIGHT ──────────────────────────────────────────────────────
+  freight: { type: Number, default: 0 },
+
+  // ── MARGIN & COMMISSION ──────────────────────────────────────────
+  marginPct:      { type: Number, default: 0 },  // Percentage %
+  extraCut:       { type: Number, default: 0 },
+  ldMargin:       { type: Number, default: 0 },
   testingCharges: { type: Number, default: 0 },
-
-  // ── FIXED / LABOUR CHARGES ───────────────────────────────────────
-  patchesAttachment:  { type: Number, default: 0 },
-  gussetAttachment:   { type: Number, default: 0 },
-  badgesAttachments:  { type: Number, default: 0 },
-  cmtCargo:           { type: Number, default: 0 },
-  cmtsPocket:         { type: Number, default: 0 },
-  oh:                 { type: Number, default: 0 },
-  washing:            { type: Number, default: 0 },
-  extraCut:           { type: Number, default: 0 },
-  fob:                { type: Number, default: 0 },
+  commission:     { type: Number, default: 0 },
 
   // ── SUMMARY ──────────────────────────────────────────────────────
-  total:        { type: Number, default: 0 },  // sum of everything above
-  loMargin:     { type: Number, default: 0 },
-  priceIsPkr:   { type: Number, default: 0 },
-  linds:        { type: Number, default: 0 },
-  finalFobUs:   { type: Number, default: 0 },  // computed
-  pchErrorPct:  { type: Number, default: 0 },  // P.CH+ERROR%
-  totalCost:    { type: Number, default: 0 },  // final bottom line
+  totalPricePkr:  { type: Number, default: 0 },  // calculated
+  finalFobUs:     { type: Number, default: 0 },  // computed (PKR / currency rate)
+  currencyRate:   { type: Number, default: 265 },  // PKR per USD default
+
+  // ── QUOTE TRACKING ───────────────────────────────────────────────
+  firstQuoted:    { type: Number, default: 0 },
+  targetPrice:    { type: Number, default: 0 },
+  difference:     { type: Number, default: 0 },  // auto: firstQuoted - targetPrice
+  secondQuote:    { type: Number, default: 0 },
+  confirmedPrice: { type: Number, default: 0 },
+
+  // ── IMAGES ───────────────────────────────────────────────────────
+  images: { type: [imageSchema], default: [] },
 
   // ── Workflow ──────────────────────────────────────────────────────
   status: {

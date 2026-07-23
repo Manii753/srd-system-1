@@ -6,50 +6,50 @@ import SRD from '@/models/SRD';
 // ─── Default row sets (fallback when no SRD table field exists) ───────────────
 
 const DEFAULT_FABRICS = [
-  { description: 'Fabric',    consumption: 0, price: 0, amount: 0 },
-  { description: 'Fabric 2',  consumption: 0, price: 0, amount: 0 },
-  { description: 'Pocketing', consumption: 0, price: 0, amount: 0 },
+  { description: 'Fabric 1 Name (Boddy)', code: '', consumption: 0, price: 0, amount: 0 },
+  { description: 'Fabric 2 (Pocketing)',  code: '', consumption: 0, price: 0, amount: 0 },
+  { description: 'Fabric 3 Name (Patch/Applique)', code: '', consumption: 0, price: 0, amount: 0 },
 ];
 const DEFAULT_BEFORE_WASH_TRIMS = [
   { description: 'Thread',          consumption: 0, price: 0, amount: 0 },
   { description: 'Wash Care Label', consumption: 0, price: 0, amount: 0 },
-  { description: 'Knee D P OFF',    consumption: 0, price: 0, amount: 0 },
-  { description: 'EL FLIP',         consumption: 0, price: 0, amount: 0 },
-  { description: 'Pocket Zip',      consumption: 0, price: 0, amount: 0 },
-  { description: 'Cord',            consumption: 0, price: 0, amount: 0 },
-  { description: 'Web Elastic Hem', consumption: 0, price: 0, amount: 0 },
+  { description: 'Ld Label',        consumption: 0, price: 0, amount: 0 },
+  { description: 'Front Zip',       consumption: 0, price: 0, amount: 0 },
+  { description: 'Fly Zip',         consumption: 0, price: 0, amount: 0 },
+  { description: 'Hook & Bar',      consumption: 0, price: 0, amount: 0 },
+  { description: 'Fusing',          consumption: 0, price: 0, amount: 0 },
+  { description: 'Wb Elastic/Hem',  consumption: 0, price: 0, amount: 0 },
 ];
 const DEFAULT_AFTER_WASH_TRIMS = [
-  { description: 'PU Patch',      consumption: 0,    price: 0, amount: 0 },
-  { description: 'Brand Label',   consumption: 4.0,  price: 0, amount: 0 },
-  { description: 'Size Label',    consumption: 1.1,  price: 0, amount: 0 },
-  { description: 'Buttons/Metal', consumption: 11.5, price: 0, amount: 0 },
-  { description: 'Rivets',        consumption: 8.7,  price: 0, amount: 0 },
-  { description: 'Fly Button',    consumption: 9.5,  price: 0, amount: 0 },
-  { description: 'Popper',        consumption: 3.0,  price: 0, amount: 0 },
-  { description: 'Buckle',        consumption: 93,   price: 0, amount: 0 },
-  { description: 'Draw Cord',     consumption: 15,   price: 0, amount: 0 },
-  { description: 'Swing Tag',     consumption: 4,    price: 0, amount: 0 },
-  { description: 'Hang Tag',      consumption: 6,    price: 0, amount: 0 },
-  { description: 'Cord',          consumption: 2,    price: 0, amount: 0 },
-];
-const DEFAULT_PACKAGING = [
-  { description: 'Barcode Sticker', consumption: 2.5, price: 0, amount: 0 },
-  { description: 'Polybag',         consumption: 8,   price: 0, amount: 0 },
-  { description: 'Carton',          consumption: 17,  price: 0, amount: 0 },
-  { description: 'Carton Sticker',  consumption: 10,  price: 0, amount: 0 },
-  { description: 'Carton Tape',     consumption: 2.0, price: 0, amount: 0 },
+  { description: 'P.U Patch',                      consumption: 0, price: 0, amount: 0 },
+  { description: 'Brand Main Label',               consumption: 0, price: 0, amount: 0 },
+  { description: 'Size Label',                     consumption: 0, price: 0, amount: 0 },
+  { description: 'Buttons/Metal',                  consumption: 0, price: 0, amount: 0 },
+  { description: 'Button Attachment',              consumption: 0, price: 0, amount: 0 },
+  { description: 'Fly Button',                     consumption: 0, price: 0, amount: 0 },
+  { description: 'Rivets',                         consumption: 0, price: 0, amount: 0 },
+  { description: 'Button',                         consumption: 0, price: 0, amount: 0 },
+  { description: 'Snap Button Attachment',         consumption: 0, price: 0, amount: 0 },
+  { description: 'Eyelets',                        consumption: 0, price: 0, amount: 0 },
+  { description: 'Eyelets Attachment',             consumption: 0, price: 0, amount: 0 },
+  { description: 'Buckle',                         consumption: 0, price: 0, amount: 0 },
+  { description: 'Rivets Attachment',              consumption: 0, price: 0, amount: 0 },
+  { description: 'Triangle Tag',                   consumption: 0, price: 0, amount: 0 },
+  { description: 'Additional External Return Ticket', consumption: 0, price: 0, amount: 0 },
+  { description: 'Disclaimer Tag Over Dye',        consumption: 0, price: 0, amount: 0 },
+  { description: 'Hang Tag',                       consumption: 0, price: 0, amount: 0 },
+  { description: 'Hang Tag Cord',                  consumption: 0, price: 0, amount: 0 },
+  { description: 'Barcode Sticker',                consumption: 0, price: 0, amount: 0 },
+  { description: 'Polybag',                        consumption: 0, price: 0, amount: 0 },
+  { description: 'Carton',                         consumption: 0, price: 0, amount: 0 },
+  { description: 'Carton Sticker',                 consumption: 0, price: 0, amount: 0 },
+  { description: 'Carton Tape',                    consumption: 0, price: 0, amount: 0 },
 ];
 const DEFAULT_EMBELLISHMENT = [
-  { description: 'Hotfix',                consumption: 0, price: 0, amount: 0 },
-  { description: 'Screen Print',          consumption: 0, price: 0, amount: 0 },
-  { description: 'Rhinestone',            consumption: 0, price: 0, amount: 0 },
-  { description: 'Applique Fabric',       consumption: 0, price: 0, amount: 0 },
-  { description: 'Applique Cutting',      consumption: 0, price: 0, amount: 0 },
-  { description: 'Text Applique Fabric',  consumption: 0, price: 0, amount: 0 },
-  { description: 'Text Applique Cutting', consumption: 0, price: 0, amount: 0 },
-  { description: 'Text Print',            consumption: 0, price: 0, amount: 0 },
-  { description: 'RIP & Repair Fabric',   consumption: 0, price: 0, amount: 0 },
+  { description: 'Rhinestone',   consumption: 0, price: 0, amount: 0 },
+  { description: 'Studs',        consumption: 0, price: 0, amount: 0 },
+  { description: 'Screen Print', consumption: 0, price: 0, amount: 0 },
+  { description: 'Round Dori',   consumption: 0, price: 0, amount: 0 },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -143,24 +143,29 @@ function extractTextRows(srd, namePatternsWithConsumption) {
 function buildDefault() {
   return {
     currency: 'USD',
-    date: '', buyer: '', style: '', fit: '', fabric: '', wash: '',
+    // Header fields
+    date: '', brand: '', fitSpecsCode: '', fit: '', description: '',
+    fabricType: '', embellishmentYesNo: 'No', costingBase: 'Image', sampleSize: '',
+    // Legacy fields
+    buyer: '', style: '', fabric: '', wash: '',
+    // Sections
     fabrics:          JSON.parse(JSON.stringify(DEFAULT_FABRICS)),
     beforeWashTrims:  JSON.parse(JSON.stringify(DEFAULT_BEFORE_WASH_TRIMS)),
     afterWashTrims:   JSON.parse(JSON.stringify(DEFAULT_AFTER_WASH_TRIMS)),
-    packaging:        JSON.parse(JSON.stringify(DEFAULT_PACKAGING)),
     embellishment:    JSON.parse(JSON.stringify(DEFAULT_EMBELLISHMENT)),
-    testingCharges:   9,
-    patchesAttachment: 10,
-    gussetAttachment:  8,
-    badgesAttachments: 0,
-    cmtCargo:    0,
-    cmtsPocket:  175,
-    oh:          500,
-    washing:     175,
-    extraCut:    15,
-    fob:         75,
-    total: 0, loMargin: 0, priceIsPkr: 0, linds: 245,
-    finalFobUs: 0, pchErrorPct: 0, totalCost: 0,
+    // Production cost
+    cmtLevel: 0, washingLevel: 0, fob: 0,
+    // Freight
+    freight: 0,
+    // Margin & Commission
+    marginPct: 0, extraCut: 0, ldMargin: 0, testingCharges: 0, commission: 0,
+    // Summary
+    totalPricePkr: 0, finalFobUs: 0, currencyRate: 265,
+    // Quote tracking
+    firstQuoted: 0, targetPrice: 0, difference: 0, secondQuote: 0, confirmedPrice: 0,
+    // Images
+    images: [],
+    // Workflow
     status: 'draft', notes: '',
   };
 }
@@ -173,8 +178,20 @@ function buildPostFromSrd(srd) {
   const post = buildDefault();
 
   // ── Header fields ──────────────────────────────────────────────────────────
-  post.buyer = getDynValue(srd, /^brand$/i);
-  post.style = getDynValue(srd, /^buyer\s*style\s*ref/i);
+  // New fields
+  post.brand = getDynValue(srd, /^brand$/i);
+  post.fitSpecsCode = getDynValue(srd, /^fit\s*spec\s*code$/i) || getDynValue(srd, /^buyer\s*style\s*ref/i);
+  post.fit = getDynValue(srd, /^fit$/i);
+  post.description = getDynValue(srd, /^description$/i) || getDynValue(srd, /^garment\s*description$/i);
+  post.fabricType = getDynValue(srd, /^fabric\s*type$/i);
+  post.embellishmentYesNo = getDynValue(srd, /^embellish/i) === 'Yes' ? 'Yes' : 'No';
+  post.costingBase = getDynValue(srd, /^costing\s*base$/i) || 'Image';
+  post.sampleSize = getDynValue(srd, /^sample\s*size$/i) || getDynValue(srd, /^size$/i);
+
+  // Legacy fields (for backward compatibility)
+  post.buyer = post.brand;
+  post.style = post.fitSpecsCode;
+  
   // Fabric header: pull first row cols 0-2 from the Fabric table, else text fields
   const _fTableField = (srd.dynamicFields || []).find(f => f.type === 'table' && /^fabric$/i.test(f.name || ''));
   if (_fTableField?.value?.rows?.[0]) {
@@ -188,7 +205,6 @@ function buildPostFromSrd(srd) {
     ].filter(Boolean).join(' / ');
   }
   post.wash = getDynValue(srd, /^wash\s*[/\\]\s*color$|^color\s*[/\\]\s*wash$|^wash\s*color$|^color\s*wash$/i);
-  post.fit  = getDynValue(srd, /^fit$/i);
   const raiseDate = getDynValue(srd, /sample\s*(r(aise|equest)|raised|request)\s*date/i);
   post.date = raiseDate || (srd.createdAt ? new Date(srd.createdAt).toLocaleDateString() : '');
 
@@ -213,6 +229,7 @@ function buildPostFromSrd(srd) {
       .map(row => ({
         // Description = first 3 non-empty columns joined
         description: [row[0], row[1], row[2]].filter(v => v && String(v).trim()).join(' / '),
+        code: String(row[0] ?? '').trim(),
         consumption: Number(row[consumIdx]) || 0,
         price: 0, amount: 0,
       }));
@@ -220,7 +237,7 @@ function buildPostFromSrd(srd) {
     if (fabricRows.length) {
       post.fabrics = [
         ...fabricRows,
-        { description: 'Pocketing', consumption: 0, price: 0, amount: 0 },
+        { description: 'Pocketing', code: '', consumption: 0, price: 0, amount: 0 },
       ];
     }
   } else {
@@ -232,9 +249,9 @@ function buildPostFromSrd(srd) {
     const mainDesc  = [fCode, fType, fColor].filter(Boolean).join(' / ');
     if (mainDesc) {
       post.fabrics = [
-        { description: mainDesc, consumption: 0, price: 0, amount: 0 },
-        ...(fSupplier ? [{ description: `Supplier: ${fSupplier}`, consumption: 0, price: 0, amount: 0 }] : []),
-        { description: 'Pocketing', consumption: 0, price: 0, amount: 0 },
+        { description: mainDesc, code: fCode || '', consumption: 0, price: 0, amount: 0 },
+        ...(fSupplier ? [{ description: `Supplier: ${fSupplier}`, code: '', consumption: 0, price: 0, amount: 0 }] : []),
+        { description: 'Pocketing', code: '', consumption: 0, price: 0, amount: 0 },
       ];
     }
     // else keep DEFAULT_FABRICS
@@ -250,14 +267,14 @@ function buildPostFromSrd(srd) {
     post.beforeWashTrims = bwtTable;
   } else {
     const rows = extractTextRows(srd, [
-      { pattern: /^top.thread|^thread$/i },
-      { pattern: /^bottom.thread/i },
-      { pattern: /^busted.thread/i },
-      { pattern: /^emb.thread/i },
+      { pattern: /^thread$/i },
       { pattern: /wash.care.label/i },
-      { pattern: /pocket.zip/i },
-      { pattern: /^cord$/i },
-      { pattern: /elastic/i },
+      { pattern: /ld.label/i },
+      { pattern: /front.zip/i },
+      { pattern: /fly.zip/i },
+      { pattern: /hook.*bar/i },
+      { pattern: /fusing/i },
+      { pattern: /wb.elastic|hem/i },
     ]);
     if (rows) post.beforeWashTrims = rows;
   }
@@ -272,17 +289,29 @@ function buildPostFromSrd(srd) {
     post.afterWashTrims = awtTable;
   } else {
     const rows = extractTextRows(srd, [
-      { pattern: /pu.patch|pj.patch/i },
-      { pattern: /grand.label/i,  consumption: 4.0 },
-      { pattern: /size.label/i,   consumption: 1.1 },
-      { pattern: /main.button|button.metal/i, consumption: 11.5 },
-      { pattern: /^rivet$/i,      consumption: 8.7 },
-      { pattern: /fly.button/i,   consumption: 9.5 },
-      { pattern: /popper/i,       consumption: 3.0 },
-      { pattern: /buckle/i,       consumption: 93 },
-      { pattern: /draw.cord/i,    consumption: 15 },
-      { pattern: /swing.tag/i,    consumption: 4 },
-      { pattern: /hans.tag/i,     consumption: 6 },
+      { pattern: /pu.patch/i },
+      { pattern: /brand.main.label|brand.label/i },
+      { pattern: /size.label/i },
+      { pattern: /buttons.*metal/i },
+      { pattern: /button.attachment/i },
+      { pattern: /fly.button/i },
+      { pattern: /^rivets?$/i },
+      { pattern: /^button$/i },
+      { pattern: /snap.button.attachment/i },
+      { pattern: /^eyelets?$/i },
+      { pattern: /eyelets.attachment/i },
+      { pattern: /buckle/i },
+      { pattern: /rivets.attachment/i },
+      { pattern: /triangle.tag/i },
+      { pattern: /return.ticket/i },
+      { pattern: /disclaimer.tag/i },
+      { pattern: /hang.tag$/i },
+      { pattern: /hang.tag.cord/i },
+      { pattern: /barcode.sticker/i },
+      { pattern: /polybag/i },
+      { pattern: /carton$/i },
+      { pattern: /carton.sticker/i },
+      { pattern: /carton.tape/i },
     ]);
     if (rows) post.afterWashTrims = rows;
   }
@@ -297,11 +326,10 @@ function buildPostFromSrd(srd) {
     post.embellishment = embTable;
   } else {
     const rows = extractTextRows(srd, [
-      { pattern: /required.print|screen.print|print.type/i },
       { pattern: /rhinestone/i },
-      { pattern: /hotfix/i },
-      { pattern: /applique/i },
-      { pattern: /embroid/i },
+      { pattern: /^studs?$/i },
+      { pattern: /screen.print/i },
+      { pattern: /round.dori/i },
     ]);
     if (rows) post.embellishment = rows;
   }
@@ -318,26 +346,23 @@ function recalc(side) {
       return s + r.amount;
     }, 0);
 
-  side.total =
-    sumRows(side.fabrics) +
-    sumRows(side.beforeWashTrims) +
-    sumRows(side.afterWashTrims) +
-    sumRows(side.packaging) +
-    sumRows(side.embellishment) +
-    Number(side.testingCharges || 0) +
-    Number(side.patchesAttachment || 0) +
-    Number(side.gussetAttachment  || 0) +
-    Number(side.badgesAttachments || 0) +
-    Number(side.cmtCargo          || 0) +
-    Number(side.cmtsPocket        || 0) +
-    Number(side.oh                || 0) +
-    Number(side.washing           || 0) +
-    Number(side.extraCut          || 0) +
-    Number(side.fob               || 0);
+  const totalFabrics = sumRows(side.fabrics);
+  const totalBeforeWash = sumRows(side.beforeWashTrims);
+  const totalAfterWash = sumRows(side.afterWashTrims);
+  const totalEmbellishment = sumRows(side.embellishment);
 
-  const linds = Number(side.linds) || 1;
-  side.finalFobUs = (side.total + Number(side.loMargin || 0)) / linds;
-  side.totalCost  = side.finalFobUs * (1 + Number(side.pchErrorPct || 0) / 100);
+  const subtotal = totalFabrics + totalBeforeWash + totalAfterWash + totalEmbellishment;
+  const totalWithProduction = subtotal + Number(side.cmtLevel || 0) + Number(side.washingLevel || 0) + Number(side.fob || 0);
+  const totalWithFreight = totalWithProduction + Number(side.freight || 0);
+  const marginAmount = totalWithFreight * (Number(side.marginPct || 0) / 100);
+  const totalWithMargin = totalWithFreight + marginAmount;
+  const totalWithExtra = totalWithMargin + Number(side.extraCut || 0) + Number(side.ldMargin || 0) + Number(side.testingCharges || 0) + Number(side.commission || 0);
+
+  side.totalPricePkr = totalWithExtra;
+  const currencyRate = Number(side.currencyRate) || 265;
+  side.finalFobUs = totalWithExtra / currencyRate;
+  side.difference = Number(side.firstQuoted || 0) - Number(side.targetPrice || 0);
+
   return side;
 }
 
@@ -374,8 +399,19 @@ export async function GET(request, { params }) {
       const postDefault = buildPostFromSrd(srd);
 
       const preDefault  = buildDefault();
-      preDefault.buyer  = getDynValue(srd, /^brand$/i);
-      preDefault.style  = getDynValue(srd, /^buyer\s*style\s*ref/i);
+      // Populate new header fields
+      preDefault.brand = getDynValue(srd, /^brand$/i);
+      preDefault.fitSpecsCode = getDynValue(srd, /^fit\s*spec\s*code$/i) || getDynValue(srd, /^buyer\s*style\s*ref/i);
+      preDefault.fit = getDynValue(srd, /^fit$/i);
+      preDefault.description = getDynValue(srd, /^description$/i) || getDynValue(srd, /^garment\s*description$/i);
+      preDefault.fabricType = getDynValue(srd, /^fabric\s*type$/i);
+      preDefault.embellishmentYesNo = getDynValue(srd, /^embellish/i) === 'Yes' ? 'Yes' : 'No';
+      preDefault.costingBase = getDynValue(srd, /^costing\s*base$/i) || 'Image';
+      preDefault.sampleSize = getDynValue(srd, /^sample\s*size$/i) || getDynValue(srd, /^size$/i);
+      // Legacy fields
+      preDefault.buyer = preDefault.brand;
+      preDefault.style = preDefault.fitSpecsCode;
+      
       const _pfField = (srd.dynamicFields || []).find(f => f.type === 'table' && /^fabric$/i.test(f.name || ''));
       if (_pfField?.value?.rows?.[0]) {
         const _pr = _pfField.value.rows[0];
@@ -384,7 +420,6 @@ export async function GET(request, { params }) {
         preDefault.fabric = [getDynValue(srd, /^fabric\s*code$/i), getDynValue(srd, /^fabric\s*type$/i), getDynValue(srd, /^color$/i)].filter(Boolean).join(' / ');
       }
       preDefault.wash   = getDynValue(srd, /^wash\s*[/\\]\s*color$|^color\s*[/\\]\s*wash$|^wash\s*color$|^color\s*wash$/i);
-      preDefault.fit    = getDynValue(srd, /^fit$/i);
       preDefault.date   = getDynValue(srd, /sample\s*(r(aise|equest)|raised|request)\s*date/i)
         || (srd.createdAt ? new Date(srd.createdAt).toLocaleDateString() : '');
 
@@ -439,11 +474,27 @@ export async function PATCH(request, { params }) {
 
     if (action === 'save') {
       const FIELDS = [
-        'currency','date','buyer','style','fit','fabric','wash',
-        'fabrics','beforeWashTrims','afterWashTrims','packaging','embellishment',
-        'testingCharges','patchesAttachment','gussetAttachment','badgesAttachments',
-        'cmtCargo','cmtsPocket','oh','washing','extraCut','fob',
-        'loMargin','priceIsPkr','linds','pchErrorPct','notes',
+        // Header fields
+        'currency', 'date', 'brand', 'fitSpecsCode', 'fit', 'description',
+        'fabricType', 'embellishmentYesNo', 'costingBase', 'sampleSize',
+        // Legacy fields
+        'buyer', 'style', 'fabric', 'wash',
+        // Sections
+        'fabrics', 'beforeWashTrims', 'afterWashTrims', 'embellishment',
+        // Production cost
+        'cmtLevel', 'washingLevel', 'fob',
+        // Freight
+        'freight',
+        // Margin & Commission
+        'marginPct', 'extraCut', 'ldMargin', 'testingCharges', 'commission',
+        // Summary
+        'totalPricePkr', 'finalFobUs', 'currencyRate',
+        // Quote tracking
+        'firstQuoted', 'targetPrice', 'difference', 'secondQuote', 'confirmedPrice',
+        // Images
+        'images',
+        // Workflow
+        'notes',
       ];
       FIELDS.forEach(k => { if (data[k] !== undefined) side[k] = data[k]; });
       recalc(side);
