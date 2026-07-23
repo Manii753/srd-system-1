@@ -75,24 +75,25 @@ function PrintContent() {
   return (
     <div style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 8, color: '#111', lineHeight: 1.25 }}>
       <style>{`
-        @page { size: A4 portrait; margin: 8mm 8mm 8mm 8mm; }
+        @page { size: A4 portrait; margin: 6mm 6mm 6mm 6mm; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        html, body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; width: 210mm; }
+        body { transform-origin: top left; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 1.5px 3px; border: 0.5px solid #d1d5db; font-size: 7.5px; line-height: 1.3; }
-        th { background: #f0f0f0; font-weight: 700; text-transform: uppercase; font-size: 6.5px; letter-spacing: 0.3px; color: #555; }
-        .sh { background: #e8e8e8; font-weight: 700; font-size: 7.5px; text-transform: uppercase; letter-spacing: 0.3px; color: #333; }
-        .sh td { padding: 2px 3px; border-top: 1px solid #999; border-bottom: 1px solid #999; }
+        th, td { padding: 1px 2px; border: 0.5px solid #d1d5db; font-size: 7px; line-height: 1.2; }
+        th { background: #f0f0f0; font-weight: 700; text-transform: uppercase; font-size: 6px; letter-spacing: 0.3px; color: #555; }
+        .sh { background: #e8e8e8; font-weight: 700; font-size: 7px; text-transform: uppercase; letter-spacing: 0.3px; color: #333; }
+        .sh td { padding: 1.5px 2px; border-top: 0.5px solid #999; border-bottom: 0.5px solid #999; }
         .r { text-align: right; font-variant-numeric: tabular-nums; }
         .tr { background: #1a1a1a; color: white; font-weight: 700; }
-        .tr td { padding: 2.5px 3px; font-size: 8px; }
+        .tr td { padding: 2px 2px; font-size: 7.5px; }
         .b { font-weight: 700; }
         .sub td { background: #f7f7f7; font-weight: 600; }
       `}</style>
 
       <div>
         {/* ── COMPACT META ROW ── */}
-        <table style={{ marginBottom: 3 }}>
+        <table style={{ marginBottom: 1 }}>
           <tbody>
             <tr>
               <td style={{ width: '12%', fontWeight: 700, fontSize: 7, color: '#888' }}>Date</td>
@@ -122,7 +123,7 @@ function PrintContent() {
         </table>
 
         {/* ── FABRICS ── */}
-        <table style={{ marginBottom: 2 }}>
+        <table style={{ marginBottom: 1 }}>
           <thead>
             <tr><th style={{ width: '35%' }}>Description</th><th style={{ width: '15%' }}>Code</th><th className="r" style={{ width: '12%' }}>Cons</th><th className="r" style={{ width: '14%' }}>Rate</th><th className="r" style={{ width: '16%' }}>Amount</th></tr>
           </thead>
@@ -142,7 +143,7 @@ function PrintContent() {
         </table>
 
         {/* ── BEFORE WASH TRIMS ── */}
-        <table style={{ marginBottom: 2 }}>
+        <table style={{ marginBottom: 1 }}>
           <thead>
             <tr><th style={{ width: '44%' }}>Description</th><th className="r" style={{ width: '16%' }}>Cons</th><th className="r" style={{ width: '16%' }}>Rate</th><th className="r" style={{ width: '18%' }}>Amount</th></tr>
           </thead>
@@ -161,7 +162,7 @@ function PrintContent() {
         </table>
 
         {/* ── AFTER WASH TRIMS ── */}
-        <table style={{ marginBottom: 2 }}>
+        <table style={{ marginBottom: 1 }}>
           <thead>
             <tr><th style={{ width: '44%' }}>Description</th><th className="r" style={{ width: '16%' }}>Cons</th><th className="r" style={{ width: '16%' }}>Rate</th><th className="r" style={{ width: '18%' }}>Amount</th></tr>
           </thead>
@@ -180,7 +181,7 @@ function PrintContent() {
         </table>
 
         {/* ── EMBELLISHMENT ── */}
-        <table style={{ marginBottom: 2 }}>
+        <table style={{ marginBottom: 1 }}>
           <thead>
             <tr><th style={{ width: '44%' }}>Description</th><th className="r" style={{ width: '16%' }}>Cons</th><th className="r" style={{ width: '16%' }}>Rate</th><th className="r" style={{ width: '18%' }}>Amount</th></tr>
           </thead>
@@ -199,7 +200,7 @@ function PrintContent() {
         </table>
 
         {/* ── PRODUCTION + FREIGHT + MARGIN in one compact table ── */}
-        <table style={{ marginBottom: 2 }}>
+        <table style={{ marginBottom: 1 }}>
           <tbody>
             <tr className="sh"><td colSpan={2}>Production Cost</td></tr>
             <tr><td>CMT (Codes Req Level 1 2 3)</td><td className="r">{n(d.cmtLevel) ? fmt2(d.cmtLevel) : '—'}</td></tr>
@@ -217,7 +218,7 @@ function PrintContent() {
         </table>
 
         {/* ── TOTAL + QUOTE in two columns side by side ── */}
-        <table style={{ marginBottom: 2 }}>
+        <table style={{ marginBottom: 1 }}>
           <tbody>
             <tr className="tr">
               <td style={{ width: '50%', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Price PKR</td>
@@ -235,7 +236,7 @@ function PrintContent() {
         </table>
 
         {/* ── QUOTE TRACKING ── */}
-        <table>
+        <table style={{ marginTop: 1 }}>
           <tbody>
             <tr className="sh"><td colSpan={5}>Quote Tracking</td></tr>
             <tr>
@@ -249,7 +250,7 @@ function PrintContent() {
         </table>
 
         {/* ── FOOTER ── */}
-        <div style={{ marginTop: 4, borderTop: '0.5px solid #ccc', paddingTop: 3, display: 'flex', justifyContent: 'space-between', fontSize: 6, color: '#aaa' }}>
+        <div style={{ marginTop: 2, borderTop: '0.5px solid #ccc', paddingTop: 2, display: 'flex', justifyContent: 'space-between', fontSize: 6, color: '#aaa' }}>
           <span>Generated: {new Date().toLocaleDateString()}</span>
           <span>{[d.brand, d.fitSpecsCode, d.fit].filter(Boolean).join(' · ')}</span>
         </div>
