@@ -25,7 +25,12 @@ function calcAll(d) {
   const currencyRate = n(d.currencyRate) || 265;
   const finalFobUs = totalPricePkr / currencyRate;
   const difference = n(d.firstQuoted) - n(d.targetPrice);
-  return { totalFabrics, totalBeforeWash, totalAfterWash, totalEmbellishment, subtotal, totalWithProduction, totalWithFreight, marginAmount, totalWithMargin, totalPricePkr, finalFobUs, difference };
+  return { totalFabrics, totalBeforeWash, totalAfterWash, totalEmbellishment, totalPricePkr, finalFobUs, difference };
+}
+
+function V({ children }) {
+  if (!children && children !== 0) return <span style={{ color: '#bbb' }}>—</span>;
+  return <>{children}</>;
 }
 
 function PrintContent() {
@@ -56,235 +61,197 @@ function PrintContent() {
 
   useEffect(() => {
     if (!loading && d && !error) {
-      const t = setTimeout(() => window.print(), 500);
+      const t = setTimeout(() => window.print(), 400);
       return () => clearTimeout(t);
     }
   }, [loading, d, error]);
 
-  if (loading) return <div style={{ padding: 40, fontFamily: 'Arial', fontSize: 14 }}>Loading costing data...</div>;
+  if (loading) return <div style={{ padding: 40, fontFamily: 'Arial', fontSize: 14 }}>Loading...</div>;
   if (error) return <div style={{ padding: 40, fontFamily: 'Arial', fontSize: 14, color: 'red' }}>Error: {error}</div>;
   if (!d) return null;
 
   const totals = calcAll(d);
-  const typeLabel = type === 'pre' ? 'Pre-Costing' : 'Post-Costing';
 
   return (
-    <div style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 10, color: '#1a1a1a', lineHeight: 1.4 }}>
+    <div style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 8, color: '#111', lineHeight: 1.25 }}>
       <style>{`
-        @page { size: A4 portrait; margin: 12mm 10mm; }
+        @page { size: A4 portrait; margin: 8mm 8mm 8mm 8mm; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .print-page { padding: 0; }
-        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 8px; margin-bottom: 10px; }
-        .header-left h1 { font-size: 16px; font-weight: 700; margin: 0; }
-        .header-left .ref { font-size: 11px; color: #555; margin-top: 2px; }
-        .header-right { text-align: right; font-size: 10px; color: #555; }
-        .header-right .poc { font-size: 13px; font-weight: 700; color: #2563eb; }
-        .meta-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; border: 1px solid #d1d5db; border-radius: 4px; overflow: hidden; margin-bottom: 10px; }
-        .meta-cell { padding: 5px 8px; border-right: 1px solid #e5e7eb; }
-        .meta-cell:last-child { border-right: none; }
-        .meta-label { font-size: 8px; text-transform: uppercase; color: #9ca3af; font-weight: 600; letter-spacing: 0.5px; }
-        .meta-value { font-size: 10px; font-weight: 600; color: #111; margin-top: 1px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-        th, td { padding: 3px 5px; text-align: left; border: 1px solid #e5e7eb; font-size: 9px; }
-        th { background: #f3f4f6; font-weight: 600; text-transform: uppercase; font-size: 8px; letter-spacing: 0.3px; color: #6b7280; }
-        .section-title { background: #f9fafb; font-weight: 700; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: #374151; border-top: 2px solid #d1d5db; border-bottom: 2px solid #d1d5db; }
-        .section-title td { padding: 4px 6px; }
-        .col-desc { width: 38%; }
-        .col-code { width: 14%; }
-        .col-cons { width: 12%; text-align: right; }
-        .col-rate { width: 14%; text-align: right; }
-        .col-amt { width: 16%; text-align: right; }
-        .col-del { width: 6%; }
-        td.num { text-align: right; font-variant-numeric: tabular-nums; }
-        .total-row { background: #111; color: white; font-weight: 700; }
-        .total-row td { padding: 5px 6px; border-color: #374151; }
-        .summary-row td { padding: 3px 6px; }
-        .summary-label { font-weight: 600; text-transform: uppercase; font-size: 9px; }
-        .summary-value { text-align: right; font-weight: 600; }
-        .quote-section { border-top: 2px solid #d1d5db; margin-top: 8px; }
-        .quote-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 0; }
-        .quote-cell { padding: 5px 8px; border: 1px solid #e5e7eb; text-align: center; }
-        .quote-label { font-size: 7px; text-transform: uppercase; color: #9ca3af; font-weight: 600; }
-        .quote-value { font-size: 12px; font-weight: 700; color: #111; margin-top: 2px; }
-        .quote-value.highlight { color: #2563eb; }
-        .footer { margin-top: 12px; border-top: 1px solid #d1d5db; padding-top: 6px; display: flex; justify-content: space-between; font-size: 8px; color: #9ca3af; }
-        .images-section { margin-top: 8px; page-break-inside: avoid; }
-        .images-grid { display: flex; gap: 8px; flex-wrap: wrap; }
-        .images-grid img { width: 80px; height: 80px; object-fit: cover; border: 1px solid #e5e7eb; border-radius: 2px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 1.5px 3px; border: 0.5px solid #d1d5db; font-size: 7.5px; line-height: 1.3; }
+        th { background: #f0f0f0; font-weight: 700; text-transform: uppercase; font-size: 6.5px; letter-spacing: 0.3px; color: #555; }
+        .sh { background: #e8e8e8; font-weight: 700; font-size: 7.5px; text-transform: uppercase; letter-spacing: 0.3px; color: #333; }
+        .sh td { padding: 2px 3px; border-top: 1px solid #999; border-bottom: 1px solid #999; }
+        .r { text-align: right; font-variant-numeric: tabular-nums; }
+        .tr { background: #1a1a1a; color: white; font-weight: 700; }
+        .tr td { padding: 2.5px 3px; font-size: 8px; }
+        .b { font-weight: 700; }
+        .sub td { background: #f7f7f7; font-weight: 600; }
       `}</style>
 
-      <div className="print-page">
-        {/* ── HEADER ── */}
-        <div className="header">
-          <div className="header-left">
-            <h1>Costing Form</h1>
-            <div className="ref">{typeLabel}</div>
-          </div>
-          <div className="header-right">
-            {pocNumber && <div className="poc">POC-{pocNumber}</div>}
-            {srd?.refNo && <div style={{ fontSize: 10, marginTop: 2 }}>{srd.refNo}</div>}
-          </div>
-        </div>
-
-        {/* ── META FIELDS ── */}
-        <div className="meta-grid">
-          <div className="meta-cell"><div className="meta-label">Costing Date</div><div className="meta-value">{d.date || '—'}</div></div>
-          <div className="meta-cell"><div className="meta-label">Brand</div><div className="meta-value">{d.brand || '—'}</div></div>
-          <div className="meta-cell"><div className="meta-label">Fit Specs Code</div><div className="meta-value">{d.fitSpecsCode || '—'}</div></div>
-          <div className="meta-cell"><div className="meta-label">Fit</div><div className="meta-value">{d.fit || '—'}</div></div>
-          <div className="meta-cell"><div className="meta-label">Description</div><div className="meta-value">{d.description || '—'}</div></div>
-          <div className="meta-cell"><div className="meta-label">Fabric Type</div><div className="meta-value">{d.fabricType || '—'}</div></div>
-          <div className="meta-cell"><div className="meta-label">Embellishment</div><div className="meta-value">{d.embellishmentYesNo || 'No'}</div></div>
-          <div className="meta-cell"><div className="meta-label">Costing Base</div><div className="meta-value">{d.costingBase || 'Image'}</div></div>
-          <div className="meta-cell"><div className="meta-label">Sample Size</div><div className="meta-value">{d.sampleSize || '—'}</div></div>
-        </div>
+      <div>
+        {/* ── COMPACT META ROW ── */}
+        <table style={{ marginBottom: 3 }}>
+          <tbody>
+            <tr>
+              <td style={{ width: '12%', fontWeight: 700, fontSize: 7, color: '#888' }}>Date</td>
+              <td style={{ width: '13%' }}><V>{d.date}</V></td>
+              <td style={{ width: '10%', fontWeight: 700, fontSize: 7, color: '#888' }}>Brand</td>
+              <td style={{ width: '13%' }}><V>{d.brand}</V></td>
+              <td style={{ width: '11%', fontWeight: 700, fontSize: 7, color: '#888' }}>Fit Code</td>
+              <td style={{ width: '13%' }}><V>{d.fitSpecsCode}</V></td>
+              <td style={{ width: '8%', fontWeight: 700, fontSize: 7, color: '#888' }}>Fit</td>
+              <td style={{ width: '10%' }}><V>{d.fit}</V></td>
+              <td style={{ width: '10%', fontWeight: 700, fontSize: 7, color: '#888' }}>Size</td>
+              <td><V>{d.sampleSize}</V></td>
+            </tr>
+            <tr>
+              <td style={{ fontWeight: 700, fontSize: 7, color: '#888' }}>Description</td>
+              <td><V>{d.description}</V></td>
+              <td style={{ fontWeight: 700, fontSize: 7, color: '#888' }}>Fabric Type</td>
+              <td><V>{d.fabricType}</V></td>
+              <td style={{ fontWeight: 700, fontSize: 7, color: '#888' }}>Embellish</td>
+              <td><V>{d.embellishmentYesNo || 'No'}</V></td>
+              <td style={{ fontWeight: 700, fontSize: 7, color: '#888' }}>Base</td>
+              <td><V>{d.costingBase}</V></td>
+              <td style={{ fontWeight: 700, fontSize: 7, color: '#888' }}>POC</td>
+              <td>{pocNumber ? `POC-${pocNumber}` : <V>{srd?.refNo}</V>}</td>
+            </tr>
+          </tbody>
+        </table>
 
         {/* ── FABRICS ── */}
-        <table>
+        <table style={{ marginBottom: 2 }}>
           <thead>
-            <tr><th className="col-desc">Description</th><th className="col-code">Code</th><th className="col-cons">Consumption</th><th className="col-rate">Rate</th><th className="col-amt">Amount</th></tr>
+            <tr><th style={{ width: '35%' }}>Description</th><th style={{ width: '15%' }}>Code</th><th className="r" style={{ width: '12%' }}>Cons</th><th className="r" style={{ width: '14%' }}>Rate</th><th className="r" style={{ width: '16%' }}>Amount</th></tr>
           </thead>
           <tbody>
-            <tr className="section-title"><td colSpan={5}>Fabrics</td></tr>
+            <tr className="sh"><td colSpan={5}>Fabrics</td></tr>
             {(d.fabrics || []).map((r, i) => (
               <tr key={i}>
                 <td>{r.description || '—'}</td>
                 <td>{r.code || '—'}</td>
-                <td className="num">{r.consumption ? fmt2(r.consumption) : '—'}</td>
-                <td className="num">{r.price ? fmt2(r.price) : '—'}</td>
-                <td className="num">{r.amount ? fmt2(r.amount) : '—'}</td>
+                <td className="r">{r.consumption ? fmt2(r.consumption) : '—'}</td>
+                <td className="r">{r.price ? fmt2(r.price) : '—'}</td>
+                <td className="r b">{r.amount ? fmt2(r.amount) : '—'}</td>
               </tr>
             ))}
-            {totals.totalFabrics > 0 && <tr style={{ fontWeight: 600, background: '#f9fafb' }}><td colSpan={4} style={{ textAlign: 'right' }}>Fabrics Total</td><td className="num">{fmt2(totals.totalFabrics)}</td></tr>}
+            {totals.totalFabrics > 0 && <tr className="sub"><td colSpan={4} className="r">Total</td><td className="r b">{fmt2(totals.totalFabrics)}</td></tr>}
           </tbody>
         </table>
 
         {/* ── BEFORE WASH TRIMS ── */}
-        <table>
+        <table style={{ marginBottom: 2 }}>
           <thead>
-            <tr><th className="col-desc">Description</th><th className="col-cons" style={{ width: '16%' }}>Consumption</th><th className="col-rate" style={{ width: '16%' }}>Rate</th><th className="col-amt" style={{ width: '18%' }}>Amount</th></tr>
+            <tr><th style={{ width: '44%' }}>Description</th><th className="r" style={{ width: '16%' }}>Cons</th><th className="r" style={{ width: '16%' }}>Rate</th><th className="r" style={{ width: '18%' }}>Amount</th></tr>
           </thead>
           <tbody>
-            <tr className="section-title"><td colSpan={4}>Before Wash Trims</td></tr>
+            <tr className="sh"><td colSpan={4}>Before Wash Trims</td></tr>
             {(d.beforeWashTrims || []).map((r, i) => (
               <tr key={i}>
                 <td>{r.description || '—'}</td>
-                <td className="num">{r.consumption ? fmt2(r.consumption) : '—'}</td>
-                <td className="num">{r.price ? fmt2(r.price) : '—'}</td>
-                <td className="num">{r.amount ? fmt2(r.amount) : '—'}</td>
+                <td className="r">{r.consumption ? fmt2(r.consumption) : '—'}</td>
+                <td className="r">{r.price ? fmt2(r.price) : '—'}</td>
+                <td className="r b">{r.amount ? fmt2(r.amount) : '—'}</td>
               </tr>
             ))}
-            {totals.totalBeforeWash > 0 && <tr style={{ fontWeight: 600, background: '#f9fafb' }}><td colSpan={3} style={{ textAlign: 'right' }}>Before Wash Total</td><td className="num">{fmt2(totals.totalBeforeWash)}</td></tr>}
+            {totals.totalBeforeWash > 0 && <tr className="sub"><td colSpan={3} className="r">Total</td><td className="r b">{fmt2(totals.totalBeforeWash)}</td></tr>}
           </tbody>
         </table>
 
         {/* ── AFTER WASH TRIMS ── */}
-        <table>
+        <table style={{ marginBottom: 2 }}>
           <thead>
-            <tr><th className="col-desc">Description</th><th className="col-cons" style={{ width: '16%' }}>Consumption</th><th className="col-rate" style={{ width: '16%' }}>Rate</th><th className="col-amt" style={{ width: '18%' }}>Amount</th></tr>
+            <tr><th style={{ width: '44%' }}>Description</th><th className="r" style={{ width: '16%' }}>Cons</th><th className="r" style={{ width: '16%' }}>Rate</th><th className="r" style={{ width: '18%' }}>Amount</th></tr>
           </thead>
           <tbody>
-            <tr className="section-title"><td colSpan={4}>After Wash Trims</td></tr>
+            <tr className="sh"><td colSpan={4}>After Wash Trims</td></tr>
             {(d.afterWashTrims || []).map((r, i) => (
               <tr key={i}>
                 <td>{r.description || '—'}</td>
-                <td className="num">{r.consumption ? fmt2(r.consumption) : '—'}</td>
-                <td className="num">{r.price ? fmt2(r.price) : '—'}</td>
-                <td className="num">{r.amount ? fmt2(r.amount) : '—'}</td>
+                <td className="r">{r.consumption ? fmt2(r.consumption) : '—'}</td>
+                <td className="r">{r.price ? fmt2(r.price) : '—'}</td>
+                <td className="r b">{r.amount ? fmt2(r.amount) : '—'}</td>
               </tr>
             ))}
-            {totals.totalAfterWash > 0 && <tr style={{ fontWeight: 600, background: '#f9fafb' }}><td colSpan={3} style={{ textAlign: 'right' }}>After Wash Total</td><td className="num">{fmt2(totals.totalAfterWash)}</td></tr>}
+            {totals.totalAfterWash > 0 && <tr className="sub"><td colSpan={3} className="r">Total</td><td className="r b">{fmt2(totals.totalAfterWash)}</td></tr>}
           </tbody>
         </table>
 
         {/* ── EMBELLISHMENT ── */}
-        <table>
+        <table style={{ marginBottom: 2 }}>
           <thead>
-            <tr><th className="col-desc">Description</th><th className="col-cons" style={{ width: '16%' }}>Consumption</th><th className="col-rate" style={{ width: '16%' }}>Rate</th><th className="col-amt" style={{ width: '18%' }}>Amount</th></tr>
+            <tr><th style={{ width: '44%' }}>Description</th><th className="r" style={{ width: '16%' }}>Cons</th><th className="r" style={{ width: '16%' }}>Rate</th><th className="r" style={{ width: '18%' }}>Amount</th></tr>
           </thead>
           <tbody>
-            <tr className="section-title"><td colSpan={4}>Embellishment</td></tr>
+            <tr className="sh"><td colSpan={4}>Embellishment</td></tr>
             {(d.embellishment || []).map((r, i) => (
               <tr key={i}>
                 <td>{r.description || '—'}</td>
-                <td className="num">{r.consumption ? fmt2(r.consumption) : '—'}</td>
-                <td className="num">{r.price ? fmt2(r.price) : '—'}</td>
-                <td className="num">{r.amount ? fmt2(r.amount) : '—'}</td>
+                <td className="r">{r.consumption ? fmt2(r.consumption) : '—'}</td>
+                <td className="r">{r.price ? fmt2(r.price) : '—'}</td>
+                <td className="r b">{r.amount ? fmt2(r.amount) : '—'}</td>
               </tr>
             ))}
-            {totals.totalEmbellishment > 0 && <tr style={{ fontWeight: 600, background: '#f9fafb' }}><td colSpan={3} style={{ textAlign: 'right' }}>Embellishment Total</td><td className="num">{fmt2(totals.totalEmbellishment)}</td></tr>}
+            {totals.totalEmbellishment > 0 && <tr className="sub"><td colSpan={3} className="r">Total</td><td className="r b">{fmt2(totals.totalEmbellishment)}</td></tr>}
           </tbody>
         </table>
 
-        {/* ── PRODUCTION COST + FREIGHT + MARGIN ── */}
-        <table>
+        {/* ── PRODUCTION + FREIGHT + MARGIN in one compact table ── */}
+        <table style={{ marginBottom: 2 }}>
           <tbody>
-            <tr className="section-title"><td colSpan={3}>Production Cost</td></tr>
-            <tr><td>CMT (Codes Req Level 1 2 3)</td><td className="num" colSpan={2}>{n(d.cmtLevel) ? fmt2(d.cmtLevel) : '—'}</td></tr>
-            <tr><td>Washing (Codes Req Level 1 2 3)</td><td className="num" colSpan={2}>{n(d.washingLevel) ? fmt2(d.washingLevel) : '—'}</td></tr>
-            <tr><td>FOB</td><td className="num" colSpan={2}>{n(d.fob) ? fmt2(d.fob) : '—'}</td></tr>
-
-            <tr className="section-title"><td colSpan={3}>Freight</td></tr>
-            <tr><td>Freight</td><td className="num" colSpan={2}>{n(d.freight) ? fmt2(d.freight) : '—'}</td></tr>
-
-            <tr className="section-title"><td colSpan={3}>Margin & Commission</td></tr>
-            <tr><td>Percentage %</td><td className="num" colSpan={2}>{n(d.marginPct) ? `${d.marginPct}%` : '—'}</td></tr>
-            <tr><td>Extra Cut</td><td className="num" colSpan={2}>{n(d.extraCut) ? fmt2(d.extraCut) : '—'}</td></tr>
-            <tr><td>Ld Margin</td><td className="num" colSpan={2}>{n(d.ldMargin) ? fmt2(d.ldMargin) : '—'}</td></tr>
-            <tr><td>Testing Charges</td><td className="num" colSpan={2}>{n(d.testingCharges) ? fmt2(d.testingCharges) : '—'}</td></tr>
-            <tr><td>Commission</td><td className="num" colSpan={2}>{n(d.commission) ? fmt2(d.commission) : '—'}</td></tr>
+            <tr className="sh"><td colSpan={2}>Production Cost</td></tr>
+            <tr><td>CMT (Codes Req Level 1 2 3)</td><td className="r">{n(d.cmtLevel) ? fmt2(d.cmtLevel) : '—'}</td></tr>
+            <tr><td>Washing (Codes Req Level 1 2 3)</td><td className="r">{n(d.washingLevel) ? fmt2(d.washingLevel) : '—'}</td></tr>
+            <tr><td>FOB</td><td className="r">{n(d.fob) ? fmt2(d.fob) : '—'}</td></tr>
+            <tr className="sh"><td colSpan={2}>Freight</td></tr>
+            <tr><td>Freight</td><td className="r">{n(d.freight) ? fmt2(d.freight) : '—'}</td></tr>
+            <tr className="sh"><td colSpan={2}>Margin & Commission</td></tr>
+            <tr><td>Percentage %</td><td className="r">{n(d.marginPct) ? `${d.marginPct}%` : '—'}</td></tr>
+            <tr><td>Extra Cut</td><td className="r">{n(d.extraCut) ? fmt2(d.extraCut) : '—'}</td></tr>
+            <tr><td>Ld Margin</td><td className="r">{n(d.ldMargin) ? fmt2(d.ldMargin) : '—'}</td></tr>
+            <tr><td>Testing Charges</td><td className="r">{n(d.testingCharges) ? fmt2(d.testingCharges) : '—'}</td></tr>
+            <tr><td>Commission</td><td className="r">{n(d.commission) ? fmt2(d.commission) : '—'}</td></tr>
           </tbody>
         </table>
 
-        {/* ── TOTAL ── */}
-        <table>
+        {/* ── TOTAL + QUOTE in two columns side by side ── */}
+        <table style={{ marginBottom: 2 }}>
           <tbody>
-            <tr className="total-row">
-              <td style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Price PKR</td>
-              <td className="num" style={{ fontWeight: 700, fontSize: 11 }}>{fmt2(totals.totalPricePkr)}</td>
+            <tr className="tr">
+              <td style={{ width: '50%', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Price PKR</td>
+              <td className="r b" style={{ width: '50%' }}>{fmt2(totals.totalPricePkr)}</td>
             </tr>
             <tr>
               <td>Currency Rate (PKR/USD)</td>
-              <td className="num">{n(d.currencyRate) || 265}</td>
+              <td className="r">{n(d.currencyRate) || 265}</td>
             </tr>
-            <tr style={{ background: '#f3f4f6', fontWeight: 600 }}>
+            <tr style={{ background: '#eee', fontWeight: 700 }}>
               <td>Final FOB US$</td>
-              <td className="num" style={{ fontSize: 11 }}>${fmt2(totals.finalFobUs)}</td>
+              <td className="r">${fmt2(totals.finalFobUs)}</td>
             </tr>
           </tbody>
         </table>
 
         {/* ── QUOTE TRACKING ── */}
-        <div className="quote-section">
-          <table>
-            <tbody>
-              <tr className="section-title"><td colSpan={5}>Quote Tracking</td></tr>
-            </tbody>
-          </table>
-          <div className="quote-grid">
-            <div className="quote-cell"><div className="quote-label">First Quoted</div><div className="quote-value">${fmt2(d.firstQuoted)}</div></div>
-            <div className="quote-cell"><div className="quote-label">Target</div><div className="quote-value">${fmt2(d.targetPrice)}</div></div>
-            <div className="quote-cell"><div className="quote-label">Difference</div><div className="quote-value highlight">${fmt2(totals.difference)}</div></div>
-            <div className="quote-cell"><div className="quote-label">2nd Quote</div><div className="quote-value">${fmt2(d.secondQuote)}</div></div>
-            <div className="quote-cell"><div className="quote-label">Confirmed</div><div className="quote-value">${fmt2(d.confirmedPrice)}</div></div>
-          </div>
-        </div>
-
-        {/* ── IMAGES ── */}
-        {d.images && d.images.length > 0 && (
-          <div className="images-section">
-            <div style={{ fontSize: 8, fontWeight: 600, textTransform: 'uppercase', color: '#9ca3af', marginBottom: 4 }}>Product Photos</div>
-            <div className="images-grid">
-              {d.images.map((img, i) => img.url && <img key={i} src={img.url} alt={img.caption || 'Product'} />)}
-            </div>
-          </div>
-        )}
+        <table>
+          <tbody>
+            <tr className="sh"><td colSpan={5}>Quote Tracking</td></tr>
+            <tr>
+              <td style={{ textAlign: 'center', width: '20%' }}><span style={{ fontSize: 6, color: '#888', textTransform: 'uppercase' }}>First Quoted</span><br/><span className="b">${fmt2(d.firstQuoted)}</span></td>
+              <td style={{ textAlign: 'center', width: '20%' }}><span style={{ fontSize: 6, color: '#888', textTransform: 'uppercase' }}>Target</span><br/><span className="b">${fmt2(d.targetPrice)}</span></td>
+              <td style={{ textAlign: 'center', width: '20%', background: '#eff6ff' }}><span style={{ fontSize: 6, color: '#888', textTransform: 'uppercase' }}>Difference</span><br/><span className="b" style={{ color: '#2563eb' }}>${fmt2(totals.difference)}</span></td>
+              <td style={{ textAlign: 'center', width: '20%' }}><span style={{ fontSize: 6, color: '#888', textTransform: 'uppercase' }}>2nd Quote</span><br/><span className="b">${fmt2(d.secondQuote)}</span></td>
+              <td style={{ textAlign: 'center', width: '20%' }}><span style={{ fontSize: 6, color: '#888', textTransform: 'uppercase' }}>Confirmed</span><br/><span className="b">${fmt2(d.confirmedPrice)}</span></td>
+            </tr>
+          </tbody>
+        </table>
 
         {/* ── FOOTER ── */}
-        <div className="footer">
-          <span>Generated: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</span>
-          <span>{d.brand && `${d.brand} · `}{d.fitSpecsCode && `${d.fitSpecsCode} · `}{d.fit}</span>
+        <div style={{ marginTop: 4, borderTop: '0.5px solid #ccc', paddingTop: 3, display: 'flex', justifyContent: 'space-between', fontSize: 6, color: '#aaa' }}>
+          <span>Generated: {new Date().toLocaleDateString()}</span>
+          <span>{[d.brand, d.fitSpecsCode, d.fit].filter(Boolean).join(' · ')}</span>
         </div>
       </div>
     </div>
