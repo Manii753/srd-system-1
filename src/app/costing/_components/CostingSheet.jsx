@@ -270,7 +270,7 @@ function SummaryRow({ label, value, onChange, canEdit, editable, bold, highlight
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function CostingSheet({ type, costData, srd, pocNumber, onSave, saving }) {
+export default function CostingSheet({ type, costData, srd, srdId, pocNumber, onSave, saving }) {
   const { data: session } = useSession();
   const { toast } = useToast();
   const isAdmin = ['admin', 'vmd'].includes(session?.user?.role);
@@ -374,7 +374,12 @@ export default function CostingSheet({ type, costData, srd, pocNumber, onSave, s
     if (result?.success) toast({ title: `${label} rejected`, variant: 'destructive' });
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    const id = srdId || srd?._id;
+    if (!id) return;
+    const url = `/costing/print?srdId=${id}&type=${type}`;
+    window.open(url, '_blank');
+  };
 
   // ── Render ───────────────────────────────────────────────────────────────────
 

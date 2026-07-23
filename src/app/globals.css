@@ -284,158 +284,39 @@
   .print\:hidden { display: none !important; }
   .print\:space-y-0 { margin-top: 0 !important; margin-bottom: 0 !important; }
 
-  /* A4 page setup */
   @page {
     size: A4 portrait;
-    margin: 12mm 10mm 12mm 10mm;
+    margin: 10mm;
   }
 
-  /* Reset body for print */
   html, body {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: white !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Hide everything except the costing sheet */
-  body > *:not(#__next) {
+  /* Hide non-print elements */
+  .print\:hidden,
+  nav, header, footer, aside {
     display: none !important;
   }
 
-  /* Main container */
-  #__next {
-    padding: 0 !important;
-    margin: 0 !important;
-    max-width: none !important;
-    width: 100% !important;
-  }
-
-  /* The main wrapper div inside CostingSheet */
-  .space-y-3 {
-    space-y: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
-  /* Table styling for print */
+  /* Table print styling */
   table {
     width: 100% !important;
-    border-collapse: collapse !important;
     font-size: 8pt !important;
     page-break-inside: auto;
   }
 
   tr {
     page-break-inside: avoid;
-    page-break-after: auto;
   }
 
   thead {
     display: table-header-group;
   }
 
-  /* Ensure borders print */
-  td, th {
-    border-color: #d1d5db !important;
-    border-width: 1px !important;
-  }
-
-  /* Hide add-row buttons, remove buttons, and other interactive elements */
-  button {
-    display: none !important;
-  }
-
-  /* Convert inputs to plain text for print */
-  input[type="number"],
-  input[type="text"] {
-    border: none !important;
-    background: transparent !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    font-size: 8pt !important;
-    text-align: inherit !important;
-    -moz-appearance: textfield !important;
-  }
-
-  input[type="number"]::-webkit-outer-spin-button,
-  input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: none !important;
-    margin: 0 !important;
-  }
-
-  /* Hide select dropdowns - show as text */
-  select {
-    border: none !important;
-    background: transparent !important;
-    -webkit-appearance: none !important;
-    appearance: none !important;
-    padding: 0 !important;
-    font-size: 8pt !important;
-  }
-
-  select::after {
-    content: none !important;
-  }
-
-  /* Hide placeholder text */
-  input::placeholder {
-    display: none !important;
-  }
-
-  /* Section headers */
-  .bg-gray-50 {
-    background-color: #f9fafb !important;
-  }
-
-  .bg-gray-100 {
-    background-color: #f3f4f6 !important;
-  }
-
-  .bg-gray-900 {
-    background-color: #111827 !important;
-    color: white !important;
-  }
-
-  /* Ensure the dark header row prints with background */
-  .bg-gray-900 td {
-    color: white !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  /* Image section - show images but compact */
-  .aspect-square {
-    height: 60px !important;
-    aspect-ratio: 1 !important;
-  }
-
-  /* Notes section - show if has content */
-  textarea {
-    display: none !important;
-  }
-
-  /* Compact padding */
-  .py-2 {
-    padding-top: 4px !important;
-    padding-bottom: 4px !important;
-  }
-
-  .px-3 {
-    padding-left: 8px !important;
-    padding-right: 8px !important;
-  }
-
-  /* Prevent page breaks inside the main table */
-  .rounded-lg {
-    border-radius: 0 !important;
+  /* Remove shadows and rounded corners for clean print */
+  .shadow-sm {
     box-shadow: none !important;
-    border: 1px solid #d1d5db !important;
-  }
-
-  /* Submission metadata - hide in print */
-  p.text-\[11px\] {
-    display: none !important;
   }
 }

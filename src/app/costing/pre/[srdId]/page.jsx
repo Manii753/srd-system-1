@@ -59,6 +59,7 @@ function PreCostingDetailContent() {
         type="pre"
         costData={costing?.preCost}
         srd={srd}
+        srdId={srdId}
         pocNumber={pocNumber}
         onSave={mutate}
         saving={saving}

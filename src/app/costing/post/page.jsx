@@ -155,6 +155,7 @@ function PostCostingContent() {
         type="post"
         costData={costing?.postCost}
         srd={srd}
+        srdId={srdId}
         onSave={mutate}
         saving={saving}
       />
