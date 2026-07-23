@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { Plus, Trash2, CheckCircle2, Clock, AlertCircle, Send } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Clock, AlertCircle, Send, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/lib/use-toast';
@@ -374,6 +374,8 @@ export default function CostingSheet({ type, costData, srd, pocNumber, onSave, s
     if (result?.success) toast({ title: `${label} rejected`, variant: 'destructive' });
   };
 
+  const handlePrint = () => window.print();
+
   // ── Render ───────────────────────────────────────────────────────────────────
 
   const colCount = 6; // Description, Code, Cons, Rate, Amount, Remove
@@ -381,7 +383,7 @@ export default function CostingSheet({ type, costData, srd, pocNumber, onSave, s
   return (
     <div className="space-y-3">
       {/* ── Top bar ── */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-bold text-gray-900">Costing Form</h2>
           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${sm.bg}`}>
@@ -687,38 +689,40 @@ export default function CostingSheet({ type, costData, srd, pocNumber, onSave, s
         disabled={!canEdit}
         placeholder="Notes or assumptions…"
         rows={2}
-        className="text-xs resize-none border-gray-200"
+        className="text-xs resize-none border-gray-200 print:hidden"
       />
 
       {/* ── Actions ── */}
-      {isAdmin && (
-        <div className="flex flex-wrap gap-2">
-          {canEdit && (
-            <Button onClick={handleSave} disabled={saving || !isDirty} size="sm" variant="outline"
+      <div className="flex flex-wrap gap-2 print:hidden">
+        {isAdmin && canEdit && (
+          <Button onClick={handleSave} disabled={saving || !isDirty} size="sm" variant="outline"
+            className="h-7 text-xs px-3">
+            {saving ? 'Saving…' : 'Save Draft'}
+          </Button>
+        )}
+        {isAdmin && canEdit && status === 'draft' && (
+          <Button onClick={handleSubmit} disabled={saving} size="sm"
+            className="h-7 text-xs px-3 bg-gray-900 hover:bg-gray-800 text-white">
+            Submit for Approval
+          </Button>
+        )}
+        {isAdmin && status === 'submitted' && (
+          <>
+            <Button onClick={handleApprove} disabled={saving} size="sm"
+              className="h-7 text-xs px-3 bg-green-600 hover:bg-green-700 text-white">
+              Approve
+            </Button>
+            <Button onClick={handleReject} disabled={saving} size="sm" variant="destructive"
               className="h-7 text-xs px-3">
-              {saving ? 'Saving…' : 'Save Draft'}
+              Reject
             </Button>
-          )}
-          {canEdit && status === 'draft' && (
-            <Button onClick={handleSubmit} disabled={saving} size="sm"
-              className="h-7 text-xs px-3 bg-gray-900 hover:bg-gray-800 text-white">
-              Submit for Approval
-            </Button>
-          )}
-          {status === 'submitted' && (
-            <>
-              <Button onClick={handleApprove} disabled={saving} size="sm"
-                className="h-7 text-xs px-3 bg-green-600 hover:bg-green-700 text-white">
-                Approve
-              </Button>
-              <Button onClick={handleReject} disabled={saving} size="sm" variant="destructive"
-                className="h-7 text-xs px-3">
-                Reject
-              </Button>
-            </>
-          )}
-        </div>
-      )}
+          </>
+        )}
+        <Button onClick={handlePrint} size="sm" variant="outline"
+          className="h-7 text-xs px-3">
+          <Printer size={12} className="mr-1" /> Print A4
+        </Button>
+      </div>
     </div>
   );
 }
