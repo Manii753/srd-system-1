@@ -18,14 +18,11 @@ function normalizeFieldId(fieldId) {
 }
 
 export async function PATCH(request, context) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-  }
-
- 
-
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
     await dbConnect();
     const params = await context.params;
     const { id, dept } = params;

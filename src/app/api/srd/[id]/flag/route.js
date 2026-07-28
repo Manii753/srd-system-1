@@ -7,7 +7,7 @@ import pusher from '@/lib/pusher-server';
 export async function PATCH(request, context) {
   try {
     await dbConnect();
-    const { id } = context.params;
+    const { id } = await context.params;
     const body = await request.json();
     const { department, comment, author, role } = body;
 
