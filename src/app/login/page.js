@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Mail, Lock } from 'lucide-react';
+import { Suspense } from 'react';
 
 
 
@@ -20,6 +21,14 @@ function isMobileBrowser() {
 }
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
   const { data: session } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
