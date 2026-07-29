@@ -83,8 +83,8 @@ export default function HomePage() {
   // Splash screen timing
   useEffect(() => {
     if (showSplash && status === 'authenticated' && company.name) {
-      const fadeTimer = setTimeout(() => setFadeOut(true), 2000);
-      const hideTimer = setTimeout(() => setShowSplash(false), 2500);
+      const fadeTimer = setTimeout(() => setFadeOut(true), 4500);
+      const hideTimer = setTimeout(() => setShowSplash(false), 5000);
       return () => {
         clearTimeout(fadeTimer);
         clearTimeout(hideTimer);
