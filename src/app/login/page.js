@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Mail, Lock } from 'lucide-react';
 import { Suspense } from 'react';
+import { toast } from 'sonner';
 
 
 
@@ -162,6 +163,16 @@ function LoginPageContent() {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
+
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => toast.info('Contact your administrator to reset your password')}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Forgot Password?
+                </button>
+              </div>
 
               <Button
                 type="submit"

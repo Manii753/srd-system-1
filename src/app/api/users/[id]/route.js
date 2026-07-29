@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
+import bcrypt from 'bcrypt';
 
 export async function GET(request, { params }) {
   await dbConnect();
@@ -34,6 +35,12 @@ export async function PATCH(request, { params }) {
     // Don't allow updating password to empty string
     if (body.password === '') {
       delete body.password;
+    }
+
+    // Hash password if being updated (findByIdAndUpdate skips pre('save') hook)
+    if (body.password) {
+      const salt = await bcrypt.genSalt(10);
+      body.password = await bcrypt.hash(body.password, salt);
     }
 
     const updatedUser = await User.findByIdAndUpdate(

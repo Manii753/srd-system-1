@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { 
   PlusCircle, Edit, Trash2, UserCheck, UserX, 
-  Mail, Shield, Calendar, Search, Key
+  Mail, Shield, Calendar, Search, Key, Camera, Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import UserPermissionsModal from '@/components/UserPermissionsModal';
@@ -36,6 +36,10 @@ export default function UsersManagementPage() {
     department: '',
     isActive: true
   });
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
+  const [resetPasswordUser, setResetPasswordUser] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -83,6 +87,8 @@ export default function UsersManagementPage() {
       isActive: true
     });
     setEditingUser(null);
+    setAvatarFile(null);
+    setAvatarPreview('');
     setModalOpen(true);
   };
 
@@ -96,6 +102,8 @@ export default function UsersManagementPage() {
       isActive: user.isActive
     });
     setEditingUser(user);
+    setAvatarFile(null);
+    setAvatarPreview(user.profilePicture || '');
     setModalOpen(true);
   };
 
@@ -119,6 +127,9 @@ export default function UsersManagementPage() {
         const data = await res.json();
         if (data.success) {
           toast.success('User updated successfully');
+          if (avatarFile) {
+            await handleAvatarUpload(editingUser._id);
+          }
           fetchData();
           setModalOpen(false);
         } else {
@@ -135,6 +146,9 @@ export default function UsersManagementPage() {
         const data = await res.json();
         if (data.success) {
           toast.success('User created successfully');
+          if (avatarFile && data.data?._id) {
+            await handleAvatarUpload(data.data._id);
+          }
           fetchData();
           setModalOpen(false);
         } else {
@@ -143,6 +157,77 @@ export default function UsersManagementPage() {
       }
     } catch (error) {
       console.error('Error saving user:', error);
+      toast.error('An error occurred');
+    }
+  };
+
+  const handleAvatarUpload = async (userId) => {
+    if (!avatarFile) return;
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64Data = e.target.result;
+        const res = await fetch(`/api/users/${userId}/avatar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileData: base64Data, fileName: avatarFile.name })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          toast.success('Profile picture updated');
+          fetchData();
+        } else {
+          toast.error(data.error || 'Failed to upload avatar');
+        }
+      };
+      reader.readAsDataURL(avatarFile);
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast.error('Failed to upload avatar');
+    }
+  };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('Image must be less than 2MB');
+        return;
+      }
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onload = (ev) => setAvatarPreview(ev.target.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetPasswordUser || !newPassword) return;
+
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/users/${resetPasswordUser._id}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Password reset for ${resetPasswordUser.name}`);
+        setResetPasswordUser(null);
+        setNewPassword('');
+      } else {
+        toast.error(data.error || 'Failed to reset password');
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
       toast.error('An error occurred');
     }
   };
@@ -354,10 +439,14 @@ export default function UsersManagementPage() {
                       <tr key={user._id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                              <span className="text-blue-600 font-semibold text-app-text">
-                                {user.name.charAt(0).toUpperCase()}
-                              </span>
+                            <div className="flex-shrink-0 h-10 w-10 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center">
+                              {user.profilePicture ? (
+                                <img src={user.profilePicture} alt={user.name} className="h-10 w-10 object-cover" />
+                              ) : (
+                                <span className="text-blue-600 font-semibold text-app-text">
+                                  {user.name.charAt(0).toUpperCase()}
+                                </span>
+                              )}
                             </div>
                             <div className="ml-4">
                               <div className="text-app-text font-medium text-gray-900">{user.name}</div>
@@ -396,6 +485,15 @@ export default function UsersManagementPage() {
                             className="text-blue-600 hover:text-blue-900"
                           >
                             <Key className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => { setResetPasswordUser(user); setNewPassword(''); }}
+                            title="Reset Password"
+                            className="text-orange-600 hover:text-orange-900"
+                          >
+                            <Lock className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -458,6 +556,32 @@ export default function UsersManagementPage() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
+                  {/* Profile Picture Upload */}
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <div className="h-20 w-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border-2 border-gray-200">
+                        {avatarPreview ? (
+                          <img src={avatarPreview} alt="Preview" className="h-20 w-20 object-cover" />
+                        ) : (
+                          <Camera className="h-8 w-8 text-gray-400" />
+                        )}
+                      </div>
+                      <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-1.5 cursor-pointer hover:bg-blue-700 shadow-md">
+                        <Camera className="h-3.5 w-3.5" />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarChange}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Profile Picture</p>
+                      <p className="text-xs text-gray-500">JPG, PNG. Max 2MB</p>
+                    </div>
+                  </div>
+
                   <div>
                     <Label htmlFor="name" className="text-app-heading">Name *</Label>
                     <Input
@@ -562,6 +686,48 @@ export default function UsersManagementPage() {
           onClose={() => setPermissionsModalOpen(false)}
           onSave={handlePermissionsUpdate}
         />
+
+        {/* Reset Password Modal */}
+        {resetPasswordUser && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+              onClick={() => setResetPasswordUser(null)}
+            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm border border-gray-200">
+                <div className="flex items-center justify-between px-6 py-4 border-b">
+                  <h2 className="text-app-heading font-semibold">Reset Password</h2>
+                  <button
+                    className="text-gray-500 hover:text-gray-800"
+                    onClick={() => setResetPasswordUser(null)}
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="px-6 py-4 space-y-4">
+                  <p className="text-sm text-gray-600">
+                    Set new password for <strong>{resetPasswordUser.name}</strong>
+                  </p>
+                  <Input
+                    type="password"
+                    placeholder="New password (min 6 characters)"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <div className="flex justify-end space-x-3 pt-2">
+                    <Button variant="outline" onClick={() => setResetPasswordUser(null)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleResetPassword}>
+                      Reset Password
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
       </div>  
     </Layout>
