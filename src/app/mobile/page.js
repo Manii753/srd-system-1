@@ -17,8 +17,8 @@ export default function MobileSplash() {
   }, []);
 
   useEffect(() => {
-    const fadeTimer = setTimeout(() => setFadeOut(true), 4600);
-    const navTimer = setTimeout(() => router.replace('/mobile/home'), 5000);
+    const fadeTimer = setTimeout(() => setFadeOut(true), 5600);
+    const navTimer = setTimeout(() => router.replace('/mobile/home'), 6000);
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(navTimer);
