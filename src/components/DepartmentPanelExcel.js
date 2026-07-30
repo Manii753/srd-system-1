@@ -16,6 +16,7 @@ import Image from 'next/image';
 import UploadImage from './UploadImage';
 import UploadFile from './UploadFile';
 import { useToast } from '@/lib/use-toast';
+import { useSession } from 'next-auth/react';
 import { printDepartmentPanelExcel } from '@/components/departmentPanelExcelPrint';
 import {
   getAssetKey,
@@ -229,6 +230,7 @@ export default function DepartmentPanelExcel({
   onSaveRef,
 }) {
   const { toast } = useToast();
+  const { data: session } = useSession();
   const [activeTemplate, setActiveTemplate] = useState(null);
   const [allFieldDefs, setAllFieldDefs] = useState({});
   const [fields, setFields] = useState(srd.dynamicFields || []);
@@ -537,7 +539,7 @@ export default function DepartmentPanelExcel({
               const r = await fetch(`/api/srd/${srdRef.current._id}/department/${dept}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'approved', fields: [] }),
+                body: JSON.stringify({ status: 'approved', fields: [], authorName: session?.user?.name, authorRole: session?.user?.role }),
               });
               const rd = await r.json();
               if (rd.success) {

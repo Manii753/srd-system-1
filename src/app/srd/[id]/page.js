@@ -76,7 +76,7 @@ export default function SRDDetailPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updateData),
+        body: JSON.stringify({ ...updateData, authorName: session?.user?.name, authorRole: session?.user?.role }),
       });
 
       const data = await response.json();

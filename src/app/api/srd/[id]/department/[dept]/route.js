@@ -4,8 +4,6 @@ import SRD from '@/models/SRD';
 import User from '@/models/User';
 import Notification from '@/models/Notification';
 import pusher from '@/lib/pusher-server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 
 function normalizeFieldId(fieldId) {
   if (!fieldId) return null;
@@ -19,10 +17,6 @@ function normalizeFieldId(fieldId) {
 
 export async function PATCH(request, context) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
     await dbConnect();
     const params = await context.params;
     const { id, dept } = params;
@@ -165,7 +159,7 @@ export async function PATCH(request, context) {
 
         // Add audit record with detailed action description
         const actionDescription = body.status === 'flagged'
-          ? `Flagged issue in ${dept.toUpperCase()} by ${session.user.name}`
+          ? `Flagged issue in ${dept.toUpperCase()} by ${body.authorName || 'System'}`
           : body.status === 'approved'
             ? `Approved`
             : body.status === 'in-progress'
@@ -174,9 +168,9 @@ export async function PATCH(request, context) {
 
         srd.audit.push({
           department: dept,
-          author: session.user.name || 'System',
+          author: body.authorName || 'System',
           action: actionDescription,
-          role: session.user.role,
+          role: body.authorRole,
           comment: body.comment?.text,
           date: new Date(),
         });
@@ -209,10 +203,10 @@ export async function PATCH(request, context) {
     try {
       const users = await User.find({});
       const notificationMessage = body.status === 'flagged'
-        ? `🚩 ${session.user.name} flagged an issue in SRD ${freshSRD.refNo}`
+        ? `🚩 ${body.authorName || 'System'} flagged an issue in SRD ${freshSRD.refNo}`
         : body.status === 'approved'
-          ? `✅ ${session.user.name} approved SRD ${freshSRD.refNo}`
-          : `📝 ${session.user.name} updated SRD ${freshSRD.refNo} to ${body.status}`;
+          ? `✅ ${body.authorName || 'System'} approved SRD ${freshSRD.refNo}`
+          : `📝 ${body.authorName || 'System'} updated SRD ${freshSRD.refNo} to ${body.status}`;
 
       const notificationPromises = users.map(user =>
         Notification.create({
