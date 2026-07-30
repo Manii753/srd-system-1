@@ -8,15 +8,15 @@ import { FileText, Package, DollarSign, List, Calendar, Truck, BarChart2, Messag
 
 const APP_GROUPS = [
   {
-    label: 'Home Page',
+    label: '',
     apps: [
       { 
-        label: 'Order Confirmation', 
-        icon: ClipboardList, 
-        href: '/dashboard/vmd', 
-        color: 'bg-indigo-500', 
-        lightColor: 'bg-indigo-50', 
-        textColor: 'text-indigo-600' 
+        label: 'Cost Sheets', 
+        icon: DollarSign, 
+        href: '/costing', 
+        color: 'bg-amber-500', 
+        lightColor: 'bg-amber-50', 
+        textColor: 'text-amber-600' 
       },
       { 
         label: 'Samples Management', 
@@ -27,20 +27,12 @@ const APP_GROUPS = [
         textColor: 'text-emerald-600' 
       },
       { 
-        label: 'Cost Sheets', 
-        icon: DollarSign, 
-        href: '/costing', 
-        color: 'bg-amber-500', 
-        lightColor: 'bg-amber-50', 
-        textColor: 'text-amber-600' 
-      },
-      { 
-        label: 'Bom', 
-        icon: List, 
-        href: '#', 
-        color: 'bg-rose-500', 
-        lightColor: 'bg-rose-50', 
-        textColor: 'text-rose-600' 
+        label: 'Order Confirmation', 
+        icon: ClipboardList, 
+        href: '/dashboard/vmd', 
+        color: 'bg-indigo-500', 
+        lightColor: 'bg-indigo-50', 
+        textColor: 'text-indigo-600' 
       },
       { 
         label: 'Planning', 
@@ -49,6 +41,14 @@ const APP_GROUPS = [
         color: 'bg-violet-500', 
         lightColor: 'bg-violet-50', 
         textColor: 'text-violet-600' 
+      },
+      { 
+        label: 'Bom', 
+        icon: List, 
+        href: '#', 
+        color: 'bg-rose-500', 
+        lightColor: 'bg-rose-50', 
+        textColor: 'text-rose-600' 
       },
     ],
   },
@@ -136,7 +136,6 @@ export default function HomePage() {
               {company?.name ?? 'Loading...'}
             </h1>
             <p className="text-gray-400 text-sm tracking-wider uppercase">
-              Sample Request & Dispatch System
             </p>
           </div>
 
@@ -178,7 +177,7 @@ export default function HomePage() {
                 <h1 className="text-2xl font-bold text-gray-900">
                   {company.name}
                 </h1>
-                <p className="text-sm text-gray-500">Sample Request & Dispatch System</p>
+                <p className="text-sm text-gray-500"></p>
               </div>
             </div>
 
