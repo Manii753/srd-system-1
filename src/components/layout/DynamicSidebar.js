@@ -100,17 +100,12 @@ export default function DynamicSidebar() {
       if (userRole === 'admin') {
         setMenuItems([
           { name: 'Home', href: '/home', icon: LayoutDashboard },
-          { name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
+          { name: 'Cost Sheets',href:'/costing/post', icon: DollarSign,},
           { name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren },
-          { name: 'Cost Sheets', icon: DollarSign, isSubmenu: true, children: [
-            { name: 'Pre-Costing',  href: '/costing/pre',  icon: DollarSign },
-            // { name: 'Post-Costing', href: '/costing/post', icon: DollarSign },  // commented out for now
-            { name: 'All Costing',  href: '/costing',      icon: DollarSign },
-          ]},
-          { name: 'BOM', href: '/bom', icon: List },
+          { name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
           { name: 'Planning', href: '#', icon: Calendar },
+          { name: 'BOM', href: '/bom', icon: List },
           { name: 'Production', href: '/dashboard/production-manager', icon: Factory },
-          { name: 'All SRDs', href: '/srd', icon: FileText },
           { name: 'SRD Fields', href: '/srdfields', icon: FileSpreadsheet },
           { name: 'Users', href: '/users', icon: Users },
           { name: 'Permissions', href: '/permissions', icon: Shield },
