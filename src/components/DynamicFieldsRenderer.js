@@ -3,10 +3,16 @@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ChevronDown, ChevronRight, Folder, FolderOpen } from 'lucide-react';
+import { ChevronDown, ChevronRight, Folder, FolderOpen, FileSpreadsheet, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import Image from 'next/image';
 import UploadImage from './UploadImage';
 import UploadFile from './UploadFile';
+import {
+  getAssetUrl,
+  getAssetLabel,
+  normalizeAssetEntries,
+} from '@/lib/assetUtils';
 
 export default function DynamicFieldsRenderer({ 
   fields, 
@@ -119,59 +125,114 @@ export default function DynamicFieldsRenderer({
     
     // Handle file upload
     if (field.type === 'file') {
+      const fileAsset = normalizeAssetEntries(value, { kind: 'file' })[0] || null;
+      const fileUrl = getAssetUrl(fileAsset);
+      const fileLabel = getAssetLabel(fileAsset, 'Attached file');
       return (
         <div key={field._id} className="flex space-y-2 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
           <Label htmlFor={field._id}>
             {field.name}
             {field.isRequired && <span className="text-red-500 ml-1">*</span>}
           </Label>
-          {srdId && (
-            <UploadFile
-              srdId={srdId}
-              fieldId={field._id}
-              onUploaded={(assets) => {
-                const asset = Array.isArray(assets) ? assets[0] : assets;
-                if (asset) {
-                  onChange(field._id, asset);
-                }
-              }}
-            />
-          )}
-          {!srdId && (
-            <div className="rounded-md border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-app-text text-amber-900">
-              Create the SRD first, then upload files.
-            </div>
-          )}
+          <div className="w-full space-y-2">
+            {fileUrl && (
+              <div className="flex items-center p-2 bg-gray-50 border border-gray-200 rounded">
+                <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
+                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate flex-1 block" title={fileLabel}>
+                  {fileLabel}
+                </a>
+                <button
+                  type="button"
+                  className="h-6 w-6 flex-shrink-0 inline-flex items-center justify-center rounded hover:bg-red-100"
+                  onClick={() => onChange(field._id, null)}
+                  title="Remove file"
+                >
+                  <X className="h-3 w-3 text-red-500" />
+                </button>
+              </div>
+            )}
+            {srdId && (
+              <UploadFile
+                srdId={srdId}
+                fieldId={field._id}
+                onUploaded={(assets) => {
+                  const asset = Array.isArray(assets) ? assets[0] : assets;
+                  if (asset) {
+                    onChange(field._id, asset);
+                  }
+                }}
+              />
+            )}
+            {!srdId && (
+              <div className="rounded-md border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-app-text text-amber-900">
+                Create the SRD first, then upload files.
+              </div>
+            )}
+          </div>
         </div>
       );
     }
     
     // Handle image upload
     if (field.type === 'image') {
+      const images = normalizeAssetEntries(value, { kind: 'image' });
       return (
         <div key={field._id} className="flex space-y-2 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
           <Label htmlFor={field._id}>
             {field.name}
             {field.isRequired && <span className="text-red-500 ml-1">*</span>}
           </Label>
-          {srdId && (
-            <UploadImage
-              srdId={srdId}
-              fieldId={field._id}
-              compact
-              onUploaded={(assets) => {
-                const imageArray = Array.isArray(assets) ? assets : [assets].filter(Boolean);
-                if (imageArray.length > 0) {
-                  onChange(field._id, imageArray);
-                }
-              }}
-            />
-          )}
-          {!srdId && (
-            <div className="rounded-md border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-app-text text-amber-900">
-              Create the SRD first, then upload images.
-            </div>
-          )}
+          <div className="w-full space-y-2">
+            {images.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {images.map((asset, idx) => {
+                  const imageUrl = getAssetUrl(asset);
+                  if (!imageUrl) return null;
+                  return (
+                    <div key={idx} className="relative group rounded overflow-hidden border border-gray-200">
+                      <Image
+                        src={imageUrl}
+                        alt={`${field.name}-${idx}`}
+                        width={120}
+                        height={120}
+                        className="object-cover w-28 h-28"
+                        unoptimized
+                      />
+                      <button
+                        type="button"
+                        className="absolute top-1 right-1 h-5 w-5 rounded-full bg-black/60 hover:bg-red-600 text-white inline-flex items-center justify-center"
+                        onClick={() => {
+                          const updated = images.filter((_, i) => i !== idx);
+                          onChange(field._id, updated);
+                        }}
+                        title="Remove image"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {srdId && (
+              <UploadImage
+                srdId={srdId}
+                fieldId={field._id}
+                compact
+                onUploaded={(assets) => {
+                  const imageArray = Array.isArray(assets) ? assets : [assets].filter(Boolean);
+                  if (imageArray.length > 0) {
+                    onChange(field._id, [...images, ...imageArray]);
+                  }
+                }}
+              />
+            )}
+            {!srdId && (
+              <div className="rounded-md border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-app-text text-amber-900">
+                Create the SRD first, then upload images.
+              </div>
+            )}
+          </div>
         </div>
       );
     }
