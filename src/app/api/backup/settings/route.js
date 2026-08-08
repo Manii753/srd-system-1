@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
+import { backupScheduler } from '@/lib/backupScheduler';
 
 export async function GET() {
   try {
@@ -95,6 +96,10 @@ export async function PUT(request) {
     // If auto backup is enabled, schedule next backup
     if (newSettings.autoBackup) {
       await scheduleNextBackup(newSettings.backupFrequency);
+      // Trigger an immediate check so the rolling backup is created right away
+      backupScheduler.checkScheduledBackups().catch((error) => {
+        console.error('Backup scheduler check failed after settings update:', error);
+      });
     }
 
     return NextResponse.json({

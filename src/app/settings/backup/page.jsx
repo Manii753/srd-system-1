@@ -340,7 +340,7 @@ export default function BackupPage() {
   const getBackupTypeDescription = (backup) => {
     switch (backup.type) {
       case 'automatic':
-        return 'Rolling automatic snapshot. Requires the `npm run backup:scheduler` worker to be running.';
+        return 'Rolling automatic snapshot that runs with the app. Backup frequency is set in Backup Settings.';
       case 'uploaded':
         return 'Uploaded backup file stored on this server for restore/download.';
       case 'pre-restore':
@@ -395,7 +395,7 @@ export default function BackupPage() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-app-text text-gray-700">
-              Automatic backups use one rolling ZIP file and stay separate from manual backups. They only run when the separate scheduler worker is running with `npm run backup:scheduler`.
+              Automatic backups use one rolling ZIP file and stay separate from manual backups. They run automatically while the app is running.
             </p>
           </CardContent>
         </Card>
@@ -528,7 +528,7 @@ export default function BackupPage() {
                     Local storage only
                   </div>
                   <p className="text-app-text text-gray-500 mt-2">
-                    Google Drive backup is currently disabled. Automatic backup is a rolling full ZIP snapshot and requires the separate scheduler worker process.
+                    Google Drive backup is currently disabled. Automatic backup is a rolling full ZIP snapshot that runs automatically while the app is running.
                   </p>
                 </div>
                 
