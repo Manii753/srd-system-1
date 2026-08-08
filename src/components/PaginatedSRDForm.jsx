@@ -249,6 +249,7 @@ export default function PaginatedSRDForm({ srd, onSave, userRole }) {
               fields={currentFields}
               values={formData}
               onChange={handleFieldChange}
+              srdId={srd?._id}
             />
           )}
         </CardContent>

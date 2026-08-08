@@ -5,12 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ChevronDown, ChevronRight, Folder, FolderOpen } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import UploadImage from './UploadImage';
+import UploadFile from './UploadFile';
 
 export default function DynamicFieldsRenderer({ 
   fields, 
   values, 
   onChange, 
-  className = "" 
+  className = "",
+  srdId = null
 }) {
   const headingIds = useMemo(
     () => fields.filter(f => f.type === 'heading').map(f => f._id),
@@ -114,6 +117,66 @@ export default function DynamicFieldsRenderer({
   const renderField = (field) => {
     const value = values[field._id] ?? '';
     
+    // Handle file upload
+    if (field.type === 'file') {
+      return (
+        <div key={field._id} className="flex space-y-2 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+          <Label htmlFor={field._id}>
+            {field.name}
+            {field.isRequired && <span className="text-red-500 ml-1">*</span>}
+          </Label>
+          {srdId && (
+            <UploadFile
+              srdId={srdId}
+              fieldId={field._id}
+              onUploaded={(assets) => {
+                const asset = Array.isArray(assets) ? assets[0] : assets;
+                if (asset) {
+                  onChange(field._id, asset);
+                }
+              }}
+            />
+          )}
+          {!srdId && (
+            <div className="rounded-md border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-app-text text-amber-900">
+              Create the SRD first, then upload files.
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    // Handle image upload
+    if (field.type === 'image') {
+      return (
+        <div key={field._id} className="flex space-y-2 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+          <Label htmlFor={field._id}>
+            {field.name}
+            {field.isRequired && <span className="text-red-500 ml-1">*</span>}
+          </Label>
+          {srdId && (
+            <UploadImage
+              srdId={srdId}
+              fieldId={field._id}
+              compact
+              onUploaded={(assets) => {
+                const imageArray = Array.isArray(assets) ? assets : [assets].filter(Boolean);
+                if (imageArray.length > 0) {
+                  onChange(field._id, imageArray);
+                }
+              }}
+            />
+          )}
+          {!srdId && (
+            <div className="rounded-md border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-app-text text-amber-900">
+              Create the SRD first, then upload images.
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    // Other field types
     return (
       <div key={field._id} className="flex space-y-2 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
         <Label htmlFor={field._id}>
@@ -159,14 +222,6 @@ export default function DynamicFieldsRenderer({
             <Label htmlFor={field._id} className="text-app-text text-gray-700 cursor-pointer">
               {field.placeholder || 'Yes/No'}
             </Label>
-          </div>
-        ) : field.type === 'file' ? (
-          <div className="rounded-md border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-app-text text-amber-900">
-            Create the SRD first, then upload files from the SRD editor.
-          </div>
-        ) : field.type === 'image' ? (
-          <div className="rounded-md border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-app-text text-amber-900">
-            Create the SRD first, then upload images from the SRD editor.
           </div>
         ) : (
           <Input
