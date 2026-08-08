@@ -262,17 +262,29 @@ export async function POST(request) {
         .map(dept => ({ department: dept.slug.toLowerCase(), value: 'pending', updatedAt: new Date() }));
     }
 
-    // --- Generate sequential refNo from Company counter ---
+    // --- Generate sequential refNo from Company counter with duplicate handling ---
     if (!body.refNo || !String(body.refNo).trim()) {
-      // Atomically claim the current number and increment for the next SRD
-      const company = await Company.findOneAndUpdate(
-        {},
-        { $inc: { currentSRDNumber: 1 } },
-        { new: false } // return pre-increment value so we use the current number
-      );
-      const prefix = company?.CurrentSRDPrefix ?? 'SRD-';
-      const number = company?.currentSRDNumber ?? 1000;
-      body.refNo = `${prefix}${number}`;
+      let refNoGenerated = false;
+      let attempts = 0;
+      const maxAttempts = 5;
+
+      while (!refNoGenerated && attempts < maxAttempts) {
+        attempts++;
+        try {
+          const company = await Company.findOneAndUpdate(
+            {},
+            { $inc: { currentSRDNumber: 1 } },
+            { new: false, upsert: true, setDefaultsOnInsert: true }
+          );
+          const prefix = company?.CurrentSRDPrefix ?? 'SRD-';
+          const number = company?.currentSRDNumber ?? 1000;
+          body.refNo = `${prefix}${number}`;
+          refNoGenerated = true;
+        } catch (counterError) {
+          console.error('Error generating refNo:', counterError);
+          if (attempts >= maxAttempts) throw counterError;
+        }
+      }
     }
 
     // Auto-populate refNo-typed dynamic fields with the SRD's refNo
@@ -291,8 +303,45 @@ export async function POST(request) {
       body.productionStages = activeStages.map(stage => stage._id);
     }
 
-    // --- Create SRD ---
-    const newSRD = await SRD.create(body);
+    // --- Create SRD with duplicate key retry ---
+    let newSRD;
+    let createAttempts = 0;
+    const maxCreateAttempts = 5;
+
+    while (!newSRD && createAttempts < maxCreateAttempts) {
+      createAttempts++;
+      try {
+        newSRD = await SRD.create(body);
+      } catch (createError) {
+        // Check if it's a duplicate key error (E11000)
+        if (createError.code === 11000 && createError.keyPattern?.refNo) {
+          console.warn(`Duplicate refNo ${body.refNo}, retrying... (attempt ${createAttempts})`);
+          // Generate a new refNo and retry
+          const company = await Company.findOneAndUpdate(
+            {},
+            { $inc: { currentSRDNumber: 1 } },
+            { new: false, upsert: true, setDefaultsOnInsert: true }
+          );
+          const prefix = company?.CurrentSRDPrefix ?? 'SRD-';
+          const number = company?.currentSRDNumber ?? 1000;
+          body.refNo = `${prefix}${number}`;
+          
+          // Also update refNo in dynamicFields
+          if (body.dynamicFields && Array.isArray(body.dynamicFields)) {
+            body.dynamicFields = body.dynamicFields.map(f => {
+              if (f.type === 'refNo') {
+                return { ...f, value: body.refNo };
+              }
+              return f;
+            });
+          }
+          
+          if (createAttempts >= maxCreateAttempts) throw createError;
+        } else {
+          throw createError;
+        }
+      }
+    }
 
     // --- Create notifications for all users ---
     // 1. Get the departments
