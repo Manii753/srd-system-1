@@ -29,13 +29,16 @@ function formatDate(value) {
     : '—';
 }
 
-// Extract a dynamic field value from SRD
+// Extract a dynamic field value from SRD.
+// Names are normalized (lowercase, punctuation stripped) so that
+// e.g. "Wash / Color", "Buyer Style Ref." and "Sample Request Size" all match.
 function getDynField(srd, ...names) {
-  for (const name of names) {
-    const f = srd.dynamicFields?.find(
-      f => f.name?.toLowerCase() === name.toLowerCase()
-    );
-    if (f?.value) return f.value;
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normNames = names.map(norm);
+  for (const f of (srd.dynamicFields || [])) {
+    if (f?.value != null && String(f.value) !== '') {
+      if (normNames.includes(norm(f.name || ''))) return String(f.value);
+    }
   }
   return '';
 }
@@ -67,48 +70,27 @@ function buildImageAttachments(srd, prefix) {
 
 function buildDispatchBlock(srd, idx) {
   const dispatch = srd.DispatchDetails || {};
-  const buyer = srd.BuyerDetails || {};
-  const contacts = Array.isArray(buyer.contactPerson) ? buyer.contactPerson : [];
-
-  const contactNames = contacts.map(c => c.name).filter(Boolean).join(', ');
-  const contactPhones = contacts.map(c => c.phone).filter(Boolean);
-  const buyerPhones = Array.isArray(buyer.phone) ? buyer.phone : [];
-  const phones = [...new Set([...contactPhones, ...buyerPhones])].join(', ');
-  const contactEmails = contacts.map(c => c.email).filter(Boolean);
-  const brand = getDynField(srd, 'brand', 'Brand');
-  const qty = dispatch.dispatchQuantity || getDynField(srd, 'qty', 'Qty', 'quantity');
-  const awb = dispatch.awb || '';
-  const date = dispatch.sampleDispatchDate || null;
-  const address = dispatch.address || '';
-  const dept = buyer.department || '';
+  const brand      = getDynField(srd, 'brand', 'Brand');
+  const sampleType = getDynField(srd, 'sample type', 'Sample Type', 'sampleType') || 'DEVELOPMENT';
+  const styleRef   = getDynField(srd, 'buyer style ref', 'style ref', 'Buyer Style Ref');
+  const desc       = getDynField(srd, 'description', 'Description', 'style', 'Style');
+  const fit        = getDynField(srd, 'fit', 'Fit');
+  const color      = getDynField(srd, 'wash / color', 'wash/color', 'color/wash', 'color', 'wash');
+  const size       = getDynField(srd, 'sample request size', 'size', 'Size');
+  const qty        = dispatch.dispatchQuantity || getDynField(srd, 'sample request qty.', 'sample request qty', 'qty', 'quantity', 'Qty');
 
   const { attachments, cids } = buildImageAttachments(srd, `img${idx}`);
-
-  const summaryRows = [
-    ['Sample Dispatch Date', formatDate(date)],
-    ['Awb #', awb || '—'],
-    ['Dispatch Qty', qty || '—'],
-    ['Dept', dept || '—'],
-    ['Brand', brand || '—'],
-    ['Address', address || '—'],
-    ['Contact Person', contactNames || contactEmails.join(', ') || '—'],
-    ['Phone', phones || '—'],
-  ].map(([label, value]) => `
-    <tr>
-      <td style="border:1px solid #ccc;padding:3px 8px;font-size:12px;background:#f2f2f2;width:180px;">${esc(label)}</td>
-      <td style="border:1px solid #ccc;padding:3px 8px;font-size:12px;">${esc(value)}</td>
-    </tr>`).join('');
 
   const tableRows = `
     <tr>
       <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(brand)}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(getDynField(srd, 'sample type', 'Sample Type', 'sampleType') || 'DEVELOPMENT')}</td>
+      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(sampleType)}</td>
       <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(srd.refNo || '')}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(getDynField(srd, 'buyer style ref', 'Buyer Style Ref', 'style ref'))}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(getDynField(srd, 'description', 'Description', 'style', 'Style'))}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(getDynField(srd, 'fit', 'Fit'))}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(getDynField(srd, 'color', 'Color'))}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(getDynField(srd, 'size', 'Size'))}</td>
+      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(styleRef)}</td>
+      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(desc)}</td>
+      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(fit)}</td>
+      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(color)}</td>
+      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(size)}</td>
       <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(qty)}</td>
     </tr>`;
 
@@ -126,10 +108,6 @@ function buildDispatchBlock(srd, idx) {
     html: `
       <div style="margin:0 0 20px 0;">
         ${idx > 0 ? `<hr style="border:none;border-top:2px solid #eee;margin:0 0 20px 0;" />` : ''}
-
-        <table style="border-collapse:collapse;width:100%;margin-bottom:12px;">
-          ${summaryRows}
-        </table>
 
         <table style="border-collapse:collapse;width:100%;margin-bottom:12px;">
           <thead>
@@ -156,10 +134,9 @@ function buildDispatchBlock(srd, idx) {
   };
 }
 
-// Build the HTML email body matching the design in the screenshot
+// Build the HTML email body
 function buildEmailHTML({ blocks, awb, dispatchDate }) {
   const formattedDate = formatDate(dispatchDate);
-  const hasPics = blocks.some(b => b.attachments.length > 0);
 
   return `
 <!DOCTYPE html>
@@ -174,8 +151,6 @@ function buildEmailHTML({ blocks, awb, dispatchDate }) {
   </p>
 
   ${blocks.map(b => b.html).join('')}
-
-  ${hasPics ? `<p style="color:#2e7d32;font-style:italic;margin:0 0 12px 0;"><strong>Pictures attached</strong></p>` : ''}
 
   <p style="font-style:italic;margin:0 0 16px 0;">
     If you have any questions relating to the above, please do not hesitate to contact

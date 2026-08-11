@@ -1482,19 +1482,9 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               <p className="font-semibold text-gray-500 mb-1">Email Preview:</p>
               <p>Hi,</p>
               <p>Pls note courier no <strong>DHL {srd.DispatchDetails?.awb || '—'}</strong> of below mentioned samples dispatch on Dated <strong>{srd.DispatchDetails?.sampleDispatchDate ? new Date(srd.DispatchDetails.sampleDispatchDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: '2-digit' }) : '—'}</strong></p>
-              <div className="border border-gray-300 rounded overflow-hidden">
-                <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 px-2 py-1 bg-white">
-                  <span className="text-gray-500">Dispatch Qty:</span><span>{srd.DispatchDetails?.dispatchQuantity || '—'}</span>
-                  <span className="text-gray-500">Dept:</span><span>{selectedBuyer ? (buyers.find(x => x._id?.toString() === selectedBuyer?.toString())?.department || '—') : '—'}</span>
-                  <span className="text-gray-500">Brand:</span><span>{srd.dynamicFields?.find(f => f.name === 'Brand' || f.name === 'Buyer')?.value || '—'}</span>
-                  <span className="text-gray-500">Address:</span><span>{srd.DispatchDetails?.address || '—'}</span>
-                  <span className="text-gray-500">Contact Person:</span><span>{(() => { const b = selectedBuyer ? buyers.find(x => x._id?.toString() === selectedBuyer?.toString()) : null; const c = (b?.contactPerson || []).map(x => x.name).filter(Boolean).join(', '); return c || '—'; })()}</span>
-                  <span className="text-gray-500">Phone:</span><span>{(() => { const b = selectedBuyer ? buyers.find(x => x._id?.toString() === selectedBuyer?.toString()) : null; const c = (b?.contactPerson || []).map(x => x.phone).filter(Boolean); const p = [...new Set([...c, ...(b?.phone || [])])].join(', '); return p || '—'; })()}</span>
-                </div>
-              </div>
               <p className="italic text-gray-400">[Table with {emailMode === 'merge' ? `${selectedMergeSRDs.length} SRD(s)` : '1 SRD'}]</p>
               {(srd.DispatchDetails?.images?.[0]?.front?.length || srd.DispatchDetails?.images?.[0]?.back?.length) && (
-                <p className="text-green-700 italic">Pictures attached (Front / Back)</p>
+                <p className="text-gray-400 italic">[Front/Back pictures attached]</p>
               )}
               <p className="italic">If you have any questions relating to the above, please do not hesitate to contact <strong>Usman and Tayyab</strong> directly at Usman@lazienda.com.pk or Tayyab@lazienda.com.pk</p>
               <p>Thanks,<br/>Regards,<br/>Vmd Team<br/><strong>Lazienda Denim Pvt Ltd</strong> | Lahore Office - 22km Ferozpur Road Near Khan Khaca Railway Station</p>
