@@ -1,28 +1,165 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
 import dbConnect from '@/lib/db';
 import SRD from '@/models/SRD';
 import Dispatch from '@/models/Dispatch';
 import Buyer from '@/models/Buyer';
+import { resolveManagedUploadRelativePath } from '@/lib/serverAssetUtils';
+
+function esc(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function toAbsolutePath(url) {
+  const relativePath = resolveManagedUploadRelativePath(url);
+  if (!relativePath) return null;
+  const absolutePath = path.join(process.cwd(), 'public', relativePath.split('/').join(path.sep));
+  return fs.existsSync(absolutePath) ? absolutePath : null;
+}
+
+function formatDate(value) {
+  return value
+    ? new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: '2-digit' })
+    : '—';
+}
+
+// Extract a dynamic field value from SRD
+function getDynField(srd, ...names) {
+  for (const name of names) {
+    const f = srd.dynamicFields?.find(
+      f => f.name?.toLowerCase() === name.toLowerCase()
+    );
+    if (f?.value) return f.value;
+  }
+  return '';
+}
+
+// Collect front/back image files and turn them into inline (cid) attachments
+function buildImageAttachments(srd, prefix) {
+  const attachments = [];
+  const cids = { front: [], back: [] };
+  const dispatch = srd.DispatchDetails;
+  const imgObj = (dispatch?.images && dispatch.images.length > 0) ? dispatch.images[0] : {};
+
+  for (const side of ['front', 'back']) {
+    const urls = Array.isArray(imgObj[side]) ? imgObj[side] : [];
+    urls.forEach((url, i) => {
+      const absolutePath = toAbsolutePath(url);
+      if (!absolutePath) return;
+      const cid = `${prefix}_${side}_${i}`;
+      cids[side].push(cid);
+      attachments.push({
+        filename: `${side}-${i + 1}.jpg`,
+        path: absolutePath,
+        cid,
+      });
+    });
+  }
+
+  return { attachments, cids };
+}
+
+function buildDispatchBlock(srd, idx) {
+  const dispatch = srd.DispatchDetails || {};
+  const buyer = srd.BuyerDetails || {};
+  const contacts = Array.isArray(buyer.contactPerson) ? buyer.contactPerson : [];
+
+  const contactNames = contacts.map(c => c.name).filter(Boolean).join(', ');
+  const contactPhones = contacts.map(c => c.phone).filter(Boolean);
+  const buyerPhones = Array.isArray(buyer.phone) ? buyer.phone : [];
+  const phones = [...new Set([...contactPhones, ...buyerPhones])].join(', ');
+  const contactEmails = contacts.map(c => c.email).filter(Boolean);
+  const brand = getDynField(srd, 'brand', 'Brand');
+  const qty = dispatch.dispatchQuantity || getDynField(srd, 'qty', 'Qty', 'quantity');
+  const awb = dispatch.awb || '';
+  const date = dispatch.sampleDispatchDate || null;
+  const address = dispatch.address || '';
+  const dept = buyer.department || '';
+
+  const { attachments, cids } = buildImageAttachments(srd, `img${idx}`);
+
+  const summaryRows = [
+    ['Sample Dispatch Date', formatDate(date)],
+    ['Awb #', awb || '—'],
+    ['Dispatch Qty', qty || '—'],
+    ['Dept', dept || '—'],
+    ['Brand', brand || '—'],
+    ['Address', address || '—'],
+    ['Contact Person', contactNames || contactEmails.join(', ') || '—'],
+    ['Phone', phones || '—'],
+  ].map(([label, value]) => `
+    <tr>
+      <td style="border:1px solid #ccc;padding:3px 8px;font-size:12px;background:#f2f2f2;width:180px;">${esc(label)}</td>
+      <td style="border:1px solid #ccc;padding:3px 8px;font-size:12px;">${esc(value)}</td>
+    </tr>`).join('');
+
+  const tableRows = `
+    <tr>
+      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(brand)}</td>
+      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(getDynField(srd, 'sample type', 'Sample Type', 'sampleType') || 'DEVELOPMENT')}</td>
+      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(srd.refNo || '')}</td>
+      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(getDynField(srd, 'buyer style ref', 'Buyer Style Ref', 'style ref'))}</td>
+      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(getDynField(srd, 'description', 'Description', 'style', 'Style'))}</td>
+      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(getDynField(srd, 'fit', 'Fit'))}</td>
+      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(getDynField(srd, 'color', 'Color'))}</td>
+      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(getDynField(srd, 'size', 'Size'))}</td>
+      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(qty)}</td>
+    </tr>`;
+
+  const renderImages = (side, label) => {
+    if (!cids[side].length) return '';
+    return `
+      <div style="margin:0 0 12px 0;">
+        <p style="margin:0 0 6px 0;font-size:13px;"><strong>${esc(label)}</strong></p>
+        ${cids[side].map(cid => `<img src="cid:${cid}" alt="${esc(label)}" style="max-width:220px;max-height:220px;border:1px solid #ccc;border-radius:4px;margin:0 6px 6px 0;" />`).join('')}
+      </div>`;
+  };
+
+  return {
+    attachments,
+    html: `
+      <div style="margin:0 0 20px 0;">
+        ${idx > 0 ? `<hr style="border:none;border-top:2px solid #eee;margin:0 0 20px 0;" />` : ''}
+
+        <table style="border-collapse:collapse;width:100%;margin-bottom:12px;">
+          ${summaryRows}
+        </table>
+
+        <table style="border-collapse:collapse;width:100%;margin-bottom:12px;">
+          <thead>
+            <tr style="background:#f2f2f2;">
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Brand</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Sample Type</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Inq Ref No</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Buyer Style Ref.</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Description</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Fit</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Color</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Size</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Qty</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
+
+        ${renderImages('front', 'Front Pictures')}
+        ${renderImages('back', 'Back Pictures')}
+      </div>`,
+  };
+}
 
 // Build the HTML email body matching the design in the screenshot
-function buildEmailHTML({ awb, dispatchDate, rows, buyerName, contactName, pictures = false }) {
-  const formattedDate = dispatchDate
-    ? new Date(dispatchDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: '2-digit' })
-    : '—';
-
-  const tableRows = rows.map(r => `
-    <tr>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${r.brand || ''}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${r.sampleType || 'DEVELOPMENT'}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${r.refNo || ''}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${r.buyerStyleRef || ''}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${r.description || ''}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${r.fit || ''}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${r.color || ''}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${r.size || ''}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${r.qty || ''}</td>
-    </tr>`).join('');
+function buildEmailHTML({ blocks, awb, dispatchDate }) {
+  const formattedDate = formatDate(dispatchDate);
+  const hasPics = blocks.some(b => b.attachments.length > 0);
 
   return `
 <!DOCTYPE html>
@@ -32,30 +169,13 @@ function buildEmailHTML({ awb, dispatchDate, rows, buyerName, contactName, pictu
 
   <p style="margin:0 0 6px 0;">Hi,</p>
   <p style="margin:0 0 16px 0;">
-    Pls note courier no <strong>DHL ${awb || '—'}</strong> of below mentioned samples dispatch on Dated
-    <strong>${formattedDate}</strong>
+    Pls note courier no <strong>DHL ${esc(awb) || '—'}</strong> of below mentioned samples dispatch on Dated
+    <strong>${esc(formattedDate)}</strong>
   </p>
 
-  <table style="border-collapse:collapse;width:100%;margin-bottom:16px;">
-    <thead>
-      <tr style="background:#f2f2f2;">
-        <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Brand</th>
-        <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Sample Type</th>
-        <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Inq Ref No</th>
-        <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Buyer Style Ref.</th>
-        <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Description</th>
-        <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Fit</th>
-        <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Color</th>
-        <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Size</th>
-        <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Qty</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${tableRows}
-    </tbody>
-  </table>
+  ${blocks.map(b => b.html).join('')}
 
-  ${pictures ? `<p style="color:#2e7d32;font-style:italic;margin:0 0 12px 0;"><strong>Pictures attached</strong></p>` : ''}
+  ${hasPics ? `<p style="color:#2e7d32;font-style:italic;margin:0 0 12px 0;"><strong>Pictures attached</strong></p>` : ''}
 
   <p style="font-style:italic;margin:0 0 16px 0;">
     If you have any questions relating to the above, please do not hesitate to contact
@@ -70,17 +190,6 @@ function buildEmailHTML({ awb, dispatchDate, rows, buyerName, contactName, pictu
 
 </body>
 </html>`;
-}
-
-// Extract a dynamic field value from SRD
-function getDynField(srd, ...names) {
-  for (const name of names) {
-    const f = srd.dynamicFields?.find(
-      f => f.name?.toLowerCase() === name.toLowerCase()
-    );
-    if (f?.value) return f.value;
-  }
-  return '';
 }
 
 export async function POST(request) {
@@ -106,19 +215,6 @@ export async function POST(request) {
       return NextResponse.json({ error: 'SRDs not found' }, { status: 404 });
     }
 
-    // Build rows for each SRD
-    const buildRows = (srd) => [{
-      brand:         getDynField(srd, 'brand', 'Brand'),
-      sampleType:    getDynField(srd, 'sample type', 'Sample Type', 'sampleType') || 'DEVELOPMENT',
-      refNo:         srd.refNo || '',
-      buyerStyleRef: getDynField(srd, 'buyer style ref', 'Buyer Style Ref', 'style ref'),
-      description:   getDynField(srd, 'description', 'Description', 'style', 'Style'),
-      fit:           getDynField(srd, 'fit', 'Fit'),
-      color:         getDynField(srd, 'color', 'Color'),
-      size:          getDynField(srd, 'size', 'Size'),
-      qty:           srd.DispatchDetails?.dispatchQuantity || getDynField(srd, 'qty', 'Qty', 'quantity'),
-    }];
-
     // Create transporter
     const transporter = nodemailer.createTransport({
       host:   process.env.SMTP_HOST,
@@ -132,54 +228,29 @@ export async function POST(request) {
 
     const fromName  = process.env.SMTP_FROM_NAME  || 'VMD Team';
     const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+    const defaultSubject = `SDD-Development Sample-${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: '2-digit' })}`;
 
-    if (merge) {
-      // --- MERGE: one email with all SRDs in one table ---
-      const allRows = srds.flatMap(buildRows);
-      const firstSrd = srds[0];
-      const dispatch = firstSrd.DispatchDetails;
-      const awb  = dispatch?.awb || '';
-      const date = dispatch?.sampleDispatchDate || null;
-      const hasPics = !!(dispatch?.images?.[0]?.front?.length || dispatch?.images?.[0]?.back?.length);
+    const blocks = srds.map((srd, i) => buildDispatchBlock(srd, i));
+    const allAttachments = blocks.flatMap(b => b.attachments);
+    const firstSrd = srds[0];
+    const firstDispatch = firstSrd.DispatchDetails || {};
+    const html = buildEmailHTML({
+      blocks,
+      awb: firstDispatch.awb || '',
+      dispatchDate: firstDispatch.sampleDispatchDate || null,
+    });
+    const subjectLine = subject || defaultSubject;
 
-      const html = buildEmailHTML({ awb, dispatchDate: date, rows: allRows, pictures: hasPics });
-      const subjectLine = subject || `SDD-Development Sample-${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: '2-digit' })}`;
+    await transporter.sendMail({
+      from:    `"${fromName}" <${fromEmail}>`,
+      to:      Array.isArray(to) ? to.join(', ') : to,
+      cc:      cc ? (Array.isArray(cc) ? cc.join(', ') : cc) : undefined,
+      subject: subjectLine,
+      html,
+      attachments: allAttachments,
+    });
 
-      await transporter.sendMail({
-        from:    `"${fromName}" <${fromEmail}>`,
-        to:      Array.isArray(to) ? to.join(', ') : to,
-        cc:      cc ? (Array.isArray(cc) ? cc.join(', ') : cc) : undefined,
-        subject: subjectLine,
-        html,
-      });
-
-      return NextResponse.json({ success: true, sent: 1 });
-
-    } else {
-      // --- SEND: one email per SRD ---
-      let sentCount = 0;
-      for (const srd of srds) {
-        const rows    = buildRows(srd);
-        const dispatch = srd.DispatchDetails;
-        const awb  = dispatch?.awb || '';
-        const date = dispatch?.sampleDispatchDate || null;
-        const hasPics = !!(dispatch?.images?.[0]?.front?.length || dispatch?.images?.[0]?.back?.length);
-
-        const html = buildEmailHTML({ awb, dispatchDate: date, rows, pictures: hasPics });
-        const subjectLine = subject || `SDD-Development Sample-${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: '2-digit' })}`;
-
-        await transporter.sendMail({
-          from:    `"${fromName}" <${fromEmail}>`,
-          to:      Array.isArray(to) ? to.join(', ') : to,
-          cc:      cc ? (Array.isArray(cc) ? cc.join(', ') : cc) : undefined,
-          subject: subjectLine,
-          html,
-        });
-        sentCount++;
-      }
-
-      return NextResponse.json({ success: true, sent: sentCount });
-    }
+    return NextResponse.json({ success: true, sent: srds.length });
 
   } catch (error) {
     console.error('Mail send error:', error);
