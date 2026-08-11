@@ -245,6 +245,14 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
   const [selectedRange, setSelectedRange] = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showBgColorPicker, setShowBgColorPicker] = useState(false);
+  const [colorPickerPos, setColorPickerPos] = useState({ top: 0, left: 0 });
+  const [bgColorPickerPos, setBgColorPickerPos] = useState({ top: 0, left: 0 });
+  const [activeTextColor, setActiveTextColor] = useState('#000000');
+  const [activeBgColor, setActiveBgColor] = useState(null);
+  const colorBtnRef = useRef(null);
+  const bgColorBtnRef = useRef(null);
+  const colorPickerRef = useRef(null);
+  const bgColorPickerRef = useRef(null);
   const [formulaSuggestions, setFormulaSuggestions] = useState([]);
   const [showFormulaSuggestions, setShowFormulaSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
@@ -269,6 +277,29 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
   useEffect(() => {
     ensureHandsontableReady();
   }, []);
+
+  // Close color pickers when clicking outside them
+  useEffect(() => {
+    if (!showColorPicker && !showBgColorPicker) return;
+    const handleClickOutside = (e) => {
+      if (
+        showColorPicker &&
+        colorPickerRef.current && !colorPickerRef.current.contains(e.target) &&
+        colorBtnRef.current && !colorBtnRef.current.contains(e.target)
+      ) {
+        setShowColorPicker(false);
+      }
+      if (
+        showBgColorPicker &&
+        bgColorPickerRef.current && !bgColorPickerRef.current.contains(e.target) &&
+        bgColorBtnRef.current && !bgColorBtnRef.current.contains(e.target)
+      ) {
+        setShowBgColorPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showColorPicker, showBgColorPicker]);
 
   useEffect(() => {
     const el = gridContainerRef.current;
@@ -877,13 +908,21 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
     // Convert hex to ARGB format (FF prefix for full opacity)
     const argb = 'FF' + color.substring(1);
     applyCellStyle({ color: argb });
+    setActiveTextColor(color);
     setShowColorPicker(false);
   }, [applyCellStyle]);
   
   const applyBgColor = useCallback((color) => {
-    // Convert hex to ARGB format
-    const argb = 'FF' + color.substring(1);
-    applyCellStyle({ bgColor: argb });
+    if (color === null) {
+      // Clear background — apply white/transparent
+      applyCellStyle({ bgColor: '00000000' });
+      setActiveBgColor(null);
+    } else {
+      // Convert hex to ARGB format
+      const argb = 'FF' + color.substring(1);
+      applyCellStyle({ bgColor: argb });
+      setActiveBgColor(color);
+    }
     setShowBgColorPicker(false);
   }, [applyCellStyle]);
   
@@ -1118,56 +1157,50 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
           {/* Text Color */}
           <div className="relative">
             <button
-              onClick={() => setShowColorPicker(!showColorPicker)}
-              className="p-1.5 hover:bg-gray-200 rounded transition-colors flex items-center gap-1"
+              ref={colorBtnRef}
+              onClick={() => {
+                if (!showColorPicker) {
+                  const rect = colorBtnRef.current.getBoundingClientRect();
+                  setColorPickerPos({
+                    top: rect.bottom + window.scrollY + 4,
+                    left: rect.left + window.scrollX,
+                  });
+                }
+                setShowColorPicker(!showColorPicker);
+                setShowBgColorPicker(false);
+              }}
+              className="p-1.5 hover:bg-gray-200 rounded transition-colors flex flex-col items-center gap-0.5"
               title="Text Color"
             >
               <Type className="h-4 w-4 text-gray-700" />
-              <div className="w-4 h-1 bg-red-500 rounded" />
+              <div className="w-4 h-1 rounded" style={{ backgroundColor: activeTextColor }} />
             </button>
-            {showColorPicker && (
-              <div className="absolute top-full left-0 mt-1 p-2 bg-white border border-gray-300 rounded-lg shadow-lg z-50">
-                <div className="grid grid-cols-8 gap-1">
-                  {['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFFFFF',
-                    '#800000', '#008000', '#000080', '#808000', '#800080', '#008080', '#808080', '#C0C0C0'].map(color => (
-                    <button
-                      key={color}
-                      onClick={() => applyTextColor(color)}
-                      className="w-6 h-6 rounded border border-gray-300 hover:scale-110 transition-transform"
-                      style={{ backgroundColor: color }}
-                      title={color}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
           
           {/* Background Color */}
           <div className="relative">
             <button
-              onClick={() => setShowBgColorPicker(!showBgColorPicker)}
-              className="p-1.5 hover:bg-gray-200 rounded transition-colors"
+              ref={bgColorBtnRef}
+              onClick={() => {
+                if (!showBgColorPicker) {
+                  const rect = bgColorBtnRef.current.getBoundingClientRect();
+                  setBgColorPickerPos({
+                    top: rect.bottom + window.scrollY + 4,
+                    left: rect.left + window.scrollX,
+                  });
+                }
+                setShowBgColorPicker(!showBgColorPicker);
+                setShowColorPicker(false);
+              }}
+              className="p-1.5 hover:bg-gray-200 rounded transition-colors flex flex-col items-center gap-0.5"
               title="Background Color"
             >
               <Palette className="h-4 w-4 text-gray-700" />
+              <div
+                className="w-4 h-1 rounded border border-gray-400"
+                style={{ backgroundColor: activeBgColor ?? 'transparent' }}
+              />
             </button>
-            {showBgColorPicker && (
-              <div className="absolute top-full left-0 mt-1 p-2 bg-white border border-gray-300 rounded-lg shadow-lg z-50">
-                <div className="grid grid-cols-8 gap-1">
-                  {['#FFFFFF', '#FFEBEE', '#E8F5E9', '#E3F2FD', '#FFF9C4', '#FCE4EC', '#E0F2F1', '#F3E5F5',
-                    '#FF5252', '#69F0AE', '#448AFF', '#FFEB3B', '#FF4081', '#00BCD4', '#9C27B0', '#FFC107'].map(color => (
-                    <button
-                      key={color}
-                      onClick={() => applyBgColor(color)}
-                      className="w-6 h-6 rounded border border-gray-300 hover:scale-110 transition-transform"
-                      style={{ backgroundColor: color }}
-                      title={color}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
           
           <div className="h-5 w-px bg-gray-300 mx-1" />
@@ -1224,6 +1257,71 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
           />
         )}
       </div>
+
+      {/* Text Color Picker — fixed portal so it never gets clipped by overflow */}
+      {showColorPicker && (
+        <div
+          ref={colorPickerRef}
+          className="fixed z-[9999] bg-white border border-gray-200 rounded-xl shadow-2xl p-3"
+          style={{ top: colorPickerPos.top, left: colorPickerPos.left }}
+        >
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Text Color</p>
+          <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(10, 1.5rem)' }}>
+            {[
+              '#000000','#434343','#666666','#999999','#B7B7B7','#CCCCCC','#D9D9D9','#EFEFEF','#F3F3F3','#FFFFFF',
+              '#FF0000','#FF9900','#FFFF00','#00FF00','#00FFFF','#4A86E8','#0000FF','#9900FF','#FF00FF','#E6B8A2',
+              '#CC0000','#E69138','#F1C232','#6AA84F','#45818E','#3C78D8','#3D85C8','#674EA7','#A64D79','#990000',
+              '#800000','#783F04','#7F6000','#274E13','#0C343D','#1C4587','#073763','#20124D','#4C1130','#660000',
+            ].map(color => (
+              <button
+                key={color}
+                onClick={() => applyTextColor(color)}
+                className="rounded hover:scale-125 transition-transform border border-gray-200 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                style={{ width: '1.5rem', height: '1.5rem', backgroundColor: color, flexShrink: 0 }}
+                title={color}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Background Color Picker — fixed portal */}
+      {showBgColorPicker && (
+        <div
+          ref={bgColorPickerRef}
+          className="fixed z-[9999] bg-white border border-gray-200 rounded-xl shadow-2xl p-3"
+          style={{ top: bgColorPickerPos.top, left: bgColorPickerPos.left }}
+        >
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Background Color</p>
+          {/* No Fill option */}
+          <button
+            onClick={() => applyBgColor(null)}
+            className="mb-2 flex items-center gap-2 w-full text-xs text-gray-600 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+            title="No Fill"
+          >
+            <span className="inline-block w-5 h-5 rounded border-2 border-dashed border-gray-400 relative overflow-hidden">
+              <span className="absolute inset-0 flex items-center justify-center text-red-400 font-bold text-[10px]">✕</span>
+            </span>
+            No Fill
+          </button>
+          <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(10, 1.5rem)' }}>
+            {[
+              '#FFFFFF','#F8F9FA','#F1F3F4','#E8EAED','#DADCE0','#BDC1C6','#9AA0A6','#80868B','#5F6368','#3C4043',
+              '#FDECEA','#FEF7E0','#E6F4EA','#E8F0FE','#FCE8E6','#FDF0E6','#E6F8F1','#F3E8FD','#FFF0F0','#F0FFF4',
+              '#FF5252','#FFD740','#69F0AE','#448AFF','#E040FB','#FF6D00','#00BCD4','#9C27B0','#4CAF50','#F44336',
+              '#B71C1C','#E65100','#F57F17','#1B5E20','#0D47A1','#4A148C','#006064','#880E4F','#01579B','#33691E',
+            ].map(color => (
+              <button
+                key={color}
+                onClick={() => applyBgColor(color)}
+                className="rounded hover:scale-125 transition-transform border border-gray-200 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                style={{ width: '1.5rem', height: '1.5rem', backgroundColor: color, flexShrink: 0 }}
+                title={color}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
