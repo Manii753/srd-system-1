@@ -46,6 +46,30 @@ import '@/styles/handsontable.css';
 
 let handsontableReady = false;
 
+// CSS properties managed by the Excel style renderer. Handsontable reuses <td>
+// DOM elements as cells scroll in/out of view, so every render must reset these
+// first — otherwise a previously styled cell leaks colors/borders into a cell
+// that has no Excel style (e.g. background/text colors showing on the wrong cells).
+const STYLE_RESET_PROPS = [
+  'font-family',
+  'font-size',
+  'font-weight',
+  'font-style',
+  'text-decoration',
+  'text-align',
+  'vertical-align',
+  'white-space',
+  'word-break',
+  'padding-left',
+  'color',
+  'background-color',
+  'border',
+  'border-top',
+  'border-right',
+  'border-bottom',
+  'border-left',
+];
+
 function ensureHandsontableReady() {
   if (typeof window === 'undefined' || handsontableReady) return;
   registerAllModules();
@@ -56,46 +80,32 @@ function ensureHandsontableReady() {
       function excelStyledRenderer(instance, td, row, col, prop, value, cellProperties) {
         // Call base renderer first
         Handsontable.renderers.TextRenderer.apply(this, arguments);
-        
+
+        // Reset any Excel styles left over from a previous render of this <td>.
+        for (let i = 0; i < STYLE_RESET_PROPS.length; i++) {
+          td.style.removeProperty(STYLE_RESET_PROPS[i]);
+        }
+        td.classList.remove('excel-styled-cell');
+
         // Apply Excel styling
         const style = cellProperties.excelStyle;
         if (style && Object.keys(style).length > 0) {
-          // Log for debugging (only first few cells)
-          if (row === 0 && col < 3) {
-            console.log(`[Renderer] Applying styles to td[${row},${col}]:`, style);
-          }
-          
           // Apply each style property explicitly
           Object.entries(style).forEach(([key, val]) => {
             if (val != null && val !== '') {
               // Convert camelCase to kebab-case for CSS properties
               const cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
-              
+
               // Use setProperty for better control
               td.style.setProperty(cssKey, val, 'important');
             }
           });
-          
+
           // Ensure proper box-sizing for borders
           td.style.setProperty('box-sizing', 'border-box', 'important');
-          
+
           // Add a class to track styled cells
-          if (!td.classList.contains('excel-styled-cell')) {
-            td.classList.add('excel-styled-cell');
-          }
-          
-          // Debug: log computed styles for first cell
-          if (row === 0 && col === 0) {
-            setTimeout(() => {
-              const computed = window.getComputedStyle(td);
-              console.log('[Renderer] Computed styles for [0,0]:', {
-                backgroundColor: computed.backgroundColor,
-                borderTop: computed.borderTop,
-                fontWeight: computed.fontWeight,
-                color: computed.color
-              });
-            }, 100);
-          }
+          td.classList.add('excel-styled-cell');
         }
       }
     );
@@ -220,6 +230,8 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
   const styleMapRef = useRef({});
   const gridContainerRef = useRef(null);
   const [gridHeight, setGridHeight] = useState(480);
+  const gridHeightRef = useRef(480);
+  gridHeightRef.current = gridHeight;
   const gridReadyRef = useRef(false);
   
   // Formula bar state
@@ -314,7 +326,7 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
       colHeaders: true,
       rowHeaders: true,
       width: '100%',
-      height: gridHeight,
+      height: gridHeightRef.current,
       stretchH: 'none',
       autoColumnSize: false,
       autoRowSize: false,
@@ -332,26 +344,24 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
       cells(row, col) {
         const key = `${row}-${col}`;
         const excelStyle = styleMapRef.current[key];
-        
+
+        // Always use the custom renderer so it can clear stale styles from
+        // reused <td> elements. Without this, colors/borders bleed into cells
+        // that have no Excel style.
         if (!excelStyle || Object.keys(excelStyle).length === 0) {
-          return {};
+          return { renderer: 'excelStyled' };
         }
-        
-        // Debug logging for first few styled cells
-        if (row === 0 && col < 5 && excelStyle) {
-          console.log(`[ExcelPreview] Applying style to cell [${row},${col}]:`, excelStyle);
-        }
-        
-        return { 
-          renderer: 'excelStyled', 
+
+        return {
+          renderer: 'excelStyled',
           excelStyle,
           className: 'excel-styled-cell'
         };
       },
       afterInit() {
+        gridReadyRef.current = true;
         requestAnimationFrame(() => {
           if (hot && !hot.isDestroyed) {
-            gridReadyRef.current = true;
             hot.render();
           }
         });
@@ -383,7 +393,11 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
         }
       },
       afterChange(changes, source) {
-        if (!gridReadyRef.current || source === 'loadData' || !changes) return;
+        // Ignore the initial data load / programmatic reloads, but mark any
+        // real user edit as a change. We intentionally don't gate on
+        // gridReadyRef here — dropping edits during grid re-init is what made
+        // the Save button stay disabled.
+        if (!changes || source === 'loadData' || source === 'loadData:updateSettings') return;
         setHasChanges(true);
         // Update formula bar if current cell changed
         if (changes && changes.length > 0) {
@@ -414,6 +428,7 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
 
       hotInstanceRef.current = hot;
       hotRef.current = { hotInstance: hot };
+      gridReadyRef.current = true;
     };
 
     requestAnimationFrame(mountGrid);
@@ -423,8 +438,19 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
       hotInstanceRef.current?.destroy();
       hotInstanceRef.current = null;
       hotRef.current = null;
+      gridReadyRef.current = false;
     };
-  }, [sheetConfig, gridHeight, editable, loading]);
+  }, [sheetConfig, editable, loading]);
+
+  // Resize the grid without recreating the Handsontable instance. Recreating it
+  // on every height change wiped the user's in-progress edits and reset change
+  // tracking, which made the Save button unreliable.
+  useEffect(() => {
+    const hot = hotInstanceRef.current;
+    if (hot && !hot.isDestroyed && hot.updateSettings) {
+      hot.updateSettings({ height: gridHeight });
+    }
+  }, [gridHeight]);
 
   useEffect(() => {
     if (!fileUrl) return;
@@ -508,10 +534,32 @@ export default function ExcelPreview({ fileUrl, fileName, onSave, editable = tru
         for (let c = 0; c < colCount; c++) {
           const cell = worksheet.getCell(r + 1, c + 1);
           const value = data[r][c];
+
+          // Handsontable stores everything as strings, but the worksheet cell
+          // still knows its original type. Coerce the edited string back to
+          // that type so numbers/dates/booleans aren't saved as text (which
+          // triggers "number stored as text" warnings in Excel).
           if (value === '' || value == null) {
             cell.value = null;
           } else {
-            cell.value = value;
+            const existing = cell.value;
+            if (existing && typeof existing === 'object' && existing.formula != null) {
+              // Preserve the formula if the user kept "=...", otherwise the
+              // cell becomes a plain value.
+              cell.value =
+                typeof value === 'string' && value.startsWith('=')
+                  ? { formula: value.slice(1) }
+                  : value;
+            } else if (typeof existing === 'number') {
+              cell.value = Number(value);
+            } else if (existing instanceof Date) {
+              const t = Date.parse(value);
+              cell.value = Number.isNaN(t) ? existing : new Date(t);
+            } else if (typeof existing === 'boolean') {
+              cell.value = value === 'true' || value === 'TRUE' || value === true;
+            } else {
+              cell.value = value;
+            }
           }
         }
       }
