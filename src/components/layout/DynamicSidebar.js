@@ -100,7 +100,7 @@ export default function DynamicSidebar() {
       if (userRole === 'admin') {
         setMenuItems([
           { name: 'Home', href: '/home', icon: LayoutDashboard },
-          { name: 'Cost Sheets',href:'/costing/post', icon: DollarSign,},
+          { name: 'Cost Sheets',href:'/costing/pre', icon: DollarSign,},
           { name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren },
           { name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
           { name: 'Planning', href: '#', icon: Calendar },
