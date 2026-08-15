@@ -2460,7 +2460,7 @@ export default function DepartmentPanelExcel({
           </div>
 
           {/* Approval Sections - Rendered inside grid on last page */}
-          {currentSection?.includeApprovals && (
+          {/* {currentSection?.includeApprovals && (
             <>
               {!readOnly && (
                 <div className="border-transparent p-3">
@@ -2528,7 +2528,7 @@ export default function DepartmentPanelExcel({
                 </div>
               )}
             </>
-          )}
+          )} */}
         </div>
         {/* Pagination Controls */}
         {sections.length > 1 && (
