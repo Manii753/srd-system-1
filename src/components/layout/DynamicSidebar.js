@@ -90,7 +90,7 @@ export default function DynamicSidebar() {
       const samplesChildren = [
         // { name: 'Create SRD', href: userRole === 'admin' ? '/dashboard/admin/create' : `/dashboard/${userRole}/create`, icon: Plus },
         { name: 'SR In Process', href: '/srd', icon: FileText },
-        { name: 'SR Progress', href: '/sample-management/sample-process', icon: Package },
+        { name: 'Inter Dept Log', href: '/sample-management/sample-process', icon: Package },
         { name: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList },
         { name: 'Dispatch Detail', href: '/samples/dispatch', icon: Truck },
         { name: 'Reports', href: '/sample-management/reports', icon: BarChart3 },
@@ -115,11 +115,18 @@ export default function DynamicSidebar() {
             { name: 'SR Diagnostics', href: '/settings/diagnose' },
           ]},
         ]);
+      } else if (userRole === 'cad') {
+        setMenuItems([
+          { name: 'Home', href: '/home', icon: LayoutDashboard },
+          { name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
+          { name: 'Work Queue', href: '/sample-management/sample-process', icon: Package },
+        ]);
       } else if (['cutting','sewing','washing','finishing','dispatch'].includes(userRole)) {
         const names = { cutting:'Cutting', sewing:'Sewing', washing:'Washing', finishing:'Finishing', dispatch:'Dispatch' };
         setMenuItems([
           { name: 'Home', href: '/home', icon: LayoutDashboard },
           { name: names[userRole] + ' Stage', href: '/dashboard/stage', icon: Factory },
+          { name: 'Inter Dept Log', href: '/sample-management/sample-process', icon: Package },
         ]);
       } else if (userRole === 'production-manager') {
         setMenuItems([

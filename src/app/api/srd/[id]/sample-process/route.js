@@ -5,18 +5,15 @@ import ProductionStage from '@/models/ProductionStage';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-// GET - Fetch sample process for an SRD
+// ── GET ──────────────────────────────────────────────────────────────────────
 export async function GET(request, { params }) {
   try {
     await dbConnect();
     const { id } = await params;
-
     const srd = await SRD.findById(id).select('refNo title sampleProcess');
-    
     if (!srd) {
       return NextResponse.json({ success: false, error: 'SRD not found' }, { status: 404 });
     }
-
     return NextResponse.json({ success: true, data: srd });
   } catch (error) {
     console.error('Error fetching sample process:', error);
@@ -24,12 +21,15 @@ export async function GET(request, { params }) {
   }
 }
 
-// PATCH - Update sample process (complete stage or receive sample)
+// ── PATCH ─────────────────────────────────────────────────────────────────────
+// Handles both 'complete' (mark ready) and 'receive' actions.
+// CAD is treated as the first production stage (order 0), prepended before the
+// ProductionStage documents that live in MongoDB.
 export async function PATCH(request, { params }) {
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
-    
+
     if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
@@ -37,212 +37,291 @@ export async function PATCH(request, { params }) {
     const { id } = await params;
     const body = await request.json();
     const { action, stage: stageParam, stageId, notes } = body;
-    const stage = stageParam || stageId; // Accept both 'stage' and 'stageId'
+    const stage = stageParam || stageId; // accept both field names
 
     const srd = await SRD.findById(id);
-    
     if (!srd) {
       return NextResponse.json({ success: false, error: 'SRD not found' }, { status: 404 });
     }
 
-    // Fetch production stages dynamically
-    let productionStages = [];
+    // ── Build the full ordered stage list ──────────────────────────────────
+    // CAD is always prepended as order-0.  Physical production stages follow.
+    let dbStages = [];
     try {
-      const stages = await ProductionStage.find({ isActive: true }).sort({ order: 1 });
-      productionStages = stages.map(stage => ({
-        id: stage.slug || stage.name.toLowerCase(),
-        name: stage.name,
-        order: stage.order
+      const raw = await ProductionStage.find({ isActive: true }).sort({ order: 1 });
+      dbStages = raw.map(s => ({
+        id: s.slug || s.name.toLowerCase(),
+        name: s.name,
+        displayName: s.displayName || s.name,
+        order: s.order,
+        _id: s._id,
       }));
-      
-      if (productionStages.length === 0) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'No active production stages found. Please configure production stages first.' 
-        }, { status: 400 });
-      }
     } catch (err) {
       console.error('Error fetching production stages:', err);
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to fetch production stages' 
-      }, { status: 500 });
+      return NextResponse.json({ success: false, error: 'Failed to fetch production stages' }, { status: 500 });
     }
 
-    // Initialize sample process if not exists
+    // Check if CAD is already a DB stage
+    const cadInDb = dbStages.some(
+      s => s.id === 'cad' || s.name?.toLowerCase() === 'cad'
+    );
+
+    // Build the authoritative ordered list with CAD always first
+    const cadStage = cadInDb
+      ? dbStages.find(s => s.id === 'cad' || s.name?.toLowerCase() === 'cad')
+      : { id: 'cad', name: 'cad', displayName: 'CAD', order: 0, _id: null };
+
+    const nonCadStages = cadInDb
+      ? dbStages.filter(s => s.id !== 'cad' && s.name?.toLowerCase() !== 'cad')
+      : dbStages;
+
+    const productionStages = [cadStage, ...nonCadStages];
+
+    if (productionStages.length <= 1) {
+      // Only CAD, no physical stages yet — still valid
+    }
+
+    // ── Initialise sampleProcess if empty ─────────────────────────────────
     if (!srd.sampleProcess || srd.sampleProcess.length === 0) {
-      // Check if we should use productionHistory instead
-      const useProductionHistory = srd.productionHistory && srd.productionHistory.length > 0;
-      
+      const useProductionHistory =
+        srd.productionHistory && srd.productionHistory.length > 0;
+
+      // Start with all stages as pending (CAD first)
+      const allStages = productionStages.map(ps => ({
+        stage: ps.id,
+        stageDisplayName: ps.displayName || ps.name,
+        status: 'pending',
+        order: ps.order,
+      }));
+
       if (useProductionHistory) {
-        // Start with all stages as pending
-        const allStages = productionStages.map(stage => ({
-          stage: stage.id,
-          stageDisplayName: stage.name,
-          status: 'pending',
-          order: stage.order
-        }));
-        
-        // Update stages that have history
-        srd.productionHistory.forEach((historyItem) => {
-          const stageName = historyItem.stage?.slug || historyItem.stageName?.toLowerCase();
-          const stageIndex = allStages.findIndex(s => s.stage === stageName);
-          
-          if (stageIndex !== -1) {
-            allStages[stageIndex] = {
-              ...allStages[stageIndex],
-              status: historyItem.status === 'completed' ? 'completed' : 
-                      historyItem.status === 'in-progress' ? 'received' : 'pending',
+        // Merge existing productionHistory into the new structure
+        srd.productionHistory.forEach(historyItem => {
+          const stageName =
+            historyItem.stage?.slug || historyItem.stageName?.toLowerCase();
+          const idx = allStages.findIndex(s => s.stage === stageName);
+          if (idx !== -1) {
+            allStages[idx] = {
+              ...allStages[idx],
+              status:
+                historyItem.status === 'completed'
+                  ? 'completed'
+                  : historyItem.status === 'in-progress'
+                  ? 'received'
+                  : 'pending',
               receivedDate: historyItem.startDate,
               completedDate: historyItem.endDate,
-              completedBy: historyItem.completedBy ? { name: historyItem.completedBy } : null,
-              notes: historyItem.notes
+              completedBy: historyItem.completedBy
+                ? { name: historyItem.completedBy }
+                : null,
+              notes: historyItem.notes,
             };
           }
         });
-        
-        srd.sampleProcess = allStages;
-        console.log('API: Converted productionHistory to sampleProcess:', srd.sampleProcess.map(s => ({ stage: s.stage, status: s.status })));
-      } else {
-        // Initialize with all stages as pending
-        srd.sampleProcess = productionStages.map(stage => ({
-          stage: stage.id,
-          stageDisplayName: stage.name,
+      }
+
+      srd.sampleProcess = allStages;
+    } else {
+      // Ensure CAD entry exists in an already-initialised sampleProcess
+      const hasCadEntry = srd.sampleProcess.some(s => s.stage === 'cad');
+      if (!hasCadEntry) {
+        srd.sampleProcess.unshift({
+          stage: 'cad',
+          stageDisplayName: 'CAD',
           status: 'pending',
-          order: stage.order
-        }));
+          order: 0,
+        });
+        // Re-sort by order
+        srd.sampleProcess.sort((a, b) => {
+          const aOrder =
+            productionStages.find(p => p.id === a.stage)?.order ?? 999;
+          const bOrder =
+            productionStages.find(p => p.id === b.stage)?.order ?? 999;
+          return aOrder - bOrder;
+        });
+        srd.markModified('sampleProcess');
       }
     }
 
+    // ── Find the target stage ──────────────────────────────────────────────
     const stageIndex = srd.sampleProcess.findIndex(s => s.stage === stage);
-    
     if (stageIndex === -1) {
-      return NextResponse.json({ success: false, error: 'Stage not found' }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: `Stage "${stage}" not found in sample process` },
+        { status: 404 }
+      );
     }
 
+    const userRole = session.user.role.toLowerCase();
+
+    // ── Action: complete (mark Ready) ─────────────────────────────────────
     if (action === 'complete') {
-      // Validate user can complete this stage
-      const userRole = session.user.role.toLowerCase();
-      const canComplete = userRole === 'admin' || userRole === 'vmd' || userRole === stage;
-      
+      // Permission: admin, vmd, or the matching role can complete their own stage
+      const canComplete =
+        userRole === 'admin' || userRole === 'vmd' || userRole === stage;
+
       if (!canComplete) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'You do not have permission to complete this stage' 
-        }, { status: 403 });
+        return NextResponse.json(
+          { success: false, error: 'You do not have permission to complete this stage' },
+          { status: 403 }
+        );
       }
 
-      // Mark stage as completed
+      if (srd.sampleProcess[stageIndex].completedDate) {
+        return NextResponse.json(
+          { success: false, error: 'This stage has already been marked as ready/completed' },
+          { status: 400 }
+        );
+      }
+
+      // For CAD (first stage) the SRD must be in production, OR have CAD approval
+      if (stageIndex === 0) {
+        const cadApproved =
+          (srd.status || []).find(s => s.department === 'cad')?.value === 'approved';
+        if (!srd.inProduction && !cadApproved) {
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                'SRD must be in production (VMD + CAD approved) before CAD can mark it ready.',
+            },
+            { status: 400 }
+          );
+        }
+        // Auto-start production if not already started but CAD has approved
+        if (!srd.inProduction && cadApproved) {
+          srd.inProduction = true;
+          srd.productionStartDate = new Date();
+        }
+      } else {
+        // Non-first stages: must have been received before marking ready
+        if (!srd.sampleProcess[stageIndex].receivedDate) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'You must receive the sample before marking it as ready.',
+            },
+            { status: 400 }
+          );
+        }
+      }
+
       srd.sampleProcess[stageIndex].completedDate = new Date();
       srd.sampleProcess[stageIndex].completedBy = {
         id: session.user.id,
         name: session.user.name,
-        role: session.user.role
+        role: session.user.role,
       };
       srd.sampleProcess[stageIndex].status = 'completed';
       if (notes) srd.sampleProcess[stageIndex].notes = notes;
 
-      // Set next stage to in-progress
+      // Mark next stage as in-progress so the next person knows to receive
       if (stageIndex < srd.sampleProcess.length - 1) {
         srd.sampleProcess[stageIndex + 1].status = 'in-progress';
       }
+
+    // ── Action: receive ───────────────────────────────────────────────────
     } else if (action === 'receive') {
-      // Validate user can receive this stage - MUST be from the same department
-      const userRole = session.user.role.toLowerCase();
-      const canReceive = userRole === stage; // User MUST be from this stage's department
-      
-      if (!canReceive) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'You can only receive samples for your own department' 
-        }, { status: 403 });
-      }
-
-      // Validate previous stage is received, in-progress, or completed
-      if (stageIndex > 0) {
-        const prevStage = srd.sampleProcess[stageIndex - 1];
-        console.log('API Receive validation:', {
-          currentStage: stage,
-          stageIndex,
-          prevStage: {
-            stage: prevStage.stage,
-            status: prevStage.status
+      // The first stage (CAD, index 0) cannot be "received" — it only marks ready
+      if (stageIndex === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'The first stage (CAD) cannot be received. Use "Mark Ready" instead.',
           },
-          isPending: prevStage.status === 'pending'
-        });
-        
-        if (prevStage.status === 'pending') {
-          return NextResponse.json({ 
-            success: false, 
-            error: 'Previous stage must be received before you can receive this stage' 
-          }, { status: 400 });
-        }
+          { status: 400 }
+        );
       }
 
-      // When receiving, mark current stage as received AND mark previous stage as handed over
+      // Must be from the matching department
+      const canReceive = userRole === stage;
+      if (!canReceive) {
+        return NextResponse.json(
+          { success: false, error: 'You can only receive samples for your own department' },
+          { status: 403 }
+        );
+      }
+
+      if (srd.sampleProcess[stageIndex].receivedDate) {
+        return NextResponse.json(
+          { success: false, error: 'This stage has already been received' },
+          { status: 400 }
+        );
+      }
+
+      // Previous stage must be completed (ready) — not just pending
+      const prevStage = srd.sampleProcess[stageIndex - 1];
+      if (!prevStage.completedDate && prevStage.status === 'pending') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Previous stage (${prevStage.stageDisplayName || prevStage.stage}) must be marked as Ready before you can receive.`,
+          },
+          { status: 400 }
+        );
+      }
+
       srd.sampleProcess[stageIndex].receivedDate = new Date();
       srd.sampleProcess[stageIndex].receivedBy = {
         id: session.user.id,
         name: session.user.name,
-        role: session.user.role
+        role: session.user.role,
       };
       srd.sampleProcess[stageIndex].status = 'received';
       if (notes) srd.sampleProcess[stageIndex].notes = notes;
 
-      // Mark previous stage as handed over (if not already completed)
-      if (stageIndex > 0) {
-        const prevStage = srd.sampleProcess[stageIndex - 1];
-        if (!prevStage.completedDate) {
-          prevStage.completedDate = new Date();
-          prevStage.completedBy = {
-            id: session.user.id,
-            name: session.user.name,
-            role: session.user.role
-          };
-          prevStage.status = 'completed';
-        }
-        // Record handover date
-        prevStage.handoverDate = new Date();
+      // Mark previous stage as completed/handed-over if not already
+      if (!prevStage.completedDate) {
+        prevStage.completedDate = new Date();
+        prevStage.completedBy = {
+          id: session.user.id,
+          name: session.user.name,
+          role: session.user.role,
+        };
+        prevStage.status = 'completed';
       }
+      prevStage.handoverDate = new Date();
+
+    } else {
+      return NextResponse.json(
+        { success: false, error: `Unknown action "${action}". Use "complete" or "receive".` },
+        { status: 400 }
+      );
     }
 
     srd.updatedAt = new Date();
-    
-    // Update currentProductionStage to reflect the current active stage
-    // Find the first stage that is 'received' or 'in-progress' (not completed)
-    const currentActiveStage = srd.sampleProcess.find(s => 
-      s.status === 'received' || s.status === 'in-progress'
+    srd.markModified('sampleProcess');
+
+    // ── Update currentProductionStage ─────────────────────────────────────
+    // Point to the first stage that is actively received / in-progress (excluding CAD
+    // since it has no ObjectId in ProductionStage collection unless added there).
+    const currentActiveEntry = srd.sampleProcess.find(
+      s => s.status === 'received' || s.status === 'in-progress'
     );
-    
-    if (currentActiveStage) {
-      // Map stage ID back to ProductionStage ObjectId
-      const matchingStage = productionStages.find(ps => ps.id === currentActiveStage.stage);
-      if (matchingStage) {
-        const fullStage = await ProductionStage.findOne({ 
-          $or: [
-            { slug: matchingStage.id },
-            { name: { $regex: new RegExp('^' + matchingStage.name + '$', 'i') } }
-          ]
-        });
-        if (fullStage) {
-          srd.currentProductionStage = fullStage._id;
-        }
+
+    if (currentActiveEntry && currentActiveEntry.stage !== 'cad') {
+      const matchingDbStage = dbStages.find(
+        ps =>
+          ps.id === currentActiveEntry.stage ||
+          ps.name?.toLowerCase() === currentActiveEntry.stage
+      );
+      if (matchingDbStage?._id) {
+        srd.currentProductionStage = matchingDbStage._id;
       }
-    } else {
-      // Check if all stages are completed
+    } else if (!currentActiveEntry) {
       const allCompleted = srd.sampleProcess.every(s => s.status === 'completed');
       if (allCompleted) {
         srd.isComplete = true;
-        srd.currentProductionStage = null; // Clear current stage when all are done
+        srd.currentProductionStage = null;
       }
     }
-    
+
     await srd.save();
 
-    return NextResponse.json({ 
-      success: true, 
-      message: `Sample ${action === 'complete' ? 'completed' : 'received'} successfully`,
-      data: srd 
+    return NextResponse.json({
+      success: true,
+      message: `Sample ${action === 'complete' ? 'marked as ready' : 'received'} successfully`,
+      data: srd,
     });
   } catch (error) {
     console.error('Error updating sample process:', error);

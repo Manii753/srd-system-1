@@ -304,6 +304,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
               </th>
               {/* <th className="px-6 py-4 text-left text-app-heading font-bold text-gray-600 uppercase tracking-wider">Picture</th> */}
               <th className="px-6 py-4 text-left text-app-heading font-bold text-gray-600 uppercase tracking-wider">Inquiry #</th>
+              <th className="px-6 py-4 text-left text-app-heading font-bold text-gray-600 uppercase tracking-wider">Brand</th>
               <th className="px-6 py-4 text-center text-app-heading font-bold text-gray-600 uppercase tracking-wider">VMD</th>
               <th className="px-6 py-4 text-center text-app-heading font-bold text-gray-600 uppercase tracking-wider">CAD</th>
               <th className="px-6 py-4 text-center text-app-heading font-bold text-gray-600 uppercase tracking-wider">MMC</th>
@@ -335,6 +336,13 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                         <div className="px-3 py-1 rounded-full text-app-text">
                           {srd.refNo}
                         </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-2 whitespace-nowrap border-b border-black/10">
+                      <div className="text-app-text text-gray-700 font-medium">
+                        {srd.dynamicFields?.find(
+                          f => f.slug === 'brand' || f.name?.toLowerCase() === 'brand' || f.name?.toLowerCase() === 'buyer'
+                        )?.value || <span className="text-gray-300">—</span>}
                       </div>
                     </td>
                     {depts.map(({ key }) => {
@@ -453,7 +461,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                   {/* Expanded production stage timeline */}
                   {isExpanded && (
                     <tr className="bg-gray-50">
-                      <td colSpan={8} className="px-6 py-3 border-b border-black/10">
+                      <td colSpan={9} className="px-6 py-3 border-b border-black/10">
                         {productionStages.length === 0 ? (
                           <p className="text-app-text text-gray-400 italic">No production stages configured.</p>
                         ) : (
