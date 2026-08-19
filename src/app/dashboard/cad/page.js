@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import Layout from '@/components/layout/Layout';
 import SRDCard from '@/components/SRDCard';
@@ -49,7 +49,7 @@ export default function CADDashboard() {
     }
   };
 
-  const getStats = () => {
+  const stats = useMemo(() => {
     const total = srds.length;
     const pending = srds.filter(srd => 
       (srd.status?.cad === 'pending' || srd.status?.CAD === 'pending')
@@ -65,9 +65,7 @@ export default function CADDashboard() {
     ).length;
     
     return { total, pending, inProgress, approved, flagged };
-  };
-
-  const stats = getStats();
+  }, [srds]);
 
   if (loading) {
     return (

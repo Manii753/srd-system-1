@@ -20,7 +20,7 @@ import {
 import { useSession } from 'next-auth/react';
 
 
-export default function SRDTable({ srds, department, searchTerm: searchTermProp, filterStatus: filterStatusProp }) {
+export default function SRDTable({ srds, department, searchTerm: searchTermProp, filterStatus: filterStatusProp, initialProductionStages, initialQuickDetailsFields, initialPaginationSettings, initialDelayThresholdDays }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [sortField, setSortField] = useState('createdAt');
@@ -28,8 +28,8 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [paginationSettings, setPaginationSettings] = useState({ enabled: true, itemsPerPage: 10 });
-  const [delayThresholdDays, setDelayThresholdDays] = useState(3);
+  const [paginationSettings, setPaginationSettings] = useState(initialPaginationSettings || { enabled: true, itemsPerPage: 10 });
+  const [delayThresholdDays, setDelayThresholdDays] = useState(initialDelayThresholdDays ?? 3);
 
   // Use controlled props if provided
   const effectiveSearch = searchTermProp !== undefined ? searchTermProp : searchTerm;
@@ -44,35 +44,41 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
   useEffect(() => { setCurrentPage(1); }, [effectiveSearch, effectiveFilter]);
 
   useEffect(() => {
-    fetchData();
+    if (initialProductionStages) setProductionStages(initialProductionStages.filter(s => s.isActive));
+    if (initialQuickDetailsFields) setQuickDetailsFields(initialQuickDetailsFields.filter(f => f.isShownInQuickDetails && f.active));
+    if (!initialProductionStages || !initialQuickDetailsFields || !initialPaginationSettings) {
+      fetchData();
+    }
   }, []);
 
   const fetchData = async () => {
     try {
-      const [stagesRes, fieldsRes, companyRes] = await Promise.all([
-        fetch('/api/production-stages'),
-        fetch('/api/newField'),
-        fetch('/api/company'),
-      ]);
+      const promises = [];
+      if (!initialProductionStages) promises.push(fetch('/api/production-stages').then(r => r.json()));
+      else promises.push(Promise.resolve(null));
+      if (!initialQuickDetailsFields) promises.push(fetch('/api/newField').then(r => r.json()));
+      else promises.push(Promise.resolve(null));
+      if (!initialPaginationSettings) promises.push(fetch('/api/company').then(r => r.json()));
+      else promises.push(Promise.resolve(null));
 
-      const stagesData = await stagesRes.json();
-      if (stagesData.success) setProductionStages(stagesData.data.filter(s => s.isActive));
+      const [stagesData, fieldsData, companyData] = await Promise.all(promises);
 
-      const fieldsData = await fieldsRes.json();
-      if (Array.isArray(fieldsData)) {
+      if (stagesData?.success && !initialProductionStages) setProductionStages(stagesData.data.filter(s => s.isActive));
+
+      if (Array.isArray(fieldsData) && !initialQuickDetailsFields) {
         setQuickDetailsFields(fieldsData.filter(f => f.isShownInQuickDetails && f.active));
       }
 
-      const companyData = await companyRes.json();
-      const pg = companyData?.paginationSettings;
-      if (pg?.srdList) {
-        setPaginationSettings(pg.srdList);
-      } else if (pg?.itemsPerPage !== undefined) {
-        // old flat structure
-        setPaginationSettings({ enabled: pg.enabled ?? true, itemsPerPage: pg.itemsPerPage });
-      }
-      if (companyData?.delayThresholdDays !== undefined) {
-        setDelayThresholdDays(companyData.delayThresholdDays);
+      if (companyData && !initialPaginationSettings) {
+        const pg = companyData?.paginationSettings;
+        if (pg?.srdList) {
+          setPaginationSettings(pg.srdList);
+        } else if (pg?.itemsPerPage !== undefined) {
+          setPaginationSettings({ enabled: pg.enabled ?? true, itemsPerPage: pg.itemsPerPage });
+        }
+        if (companyData?.delayThresholdDays !== undefined) {
+          setDelayThresholdDays(companyData.delayThresholdDays);
+        }
       }
     } catch (error) {
       console.error('Error fetching data:', error);

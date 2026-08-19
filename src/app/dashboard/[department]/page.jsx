@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Layout from '@/components/layout/Layout';
 import SRDCard from '@/components/SRDCard';
 import SRDTable from '@/components/SRDTable';
@@ -53,9 +53,20 @@ export default function DynamicDepartmentDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch department info
-      const deptResponse = await fetch('/api/departments');
-      const deptData = await deptResponse.json();
+      const promises = [
+        fetch('/api/departments').then(r => r.json()),
+        fetch(`/api/srd?department=${departmentSlug}`).then(r => r.json()),
+        fetch('/api/stages').then(r => r.json()),
+        fetch('/api/newField').then(r => r.json()),
+      ];
+
+      if (departmentSlug === 'mmc') {
+        promises.push(fetch('/api/notifications').then(r => r.json()).catch(() => null));
+      }
+
+      const results = await Promise.all(promises);
+      const [deptData, srdData, stagesData, fieldsData, notifData] = results;
+
       if (deptData.success) {
         const dept = deptData.data.find(d => d.slug === departmentSlug);
         if (!dept && departmentSlug !== 'admin') {
@@ -65,39 +76,22 @@ export default function DynamicDepartmentDashboard() {
         setDepartment(dept);
       }
 
-      // Fetch SRDs for this department
-      const srdResponse = await fetch(`/api/srd?department=${departmentSlug}`);
-      const srdData = await srdResponse.json();
       if (srdData.success) {
         setSRDs(srdData.data);
       }
 
-      // Fetch stages
-      const stagesResponse = await fetch('/api/stages');
-      const stagesData = await stagesResponse.json();
       if (stagesData.success) {
         setStages(stagesData.data.filter(s => s.isActive));
       }
 
-      // Fetch fields for this department
-      const fieldsResponse = await fetch('/api/newField');
-      const fieldsData = await fieldsResponse.json();
       if (Array.isArray(fieldsData)) {
         setFields(fieldsData.filter(f =>
           f.active && (f.department === departmentSlug || f.department === 'global')
         ));
       }
 
-      if (departmentSlug === 'mmc') {
-        try {
-          const notifResponse = await fetch('/api/notifications');
-          const notifData = await notifResponse.json();
-          if (notifData.success && Array.isArray(notifData.data)) {
-            setPurchaseRequests(notifData.data.filter(n => n.action === 'purchase-request'));
-          }
-        } catch (notifError) {
-          console.error('Failed to fetch MMC purchase requests:', notifError);
-        }
+      if (notifData?.success && Array.isArray(notifData.data)) {
+        setPurchaseRequests(notifData.data.filter(n => n.action === 'purchase-request'));
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -106,7 +100,7 @@ export default function DynamicDepartmentDashboard() {
     }
   };
 
-  const getStats = () => {
+  const stats = useMemo(() => {
     if (departmentSlug === 'admin') {
       return {
         total: srds.length,
@@ -122,7 +116,6 @@ export default function DynamicDepartmentDashboard() {
     const total = srds.length;
     const statusKey = departmentSlug;
 
-    // Count by stage
     const stageCounts = {};
     stages.forEach(stage => {
       stageCounts[stage.slug] = srds.filter(srd =>
@@ -138,9 +131,7 @@ export default function DynamicDepartmentDashboard() {
       approved: stageCounts['approved'] || 0,
       flagged: stageCounts['flagged'] || 0
     };
-  };
-
-  const stats = getStats();
+  }, [srds, stages, departmentSlug]);
 
   const getStageColor = (stageSlug) => {
     const stage = stages.find(s => s.slug === stageSlug);

@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Layout from '@/components/layout/Layout';
 import SRDCard from '@/components/SRDCard';
 import SRDTable from '@/components/SRDTable';
@@ -99,7 +99,7 @@ export default function VMDDashboard() {
     }
   };
 
-  const getStats = () => {
+  const stats = useMemo(() => {
     const total = srds.length;
     const pending = srds.filter(srd =>
       (srd.status?.vmd === 'pending' || srd.status?.VMD === 'pending')
@@ -112,9 +112,7 @@ export default function VMDDashboard() {
     ).length;
 
     return { total, pending, approved, flagged };
-  };
-
-  const stats = getStats();
+  }, [srds]);
 
   if (loading) {
     return (
