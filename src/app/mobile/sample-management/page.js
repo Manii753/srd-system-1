@@ -41,7 +41,7 @@ const SAMPLE_MODULES = [
   },
   {
     key: 'sample-process',
-    label: 'SR Progress',
+    label: 'Inter Dept. Log',
     description: 'Track sample production progress',
     icon: Package,
     href: '/mobile/sample-process',

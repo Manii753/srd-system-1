@@ -8,7 +8,7 @@ import { ArrowLeft, FileText, Package, ClipboardList, Truck, BarChart2, MessageS
 
 const SAMPLE_APPS = [
   { label: 'SR In Process', href: '/srd', icon: FileText, color: 'bg-blue-500', lightColor: 'bg-blue-50', textColor: 'text-blue-600' },
-  { label: 'SR Progress', href: '/sample-management/sample-process', icon: Package, color: 'bg-emerald-500', lightColor: 'bg-emerald-50', textColor: 'text-emerald-600' },
+  { label: 'Inter Dept. Log', href: '/sample-management/sample-process', icon: Package, color: 'bg-emerald-500', lightColor: 'bg-emerald-50', textColor: 'text-emerald-600' },
   { label: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList, color: 'bg-amber-500', lightColor: 'bg-amber-50', textColor: 'text-amber-600' },
   { label: 'Dispatch Detail', href: '/samples/dispatch', icon: Truck, color: 'bg-purple-500', lightColor: 'bg-purple-50', textColor: 'text-purple-600' },
   { label: 'Reports', href: '/sample-management/reports', icon: BarChart2, color: 'bg-rose-500', lightColor: 'bg-rose-50', textColor: 'text-rose-600' },
