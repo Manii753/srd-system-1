@@ -149,6 +149,7 @@ const srdSchema = new mongoose.Schema({
     type: { type: String },
     value: { type: mongoose.Schema.Types.Mixed },
     isRequired: { type: Boolean, default: false },
+    requirementLevel: { type: String, enum: ['none', 'required', 'compulsory'], default: 'none' },
     isOptional: { type: Boolean, default: false },
     isOptionalEnabled: { type: Boolean, default: true },
     placeholder: { type: String },

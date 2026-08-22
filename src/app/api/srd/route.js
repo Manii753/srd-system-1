@@ -46,6 +46,17 @@ function hasMeaningfulFieldValue(value, type) {
   return false;
 }
 
+// Work-queue gating helper: true when any compulsory field belonging to this
+// department (or global) is still unfilled on the SRD
+function hasUnfilledCompulsoryFields(srd, dept) {
+  const fields = Array.isArray(srd?.dynamicFields) ? srd.dynamicFields : [];
+  return fields.some(f =>
+    f?.requirementLevel === 'compulsory' &&
+    (f.department === dept || f.department === 'global') &&
+    !hasMeaningfulFieldValue(f.value, f.type)
+  );
+}
+
 export async function GET(request) {
   try {
     await dbConnect();
@@ -159,12 +170,28 @@ export async function GET(request) {
     }
 
     const srds = await queryExec;
+
+    // ── Work-queue gating (dept-wise) ──
+    // An SRD only appears in a department's work queue once the compulsory
+    // fields for that department (and global) are filled. Items already picked
+    // up by the department (in-progress/approved/flagged/rejected) stay visible.
+    let responseData = srds;
+    if (department && ['vmd', 'cad', 'commercial', 'mmc'].includes(department.toLowerCase())) {
+      const deptLower = department.toLowerCase();
+      responseData = srds.filter(srd => {
+        const deptStatus = (Array.isArray(srd.status) ? srd.status : [])
+          .find(s => s.department === deptLower)?.value || 'pending';
+        if (deptStatus !== 'pending') return true;
+        return !hasUnfilledCompulsoryFields(srd, deptLower);
+      });
+    }
+
     const count = await SRD.countDocuments(query);
 
     return NextResponse.json({
       success: true,
-      data: srds,
-      count,
+      data: responseData,
+      count: responseData.length,
     });
   } catch (error) {
     console.error('Error in GET /api/srd:', error);
@@ -234,6 +261,7 @@ export async function POST(request) {
           type: fieldDef.type,
           value: null, // Initialize with null
           isRequired: fieldDef.isRequired,
+          requirementLevel: fieldDef.requirementLevel || 'none',
           isOptional: !!fieldDef.isOptional,
           isOptionalEnabled: fieldDef.isOptional ? false : true,
           placeholder: fieldDef.placeholder,

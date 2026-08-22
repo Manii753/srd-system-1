@@ -32,6 +32,13 @@ const DEPARTMENTS = [
   'global'
 ];
 
+// Requirement level options for the selector in the field form
+const REQUIREMENT_LEVELS = [
+  { value: 'none', label: 'Not Required', hint: 'Field is optional' },
+  { value: 'required', label: 'Required', hint: 'Department must fill it before saving the SRD' },
+  { value: 'compulsory', label: 'Compulsory', hint: 'Must be filled — SRD stays hidden from this department\'s work queue until filled' }
+];
+
 const DEFAULT_TABLE_HEADERS = [
   { name: 'Item Name', owner: 'global' },
   { name: 'Code', owner: 'global' },
@@ -211,8 +218,13 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
             <span className="text-app-text text-gray-500 bg-gray-100 px-2 py-1 rounded">
               {field.department?.toUpperCase() || 'GLOBAL'}
             </span>
-            {field.isRequired && (
-              <span className="text-app-text text-red-600 bg-red-100 px-2 py-1 rounded">
+            {(field.requirementLevel === 'compulsory' || (!field.requirementLevel && field.isRequired)) && (
+              <span className="text-red-600 bg-red-100 px-2 py-1 rounded">
+                Compulsory
+              </span>
+            )}
+            {field.requirementLevel === 'required' && (
+              <span className="text-amber-700 bg-amber-100 px-2 py-1 rounded">
                 Required
               </span>
             )}
@@ -288,6 +300,7 @@ export default function Page() {
     placeholder: "",
     department: 'vmd',
     isRequired: false,
+    requirementLevel: 'none',
     isOptional: false,
     parentHeading: null,
     isShownInQuickDetails: false,
@@ -380,6 +393,7 @@ export default function Page() {
       placeholder: "",
       department: selectedDepartment,
       isRequired: false,
+      requirementLevel: 'none',
       isOptional: false,
       parentHeading: parentHeading,
       isShownInQuickDetails: false,
@@ -408,6 +422,7 @@ export default function Page() {
       type: field.type || 'text',
       placeholder: field.placeholder || '',
       department: field.department || selectedDepartment,
+      requirementLevel: field.requirementLevel || (field.isRequired ? 'required' : 'none'),
       isRequired: !!field.isRequired && !field.isOptional,
       isOptional: !!field.isOptional,
       parentHeading: field.parentHeading || null,
@@ -495,7 +510,9 @@ export default function Page() {
     if (!values.type) return alert('Please select a field type.');
     const payload = {
       ...values,
-      isRequired: values.isOptional ? false : values.isRequired,
+      // keep the legacy boolean in sync with the new selector
+      isRequired: !values.isOptional && values.requirementLevel !== 'none',
+      requirementLevel: values.isOptional ? 'none' : values.requirementLevel,
     };
 
     try {
@@ -1051,17 +1068,32 @@ export default function Page() {
                     </div>
                   )}
 
-                  {/* Required */}
+                  {/* Requirement Level (selector) */}
                   {values.type !== 'heading' && (
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        className="form-checkbox h-4 w-4"
-                        checked={values.isRequired}
-                        onChange={(e) => setValues({ ...values, isRequired: e.target.checked })}
+                    <div>
+                      <label className="block text-app-text font-medium text-gray-700 mb-1">
+                        Requirement Level
+                      </label>
+                      <select
+                        className="w-full p-2 border border-gray-300 rounded"
+                        value={values.requirementLevel || 'none'}
+                        onChange={(e) => setValues({
+                          ...values,
+                          requirementLevel: e.target.value,
+                          isRequired: e.target.value !== 'none',
+                        })}
                         disabled={values.isOptional}
-                      />
-                      <span className={cn("text-app-text text-gray-700", values.isOptional && "text-gray-400")}>Required</span>
+                      >
+                        {REQUIREMENT_LEVELS.map((lvl) => (
+                          <option key={lvl.value} value={lvl.value}>
+                            {lvl.label}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-app-text text-gray-500 mt-1">
+                        {REQUIREMENT_LEVELS.find(l => l.value === (values.requirementLevel || 'none'))?.hint}
+                        {values.isOptional && ' (disabled for Optional Toggle fields)'}
+                      </p>
                     </div>
                   )}
 
@@ -1075,7 +1107,8 @@ export default function Page() {
                         onChange={(e) => setValues({
                           ...values,
                           isOptional: e.target.checked,
-                          isRequired: e.target.checked ? false : values.isRequired
+                          isRequired: e.target.checked ? false : values.isRequired,
+                          requirementLevel: e.target.checked ? 'none' : (values.requirementLevel || 'none')
                         })}
                       />
                       <span className="text-app-text text-gray-700">Show toggle in SRD panel</span>

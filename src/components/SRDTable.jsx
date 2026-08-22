@@ -367,7 +367,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                               {new Date(date).toLocaleDateString()}
                             </span>
                           ) : isDelayed ? (
-                            <span className="text-app-text font-medium text-red-600">Delayed ( {delayedDays} days )</span>
+                            <span className="text-app-text font-medium text-red-600">Late {delayedDays} {delayedDays === 1 ? 'Day' : 'Days'}</span>
                           ) : (
                             <span className="text-app-text text-gray-400">Pending</span>
                           )}

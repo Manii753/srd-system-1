@@ -22,6 +22,16 @@ const FieldSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    // requirement level selector:
+    // 'none'       = not mandatory
+    // 'required'   = must be filled before the department can save the SRD
+    // 'compulsory' = same as required + the SRD stays hidden from that
+    //                department's work queue until it is filled
+    requirementLevel: {
+        type: String,
+        enum: ['none', 'required', 'compulsory'],
+        default: 'none'
+    },
     // whether this field is user-enabled per SRD before it can be filled/printed
     isOptional: {
         type: Boolean,

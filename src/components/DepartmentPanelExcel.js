@@ -32,6 +32,104 @@ import { Send } from 'lucide-react';
 import WashReportUploader from './WashReportUploader';
 import { checkCustomRoutes } from 'next/dist/lib/load-custom-routes';
 
+// ── Required / Compulsory field helpers (module-level so they can be used
+//    anywhere without closure/stale-deps issues) ─────────────────────────────
+
+function normalizeId(value) {
+  if (!value) return null;
+  if (typeof value === 'object') {
+    if (value._id) return value._id.toString();
+    if (typeof value.toString === 'function') return value.toString();
+    return null;
+  }
+  return value.toString();
+}
+
+function staticHasMeaningfulValue(value, fieldType) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'boolean') return true; // explicit Yes/No choice counts as filled
+  if (typeof value === 'number') return !Number.isNaN(value);
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) {
+    return value.some(item => staticHasMeaningfulValue(item, fieldType));
+  }
+  if (typeof value === 'object') {
+    if (fieldType === 'table') {
+      const rows = Array.isArray(value.rows) ? value.rows : [];
+      const predefinedData = Array.isArray(value.predefinedData) ? value.predefinedData : [];
+
+      const hasRowContent = rows.some(row =>
+        Array.isArray(row) && row.some(cell => typeof cell === 'string' ? cell.trim() !== '' : !!cell)
+      );
+
+      const hasPredefinedContent = predefinedData.some(item =>
+        item?.purchaseType === 'instock' ||
+        (typeof item?.opd === 'string' && item.opd.trim() !== '') ||
+        (typeof item?.etd === 'string' && item.etd.trim() !== '')
+      );
+
+      return hasRowContent || hasPredefinedContent;
+    }
+    return Object.values(value).some(item => staticHasMeaningfulValue(item, fieldType));
+  }
+  return false;
+}
+
+// Resolve the requirement level of a field definition ('none' | 'required' | 'compulsory')
+export function getFieldRequirementLevel(fieldDef) {
+  if (!fieldDef) return 'none';
+  const level = fieldDef.requirementLevel;
+  if (level === 'compulsory' || level === 'required') return level;
+  // Legacy fallback: plain isRequired boolean behaves like 'required'
+  return fieldDef.isRequired ? 'required' : 'none';
+}
+
+// Departments whose required/compulsory fields apply to the given user role.
+// Dept-wise visibility: VMD only deals with VMD fields, CAD only with CAD ones,
+// admin with all of them. Global fields apply to everyone.
+export function departmentsForUserRole(userRole) {
+  const depts = ['global'];
+  if (userRole === 'admin') {
+    depts.push('vmd', 'cad', 'commercial', 'mmc');
+  } else if (['vmd', 'cad', 'commercial', 'mmc'].includes(userRole)) {
+    depts.push(userRole);
+  }
+  return depts;
+}
+
+// Returns the list of unfilled required/compulsory fields visible to the user
+function findMissingRequiredFields({ fieldDefsMap, sourceFields, depts }) {
+  const missing = [];
+  const defs = Object.values(fieldDefsMap || {});
+  for (const fieldDef of defs) {
+    if (!fieldDef || fieldDef.active === false || fieldDef.type === 'heading') continue;
+
+    const level = getFieldRequirementLevel(fieldDef);
+    if (level === 'none') continue;
+    if (Array.isArray(depts) && !depts.includes(fieldDef.department)) continue;
+
+    const fieldId = normalizeId(fieldDef._id);
+    const fieldState = (sourceFields || []).find(sf =>
+      normalizeId(sf.originalFieldId || sf.field) === fieldId ||
+      (sf.name === fieldDef.name && sf.department === fieldDef.department)
+    );
+
+    // Skip optional-toggle fields that have been switched off
+    if (fieldState?.isOptional === true && fieldState.isOptionalEnabled === false) continue;
+
+    if (!staticHasMeaningfulValue(fieldState?.value, fieldDef.type)) {
+      missing.push({
+        id: fieldId,
+        name: fieldDef.name,
+        department: fieldDef.department,
+        type: fieldDef.type,
+        level,
+      });
+    }
+  }
+  return missing;
+}
+
 // Debounced input: keeps local state while typing so parent re-renders don't revert the value
 function DebouncedInput({ value, onDebouncedChange, delay = 400, onKeyDown: parentKeyDown, onBlur: parentBlur, maxLength, showCharLimitToast, ...props }) {
   const [local, setLocal] = React.useState(value ?? '');
@@ -258,6 +356,8 @@ export default function DepartmentPanelExcel({
   });
   const [pendingUpdates, setPendingUpdates] = useState({}); // Track updates per department
   const [showActivityConsole, setShowActivityConsole] = useState(false); // Activity console visibility - default hidden
+  // Missing required/compulsory fields shown in the "Please fill these fields" dialog
+  const [missingFieldsDialog, setMissingFieldsDialog] = useState(null);
 
   // Status update state
   const [selectedDepartment, setSelectedDepartment] = useState(userRole === 'admin' || userRole === 'vmd' ? 'vmd' : userRole);
@@ -399,10 +499,33 @@ export default function DepartmentPanelExcel({
     setSections(chunks.length > 0 ? chunks : [{ name: 'Page 1', cells: allCells, includeApprovals: true }]);
   }, [activeTemplate, formPagination]);
 
-  // Save all pending changes in a single PATCH call
-  const saveAllChanges = useCallback(async () => {
+  // Save all pending changes in a single PATCH call.
+  // Manual saves (Save button / Ctrl+S) are validated against required/compulsory
+  // fields; the idle auto-save passes skipValidation so drafts are kept safely.
+  const saveAllChanges = useCallback(async ({ skipValidation = false } = {}) => {
     const currentFields = fieldsRef.current;
     if (isSavingRef.current || !currentFields.length) return;
+
+    // ── Required / Compulsory validation (dept-wise) ──
+    // VMD is only blocked by VMD fields, CAD only by CAD ones, admin by all.
+    if (!skipValidation && !readOnly) {
+      const depts = departmentsForUserRole(userRole);
+      const missing = findMissingRequiredFields({
+        fieldDefsMap: allFieldDefsRef.current,
+        sourceFields: currentFields,
+        depts,
+      });
+      if (missing.length > 0) {
+        setMissingFieldsDialog(missing);
+        toast({
+          title: 'Please fill these fields',
+          description: `${missing.length} compulsory field${missing.length > 1 ? 's are' : ' is'} still empty. This SRD will not appear in other departments' work queues until they are filled.`,
+          variant: 'destructive',
+          duration: 6000,
+        });
+        return;
+      }
+    }
 
     setIsAutoSaving(true);
     isSavingRef.current = true;
@@ -575,7 +698,7 @@ export default function DepartmentPanelExcel({
       setIsAutoSaving(false);
       isSavingRef.current = false;
     }
-  }, [onSrdUpdate, toast]);
+  }, [onSrdUpdate, toast, readOnly, userRole]);
   saveAllChangesRef.current = saveAllChanges;
   // Expose save function to parent (for Ctrl+S)
   useEffect(() => { onSaveRef?.(saveAllChanges); }, [saveAllChanges, onSaveRef]);
@@ -584,7 +707,8 @@ export default function DepartmentPanelExcel({
   const resetIdleTimer = useCallback(() => {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     idleTimerRef.current = setTimeout(() => {
-      saveAllChangesRef.current?.();
+      // Idle auto-save keeps drafts without blocking on compulsory validation
+      saveAllChangesRef.current?.({ skipValidation: true });
     }, 15000);
   }, []);
 
@@ -702,6 +826,7 @@ export default function DepartmentPanelExcel({
       department: department || fieldDef?.department,
       value: '',
       isRequired: !!fieldDef?.isRequired,
+      requirementLevel: getFieldRequirementLevel(fieldDef),
       isOptional: !!fieldDef?.isOptional,
       isOptionalEnabled: fieldDef?.isOptional ? false : true,
       placeholder: fieldDef?.placeholder || '',
@@ -1276,7 +1401,7 @@ export default function DepartmentPanelExcel({
               >
                 {dept}
                 {hasPending && val !== 'approved' && (
-                  <span className={`font-bold leading-none ${isDelayed ? 'text-yellow-300' : 'text-yellow-300'}`} title={isDelayed ? `Delayed (>${delayThresholdDays} days)` : 'Has unfilled fields'}>!</span>
+                  <span className={`font-bold leading-none ${isDelayed ? 'text-yellow-300' : 'text-yellow-300'}`} title={isDelayed ? `Late (>${delayThresholdDays} days)` : 'Has unfilled fields'}>!</span>
                 )}
               </span>
             );
@@ -1311,6 +1436,10 @@ export default function DepartmentPanelExcel({
   const renderCellInput = useCallback((fieldDef, fieldId, canEdit) => {
     const fieldValue = getFieldValue(fieldId, fieldDef);
     const { name, type, placeholder, isRequired, department } = fieldDef;
+    // Compulsory/required hint — dept-wise: users only see it for their own
+    // department's fields (admin sees all, global applies to everyone)
+    const reqLevel = getFieldRequirementLevel(fieldDef);
+    const reqAppliesToUser = departmentsForUserRole(userRole).includes(department);
 
     switch (type) {
       case 'heading':
@@ -1334,22 +1463,25 @@ export default function DepartmentPanelExcel({
             : type === 'old-refNo'
               ? (fieldValue || '')
               : fieldValue;
+        // Compulsory/required hint — dept-wise: users only see it for their own
+        // department's fields (admin sees all, global applies to everyone)
+        const isReqFieldEmpty = canEdit && !isAutoField && reqAppliesToUser &&
+          reqLevel !== 'none' && !hasMeaningfulValue(displayValue, type);
         return (
           <div className="flex items-baseline gap-2 w-full px-1 py-0">
-            <span className="text-[12px] text-gray-700 font-semibold shrink-0 min-w-[140px]">{name}</span>
+            <span className="text-[12px] text-gray-700 font-semibold shrink-0 min-w-[140px]">
+              {name}
+              {reqLevel !== 'none' && reqAppliesToUser && <span className="text-red-500 ml-0.5" title={reqLevel === 'compulsory' ? 'Compulsory field' : 'Required field'}>*</span>}
+            </span>
             <div className="flex-1 min-w-0 relative">
               <DebouncedInput
                 type={type === 'createdAt' ? 'date' : (type === 'refNo' || type === 'old-refNo') ? 'text' : type}
                 placeholder={(() => {
                   if (!canEdit) return placeholder || '';
-                  // Show red hint if dept is ≥80% filled but this field is empty
-                  const isEmpty = !hasMeaningfulValue(displayValue, type);
-                  if (isEmpty) {
-                    const deptDefs = Object.values(allFieldDefs).filter(f => f.department === department && f.active !== false && !f.isOptional && f.type !== 'heading');
-                    if (deptDefs.length) {
-                      const filled = deptDefs.filter(f => { const s = findFieldState(f._id?.toString(), f); return hasMeaningfulValue(s?.value, f.type); }).length;
-                      if (filled / deptDefs.length >= 0.8) return 'Please fill in this field';
-                    }
+                  if (isReqFieldEmpty) {
+                    return placeholder || (reqLevel === 'compulsory'
+                      ? 'Please fill this field (Compulsory)'
+                      : 'Please fill this field');
                   }
                   return placeholder || '';
                 })()}
@@ -1363,14 +1495,7 @@ export default function DepartmentPanelExcel({
                   "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-app-text py-0 px-0 h-5",
                   !canEdit && "cursor-not-allowed text-gray-500",
                   isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field",
-                  (() => {
-                    const isEmpty = !hasMeaningfulValue(displayValue, type);
-                    if (!isEmpty || !canEdit) return '';
-                    const deptDefs = Object.values(allFieldDefs).filter(f => f.department === department && f.active !== false && !f.isOptional && f.type !== 'heading');
-                    if (!deptDefs.length) return '';
-                    const filled = deptDefs.filter(f => { const s = findFieldState(f._id?.toString(), f); return hasMeaningfulValue(s?.value, f.type); }).length;
-                    return filled / deptDefs.length >= 0.8 ? 'placeholder-red-500' : '';
-                  })()
+                  isReqFieldEmpty && "placeholder-red-500"
                 )}
               />
             </div>
@@ -1380,10 +1505,17 @@ export default function DepartmentPanelExcel({
       case 'textarea':
         return (
           <div className="flex items-start gap-2 w-full px-1 py-0 my-1">
-            <span className="text-[12px] text-gray-700 font-semibold shrink-0 min-w-[140px]">{name}</span>
+            <span className="text-[12px] text-gray-700 font-semibold shrink-0 min-w-[140px]">
+              {name}
+              {reqLevel !== 'none' && reqAppliesToUser && <span className="text-red-500 ml-0.5" title={reqLevel === 'compulsory' ? 'Compulsory field' : 'Required field'}>*</span>}
+            </span>
             <div className="flex-1 min-w-0 relative">
               <DebouncedTextarea
-                placeholder={placeholder || ''}
+                placeholder={
+                  canEdit && reqAppliesToUser && reqLevel !== 'none' && !hasMeaningfulValue(fieldValue, type)
+                    ? (placeholder || (reqLevel === 'compulsory' ? 'Please fill this field (Compulsory)' : 'Please fill this field'))
+                    : (placeholder || '')
+                }
                 value={fieldValue}
                 onDebouncedChange={(val) => handleFieldChange(fieldId, name, val, department, fieldDef)}
                 required={isRequired}
@@ -1393,7 +1525,8 @@ export default function DepartmentPanelExcel({
                 className={cn(
                   "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-app-text py-0 px-0 resize-none leading-tight",
                   !canEdit && "cursor-not-allowed text-gray-500",
-                  isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
+                  isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field",
+                  canEdit && reqAppliesToUser && reqLevel !== 'none' && !hasMeaningfulValue(fieldValue, type) && "placeholder-red-500"
                 )}
               />
             </div>
@@ -1403,7 +1536,10 @@ export default function DepartmentPanelExcel({
       case 'boolean':
         return (
           <div className="flex items-center gap-2 w-full px-1 py-0">
-            <span className="text-[12px] text-gray-700 font-semibold shrink-0 min-w-[140px]">{name}</span>
+            <span className="text-[12px] text-gray-700 font-semibold shrink-0 min-w-[140px]">
+              {name}
+              {reqLevel !== 'none' && reqAppliesToUser && <span className="text-red-500 ml-0.5" title={reqLevel === 'compulsory' ? 'Compulsory field' : 'Required field'}>*</span>}
+            </span>
             <div className={cn(
               "flex items-center gap-3 p-1 rounded transition-all",
               isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
@@ -2125,7 +2261,7 @@ export default function DepartmentPanelExcel({
           </div>
         );
     }
-  }, [getFieldValue, handleFieldChange, handleRemoveImage, handleSetCoverImage, srd?._id, srd?.createdAt, toast]);
+  }, [getFieldValue, handleFieldChange, handleRemoveImage, handleSetCoverImage, srd?._id, srd?.createdAt, toast, userRole]);
 
   // Loading state
   if (isLoading) {
@@ -2621,6 +2757,57 @@ export default function DepartmentPanelExcel({
 
 
     </div>
+
+    {/* ── Please fill these fields dialog (compulsory / required validation) ── */}
+    {missingFieldsDialog && missingFieldsDialog.length > 0 && (
+      <div
+        className="fixed inset-0 z-[70] bg-black/60 flex items-center justify-center p-4"
+        onClick={() => setMissingFieldsDialog(null)}
+      >
+        <div
+          className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border-b border-red-100">
+            <AlertCircle className="h-5 w-5 text-red-600" />
+            <h3 className="font-semibold text-red-700">Please fill these fields</h3>
+          </div>
+          <div className="p-4 space-y-3">
+            <p className="text-sm text-gray-600">
+              The following fields marked as <span className="font-medium text-red-600">Compulsory/Required</span> are still empty:
+            </p>
+            <div className="space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar">
+              {missingFieldsDialog.map((f) => (
+                <div key={f.id || f.name} className="flex items-center justify-between border border-red-100 bg-red-50/50 rounded px-2 py-1">
+                  <span className="text-sm font-medium text-gray-800">{f.name}</span>
+                  <span className="flex items-center gap-1">
+                    <span className="text-[10px] uppercase font-semibold bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded">
+                      {f.department === 'global' ? 'Global' : f.department}
+                    </span>
+                    <span className={cn(
+                      "text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded",
+                      f.level === 'compulsory' ? "bg-red-600 text-white" : "bg-amber-500 text-white"
+                    )}>
+                      {f.level}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500">
+              This SRD will not appear in other departments&apos; work queues until its compulsory fields are filled.
+            </p>
+          </div>
+          <div className="px-4 py-3 border-t flex justify-end">
+            <Button size="sm" onClick={() => setMissingFieldsDialog(null)}>
+              OK
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* ── File Viewer Modal ── */}
     {fileViewerUrl && (

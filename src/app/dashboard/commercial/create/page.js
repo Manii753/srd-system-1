@@ -110,6 +110,7 @@ export default function CreateSRDPage() {
             type: d.type,
             value: dynamicValues[d._id] ?? null,
             isRequired: !!d.isRequired,
+            requirementLevel: d.requirementLevel || (d.isRequired ? 'required' : 'none'),
             placeholder: d.placeholder || '',
             order: d.order || 0,
             parentHeading: d.parentHeading ? (d.parentHeading.name || d.parentHeading) : null,
