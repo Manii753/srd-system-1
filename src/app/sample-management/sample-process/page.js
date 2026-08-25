@@ -37,6 +37,13 @@ function getDescription(srd) {
 function getStageStatus(srd, stageSlug) {
   const entry = (srd.sampleProcess || []).find(s => s.stage === stageSlug);
   if (!entry) {
+    if (stageSlug === 'cad') {
+      const cadApproved = (srd.status || []).find(s => s.department === 'cad' && s.value === 'approved');
+      if (cadApproved) return { text: `Received ${fmtDate(cadApproved.updatedAt)}`, cls: 'text-blue-600 font-semibold' };
+      const d = daysSince(srd.createdAt);
+      if (d > 2) return { text: `Pending (${d}d)`, cls: 'text-red-500' };
+      return { text: 'Pending', cls: 'text-orange-500' };
+    }
     const d = daysSince(srd.createdAt);
     if (d > 2) return { text: `Pending (${d}d)`, cls: 'text-red-500' };
     return { text: 'Pending', cls: 'text-orange-500' };
@@ -396,6 +403,8 @@ export default function SampleProcessPage() {
                       const rcvKey      = `${srd._id}-${slug}-receive`;
                       const isReceived  = !!entry?.receivedDate;
                       const isReady     = !!entry?.completedDate;
+                      const cadApprovedDate = isFirst ? (srd.status || []).find(s => s.department === 'cad' && s.value === 'approved')?.updatedAt : null;
+                      const cadReceived = isFirst && (isReceived || !!cadApprovedDate);
 
                       return (
                         <tr key={`${srd._id}-${slug}`} className={`hover:bg-blue-50 transition-colors ${blinkingKey === `${srd._id}-${slug}` ? 'animate-pulse bg-yellow-50' : ''}`}>
@@ -421,8 +430,14 @@ export default function SampleProcessPage() {
 
                           {/* Click To Receive */}
                           <td className="px-4 py-2 border-b border-black/10 text-center">
-                            {isFirst && !isReceived ? (
-                              <span className="text-gray-300">—</span>
+                            {isFirst ? (
+                              cadReceived ? (
+                                <span className="text-sm font-medium text-blue-600">
+                                  Received {fmtDate(entry?.receivedDate || cadApprovedDate)}
+                                </span>
+                              ) : (
+                                <span className="text-gray-300">—</span>
+                              )
                             ) : isReceived ? (
                               <span className="text-sm font-medium text-blue-600">
                                 Received {fmtDate(entry.receivedDate)}
