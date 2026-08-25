@@ -69,6 +69,7 @@ export default function SampleProcessPage() {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterInquiry, setFilterInquiry] = useState('');
   const [filterStage, setFilterStage] = useState(''); // '' = all stages
+  const [blinkingKey, setBlinkingKey] = useState(null);
 
   const userRole = session?.user?.role?.toLowerCase() || '';
   const canViewAll = userRole === 'admin' || userRole === 'vmd';
@@ -142,7 +143,11 @@ export default function SampleProcessPage() {
       return filteredSrds.filter(srd => {
         const e = getStageEntry(srd, stageSlug);
         if (!e) return true;
-        return e.status !== 'completed' && !e.completedDate;
+        const nextSlug = stages[1]?.name?.toLowerCase();
+        const nextEntry = nextSlug ? getStageEntry(srd, nextSlug) : null;
+        const nextReceived = nextEntry?.status === 'received' || !!nextEntry?.receivedDate;
+        if (nextReceived) return false;
+        return true;
       });
     }
     return filteredSrds.filter(srd => {
@@ -151,6 +156,10 @@ export default function SampleProcessPage() {
       const prevSlug  = stages[stageIndex - 1]?.name?.toLowerCase();
       const prevEntry = sp.find(s => s.stage === prevSlug);
       const thisEntry = sp.find(s => s.stage === stageSlug);
+      const nextSlug  = stages[stageIndex + 1]?.name?.toLowerCase();
+      const nextEntry = nextSlug ? sp.find(s => s.stage === nextSlug) : null;
+      const nextReceived = nextEntry?.status === 'received' || !!nextEntry?.receivedDate;
+      if (nextReceived) return false;
       return (
         prevEntry?.status === 'completed' || !!prevEntry?.completedDate ||
         thisEntry?.status === 'received'  || thisEntry?.status === 'completed' ||
@@ -223,6 +232,15 @@ export default function SampleProcessPage() {
       const data = await res.json();
       if (data.success) {
         toast({ title: action === 'complete' ? 'Marked Ready' : 'Received', description: data.message });
+        if (action === 'complete') {
+          const stageIdx = stages.findIndex(s => s.name?.toLowerCase() === stageSlug);
+          const nextSlug = stages[stageIdx + 1]?.name?.toLowerCase();
+          if (nextSlug) {
+            const blinkId = `${srdId}-${nextSlug}`;
+            setBlinkingKey(blinkId);
+            setTimeout(() => setBlinkingKey(null), 3000);
+          }
+        }
         fetchAll();
       } else {
         toast({ title: 'Error', description: data.error, variant: 'destructive' });
@@ -349,7 +367,6 @@ export default function SampleProcessPage() {
                       <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-black/10">Description</th>
                       <th className="px-4 py-3 text-center text-xs font-bold text-blue-500 uppercase tracking-wider border-b border-black/10 w-36">Click To Receive</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-black/10 w-44">Current Status</th>
-                      <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-black/10 w-36">Mark Ready</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white">
@@ -358,7 +375,7 @@ export default function SampleProcessPage() {
                       if (item.type === 'header') {
                         return (
                           <tr key={`h-${item.slug}`}>
-                            <td colSpan={7} className="px-4 py-1.5 bg-gray-50 border-b border-t border-black/10">
+                            <td colSpan={6} className="px-4 py-1.5 bg-gray-50 border-b border-t border-black/10">
                               <div className="flex items-center justify-between">
                                 <span className="text-xs font-bold text-gray-700 uppercase tracking-widest">{item.label}</span>
                                 <span className="text-xs text-gray-400">{item.count} SR{item.count !== 1 ? 's' : ''}</span>
@@ -381,7 +398,7 @@ export default function SampleProcessPage() {
                       const isReady     = !!entry?.completedDate;
 
                       return (
-                        <tr key={`${srd._id}-${slug}`} className="hover:bg-blue-50 transition-colors">
+                        <tr key={`${srd._id}-${slug}`} className={`hover:bg-blue-50 transition-colors ${blinkingKey === `${srd._id}-${slug}` ? 'animate-pulse bg-yellow-50' : ''}`}>
                           {/* Date */}
                           <td className="px-4 py-2 border-b border-black/10 text-sm text-gray-700 whitespace-nowrap">
                             {fmtDate(srd.createdAt)}
@@ -402,9 +419,9 @@ export default function SampleProcessPage() {
                             <span className="line-clamp-1">{getDescription(srd) || '—'}</span>
                           </td>
 
-                          {/* Click To Receive — empty cell for CAD (first stage) */}
+                          {/* Click To Receive */}
                           <td className="px-4 py-2 border-b border-black/10 text-center">
-                            {isFirst ? (
+                            {isFirst && !isReceived ? (
                               <span className="text-gray-300">—</span>
                             ) : isReceived ? (
                               <span className="text-sm font-medium text-blue-600">
@@ -424,13 +441,8 @@ export default function SampleProcessPage() {
                             )}
                           </td>
 
-                          {/* Current Status */}
+                          {/* Current Status (with Ready button merged in) */}
                           <td className="px-4 py-2 border-b border-black/10">
-                            <span className={`text-sm ${stageStatus.cls}`}>{stageStatus.text}</span>
-                          </td>
-
-                          {/* Mark Ready */}
-                          <td className="px-4 py-2 border-b border-black/10 text-center">
                             {isReady ? (
                               <span className="text-sm font-semibold text-green-700">
                                 Ready {fmtDate(entry.completedDate)}
@@ -445,7 +457,7 @@ export default function SampleProcessPage() {
                                 Ready
                               </button>
                             ) : (
-                              <span className="text-gray-300">—</span>
+                              <span className={`text-sm ${stageStatus.cls}`}>{stageStatus.text}</span>
                             )}
                           </td>
                         </tr>
