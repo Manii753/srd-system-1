@@ -14,7 +14,6 @@ const SAMPLE_APPS = [
   { label: 'Reports', href: '/sample-management/reports', icon: BarChart2, color: 'bg-rose-500', lightColor: 'bg-rose-50', textColor: 'text-rose-600' },
   { label: 'Buyer Comment', href: '/samples/buyer-comment', icon: MessageSquare, color: 'bg-indigo-500', lightColor: 'bg-indigo-50', textColor: 'text-indigo-600' },
 ];
-
 export default function SamplesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
