@@ -77,9 +77,30 @@ export default function SampleProcessPage() {
   const [filterInquiry, setFilterInquiry] = useState('');
   const [filterStage, setFilterStage] = useState(''); // '' = all stages
   const [blinkingKey, setBlinkingKey] = useState(null);
+  const [myPermissions, setMyPermissions] = useState(null);
 
   const userRole = session?.user?.role?.toLowerCase() || '';
   const canViewAll = userRole === 'admin' || userRole === 'vmd';
+  const canReceiveAnyStage = !!myPermissions?.canReceiveAnyStage;
+  const canCompleteAnyStage =
+    !!myPermissions?.canCompleteAnyStage || canReceiveAnyStage;
+
+  // Permissions are stored per-user in the DB, not in the session, so fetch the
+  // live record. This way revoking in the User Permissions UI takes effect.
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    let cancelled = false;
+    fetch(`/api/users/${session.user.id}`)
+      .then(r => r.json())
+      .then(d => {
+        if (cancelled) return;
+        setMyPermissions(d?.success ? (d.data?.permissions || {}) : {});
+      })
+      .catch(() => {
+        if (!cancelled) setMyPermissions({});
+      });
+    return () => { cancelled = true; };
+  }, [session?.user?.id]);
 
   useEffect(() => { fetchAll(); }, []);
   useEffect(() => { setCurrentPage(1); }, [filterBrand, filterStatus, filterInquiry, filterStage]);
@@ -258,7 +279,7 @@ export default function SampleProcessPage() {
   };
 
   const canMarkReady = (srd, stageSlug, stageIndex) => {
-    if (!(userRole === stageSlug || userRole === 'admin' || userRole === 'vmd')) return false;
+    if (!(userRole === stageSlug || userRole === 'admin' || canCompleteAnyStage)) return false;
     const entry = getStageEntry(srd, stageSlug);
     if (entry?.status === 'completed' || entry?.completedDate) return false;
     if (stageIndex === 0) {
@@ -269,7 +290,7 @@ export default function SampleProcessPage() {
   };
 
   const canReceive = (srd, stageSlug, stageIndex) => {
-    if (stageIndex === 0 || userRole !== stageSlug) return false;
+    if (stageIndex === 0 || !(userRole === stageSlug || userRole === 'admin' || canReceiveAnyStage)) return false;
     const entry = getStageEntry(srd, stageSlug);
     if (entry?.receivedDate || entry?.status === 'received') return false;
     const prevSlug  = stages[stageIndex - 1]?.name?.toLowerCase();

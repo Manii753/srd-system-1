@@ -48,8 +48,8 @@ const PERMISSION_GROUPS = [
     title: 'Sample Process Permissions',
     permissions: [
       { key: 'canViewAll', label: 'Can View All Samples', description: 'User can see all samples regardless of stage' },
-      { key: 'canReceiveAnyStage', label: 'Can Receive Any Stage', description: 'User can receive samples for any department (admin override)' },
-      { key: 'canCompleteAnyStage', label: 'Can Complete Any Stage', description: 'Can complete any stage (legacy - admin override)' }
+      { key: 'canReceiveAnyStage', label: 'Can Receive Any Stage', description: 'User can receive samples for any department. Also grants marking any stage Ready. Revoking this removes those abilities.' },
+      { key: 'canCompleteAnyStage', label: 'Can Complete Any Stage', description: 'User can mark any stage Ready regardless of department. Revoking this removes that ability.' }
     ]
   },
   {

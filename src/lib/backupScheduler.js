@@ -139,7 +139,6 @@ export class BackupScheduler {
         {
           $set: automaticBackupRecord,
           $setOnInsert: {
-            id: AUTO_BACKUP_ID,
             type: 'automatic',
           },
         },

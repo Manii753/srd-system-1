@@ -70,10 +70,24 @@ export default function MobileSampleProcessPage() {
   const [error, setError] = useState(null);
   const [productionStages, setProductionStages] = useState([]);
   const [stagesLoaded, setStagesLoaded] = useState(false);
+  const [userPerms, setUserPerms] = useState(null);
 
   useEffect(() => {
     fetchProductionStages();
   }, []);
+
+  // Live permissions come from the user record (revocations take effect here).
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    let cancelled = false;
+    fetch(`/api/users/${session.user.id}`)
+      .then(r => r.json())
+      .then(d => {
+        if (!cancelled) setUserPerms(d?.success ? (d.data?.permissions || null) : null);
+      })
+      .catch(() => { if (!cancelled) setUserPerms(null); });
+    return () => { cancelled = true; };
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (srdId && stagesLoaded) {
@@ -302,6 +316,15 @@ export default function MobileSampleProcessPage() {
 
   const permissions = getUserPermissions();
 
+  // DB permissions are authoritative over the role defaults where present.
+  // `canReceiveAnyStage` also grants cross-stage "mark ready".
+  const crossReceive = userPerms != null
+    ? userPerms.canReceiveAnyStage === true
+    : permissions.canReceiveAnyStage;
+  const crossComplete = userPerms != null
+    ? (userPerms.canCompleteAnyStage === true || userPerms.canReceiveAnyStage === true)
+    : permissions.canCompleteAnyStage;
+
   if (loading || !stagesLoaded) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -342,8 +365,8 @@ export default function MobileSampleProcessPage() {
         ).map(stage => {
           const canAccess = canAccessStage(stage);
           const hasPermission = permissions.stages.includes(stage.id);
-          const canReceive = hasPermission && canAccess;
-          const canComplete = (permissions.canCompleteAnyStage || hasPermission) && canAccess;
+          const canReceive = (crossReceive || hasPermission) && canAccess;
+          const canComplete = (crossComplete || hasPermission) && canAccess;
 
           // Debug logging
           console.log(`Stage ${stage.id}:`, {
@@ -351,6 +374,8 @@ export default function MobileSampleProcessPage() {
             hasPermission,
             canReceive,
             canComplete,
+            crossReceive,
+            crossComplete,
             stageData: srd.sampleProcess?.find(s => s.stage === stage.id)
           });
 

@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import SRD from '@/models/SRD';
+import User from '@/models/User';
 import ProductionStage from '@/models/ProductionStage';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 
 // ── GET ──────────────────────────────────────────────────────────────────────
 export async function GET(request, { params }) {
@@ -154,11 +156,21 @@ export async function PATCH(request, { params }) {
 
     const userRole = session.user.role.toLowerCase();
 
+    // Cross-stage overrides are enforced from the live user record so that
+    // revoking them in the Permissions UI takes effect immediately.
+    const currentUser = await User.findById(session.user.id)
+      .select('role permissions')
+      .lean();
+    const canReceiveAnyStage = hasPermission(currentUser, 'canReceiveAnyStage');
+    const canCompleteAnyStage =
+      hasPermission(currentUser, 'canCompleteAnyStage') || canReceiveAnyStage;
+
     // ── Action: complete (mark Ready) ─────────────────────────────────────
     if (action === 'complete') {
-      // Permission: admin, vmd, or the matching role can complete their own stage
+      // Permission: matching role can complete their own stage; admin or a
+      // granted cross-stage permission can complete any stage.
       const canComplete =
-        userRole === 'admin' || userRole === 'vmd' || userRole === stage;
+        userRole === stage || canCompleteAnyStage;
 
       if (!canComplete) {
         return NextResponse.json(
@@ -233,8 +245,8 @@ export async function PATCH(request, { params }) {
         );
       }
 
-      // Must be from the matching department
-      const canReceive = userRole === stage;
+      // Must be from the matching department or have the cross-stage permission
+      const canReceive = userRole === stage || canReceiveAnyStage;
       if (!canReceive) {
         return NextResponse.json(
           { success: false, error: 'You can only receive samples for your own department' },
