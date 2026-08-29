@@ -11,6 +11,20 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Factory, Clock, CheckCircle, AlertCircle, Package, Plus } from 'lucide-react';
 
+// Read a department's status from an SRD status field, supporting both the
+// canonical array [{department, value}] and legacy flat object {mmc: 'pending'}.
+const getStatus = (srd, dept) => {
+  const status = srd.status;
+  if (Array.isArray(status)) {
+    return status.find(s => s?.department === dept)?.value || 'pending';
+  }
+  if (status && typeof status === 'object') {
+    const v = status[dept];
+    return v === undefined || v === null ? 'pending' : String(v);
+  }
+  return 'pending';
+};
+
 export default function MMCDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -51,18 +65,10 @@ export default function MMCDashboard() {
 
   const getStats = () => {
     const total = srds.length;
-    const pending = srds.filter(srd => 
-      (srd.status?.mmc === 'pending' || srd.status?.MMC === 'pending')
-    ).length;
-    const inProgress = srds.filter(srd => 
-      (srd.status?.mmc === 'in-progress' || srd.status?.MMC === 'in-progress')
-    ).length;
-    const approved = srds.filter(srd => 
-      (srd.status?.mmc === 'approved' || srd.status?.MMC === 'approved')
-    ).length;
-    const flagged = srds.filter(srd => 
-      (srd.status?.mmc === 'flagged' || srd.status?.MMC === 'flagged')
-    ).length;
+    const pending = srds.filter(srd => getStatus(srd, 'mmc') === 'pending').length;
+    const inProgress = srds.filter(srd => getStatus(srd, 'mmc') === 'in-progress').length;
+    const approved = srds.filter(srd => getStatus(srd, 'mmc') === 'approved').length;
+    const flagged = srds.filter(srd => getStatus(srd, 'mmc') === 'flagged').length;
     
     return { total, pending, inProgress, approved, flagged };
   };

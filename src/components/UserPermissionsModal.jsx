@@ -48,7 +48,8 @@ const PERMISSION_GROUPS = [
       { key: 'canCreateSRD', label: 'Can Create SRD', description: 'Can create new Sample Request Documents' },
       { key: 'canEditSRD', label: 'Can Edit SRD', description: 'Can edit SRD details' },
       { key: 'canDeleteSRD', label: 'Can Delete SRD', description: 'Can delete SRDs' },
-      { key: 'canViewAllSRDs', label: 'Can View All SRDs', description: 'Can view all SRDs (not just own department)' }
+      { key: 'canViewAllSRDs', label: 'Can View All SRDs', description: 'Can view all SRDs (not just own department)' },
+      { key: 'canApproveAnyDepartment', label: 'Can Approve Any Department', description: 'Can approve VMD, CAD, MMC and COM from the status bar (typically for VMD users)' }
     ]
   },
   {

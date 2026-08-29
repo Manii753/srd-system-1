@@ -12,6 +12,20 @@ import { Plus, FileText, Clock, CheckCircle, AlertCircle, Search, Filter } from 
 import Link from 'next/link';
 import { useToast } from '@/lib/use-toast';
 
+// Read a department's status from an SRD status field, supporting both the
+// canonical array [{department, value}] and legacy flat object {vmd: 'pending'}.
+const getStatus = (srd, dept) => {
+  const status = srd.status;
+  if (Array.isArray(status)) {
+    return status.find(s => s?.department === dept)?.value || 'pending';
+  }
+  if (status && typeof status === 'object') {
+    const v = status[dept];
+    return v === undefined || v === null ? 'pending' : String(v);
+  }
+  return 'pending';
+};
+
 export default function VMDDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -101,15 +115,9 @@ export default function VMDDashboard() {
 
   const stats = useMemo(() => {
     const total = srds.length;
-    const pending = srds.filter(srd =>
-      (srd.status?.vmd === 'pending' || srd.status?.VMD === 'pending')
-    ).length;
-    const approved = srds.filter(srd =>
-      (srd.status?.vmd === 'approved' || srd.status?.VMD === 'approved')
-    ).length;
-    const flagged = srds.filter(srd =>
-      (srd.status?.vmd === 'flagged' || srd.status?.VMD === 'flagged')
-    ).length;
+    const pending = srds.filter(srd => getStatus(srd, 'vmd') === 'pending').length;
+    const approved = srds.filter(srd => getStatus(srd, 'vmd') === 'approved').length;
+    const flagged = srds.filter(srd => getStatus(srd, 'vmd') === 'flagged').length;
 
     return { total, pending, approved, flagged };
   }, [srds]);

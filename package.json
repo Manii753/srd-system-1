@@ -16,6 +16,7 @@
     "migrate:users": "node src/lib/migrateUsers.js",
     "migrate:upload-assets": "node src/lib/migrateUploadAssets.js",
     "fix:srd-status": "node src/lib/fixSRDStatus.js",
+    "fix:srd-status-format": "node src/lib/fixSRDStatusFormat.js",
     "backup:scheduler": "node src/lib/startBackupScheduler.js",
     "backup:create": "node src/lib/createBackup.js",
     "pwa:setup": "node setup-pwa.js",

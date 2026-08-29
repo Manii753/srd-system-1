@@ -45,6 +45,20 @@ function normalizeId(value) {
   return value.toString();
 }
 
+// Read a department's status from an SRD status field, supporting BOTH the
+// canonical array-of-objects format [{department, value}] AND the legacy
+// flat-object format {vmd: 'pending'}. Falls back to 'pending'.
+function statusValueFor(status, dept) {
+  if (Array.isArray(status)) {
+    return status.find(s => s?.department === dept)?.value || 'pending';
+  }
+  if (status && typeof status === 'object') {
+    const v = status[dept];
+    return v === undefined || v === null ? 'pending' : String(v);
+  }
+  return 'pending';
+}
+
 function staticHasMeaningfulValue(value, fieldType) {
   if (value === null || value === undefined) return false;
   if (typeof value === 'boolean') return true; // explicit Yes/No choice counts as filled
@@ -363,6 +377,12 @@ export default function DepartmentPanelExcel({
   const [selectedDepartment, setSelectedDepartment] = useState(userRole === 'admin' || userRole === 'vmd' ? 'vmd' : userRole);
   const [statusToUpdate, setStatusToUpdate] = useState('approved');
   const [updateComment, setUpdateComment] = useState('');
+  // Whether the current user is allowed to approve departments other than their own
+  const [canApproveAnyDepartment, setCanApproveAnyDepartment] = useState(userRole === 'admin');
+  // Approve-from-status-bar dialog
+  const [approveDialogDept, setApproveDialogDept] = useState(null);
+  const [approveComment, setApproveComment] = useState('');
+  const [approvingDept, setApprovingDept] = useState(false);
 
   // Manual save + idle auto-save
   const idleTimerRef = useRef(null);
@@ -464,6 +484,22 @@ export default function DepartmentPanelExcel({
   useEffect(() => {
     setFields(srd.dynamicFields || []);
   }, [srd?.dynamicFields]);
+
+  // Fetch the current user's permissions so we can decide which departments
+  // this user may approve from the status bar (VMD approve-all capability).
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    let cancelled = false;
+    fetch(`/api/users/${session.user.id}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (cancelled || !data?.success) return;
+        const perms = data.data?.permissions || {};
+        setCanApproveAnyDepartment(!!perms.canApproveAnyDepartment);
+      })
+      .catch(err => console.warn('Failed to load user permissions:', err));
+    return () => { cancelled = true; };
+  }, [session?.user?.id]);
 
   // Process template cells into sections based on pagination settings
   useEffect(() => {
@@ -1184,6 +1220,48 @@ export default function DepartmentPanelExcel({
     }
   }, [userRole, selectedDepartment, statusToUpdate, updateComment, fields, srd.createdBy?.name, onUpdate, toast]);
 
+  // Approve a department directly from the status bar (click → confirm dialog)
+  const handleApproveFromBar = useCallback(async () => {
+    if (!approveDialogDept) return;
+    const dept = approveDialogDept;
+    setApprovingDept(true);
+    try {
+      const payload = {
+        status: 'approved',
+        authorName: session?.user?.name,
+        authorRole: session?.user?.role,
+        fields: [],
+      };
+      if (approveComment.trim()) {
+        payload.comment = {
+          author: session?.user?.name || 'Unknown',
+          role: session?.user?.role,
+          text: approveComment.trim(),
+          department: dept,
+        };
+      }
+      const res = await fetch(`/api/srd/${srdRef.current._id}/department/${dept}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        onSrdUpdate?.(data.data);
+        toast({ title: 'Approved', description: `${dept.toUpperCase()} approved from status bar`, duration: 2500 });
+        setApproveDialogDept(null);
+        setApproveComment('');
+      } else {
+        toast({ title: 'Approval failed', description: data.error || 'Could not approve', variant: 'destructive' });
+      }
+    } catch (error) {
+      console.error('Approve from status bar failed:', error);
+      toast({ title: 'Approval failed', description: error.message || 'Could not approve', variant: 'destructive' });
+    } finally {
+      setApprovingDept(false);
+    }
+  }, [approveDialogDept, approveComment, session?.user?.name, session?.user?.role, onSrdUpdate, toast]);
+
 
   const handlePrint = useCallback(async () => {
     await printDepartmentPanelExcel({
@@ -1333,9 +1411,18 @@ export default function DepartmentPanelExcel({
         )}
         <div className="flex items-center gap-1 ml-2">
           {['vmd', 'cad', 'commercial', 'mmc'].map(dept => {
-            const val = (srd.status || []).find(s => s.department === dept)?.value || 'pending';
+            const val = statusValueFor(srd.status, dept);
             const isDelayed = val === 'pending' && delayThresholdDays > 0 &&
               (Date.now() - new Date(srd.createdAt).getTime()) > delayThresholdDays * 24 * 60 * 60 * 1000;
+
+            // Which departments is the current user allowed to approve?
+            // - Admin: all
+            // - A user with canApproveAnyDepartment toggled ON (e.g. VMD): all
+            // - Otherwise: only their own department
+            const canApproveThisDept =
+              !readOnly &&
+              val !== 'approved' &&
+              (userRole === 'admin' || canApproveAnyDepartment || userRole === dept);
 
             // Check fill % using saved fields + allFieldDefs
             // For tables: check column ownership; for regular fields: check department
@@ -1386,11 +1473,15 @@ export default function DepartmentPanelExcel({
             const hasPending = deptTotal > 0 && deptFilled < deptTotal;
             const fillPct = deptTotal > 0 ? deptFilled / deptTotal : 0;
             return (
-              // bg-colors for dept pills
-              <span
+              <button
                 key={dept}
+                type="button"
+                disabled={!canApproveThisDept}
+                onClick={() => { setApproveComment(''); setApproveDialogDept(dept); }}
+                title={canApproveThisDept ? `Click to approve ${dept.toUpperCase()}` : `${dept.toUpperCase()}: ${val}`}
                 className={cn(
-                  "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-app-heading font-medium capitalize",
+                  "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-app-heading font-medium capitalize transition",
+                  canApproveThisDept && 'cursor-pointer hover:ring-2 hover:ring-blue-400',
                   val === 'approved'    && 'bg-green-700 text-white',
                   val === 'in-progress' && 'bg-blue-700 text-white',
                   val === 'flagged'     && 'bg-red-700 text-white',
@@ -1403,14 +1494,14 @@ export default function DepartmentPanelExcel({
                 {hasPending && val !== 'approved' && (
                   <span className={`font-bold leading-none ${isDelayed ? 'text-yellow-300' : 'text-yellow-300'}`} title={isDelayed ? `Late (>${delayThresholdDays} days)` : 'Has unfilled fields'}>!</span>
                 )}
-              </span>
+              </button>
             );
           })}
         </div>
       </div>
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onHeaderContent, srd._id, srd.refNo, JSON.stringify(srd.status), isPrinting, hasUnsavedChanges, isAutoSaving, handlePrint, fields, allFieldDefs, activeTemplate, delayThresholdDays]);
+  }, [onHeaderContent, srd._id, srd.refNo, JSON.stringify(srd.status), isPrinting, hasUnsavedChanges, isAutoSaving, handlePrint, fields, allFieldDefs, activeTemplate, delayThresholdDays, canApproveAnyDepartment, readOnly, userRole]);
 
   // Activity Console toggle button — injected into the header right slot (before notifications)
   useEffect(() => {
@@ -2837,6 +2928,62 @@ export default function DepartmentPanelExcel({
               onSave={handleExcelSave}
               editable={!readOnly}
             />
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ── Approve from status bar dialog ── */}
+    {approveDialogDept && (
+      <div
+        className="fixed inset-0 z-[70] bg-black/60 flex items-center justify-center p-4"
+        onClick={() => { if (!approvingDept) setApproveDialogDept(null); }}
+      >
+        <div
+          className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border-b border-green-100">
+            <AlertCircle className="h-5 w-5 text-green-700" />
+            <h3 className="font-semibold text-green-700">
+              Approve {approveDialogDept.toUpperCase()}?
+            </h3>
+          </div>
+          <div className="p-4 space-y-3">
+            <p className="text-sm text-gray-600">
+              Mark this department as <span className="font-medium text-green-700">approved</span> for SRD{' '}
+              <span className="font-medium text-gray-900">{srdRef.current?.refNo || ''}</span>.
+            </p>
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Comment (optional)</Label>
+              <Textarea
+                value={approveComment}
+                onChange={(e) => setApproveComment(e.target.value)}
+                placeholder="Add an optional approval comment..."
+                rows={3}
+                className="mt-1 text-app-text"
+              />
+            </div>
+          </div>
+          <div className="px-4 py-3 border-t flex justify-end gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setApproveDialogDept(null)}
+              disabled={approvingDept}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={handleApproveFromBar}
+              disabled={approvingDept}
+            >
+              {approvingDept ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Approving...</> : 'Approve'}
+            </Button>
           </div>
         </div>
       </div>

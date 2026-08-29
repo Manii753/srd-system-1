@@ -13,6 +13,19 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Read a department's status, supporting both the canonical array
+// [{department, value}] and legacy flat object {vmd: 'approved'}.
+const getDeptStatusProd = (status, dept) => {
+  if (Array.isArray(status)) {
+    return status.find(s => s?.department === dept)?.value || 'pending';
+  }
+  if (status && typeof status === 'object') {
+    const v = status[dept];
+    return v === undefined || v === null ? 'pending' : String(v);
+  }
+  return 'pending';
+};
+
 export default function SRDReports({ srd }) {
     if (!srd) return null;
 
@@ -76,8 +89,8 @@ export default function SRDReports({ srd }) {
 
         return {
             name: dept.toUpperCase(),
-            approved: srd.status?.[dept] === 'approved',
-            flagged: srd.status?.[dept] === 'flagged',
+            approved: getDeptStatusProd(srd.status, dept) === 'approved',
+            flagged: getDeptStatusProd(srd.status, dept) === 'flagged',
             date: approvalDate,
             duration: duration,
             latestFlag: latestFlag ? {

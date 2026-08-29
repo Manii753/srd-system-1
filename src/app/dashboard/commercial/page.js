@@ -11,6 +11,20 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, Clock, CheckCircle, AlertCircle, DollarSign, Plus } from 'lucide-react';
 
+// Read a department's status from an SRD status field, supporting both the
+// canonical array [{department, value}] and legacy flat object.
+const getStatus = (srd, dept) => {
+  const status = srd.status;
+  if (Array.isArray(status)) {
+    return status.find(s => s?.department === dept)?.value || 'pending';
+  }
+  if (status && typeof status === 'object') {
+    const v = status[dept];
+    return v === undefined || v === null ? 'pending' : String(v);
+  }
+  return 'pending';
+};
+
 export default function CommercialDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -51,15 +65,9 @@ export default function CommercialDashboard() {
 
   const getStats = () => {
     const total = srds.length;
-    const pending = srds.filter(srd => 
-      (srd.status?.commercial === 'pending' || srd.status?.COMMERCIAL === 'pending')
-    ).length;
-    const approved = srds.filter(srd => 
-      (srd.status?.commercial === 'approved' || srd.status?.COMMERCIAL === 'approved')
-    ).length;
-    const flagged = srds.filter(srd => 
-      (srd.status?.commercial === 'flagged' || srd.status?.COMMERCIAL === 'flagged')
-    ).length;
+    const pending = srds.filter(srd => getStatus(srd, 'commercial') === 'pending').length;
+    const approved = srds.filter(srd => getStatus(srd, 'commercial') === 'approved').length;
+    const flagged = srds.filter(srd => getStatus(srd, 'commercial') === 'flagged').length;
     const totalCost = srds.reduce((sum, srd) => sum + (0), 0);
     
     return { total, pending, approved, flagged, totalCost };

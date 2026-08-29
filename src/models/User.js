@@ -34,6 +34,9 @@ const userSchema = new mongoose.Schema({
     canEditSRD: { type: Boolean, default: false },
     canDeleteSRD: { type: Boolean, default: false },
     canViewAllSRDs: { type: Boolean, default: false },
+    // Grant this user (typically a VMD) the ability to approve other
+    // departments' requests (VMD, CAD, MMC, COM) from the status bar.
+    canApproveAnyDepartment: { type: Boolean, default: false },
     
     // Admin Portal Permissions
     canAccessAdminPortal: { type: Boolean, default: false },

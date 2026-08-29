@@ -11,6 +11,20 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Package, Clock, CheckCircle, AlertCircle, Scissors, Plus } from 'lucide-react';
 
+// Read a department's status from an SRD status field, supporting both the
+// canonical array [{department, value}] and legacy flat object {cad: 'pending'}.
+const getStatus = (srd, dept) => {
+  const status = srd.status;
+  if (Array.isArray(status)) {
+    return status.find(s => s?.department === dept)?.value || 'pending';
+  }
+  if (status && typeof status === 'object') {
+    const v = status[dept];
+    return v === undefined || v === null ? 'pending' : String(v);
+  }
+  return 'pending';
+};
+
 export default function CADDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -51,18 +65,10 @@ export default function CADDashboard() {
 
   const stats = useMemo(() => {
     const total = srds.length;
-    const pending = srds.filter(srd => 
-      (srd.status?.cad === 'pending' || srd.status?.CAD === 'pending')
-    ).length;
-    const inProgress = srds.filter(srd => 
-      (srd.status?.cad === 'in-progress' || srd.status?.CAD === 'in-progress')
-    ).length;
-    const approved = srds.filter(srd => 
-      (srd.status?.cad === 'approved' || srd.status?.CAD === 'approved')
-    ).length;
-    const flagged = srds.filter(srd => 
-      (srd.status?.cad === 'flagged' || srd.status?.CAD === 'flagged')
-    ).length;
+    const pending = srds.filter(srd => getStatus(srd, 'cad') === 'pending').length;
+    const inProgress = srds.filter(srd => getStatus(srd, 'cad') === 'in-progress').length;
+    const approved = srds.filter(srd => getStatus(srd, 'cad') === 'approved').length;
+    const flagged = srds.filter(srd => getStatus(srd, 'cad') === 'flagged').length;
     
     return { total, pending, inProgress, approved, flagged };
   }, [srds]);

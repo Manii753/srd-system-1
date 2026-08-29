@@ -128,12 +128,18 @@ export async function POST(request, { params }) {
       productionEndDate,
       productionProgress,
       productionHistory,
+      productionStages,
+      currentProductionStage,
+      sampleProcess,
+      washAnalysisReport,
+      inDispatch,
+      dispatchDate,
+      isComplete,
       comments,
       audit,
       revision,
       images: _legacyImages,
       // Strip all dispatch/conditions fields
-      inDispatch,
       internalApproved,
       internalApprovedBy,
       internalApprovedDate,
@@ -150,10 +156,13 @@ export async function POST(request, { params }) {
       BuyerRejectedReasons,
       BuyerDetails,
       DispatchDetails,
-      dispatchDate,
       ...restOfSrd
     } = originalSrd;
     void _legacyImages;
+    void productionStages;
+    void currentProductionStage;
+    void washAnalysisReport;
+    void isComplete;
 
     // Generate the new refNo
     const { refNo: newRefNo } = await getNextRefNo(refNo, isRedo);
@@ -180,19 +189,28 @@ export async function POST(request, { params }) {
 
       revision: newRevision,
 
-      // Reset progress and status fields to their defaults
+      // Reset progress and status fields to their defaults.
+      // NOTE: status must be the canonical ARRAY-of-objects format
+      // [{ department, value, updatedAt }] — the same shape used by
+      // POST /api/srd, SRDTable, DepartmentPanelExcel and the department
+      // PATCH route. A flat object here breaks components that call
+      // srd.status.find(...) and causes inconsistent ("same as original")
+      // display across the app.
       progress: 0,
-      status: {
-        vmd: 'pending',
-        cad: 'pending',
-        commercial: 'pending',
-        mmc: 'pending',
-      },
+      status: ['vmd', 'cad', 'commercial', 'mmc'].map(department => ({
+        department,
+        value: 'pending',
+        updatedAt: new Date(),
+      })),
       inProduction: false,
       readyForProduction: false,
       productionProgress: 0,
       productionHistory: [],
+      sampleProcess: [],
+      washAnalysisReport: null,
+      isComplete: false,
       comments: [],
+      currentProductionStage: null,
       audit: [{
         action: isRedo ? 'redo' : 'duplicate',
         author: 'System',

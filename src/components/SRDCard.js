@@ -72,10 +72,15 @@ export default function SRDCard({ srd, department }) {
     }
   };
 
-  // Helper function to get status for department (handles both uppercase and lowercase)
+  // Helper function to get status for department (handles both canonical
+  // array [{department, value}] and legacy flat object {vmd: 'pending'})
   const getDepartmentStatus = (srd, dept) => {
-    if (!srd.status) return 'pending';
-    return srd.status[dept] || srd.status[dept.toUpperCase()] || srd.status[dept.toLowerCase()] || 'pending';
+    const status = srd.status;
+    if (!status) return 'pending';
+    if (Array.isArray(status)) {
+      return status.find(s => s?.department === dept)?.value || 'pending';
+    }
+    return status[dept] || status[dept.toUpperCase()] || status[dept.toLowerCase()] || 'pending';
   };
 
   const departmentStatus = getDepartmentStatus(srd, department);
