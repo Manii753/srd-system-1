@@ -59,6 +59,12 @@ function statusValueFor(status, dept) {
   return 'pending';
 }
 
+// Tracks the latest in-flight (not-yet-committed) value of each debounced input,
+// keyed by the field's id. DebouncedInput/Textarea write here on every keystroke,
+// and saveAllChanges merges these into the snapshot it validates + persists, so a
+// value typed right before saving is never lost to the 400 ms debounce/async state race.
+const pendingDebouncedValues = new Map();
+
 function staticHasMeaningfulValue(value, fieldType) {
   if (value === null || value === undefined) return false;
   if (typeof value === 'boolean') return true; // explicit Yes/No choice counts as filled
@@ -111,18 +117,27 @@ export function departmentsForUserRole(userRole) {
   return depts;
 }
 
-// Returns the list of unfilled required/compulsory fields visible to the user
-function findMissingRequiredFields({ fieldDefsMap, sourceFields, depts }) {
+// Returns the list of unfilled required/compulsory fields visible to the user.
+// Only fields that are actually rendered in the active template (templateFieldIds)
+// are enforced — a required/compulsory field cannot block the save if the user has
+// no input for it in the current SRD view. This makes required/compulsory opt-in:
+// fields are only enforced when they are BOTH marked in the /srdfields admin AND
+// placed on the template.
+function findMissingRequiredFields({ fieldDefsMap, sourceFields, depts, templateFieldIds }) {
   const missing = [];
   const defs = Object.values(fieldDefsMap || {});
   for (const fieldDef of defs) {
     if (!fieldDef || fieldDef.active === false || fieldDef.type === 'heading') continue;
 
+    const fieldId = normalizeId(fieldDef._id);
+    // Skip fields that are not rendered in the active template — the user cannot
+    // fill them here, so they must not block the save.
+    if (templateFieldIds && templateFieldIds.size > 0 && !templateFieldIds.has(fieldId)) continue;
+
     const level = getFieldRequirementLevel(fieldDef);
     if (level === 'none') continue;
     if (Array.isArray(depts) && !depts.includes(fieldDef.department)) continue;
 
-    const fieldId = normalizeId(fieldDef._id);
     const fieldState = (sourceFields || []).find(sf =>
       normalizeId(sf.originalFieldId || sf.field) === fieldId ||
       (sf.name === fieldDef.name && sf.department === fieldDef.department)
@@ -145,7 +160,7 @@ function findMissingRequiredFields({ fieldDefsMap, sourceFields, depts }) {
 }
 
 // Debounced input: keeps local state while typing so parent re-renders don't revert the value
-function DebouncedInput({ value, onDebouncedChange, delay = 400, onKeyDown: parentKeyDown, onBlur: parentBlur, maxLength, showCharLimitToast, ...props }) {
+function DebouncedInput({ value, onDebouncedChange, delay = 400, fieldId, onKeyDown: parentKeyDown, onBlur: parentBlur, maxLength, showCharLimitToast, ...props }) {
   const [local, setLocal] = React.useState(value ?? '');
   const timerRef = React.useRef(null);
   const typingRef = React.useRef(false);
@@ -159,7 +174,7 @@ function DebouncedInput({ value, onDebouncedChange, delay = 400, onKeyDown: pare
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
     typingRef.current = false;
     onDebouncedChange(val);
-  }, [onDebouncedChange]);
+  }, [onDebouncedChange, fieldId]);
 
   return (
     <input
@@ -170,6 +185,7 @@ function DebouncedInput({ value, onDebouncedChange, delay = 400, onKeyDown: pare
         const v = e.target.value;
         setLocal(v);
         typingRef.current = true;
+        if (fieldId != null) pendingDebouncedValues.set(fieldId, v);
 
         // Show toast when approaching or at character limit
         if (maxLength && v.length >= maxLength && !toastShownRef.current && showCharLimitToast) {
@@ -187,7 +203,7 @@ function DebouncedInput({ value, onDebouncedChange, delay = 400, onKeyDown: pare
   );
 }
 
-function DebouncedTextarea({ value, onDebouncedChange, delay = 400, onBlur: parentBlur, ...props }) {
+function DebouncedTextarea({ value, onDebouncedChange, delay = 400, fieldId, onBlur: parentBlur, ...props }) {
   const [local, setLocal] = React.useState(value ?? '');
   const timerRef = React.useRef(null);
   const typingRef = React.useRef(false);
@@ -200,7 +216,7 @@ function DebouncedTextarea({ value, onDebouncedChange, delay = 400, onBlur: pare
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
     typingRef.current = false;
     onDebouncedChange(val);
-  }, [onDebouncedChange]);
+  }, [onDebouncedChange, fieldId]);
 
   return (
     <textarea
@@ -210,6 +226,7 @@ function DebouncedTextarea({ value, onDebouncedChange, delay = 400, onBlur: pare
         const v = e.target.value;
         setLocal(v);
         typingRef.current = true;
+        if (fieldId != null) pendingDebouncedValues.set(fieldId, v);
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => flush(v), delay);
       }}
@@ -539,33 +556,52 @@ export default function DepartmentPanelExcel({
   // Manual saves (Save button / Ctrl+S) are validated against required/compulsory
   // fields; the idle auto-save passes skipValidation so drafts are kept safely.
   const saveAllChanges = useCallback(async ({ skipValidation = false } = {}) => {
-    const currentFields = fieldsRef.current;
-    if (isSavingRef.current || !currentFields.length) return;
+    const baseFields = fieldsRef.current;
+    if (isSavingRef.current || !baseFields.length) return;
 
-    // ── Required / Compulsory validation (dept-wise) ──
-    // VMD is only blocked by VMD fields, CAD only by CAD ones, admin by all.
+    // Merge any in-flight (not-yet-committed) debounced input values so a value
+    // typed right before saving is still persisted, instead of being lost to the
+    // 400 ms debounce/async-state race.
+    const mergedFields = baseFields.map((f) => {
+      const fid = normalizeId(f.originalFieldId || f.field);
+      if (fid != null && pendingDebouncedValues.has(fid) && (f.type !== 'table')) {
+        return { ...f, value: pendingDebouncedValues.get(fid) };
+      }
+      return f;
+    });
+    const currentFields = mergedFields;
+
+    // ── Required / Compulsory fields are informational only for saving ──
+    // Saving must ALWAYS succeed even if fields are still empty. Completeness
+    // only gates auto-approval (below), never the save itself.
+    let missingAtSave = [];
     if (!skipValidation && !readOnly) {
       const depts = departmentsForUserRole(userRole);
-      const missing = findMissingRequiredFields({
+      const templateFieldIds = new Set();
+      for (const cell of (activeTemplateRef.current?.cells || [])) {
+        if (cell.isCustom) continue;
+        const id = typeof cell.fieldId === 'object' ? cell.fieldId?._id : cell.fieldId;
+        if (id) templateFieldIds.add(normalizeId(id));
+      }
+      missingAtSave = findMissingRequiredFields({
         fieldDefsMap: allFieldDefsRef.current,
         sourceFields: currentFields,
         depts,
+        templateFieldIds,
       });
-      if (missing.length > 0) {
-        setMissingFieldsDialog(missing);
-        toast({
-          title: 'Please fill these fields',
-          description: `${missing.length} compulsory field${missing.length > 1 ? 's are' : ' is'} still empty. This SRD will not appear in other departments' work queues until they are filled.`,
-          variant: 'destructive',
-          duration: 6000,
-        });
-        return;
-      }
     }
 
     setIsAutoSaving(true);
     isSavingRef.current = true;
     try {
+      if (missingAtSave.length > 0) {
+        toast({
+          title: 'Saved, but fields still empty',
+          description: `Saved your changes, but ${missingAtSave.length} compulsory field${missingAtSave.length > 1 ? 's are' : ' is'} still empty. Status will only auto-approve once all required fields are filled.`,
+          variant: 'default',
+          duration: 5000,
+        });
+      }
       const body = { dynamicFields: currentFields };
 
       // If refNo field was changed, include it at the top level
@@ -584,7 +620,7 @@ export default function DepartmentPanelExcel({
         setHasUnsavedChanges(false);
         toast({ title: 'Saved', description: 'All changes saved', duration: 2000 });
 
-        // Auto-approve departments at 80% fill
+        // Auto-approve departments only when 100% of their required fields are filled
         // Use template cells to determine which fields/columns belong to each dept
         const savedFields = currentFields;
         const templateCells = activeTemplateRef.current?.cells || [];
@@ -692,8 +728,10 @@ export default function DepartmentPanelExcel({
           const fillPercentage = total > 0 ? (filled / total) * 100 : 0;
           console.log(`[Auto-Approve] ${dept} filled ${filled}/${total} (${fillPercentage.toFixed(1)}%)`);
 
-          if (total > 0 && filled / total >= 0.8) {
-            console.log(`[Auto-Approve] ${dept} reached 80% threshold, auto-approving...`);
+          // Only auto-approve once EVERY required (non-optional) field for this
+          // dept is filled. Missing any field keeps the department from auto-approving.
+          if (total > 0 && filled === total) {
+            console.log(`[Auto-Approve] ${dept} has all ${total} fields filled, auto-approving...`);
             try {
               const r = await fetch(`/api/srd/${srdRef.current._id}/department/${dept}`, {
                 method: 'PATCH',
@@ -706,7 +744,7 @@ export default function DepartmentPanelExcel({
                 onSrdUpdate?.(rd.data);
                 toast({
                   title: 'Auto-Approved',
-                  description: `${dept.toUpperCase()} department has been automatically approved (${fillPercentage.toFixed(0)}% complete)`,
+                  description: `${dept.toUpperCase()} department has been automatically approved (100% complete)`,
                   duration: 3000,
                 });
               } else {
@@ -716,7 +754,7 @@ export default function DepartmentPanelExcel({
               console.error(`[Auto-Approve] ${dept} approval request failed:`, e);
             }
           } else {
-            console.log(`[Auto-Approve] ${dept} below 80% threshold, not auto-approving`);
+            console.log(`[Auto-Approve] ${dept} has ${filled}/${total} fields filled, not auto-approving (must be 100%)`);
           }
         }
       } else {
@@ -733,6 +771,7 @@ export default function DepartmentPanelExcel({
     } finally {
       setIsAutoSaving(false);
       isSavingRef.current = false;
+      pendingDebouncedValues.clear();
     }
   }, [onSrdUpdate, toast, readOnly, userRole]);
   saveAllChangesRef.current = saveAllChanges;
@@ -1567,6 +1606,7 @@ export default function DepartmentPanelExcel({
             <div className="flex-1 min-w-0 relative">
               <DebouncedInput
                 type={type === 'createdAt' ? 'date' : (type === 'refNo' || type === 'old-refNo') ? 'text' : type}
+                fieldId={fieldId}
                 placeholder={(() => {
                   if (!canEdit) return placeholder || '';
                   if (isReqFieldEmpty) {
@@ -1602,6 +1642,7 @@ export default function DepartmentPanelExcel({
             </span>
             <div className="flex-1 min-w-0 relative">
               <DebouncedTextarea
+                fieldId={fieldId}
                 placeholder={
                   canEdit && reqAppliesToUser && reqLevel !== 'none' && !hasMeaningfulValue(fieldValue, type)
                     ? (placeholder || (reqLevel === 'compulsory' ? 'Please fill this field (Compulsory)' : 'Please fill this field'))

@@ -73,7 +73,7 @@ function normalizeFieldTypeChange(previousValues, nextType) {
 }
 
 // Sortable Field Item Component
-function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level = 0, isExpanded, onToggleExpanded, onToggleQuickDetails, onToggleReport, onToggleDispatchCard }) {
+function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level = 0, isExpanded, onToggleExpanded, onToggleQuickDetails, onToggleReport, onToggleDispatchCard, onToggleRequirement }) {
   const {
     attributes,
     listeners,
@@ -271,6 +271,22 @@ function SortableFieldItem({ field, onEdit, onDelete, isHeading, children, level
                   className="form-checkbox h-4 w-4 text-purple-600 rounded"
                 />
                 <span className="text-app-text text-gray-600">Dispatch Card</span>
+              </label>
+              <label className="flex items-center space-x-1 cursor-pointer">
+                <span className="text-app-text text-gray-600">Req:</span>
+                <select
+                  value={field.isOptional
+                    ? 'none'
+                    : (field.requirementLevel || (field.isRequired ? 'required' : 'none'))}
+                  onChange={(e) => onToggleRequirement(field, e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="form-select h-7 text-xs border border-gray-300 rounded px-1"
+                  title="Set None / Required / Compulsory (only Required/Compulsory fields on the template block saves)"
+                >
+                  <option value="none">None</option>
+                  <option value="required">Required</option>
+                  <option value="compulsory">Compulsory</option>
+                </select>
               </label>
             </>
           )}
@@ -500,6 +516,25 @@ export default function Page() {
       setFields((prev) => prev.map(f => f._id === updated._id ? updated : f));
     } catch (err) {
       console.error('Failed to toggle dispatch card', err);
+      alert('Failed to update field');
+    }
+  }
+
+  async function handleToggleRequirement(field, level) {
+    try {
+      const isOptional = !!field.isOptional;
+      const payload = { requirementLevel: isOptional ? 'none' : level };
+      // keep the legacy boolean in sync with the new selector
+      payload.isRequired = !isOptional && level !== 'none';
+      const res = await fetch(`/api/newField?id=${field._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const updated = await res.json();
+      setFields((prev) => prev.map(f => f._id === updated._id ? updated : f));
+    } catch (err) {
+      console.error('Failed to update requirement level', err);
       alert('Failed to update field');
     }
   }
@@ -765,6 +800,7 @@ export default function Page() {
                                     onToggleQuickDetails={handleToggleQuickDetails}
                                     onToggleReport={handleToggleReport}
                                     onToggleDispatchCard={handleToggleDispatchCard}
+                                    onToggleRequirement={handleToggleRequirement}
                                   />
                                 ))}
                               </div>
@@ -800,6 +836,7 @@ export default function Page() {
                             onToggleQuickDetails={handleToggleQuickDetails}
                             onToggleReport={handleToggleReport}
                             onToggleDispatchCard={handleToggleDispatchCard}
+                            onToggleRequirement={handleToggleRequirement}
                           />
                         );
                       }
