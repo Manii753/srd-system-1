@@ -21,9 +21,11 @@ export default function ReportsPage() {
     endDate: '',
     department: '',
     status: '',
+    stage: '',
     brand: '',
     sampleType: '',
   });
+  const [stages, setStages] = useState([]);
   const [activeTemplate, setActiveTemplate] = useState(null);
   const [loadingTemplate, setLoadingTemplate] = useState(true);
   const [reportTemplates, setReportTemplates] = useState([]);
@@ -75,11 +77,31 @@ export default function ReportsPage() {
     fetchReportTemplates();
   }, [session, status]);
 
+  useEffect(() => {
+    if (status === 'loading' || !session) return;
+
+    fetch('/api/stages')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setStages(Array.isArray(data.data) ? data.data.filter((s) => s.isActive !== false) : []);
+        }
+      })
+      .catch((err) => console.error('Failed to load production stages', err));
+  }, [session, status]);
+
   const generateReport = (reportType, templateId = '') => {
     const params = new URLSearchParams();
 
     Object.entries(filters).forEach(([key, value]) => {
-      if (value) params.set(key, value);
+      if (!value) return;
+      if (key === 'status') {
+        params.set('completionStatus', value);
+      } else if (key === 'stage') {
+        params.set('currentProductionStage', value);
+      } else {
+        params.set(key, value);
+      }
     });
 
     params.set('reportType', reportType);
@@ -170,8 +192,26 @@ export default function ReportsPage() {
                 >
                   <option value="">All Status</option>
                   <option value="pre-production">Pre-Production</option>
-                  <option value="in-production">In Production</option>
+                  <option value="in-production">In Progress</option>
                   <option value="completed">Completed</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-app-text font-medium text-gray-700 mb-1">
+                  Stage
+                </label>
+                <select
+                  className="w-full p-2 border border-gray-300 rounded"
+                  value={filters.stage}
+                  onChange={(event) => setFilters({ ...filters, stage: event.target.value })}
+                >
+                  <option value="">All Stages</option>
+                  {stages.map((stage) => (
+                    <option key={stage._id} value={stage._id}>
+                      {stage.displayName || stage.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -210,6 +250,7 @@ export default function ReportsPage() {
                   endDate: '',
                   department: '',
                   status: '',
+                  stage: '',
                   brand: '',
                   sampleType: '',
                 })}
