@@ -232,6 +232,16 @@ export async function PATCH(request, { params }) {
         srd.sampleProcess[stageIndex + 1].status = 'in-progress';
       }
 
+      // If this was the LAST stage, mark the SRD as complete immediately
+      const isLastStage = stageIndex === srd.sampleProcess.length - 1;
+      if (isLastStage) {
+        srd.isComplete = true;
+        srd.currentProductionStage = null;
+        srd.inProduction = false;
+        srd.productionEndDate = new Date();
+        srd.inDispatch = true;
+      }
+
     // ── Action: receive ───────────────────────────────────────────────────
     } else if (action === 'receive') {
       // The first stage (CAD, index 0) cannot be "received" — it only marks ready
@@ -307,24 +317,27 @@ export async function PATCH(request, { params }) {
     // ── Update currentProductionStage ─────────────────────────────────────
     // Point to the first stage that is actively received / in-progress (excluding CAD
     // since it has no ObjectId in ProductionStage collection unless added there).
-    const currentActiveEntry = srd.sampleProcess.find(
-      s => s.status === 'received' || s.status === 'in-progress'
-    );
-
-    if (currentActiveEntry && currentActiveEntry.stage !== 'cad') {
-      const matchingDbStage = dbStages.find(
-        ps =>
-          ps.id === currentActiveEntry.stage ||
-          ps.name?.toLowerCase() === currentActiveEntry.stage
+    // Skip if isComplete was already set above (last stage just completed).
+    if (!srd.isComplete) {
+      const currentActiveEntry = srd.sampleProcess.find(
+        s => s.status === 'received' || s.status === 'in-progress'
       );
-      if (matchingDbStage?._id) {
-        srd.currentProductionStage = matchingDbStage._id;
-      }
-    } else if (!currentActiveEntry) {
-      const allCompleted = srd.sampleProcess.every(s => s.status === 'completed');
-      if (allCompleted) {
-        srd.isComplete = true;
-        srd.currentProductionStage = null;
+
+      if (currentActiveEntry && currentActiveEntry.stage !== 'cad') {
+        const matchingDbStage = dbStages.find(
+          ps =>
+            ps.id === currentActiveEntry.stage ||
+            ps.name?.toLowerCase() === currentActiveEntry.stage
+        );
+        if (matchingDbStage?._id) {
+          srd.currentProductionStage = matchingDbStage._id;
+        }
+      } else if (!currentActiveEntry) {
+        const allCompleted = srd.sampleProcess.every(s => s.status === 'completed');
+        if (allCompleted) {
+          srd.isComplete = true;
+          srd.currentProductionStage = null;
+        }
       }
     }
 
