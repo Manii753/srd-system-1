@@ -30,6 +30,11 @@ export async function PATCH(request, context) {
         let actionDescription = '';
 
         if (action === 'internal_approval') {
+          if (!payload.internalApproved) {
+            if (!payload.internalRejectedReasons || !Array.isArray(payload.internalRejectedReasons) || payload.internalRejectedReasons.length < 1) {
+              return NextResponse.json({ success: false, error: 'At least one rejection reason is required' }, { status: 400 });
+            }
+          }
           srd.internalApproved = payload.internalApproved;
           srd.internalApprovedBy = payload.internalApprovedBy;
           srd.internalApprovedDate = new Date();
@@ -83,6 +88,11 @@ export async function PATCH(request, context) {
           
           actionDescription = 'Sample Dispatched to Buyer';
         } else if (action === 'buyer_approval') {
+          if (!payload.BuyerApproved) {
+            if (!payload.BuyerRejectedReasons || !Array.isArray(payload.BuyerRejectedReasons) || payload.BuyerRejectedReasons.length < 1) {
+              return NextResponse.json({ success: false, error: 'At least one rejection reason is required' }, { status: 400 });
+            }
+          }
           srd.BuyerApproved = payload.BuyerApproved;
           srd.BuyerApprovedBy = payload.BuyerApprovedBy;
           srd.BuyerApprovedDate = new Date();

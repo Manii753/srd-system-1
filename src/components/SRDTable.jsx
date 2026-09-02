@@ -444,7 +444,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
                           size="sm"
                           variant="outline"
                           onClick={() => handleRedo(srd._id)}
-                          disabled={session?.user?.role !== 'vmd' ? true : srd?.BuyerRejectedReasons.length < 1 && srd?.internalRejectedReasons.length < 1}
+                          disabled={session?.user?.role !== 'vmd' ? true : srd?.BuyerRejectedReasons.length < 1 && srd?.internalRejectedReasons.length < 1 && !(srd?.BuyerApproved && srd?.BuyerComments)}
                           title="Redo SRD"
                           className="border-gray-300 hover:border-green-500 hover:text-green-600 transition-colors duration-200"
                         >

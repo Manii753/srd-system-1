@@ -1402,7 +1402,7 @@ export default function DepartmentPanelExcel({
           size="sm"
           variant="outline"
           className="h-7 w-7 p-0 text-app-text"
-          disabled={userRole !== 'vmd'? true : srd?.BuyerRejectedReasons.length < 1 && srd?.internalRejectedReasons.length < 1 }
+          disabled={userRole !== 'vmd'? true : srd?.BuyerRejectedReasons.length < 1 && srd?.internalRejectedReasons.length < 1 && !(srd?.BuyerApproved && srd?.BuyerComments) }
           title="Redo"
           onClick={async () => {
             const target = window.prompt('Optional: enter a department slug (vmd, cad, commercial, mmc) or production stage name to nudge. Leave blank to notify all users.');

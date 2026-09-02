@@ -140,7 +140,7 @@ export default function SRDCard({ srd, department }) {
         <Button size="icon" variant="outline" onClick={handleDuplicate} title="Duplicate SRD">
           <Copy className="h-4 w-4" />
         </Button>
-        <Button size="icon" variant="outline" onClick={handleRedo} title="Redo SRD">
+        <Button size="icon" variant="outline" onClick={handleRedo} title="Redo SRD" disabled={srd?.BuyerRejectedReasons?.length < 1 && srd?.internalRejectedReasons?.length < 1 && !(srd?.BuyerApproved && srd?.BuyerComments)}>
           <Repeat className="h-4 w-4" />
         </Button>
       </CardFooter>
