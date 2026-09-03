@@ -573,6 +573,13 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     });
   };
 
+  const saveBuyerComment = (overrides = {}) => {
+    handleAction('save_buyer_comment', {
+      BuyerComments: overrides.BuyerComments !== undefined ? overrides.BuyerComments : buyerComments,
+      BuyerCommentImages: overrides.BuyerCommentImages !== undefined ? overrides.BuyerCommentImages : buyerCommentImages,
+    });
+  };
+
   return (
     <div className="space-y-2">
       {/* uncomment this if u want to see sr data in dipatch module */}
@@ -1151,6 +1158,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                       value={buyerComments}
                       disabled={!srd.sampleDispatchedToBuyer? true: session?.user?.role !== 'dispatch' && session?.user?.role !== 'vmd' && session?.user?.role !== 'admin'}
                       onChange={e => setBuyerComments(e.target.value)}
+                      onBlur={() => saveBuyerComment({ BuyerComments: buyerComments })}
                       className="border-gray-300 rounded-none h-6 flex-1"
                       autoFocus
                     />
@@ -1173,8 +1181,16 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   label="Attach Comment"
                   images={buyerCommentImages}
                   canEdit={!srd.BuyerApprovedDate}
-                  onUploaded={(urls) => setBuyerCommentImages(prev => [...prev, ...urls])}
-                  onRemove={(i) => setBuyerCommentImages(prev => prev.filter((_, idx) => idx !== i))}
+                  onUploaded={(urls) => setBuyerCommentImages(prev => {
+                    const next = [...prev, ...urls];
+                    saveBuyerComment({ BuyerCommentImages: next });
+                    return next;
+                  })}
+                  onRemove={(i) => setBuyerCommentImages(prev => {
+                    const next = prev.filter((_, idx) => idx !== i);
+                    saveBuyerComment({ BuyerCommentImages: next });
+                    return next;
+                  })}
                 />
               </div>
             </div>

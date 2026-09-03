@@ -39,6 +39,9 @@ export async function PATCH(request, context) {
           srd.internalApprovedBy = payload.internalApprovedBy;
           srd.internalApprovedDate = new Date();
           srd.internalComments = payload.internalComments;
+          if (payload.internalCommentImages) {
+            srd.internalCommentImages = payload.internalCommentImages;
+          }
           if (!payload.internalApproved && payload.internalRejectedReasons) {
             srd.internalRejectedReasons = payload.internalRejectedReasons;
           }
@@ -97,10 +100,29 @@ export async function PATCH(request, context) {
           srd.BuyerApprovedBy = payload.BuyerApprovedBy;
           srd.BuyerApprovedDate = new Date();
           srd.BuyerComments = payload.BuyerComments;
+          if (payload.BuyerCommentImages) {
+            srd.BuyerCommentImages = payload.BuyerCommentImages;
+          }
           if (!payload.BuyerApproved && payload.BuyerRejectedReasons) {
             srd.BuyerRejectedReasons = payload.BuyerRejectedReasons;
           }
           actionDescription = payload.BuyerApproved ? 'Buyer Approved' : 'Buyer Rejected';
+        } else if (action === 'save_buyer_comment') {
+          if (payload.BuyerComments !== undefined) {
+            srd.BuyerComments = payload.BuyerComments;
+          }
+          if (payload.BuyerCommentImages) {
+            srd.BuyerCommentImages = payload.BuyerCommentImages;
+          }
+          actionDescription = 'Buyer Comment Updated';
+        } else if (action === 'save_internal_comment') {
+          if (payload.internalComments !== undefined) {
+            srd.internalComments = payload.internalComments;
+          }
+          if (payload.internalCommentImages) {
+            srd.internalCommentImages = payload.internalCommentImages;
+          }
+          actionDescription = 'Internal Comment Updated';
         } else if (action === 'final_dispatch') {
           srd.dispatchBy = payload.dispatchBy;
           srd.dispatchNotes = payload.dispatchNotes;
