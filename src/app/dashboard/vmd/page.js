@@ -56,7 +56,7 @@ export default function VMDDashboard() {
 
   const fetchSRDs = async () => {
     try {
-      const response = await fetch('/api/srd');
+      const response = await fetch('/api/srd?limit=100');
       const data = await response.json();
       if (data.success) {
         setSRDs(data.data);
@@ -178,7 +178,7 @@ export default function VMDDashboard() {
             ))}
           </div>
         ) : (
-          <SRDTable srds={srds} department="vmd" searchTerm={searchTerm} filterStatus={filterStatus} />
+          <SRDTable department="vmd" searchTerm={searchTerm} filterStatus={filterStatus} />
         )}
 
         {srds.length === 0 && (

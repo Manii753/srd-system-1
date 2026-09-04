@@ -14,13 +14,13 @@ const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
 
 const getTargetUsers = async (target) => {
   if (!target || !target.trim()) {
-    return await User.find({});
+    return await User.find({}, '_id');
   }
 
   const normalizedTarget = target.trim().toLowerCase();
 
   if (DEPARTMENT_SLUGS.includes(normalizedTarget)) {
-    const users = await User.find({ department: new RegExp(`^${escapeRegExp(normalizedTarget)}$`, 'i') });
+    const users = await User.find({ department: new RegExp(`^${escapeRegExp(normalizedTarget)}$`, 'i') }, '_id');
     if (users.length > 0) return users;
   }
 
@@ -32,11 +32,11 @@ const getTargetUsers = async (target) => {
   }).lean();
 
   if (stage) {
-    const users = await User.find({ 'permissions.stages': normalizedTarget });
+    const users = await User.find({ 'permissions.stages': normalizedTarget }, '_id');
     if (users.length > 0) return users;
   }
 
-  return await User.find({});
+  return await User.find({}, '_id');
 };
 
 // Function to generate the next available refNo for duplicates/redos

@@ -24,6 +24,8 @@ export default function DynamicDepartmentDashboard() {
 
   const [department, setDepartment] = useState(null);
   const [srds, setSRDs] = useState([]);
+  const [totalSRDs, setTotalSRDs] = useState(0);
+  const [serverStats, setServerStats] = useState(null);
   const [stages, setStages] = useState([]);
   const [fields, setFields] = useState([]);
   const [purchaseRequests, setPurchaseRequests] = useState([]);
@@ -55,9 +57,10 @@ export default function DynamicDepartmentDashboard() {
     try {
       const promises = [
         fetch('/api/departments').then(r => r.json()),
-        fetch(`/api/srd?department=${departmentSlug}`).then(r => r.json()),
+        fetch(`/api/srd?department=${departmentSlug}&limit=50`).then(r => r.json()),
         fetch('/api/stages').then(r => r.json()),
         fetch('/api/newField').then(r => r.json()),
+        fetch(`/api/dashboard/${departmentSlug}`).then(r => r.json()).catch(() => null),
       ];
 
       if (departmentSlug === 'mmc') {
@@ -65,7 +68,11 @@ export default function DynamicDepartmentDashboard() {
       }
 
       const results = await Promise.all(promises);
-      const [deptData, srdData, stagesData, fieldsData, notifData] = results;
+      const [deptData, srdData, stagesData, fieldsData, dashboardData, notifData] = results;
+
+      if (dashboardData?.success && dashboardData.data?.stats) {
+        setServerStats(dashboardData.data.stats);
+      }
 
       if (deptData.success) {
         const dept = deptData.data.find(d => d.slug === departmentSlug);
@@ -78,6 +85,7 @@ export default function DynamicDepartmentDashboard() {
 
       if (srdData.success) {
         setSRDs(srdData.data);
+        setTotalSRDs(srdData.totalCount ?? srdData.data.length);
       }
 
       if (stagesData.success) {
@@ -101,9 +109,26 @@ export default function DynamicDepartmentDashboard() {
   };
 
   const stats = useMemo(() => {
+    // Prefer accurate server-side counts from /api/dashboard/[department]
+    if (serverStats) {
+      const byStage = serverStats.byStage || {};
+      const stageCounts = {};
+      stages.forEach(stage => {
+        stageCounts[stage.slug] = byStage[stage.slug] || 0;
+      });
+      return {
+        total: serverStats.total ?? totalSRDs,
+        ...stageCounts,
+        pending: stageCounts['pending'] || byStage['pending'] || 0,
+        'in-progress': stageCounts['in-progress'] || byStage['in-progress'] || 0,
+        approved: stageCounts['approved'] || byStage['approved'] || 0,
+        flagged: stageCounts['flagged'] || byStage['flagged'] || 0
+      };
+    }
+
     if (departmentSlug === 'admin') {
       return {
-        total: srds.length,
+        total: totalSRDs,
         completed: srds.filter(srd => srd.progress === 100).length,
         flagged: srds.filter(srd => {
           if (!srd.status) return false;
@@ -113,7 +138,7 @@ export default function DynamicDepartmentDashboard() {
       };
     }
 
-    const total = srds.length;
+    const total = totalSRDs;
     const statusKey = departmentSlug;
 
     const stageCounts = {};
@@ -131,7 +156,7 @@ export default function DynamicDepartmentDashboard() {
       approved: stageCounts['approved'] || 0,
       flagged: stageCounts['flagged'] || 0
     };
-  }, [srds, stages, departmentSlug]);
+  }, [srds, stages, departmentSlug, totalSRDs, serverStats]);
 
   const getStageColor = (stageSlug) => {
     const stage = stages.find(s => s.slug === stageSlug);
@@ -406,7 +431,7 @@ export default function DynamicDepartmentDashboard() {
               ))}
             </div>
           ) : (
-            <SRDTable srds={srds} department={departmentSlug} />
+            <SRDTable department={departmentSlug} />
           )
         ) : (
           <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">

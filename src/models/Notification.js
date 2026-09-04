@@ -34,4 +34,9 @@ const notificationSchema = new mongoose.Schema({
   },
 });
 
+// Performance indexes: notification list + unread queries are the hottest
+notificationSchema.index({ user: 1, timestamp: -1 });   // user's notification feed
+notificationSchema.index({ user: 1, read: 1 });          // unread badge queries
+notificationSchema.index({ srd: 1 });                    // mark-read by SRD
+
 export default mongoose.models.Notification || mongoose.model('Notification', notificationSchema);

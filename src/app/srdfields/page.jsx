@@ -369,18 +369,18 @@ export default function Page() {
     setExpandedSections(new Set(headingIds));
   }, [fields]);
 
-  // Fetch all fields from all departments for connected field dropdown
+  // Fetch all fields from all departments for connected field dropdown (parallel)
   async function fetchAllFields() {
     try {
-      const allFieldsData = [];
-      for (const dept of DEPARTMENTS) {
-        const res = await fetch(`/api/newField?department=${dept}`);
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          allFieldsData.push(...data);
-        }
-      }
-      setAllFields(allFieldsData);
+      const results = await Promise.all(
+        DEPARTMENTS.map(dept =>
+          fetch(`/api/newField?department=${dept}`)
+            .then(r => r.json())
+            .catch(() => [])
+        )
+      );
+      const flattened = results.filter(Array.isArray).flat();
+      setAllFields(flattened);
     } catch (err) {
       console.error('Failed to fetch all fields', err);
     }

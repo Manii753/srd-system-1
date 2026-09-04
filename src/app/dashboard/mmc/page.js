@@ -51,7 +51,7 @@ export default function MMCDashboard() {
 
   const fetchSRDs = async () => {
     try {
-      const response = await fetch('/api/srd?department=mmc');
+      const response = await fetch('/api/srd?department=mmc&limit=100');
       const data = await response.json();
       if (data.success) {
         setSRDs(data.data);
@@ -189,7 +189,7 @@ export default function MMCDashboard() {
             ))}
           </div>
         ) : (
-          <SRDTable srds={srds} department="mmc" />
+          <SRDTable department="mmc" />
         )}
 
         {srds.length === 0 && (

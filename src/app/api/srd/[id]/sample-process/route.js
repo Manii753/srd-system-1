@@ -50,7 +50,7 @@ export async function PATCH(request, { params }) {
     // CAD is always prepended as order-0.  Physical production stages follow.
     let dbStages = [];
     try {
-      const raw = await ProductionStage.find({ isActive: true }).sort({ order: 1 });
+      const raw = await ProductionStage.find({ isActive: true }).sort({ order: 1 }).select('slug name displayName order').lean();
       dbStages = raw.map(s => ({
         id: s.slug || s.name.toLowerCase(),
         name: s.name,

@@ -20,9 +20,13 @@ import {
 import { useSession } from 'next-auth/react';
 
 
-export default function SRDTable({ srds, department, searchTerm: searchTermProp, filterStatus: filterStatusProp, initialProductionStages, initialQuickDetailsFields, initialPaginationSettings, initialDelayThresholdDays }) {
+export default function SRDTable({ department, searchTerm: searchTermProp, filterStatus: filterStatusProp, initialProductionStages, initialQuickDetailsFields, initialPaginationSettings, initialDelayThresholdDays }) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [srds, setSRDs] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,7 +35,6 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
   const [paginationSettings, setPaginationSettings] = useState(initialPaginationSettings || { enabled: true, itemsPerPage: 10 });
   const [delayThresholdDays, setDelayThresholdDays] = useState(initialDelayThresholdDays ?? 3);
 
-  // Use controlled props if provided
   const effectiveSearch = searchTermProp !== undefined ? searchTermProp : searchTerm;
   const effectiveFilter = filterStatusProp !== undefined ? filterStatusProp : filterStatus;
   const [selectedImages, setSelectedImages] = useState(null);
@@ -40,18 +43,19 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
   const [quickDetailsFields, setQuickDetailsFields] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
 
-  // Reset to page 1 when search/filter changes
-  useEffect(() => { setCurrentPage(1); }, [effectiveSearch, effectiveFilter]);
+  useEffect(() => { setCurrentPage(1); }, [effectiveSearch, effectiveFilter, department]);
 
   useEffect(() => {
     if (initialProductionStages) setProductionStages(initialProductionStages.filter(s => s.isActive));
     if (initialQuickDetailsFields) setQuickDetailsFields(initialQuickDetailsFields.filter(f => f.isShownInQuickDetails && f.active));
-    if (!initialProductionStages || !initialQuickDetailsFields || !initialPaginationSettings) {
-      fetchData();
-    }
+    fetchMetadata();
   }, []);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    fetchSRDs();
+  }, [currentPage, effectiveSearch, effectiveFilter, department, sortField, sortDirection, paginationSettings.itemsPerPage]);
+
+  const fetchMetadata = async () => {
     try {
       const promises = [];
       if (!initialProductionStages) promises.push(fetch('/api/production-stages').then(r => r.json()));
@@ -64,24 +68,43 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
       const [stagesData, fieldsData, companyData] = await Promise.all(promises);
 
       if (stagesData?.success && !initialProductionStages) setProductionStages(stagesData.data.filter(s => s.isActive));
-
       if (Array.isArray(fieldsData) && !initialQuickDetailsFields) {
         setQuickDetailsFields(fieldsData.filter(f => f.isShownInQuickDetails && f.active));
       }
-
       if (companyData && !initialPaginationSettings) {
         const pg = companyData?.paginationSettings;
-        if (pg?.srdList) {
-          setPaginationSettings(pg.srdList);
-        } else if (pg?.itemsPerPage !== undefined) {
-          setPaginationSettings({ enabled: pg.enabled ?? true, itemsPerPage: pg.itemsPerPage });
-        }
-        if (companyData?.delayThresholdDays !== undefined) {
-          setDelayThresholdDays(companyData.delayThresholdDays);
-        }
+        if (pg?.srdList) setPaginationSettings(pg.srdList);
+        else if (pg?.itemsPerPage !== undefined) setPaginationSettings({ enabled: pg.enabled ?? true, itemsPerPage: pg.itemsPerPage });
+        if (companyData?.delayThresholdDays !== undefined) setDelayThresholdDays(companyData.delayThresholdDays);
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching metadata:', error);
+    }
+  };
+
+  const fetchSRDs = async () => {
+    try {
+      setLoading(true);
+      const query = new URLSearchParams();
+      if (department && department !== 'all') query.append('department', department);
+      if (effectiveFilter && effectiveFilter !== 'all') query.append('status', effectiveFilter);
+      if (effectiveSearch) query.append('search', effectiveSearch);
+      query.append('page', currentPage);
+      query.append('limit', paginationSettings.itemsPerPage || 20);
+      query.append('sortBy', sortField);
+      query.append('sortDir', sortDirection);
+
+      const response = await fetch(`/api/srd?${query.toString()}`);
+      const data = await response.json();
+      if (data.success) {
+        setSRDs(data.data);
+        setTotalCount(data.totalCount);
+        setTotalPages(data.totalPages);
+      }
+    } catch (error) {
+      console.error('Error fetching SRDs:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -138,11 +161,12 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
 
   const handleSort = (field) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
       setSortDirection('asc');
     }
+    setCurrentPage(1);
   };
 
   // Helper function to get dynamic field value by slug or name
@@ -218,35 +242,8 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
       .filter(Boolean);
   };
 
-  const filteredAndSortedSRDs = srds
-    .filter(srd => {
-      const matchesSearch = (srd.title || '').toLowerCase().includes(effectiveSearch.toLowerCase()) ||
-        (srd.refNo || '').toLowerCase().includes(effectiveSearch.toLowerCase());
-      const matchesStatus = effectiveFilter === 'all' || getDeptStatus(srd.status, department) === effectiveFilter;
-      return matchesSearch && matchesStatus;
-    })
-    .sort((a, b) => {
-      let aValue = a[sortField];
-      let bValue = b[sortField];
-
-      if (sortField === 'createdAt' || sortField === 'updatedAt') {
-        aValue = new Date(aValue);
-        bValue = new Date(bValue);
-      }
-
-      if (sortDirection === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
-
   // Pagination
-  const { enabled: paginationEnabled, itemsPerPage } = paginationSettings;
-  const totalPages = paginationEnabled ? Math.ceil(filteredAndSortedSRDs.length / itemsPerPage) : 1;
-  const paginatedSRDs = paginationEnabled
-    ? filteredAndSortedSRDs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-    : filteredAndSortedSRDs;
+  const { enabled: paginationEnabled } = paginationSettings;
 
   // Helper function to get all images for an SRD
   const getAllImages = (srd) => {
@@ -287,6 +284,12 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
 
   return (
     <div className="flex flex-1 flex-col h-full w-full bg-white shadow-lg border border-gray-100 overflow-hidden">
+      {loading && srds.length === 0 ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        </div>
+      ) : (
+      <>
       {/* Table */}
       <div className="w-full flex-1 overflow-y-auto relative custom-scrollbar">
         <table className="w-full border-separate border-spacing-0">
@@ -320,7 +323,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
             </tr>
           </thead>
           <tbody className="bg-white">
-            {paginatedSRDs.map((srd) => {
+            {srds.map((srd) => {
               const isExpanded = !!expandedRows[srd._id];
               const depts = [
                 { key: 'vmd', label: 'VMD' },
@@ -552,7 +555,7 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
         </table>
       </div>
 
-      {filteredAndSortedSRDs.length === 0 && (
+      {srds.length === 0 && !loading && (
         <div className="text-center py-12">
           <p className="text-gray-500">No SRDs found matching your criteria.</p>
         </div>
@@ -653,6 +656,8 @@ export default function SRDTable({ srds, department, searchTerm: searchTermProp,
             )}
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

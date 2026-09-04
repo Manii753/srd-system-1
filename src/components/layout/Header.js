@@ -17,7 +17,7 @@ export default function Header({ headerContent, headerRightContent }) {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await fetch('/api/notifications');
+      const res = await fetch('/api/notifications?limit=20');
       const data = await res.json();
       if (data.success) setNotifications(data.data);
     } catch (e) {

@@ -42,7 +42,7 @@ export default function ProductionTrackingPage() {
   const fetchData = async () => {
     try {
       const [srdsRes, stagesRes] = await Promise.all([
-        fetch('/api/srd?inProduction=true'),
+        fetch('/api/srd?inProduction=true&limit=100'),
         fetch('/api/production-stages')
       ]);
 

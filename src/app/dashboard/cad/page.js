@@ -51,7 +51,7 @@ export default function CADDashboard() {
 
   const fetchSRDs = async () => {
     try {
-      const response = await fetch('/api/srd?department=cad');
+      const response = await fetch('/api/srd?department=cad&limit=100');
       const data = await response.json();
       if (data.success) {
         setSRDs(data.data);
@@ -187,7 +187,7 @@ export default function CADDashboard() {
             ))}
           </div>
         ) : (
-          <SRDTable srds={srds} department="cad" />
+          <SRDTable department="cad" />
         )}
 
         {srds.length === 0 && (

@@ -254,9 +254,9 @@ export default function SRReportPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/srd').then(r => r.json()),
+      fetch('/api/srd?limit=500').then(r => r.json()),
       fetch('/api/report-groups').then(r => r.json()),
-      fetch('/api/users').then(r => r.json()),
+      fetch('/api/users?limit=100').then(r => r.json()),
       fetch('/api/production-stages').then(r => r.json()),
     ]).then(([srdData, groupData, userData, stagesData]) => {
       if (srdData.success)    setSrds(srdData.data || []);

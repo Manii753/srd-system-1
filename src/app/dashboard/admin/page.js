@@ -19,6 +19,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [srds, setSRDs] = useState([]);
   const [users, setUsers] = useState([]);
+  const [serverStats, setServerStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('table');
   const [paginationSettings, setPaginationSettings] = useState({ itemsPerPage: 10, enabled: true });
@@ -35,10 +36,11 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      const [srdRes, userRes, companyRes] = await Promise.all([
-        fetch('/api/srd'),
-        fetch('/api/users'),
+      const [srdRes, userRes, companyRes, statsRes] = await Promise.all([
+        fetch('/api/srd?limit=100'),
+        fetch('/api/users?limit=100'),
         fetch('/api/company'),
+        fetch('/api/dashboard/admin'),
       ]);
       const srdData = await srdRes.json();
       if (srdData.success) setSRDs(srdData.data);
@@ -47,6 +49,10 @@ export default function AdminDashboard() {
       const companyData = await companyRes.json();
       if (companyData?.paginationSettings) {
         setPaginationSettings(companyData.paginationSettings);
+      }
+      const statsData = await statsRes.json();
+      if (statsData.success && statsData.data?.stats) {
+        setServerStats(statsData.data.stats);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -71,14 +77,19 @@ export default function AdminDashboard() {
   };
 
   const getStats = () => {
+    const totalUsers = users.length;
+    if (serverStats) {
+      return {
+        totalSRDs: serverStats.total ?? srds.length,
+        completedSRDs: serverStats.completed ?? srds.filter(srd => srd.progress === 100).length,
+        inProgressSRDs: serverStats.inProgress ?? 0,
+        totalUsers,
+      };
+    }
     const totalSRDs = srds.length;
     const completedSRDs = srds.filter(srd => srd.progress === 100).length;
-    const flaggedSRDs = srds.filter(srd => {
-      if (!srd.status) return false;
-      return Object.values(srd.status).some(s => s === 'flagged');
-    }).length;
-    const totalUsers = users.length;
-    return { totalSRDs, completedSRDs, flaggedSRDs, totalUsers };
+    const inProgressSRDs = srds.filter(srd => srd.progress > 0 && srd.progress < 100).length;
+    return { totalSRDs, completedSRDs, inProgressSRDs, totalUsers };
   };
 
   const stats = getStats();
@@ -121,12 +132,12 @@ export default function AdminDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-app-text font-medium">Flagged Issues</CardTitle>
+              <CardTitle className="text-app-text font-medium">In Progress</CardTitle>
               <AlertCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-app-heading font-bold">{stats.flaggedSRDs}</div>
-              <p className="text-app-text text-muted-foreground">Require attention</p>
+              <div className="text-app-heading font-bold">{stats.inProgressSRDs}</div>
+              <p className="text-app-text text-muted-foreground">Active SRDs</p>
             </CardContent>
           </Card>
           <Card>
@@ -254,7 +265,7 @@ export default function AdminDashboard() {
             ))}
           </div>
         ) : (
-          <SRDTable srds={srds} department="admin" />
+          <SRDTable department="admin" />
         )}
       </div>
       </div>

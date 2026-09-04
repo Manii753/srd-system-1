@@ -28,11 +28,13 @@ function SRDPrintPageContent() {
         const fetchData = async () => {
             setLoading(true);
             try {
-                // Fetch report fields configuration from all departments
+                // Fetch report fields configuration from all departments in parallel
+                const deptRequests = ['vmd', 'cad', 'commercial', 'mmc'].map(dept =>
+                    fetch(`/api/newField?department=${dept}`).then(r => r.json()).catch(() => [])
+                );
+                const fieldsResults = await Promise.all(deptRequests);
                 const allReportFields = [];
-                for (const dept of ['vmd', 'cad', 'commercial', 'mmc']) {
-                    const fieldsRes = await fetch(`/api/newField?department=${dept}`);
-                    const fieldsData = await fieldsRes.json();
+                for (const fieldsData of fieldsResults) {
                     if (Array.isArray(fieldsData)) {
                         const reportFieldsForDept = fieldsData.filter(f => f.isShownInReport && f.active);
                         allReportFields.push(...reportFieldsForDept);
@@ -45,6 +47,7 @@ function SRDPrintPageContent() {
                 // Fetch SRDs with filters
                 const query = new URLSearchParams(searchParams);
                 query.set('populate', 'true'); // Ensure we get populated fields
+                query.set('limit', '500'); // Print reports need the full matching set
 
                 const response = await fetch(`/api/srd?${query.toString()}`);
                 const data = await response.json();

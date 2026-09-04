@@ -153,17 +153,29 @@ export async function GET(request) {
       }
     }
 
-    let queryExec = SRD.find(query).sort({ createdAt: -1 });
+    // ── Server-side pagination ──
+    const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
+    // Default limit is high (500) so callers that don't pass a limit keep working,
+    // while paginated consumers (SRDTable) pass explicit small page sizes.
+    // Max is 1000: the sample-process module intentionally requests a near-full list.
+    const limit = Math.min(1000, Math.max(1, parseInt(searchParams.get('limit')) || 500));
+    const skip = (page - 1) * limit;
+    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    const sortDir = searchParams.get('sortDir') === 'asc' ? 1 : -1;
+    const needsWorkQueueGating = department && ['vmd', 'cad', 'commercial', 'mmc'].includes(department.toLowerCase());
+
+    // Count total documents matching the query (before gating)
+    const totalCount = await SRD.countDocuments(query);
+
+    let queryExec = SRD.find(query).sort({ [sortBy]: sortDir }).skip(skip).limit(limit);
 
     if (shouldPopulate) {
-      // Populate field and production-stage references used by dynamic report templates.
       queryExec = queryExec
         .populate('dynamicFields.field')
         .populate('currentProductionStage')
         .populate('productionHistory.stage');
     }
 
-    // Optionally populate BuyerDetails (used by merge email picker)
     const shouldPopulateBuyer = searchParams.get('populateBuyer') === 'true';
     if (shouldPopulateBuyer) {
       queryExec = queryExec.populate('BuyerDetails', 'name email contactPerson');
@@ -172,11 +184,8 @@ export async function GET(request) {
     const srds = await queryExec;
 
     // ── Work-queue gating (dept-wise) ──
-    // An SRD only appears in a department's work queue once the compulsory
-    // fields for that department (and global) are filled. Items already picked
-    // up by the department (in-progress/approved/flagged/rejected) stay visible.
     let responseData = srds;
-    if (department && ['vmd', 'cad', 'commercial', 'mmc'].includes(department.toLowerCase())) {
+    if (needsWorkQueueGating) {
       const deptLower = department.toLowerCase();
       responseData = srds.filter(srd => {
         const deptStatus = (Array.isArray(srd.status) ? srd.status : [])
@@ -186,12 +195,14 @@ export async function GET(request) {
       });
     }
 
-    const count = await SRD.countDocuments(query);
-
     return NextResponse.json({
       success: true,
       data: responseData,
       count: responseData.length,
+      totalCount,
+      page,
+      totalPages: Math.ceil(totalCount / limit),
+      hasMore: skip + limit < totalCount,
     });
   } catch (error) {
     console.error('Error in GET /api/srd:', error);
@@ -371,7 +382,7 @@ export async function POST(request) {
       }
     }
 
-    // --- Create notifications for all users ---
+    // --- Create notifications for all users (batch insertMany for speed) ---
     // 1. Get the departments
     const departments = await Department.find({ type: 'support' });
 
@@ -379,15 +390,13 @@ export async function POST(request) {
     const departmentSlugs = departments.map(d => d.slug);
 
     // 3. Find users where their department field matches any slug in that array
-    const users = await User.find({ department: { $in: departmentSlugs } });
-    const notificationPromises = users.map((user) =>
-      Notification.create({
-        user: user._id,
-        srd: newSRD._id,
-        message: `New SRD created: ${newSRD.refNo} `,
-      })
-    );
-    await Promise.all(notificationPromises);
+    const users = await User.find({ department: { $in: departmentSlugs } }, '_id');
+    const notificationDocs = users.map(user => ({
+      user: user._id,
+      srd: newSRD._id,
+      message: `New SRD created: ${newSRD.refNo} `,
+    }));
+    await Notification.insertMany(notificationDocs);
 
     // --- Trigger Pusher event (non-blocking, optional) ---
     try {

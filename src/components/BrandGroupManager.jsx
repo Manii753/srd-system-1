@@ -289,7 +289,7 @@ export default function BrandGroupManager({ allBrands = [], activeGroupId, onGro
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/users');
+      const res = await fetch('/api/users?limit=100');
       const data = await res.json();
       if (data.success) setAllUsers(data.data || []);
     } catch {}

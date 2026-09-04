@@ -58,6 +58,7 @@ function ReportPrintContent() {
 
         const query = new URLSearchParams(searchParams);
         query.set('populate', 'true');
+        query.set('limit', '500'); // Print reports need the full matching set
 
         const response = await fetch(`/api/srd?${query.toString()}`);
         const data = await response.json();

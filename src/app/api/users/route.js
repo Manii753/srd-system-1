@@ -2,15 +2,34 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 
-export async function GET() {
+export async function GET(request) {
   await dbConnect();
   
   try {
-    const users = await User.find({}).select('-password').sort({ createdAt: -1 });
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit')) || 50));
+    const skip = (page - 1) * limit;
+    const search = searchParams.get('search');
+
+    let query = {};
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { role: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const totalCount = await User.countDocuments(query);
+    const users = await User.find(query).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit);
     
     return NextResponse.json({
       success: true,
-      data: users
+      data: users,
+      totalCount,
+      page,
+      totalPages: Math.ceil(totalCount / limit),
     });
   } catch (error) {
     console.error('Error fetching users:', error);

@@ -23,6 +23,9 @@ export default function UsersManagementPage() {
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -49,32 +52,46 @@ export default function UsersManagementPage() {
       return;
     }
 
-    fetchData();
+    fetchDepartments();
   }, [session, status, router]);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    if (status === 'loading') return;
+    fetchUsers();
+  }, [currentPage, searchTerm, status]);
+
+  const fetchUsers = async () => {
     try {
-      const [usersRes, deptsRes] = await Promise.all([
-        fetch('/api/users'),
-        fetch('/api/departments')
-      ]);
-
-      const usersData = await usersRes.json();
-      const deptsData = await deptsRes.json();
-
+      setLoading(true);
+      const query = new URLSearchParams({ page: currentPage });
+      if (searchTerm) query.append('search', searchTerm);
+      const res = await fetch(`/api/users?${query.toString()}`);
+      const usersData = await res.json();
       if (usersData.success) {
         setUsers(usersData.data);
-      }
-
-      if (deptsData.success) {
-        setDepartments(deptsData.data);
+        setTotalPages(usersData.totalPages);
+        setTotalUsers(usersData.totalCount);
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching users:', error);
       toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await fetch('/api/departments');
+      const data = await res.json();
+      if (data.success) setDepartments(data.data);
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+    }
+  };
+
+  const fetchAllData = async () => {
+    await fetchUsers();
   };
 
   const openNewUserModal = () => {
@@ -130,7 +147,7 @@ export default function UsersManagementPage() {
           if (avatarFile) {
             await handleAvatarUpload(editingUser._id);
           }
-          fetchData();
+          fetchAllData();
           setModalOpen(false);
         } else {
           toast.error(data.error || 'Failed to update user');
@@ -149,7 +166,7 @@ export default function UsersManagementPage() {
           if (avatarFile && data.data?._id) {
             await handleAvatarUpload(data.data._id);
           }
-          fetchData();
+          fetchAllData();
           setModalOpen(false);
         } else {
           toast.error(data.error || 'Failed to create user');
@@ -177,7 +194,7 @@ export default function UsersManagementPage() {
         const data = await res.json();
         if (data.success) {
           toast.success('Profile picture updated');
-          fetchData();
+          fetchAllData();
         } else {
           toast.error(data.error || 'Failed to upload avatar');
         }
@@ -243,7 +260,7 @@ export default function UsersManagementPage() {
       const data = await res.json();
       if (data.success) {
         toast.success('User deleted successfully');
-        fetchData();
+        fetchAllData();
       } else {
         toast.error(data.error || 'Failed to delete user');
       }
@@ -264,7 +281,7 @@ export default function UsersManagementPage() {
       const data = await res.json();
       if (data.success) {
         toast.success(`User ${!user.isActive ? 'activated' : 'deactivated'}`);
-        fetchData();
+        fetchAllData();
       } else {
         toast.error(data.error || 'Failed to update user status');
       }
@@ -290,7 +307,7 @@ export default function UsersManagementPage() {
       const data = await res.json();
       if (data.success) {
         toast.success('Permissions updated successfully');
-        fetchData();
+        fetchAllData();
         setPermissionsModalOpen(false);
       } else {
         toast.error(data.error || 'Failed to update permissions');
@@ -300,12 +317,6 @@ export default function UsersManagementPage() {
       toast.error('An error occurred');
     }
   };
-
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const getRoleBadgeColor = (role) => {
     const colors = {
@@ -352,7 +363,7 @@ export default function UsersManagementPage() {
                 <Shield className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-app-heading font-bold">{users.length}</div>
+                <div className="text-app-heading font-bold">{totalUsers}</div>
               </CardContent>
             </Card>
 
@@ -401,7 +412,7 @@ export default function UsersManagementPage() {
                 type="text"
                 placeholder="Search users..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                 className="pl-10"
               />
             </div>
@@ -435,7 +446,7 @@ export default function UsersManagementPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredUsers.map((user) => (
+                    {users.map((user) => (
                       <tr key={user._id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
@@ -527,9 +538,53 @@ export default function UsersManagementPage() {
             </CardContent>
           </Card>
 
-          {filteredUsers.length === 0 && (
+          {users.length === 0 && !loading && (
             <div className="text-center py-12">
               <p className="text-app-text text-gray-500">No users found</p>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-end px-6 py-3 border-t gap-2">
+              <span className="text-app-text text-sm text-gray-500 mr-2">Page {currentPage} of {totalPages}</span>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed text-app-text font-medium"
+              >
+                Prev
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                .reduce((acc, p, idx, arr) => {
+                  if (idx > 0 && p - arr[idx - 1] > 1) acc.push('...');
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, idx) =>
+                  p === '...' ? (
+                    <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 text-app-text">…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setCurrentPage(p)}
+                      className={`w-7 h-7 rounded text-app-text font-medium transition-colors ${currentPage === p
+                        ? 'bg-blue-600 text-white'
+                        : 'hover:bg-gray-200 text-gray-700'
+                        }`}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed text-app-text font-medium"
+              >
+                Next
+              </button>
             </div>
           )}
         </div>

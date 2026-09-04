@@ -91,6 +91,8 @@ const messageSchema = new mongoose.Schema({
 messageSchema.index({ sender: 1, recipient: 1, createdAt: -1 });
 messageSchema.index({ department: 1, createdAt: -1 });
 messageSchema.index({ type: 1, createdAt: -1 });
+messageSchema.index({ recipient: 1, sender: 1 });
+messageSchema.index({ 'readBy.user': 1 });
 
 // Delete the model if it exists to ensure schema updates are applied
 if (mongoose.models.Message) {

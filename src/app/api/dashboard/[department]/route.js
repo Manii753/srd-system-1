@@ -12,20 +12,24 @@ export async function GET(request, { params }) {
   try {
     // Fetch department info
     const deptData = await Department.findOne({ slug: department });
-    
-    // Fetch SRDs for this department
-    const srds = await SRD.find({}).lean();
-    
-    // Filter SRDs relevant to this department
-    const departmentSRDs = department === 'admin' 
-      ? srds 
-      : srds.filter(srd => srd.status && srd.status[department]);
+
+    // Build SRD query filtered at the database level
+    let srdQuery = {};
+    if (department !== 'admin') {
+      srdQuery['status.department'] = department;
+    }
+
+    // Fetch only the most recent SRDs - dashboards only need recent + stats
+    const limit = 50;
+    const srds = await SRD.find(srdQuery).sort({ createdAt: -1 }).limit(limit).lean();
+
+    const departmentSRDs = srds;
 
     // Fetch active stages
     const stages = await Stage.find({ isActive: true }).sort({ order: 1 });
 
     // Fetch fields for this department
-    const fields = await Field.find({ 
+    const fields = await Field.find({
       active: true,
       $or: [
         { department: department },
@@ -35,25 +39,32 @@ export async function GET(request, { params }) {
 
     // Calculate statistics
     const stats = {
-      total: departmentSRDs.length,
+      total: department === 'admin'
+        ? await SRD.countDocuments({})
+        : await SRD.countDocuments({ 'status.department': department }),
       byStage: {}
     };
 
-    // Count by stage
-    stages.forEach(stage => {
-      stats.byStage[stage.slug] = departmentSRDs.filter(srd => 
-        srd.status && srd.status[department] === stage.slug
-      ).length;
+    // Count by stage using aggregation instead of fetching all
+    const pipeline = [
+      { $match: srdQuery },
+      { $unwind: '$status' },
+    ];
+    if (department !== 'admin') {
+      pipeline.push({ $match: { 'status.department': department } });
+    }
+    pipeline.push({ $group: { _id: '$status.value', count: { $sum: 1 } } });
+
+    const stageCounts = await SRD.aggregate(pipeline);
+
+    stageCounts.forEach(item => {
+      stats.byStage[item._id] = item.count;
     });
 
     // Additional stats for admin
     if (department === 'admin') {
-      stats.completed = srds.filter(srd => srd.progress === 100).length;
-      stats.flagged = srds.filter(srd => {
-        if (!srd.status) return false;
-        return Object.values(srd.status).includes('flagged');
-      }).length;
-      stats.inProgress = srds.filter(srd => srd.progress > 0 && srd.progress < 100).length;
+      stats.completed = await SRD.countDocuments({ progress: 100 });
+      stats.inProgress = await SRD.countDocuments({ progress: { $gt: 0, $lt: 100 } });
     }
 
     return NextResponse.json({

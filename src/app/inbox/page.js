@@ -359,7 +359,7 @@ export default function InboxPage() {
 
   const fetchSRDs = async () => {
     try {
-      const response = await fetch('/api/srd');
+      const response = await fetch('/api/srd?limit=500');
       const data = await response.json();
       if (data.success) {
         setSrds(data.data);
@@ -387,13 +387,14 @@ export default function InboxPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/users?limit=100');
       const data = await response.json();
-      
+
       if (data.success) {
-        const filteredUsers = data.data.filter(u => u.email !== session.user.email);
+        const usersToUse = data.data || [];
+        const filteredUsers = usersToUse.filter(u => u.email !== session.user.email);
         setUsers(filteredUsers);
-        
+
         // Initialize user statuses
         const statuses = {};
         filteredUsers.forEach(user => {

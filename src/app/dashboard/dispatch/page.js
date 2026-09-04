@@ -36,7 +36,7 @@ export default function DispatchDashboard() {
 
   const fetchSRDs = async () => {
     try {
-      const response = await fetch('/api/srd?department=dispatch');
+      const response = await fetch('/api/srd?department=dispatch&limit=100');
       const data = await response.json();
       if (data.success) {
         setSRDs(data.data);
@@ -95,7 +95,7 @@ export default function DispatchDashboard() {
             ))}
           </div>
         ) : (
-          <SRDTable srds={srds} department="dispatch" />
+          <SRDTable department="dispatch" />
         )}
 
         {srds.length === 0 && (

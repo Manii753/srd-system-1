@@ -20,11 +20,25 @@ export async function GET(request) {
     }
 
     const userId = session.user.id;
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit')) || 20));
+    const skip = (page - 1) * limit;
+
+    const totalCount = await Notification.countDocuments({ user: userId });
     const notifications = await Notification.find({ user: userId })
       .sort({ timestamp: -1 })
-      .populate('srd', 'refNo');
+      .populate('srd', 'refNo')
+      .skip(skip)
+      .limit(limit);
 
-    return NextResponse.json({ success: true, data: notifications });
+    return NextResponse.json({
+      success: true,
+      data: notifications,
+      totalCount,
+      page,
+      totalPages: Math.ceil(totalCount / limit),
+    });
   } catch (error) {
     console.error('Error in GET /api/notifications:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

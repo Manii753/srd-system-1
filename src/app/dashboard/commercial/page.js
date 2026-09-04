@@ -51,7 +51,7 @@ export default function CommercialDashboard() {
 
   const fetchSRDs = async () => {
     try {
-      const response = await fetch('/api/srd?department=commercial');
+      const response = await fetch('/api/srd?department=commercial&limit=100');
       const data = await response.json();
       if (data.success) {
         setSRDs(data.data);
@@ -189,7 +189,7 @@ export default function CommercialDashboard() {
             ))}
           </div>
         ) : (
-          <SRDTable srds={srds} department="commercial" />
+          <SRDTable department="commercial" />
         )}
 
         {srds.length === 0 && (

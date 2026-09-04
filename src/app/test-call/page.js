@@ -21,7 +21,7 @@ export default function TestCallPage() {
     }
 
     // Fetch users
-    fetch('/api/users')
+    fetch('/api/users?limit=100')
       .then(res => res.json())
       .then(data => {
         if (data.success) {

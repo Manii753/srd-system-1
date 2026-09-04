@@ -65,9 +65,9 @@ export async function PATCH(request, context) {
           srd.status.find(s => s.department === dept)?.value === 'approved'
         );
         if (allApproved && !srd.inProduction) {
-          // Fetch production stages
+          // Fetch production stages (only IDs needed for linkage + first stage name)
           const ProductionStage = (await import('@/models/ProductionStage')).default;
-          const stages = await ProductionStage.find({ isActive: true }).sort({ order: 1 });
+          const stages = await ProductionStage.find({ isActive: true }).sort({ order: 1 }).select('_id name displayName order').lean();
           if (stages.length > 0) {
             // Ensure SRD has productionStages populated
             if (!srd.productionStages || srd.productionStages.length === 0) {
@@ -199,24 +199,22 @@ export async function PATCH(request, context) {
       throw new Error('Failed to update SRD after retries: ' + (freshSRD ? '' : 'No result'));
     }
 
-    // Create notifications for all users
+    // Create notifications for all users - batch insertMany for speed
     try {
-      const users = await User.find({});
+      const users = await User.find({}, '_id');
       const notificationMessage = body.status === 'flagged'
         ? `🚩 ${body.authorName || 'System'} flagged an issue in SRD ${freshSRD.refNo}`
         : body.status === 'approved'
           ? `✅ ${body.authorName || 'System'} approved SRD ${freshSRD.refNo}`
           : `📝 ${body.authorName || 'System'} updated SRD ${freshSRD.refNo} to ${body.status}`;
 
-      const notificationPromises = users.map(user =>
-        Notification.create({
-          user: user._id,
-          srd: freshSRD._id, // Updated to use freshSRD
-          message: notificationMessage,
-          read: false,
-        })
-      );
-      await Promise.all(notificationPromises);
+      const notificationDocs = users.map(user => ({
+        user: user._id,
+        srd: freshSRD._id,
+        message: notificationMessage,
+        read: false,
+      }));
+      await Notification.insertMany(notificationDocs);
     } catch (notifError) {
       console.error('Error creating notifications:', notifError);
     }

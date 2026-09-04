@@ -160,20 +160,18 @@ export async function PATCH(request, context) {
       throw new Error('Failed to update SRD after retries');
     }
 
-    // Create notifications for all users
+    // Create notifications for all users - batch insertMany for speed
     try {
-      const users = await User.find({});
+      const users = await User.find({}, '_id');
       const notificationMessage = `📦 Dispatch update on SRD ${freshSRD.refNo}: ${body.action.replace('_', ' ')}`;
 
-      const notificationPromises = users.map(user =>
-        Notification.create({
-          user: user._id,
-          srd: freshSRD._id,
-          message: notificationMessage,
-          read: false,
-        })
-      );
-      await Promise.all(notificationPromises);
+      const notificationDocs = users.map(user => ({
+        user: user._id,
+        srd: freshSRD._id,
+        message: notificationMessage,
+        read: false,
+      }));
+      await Notification.insertMany(notificationDocs);
     } catch (notifError) {
       console.error('Error creating notifications:', notifError);
     }

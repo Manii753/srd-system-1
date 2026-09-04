@@ -165,6 +165,19 @@ const srdSchema = new mongoose.Schema({
   audit: [auditSchema],
 });
 
+// ── Performance indexes for the most common query patterns ──
+// The SRD list, dashboards and work-queues sort/filter on these fields heavily.
+srdSchema.index({ createdAt: -1 });                  // default list sort
+srdSchema.index({ updatedAt: -1 });                  // "recently updated" lists
+srdSchema.index({ 'status.department': 1 });         // dept work-queue filtering
+srdSchema.index({ 'status.department': 1, 'status.value': 1 }); // dept+status filter
+srdSchema.index({ inProduction: 1 });                // production dashboard
+srdSchema.index({ readyForProduction: 1, inProduction: 1 }); // production-manager queue
+srdSchema.index({ currentProductionStage: 1 });      // stage dashboard
+srdSchema.index({ inDispatch: 1 });                  // dispatch queue
+srdSchema.index({ title: 1 });                       // text search on title
+srdSchema.index({ isComplete: 1 });                  // completion filter
+
 const REQUIRED_DEPTS = ['vmd', 'cad']; // Only VMD and CAD approval needed for production
 
 srdSchema.pre('save', function (next) {

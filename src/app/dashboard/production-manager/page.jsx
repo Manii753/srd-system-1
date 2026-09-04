@@ -44,9 +44,9 @@ export default function ProductionManagerDashboard() {
     try {
       const [readyRes, productionRes, stagesRes] = await Promise.all([
         // Ready for production: readyForProduction=true AND inProduction=false
-        fetch('/api/srd?readyForProduction=true&inProduction=false'),
+        fetch('/api/srd?readyForProduction=true&inProduction=false&limit=100'),
         // In production: both readyForProduction=true AND inProduction=true
-        fetch('/api/srd?readyForProduction=true&inProduction=true'),
+        fetch('/api/srd?readyForProduction=true&inProduction=true&limit=100'),
         fetch('/api/production-stages')
       ]);
 

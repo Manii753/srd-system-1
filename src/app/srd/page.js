@@ -2,12 +2,11 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Layout from '@/components/layout/Layout';
 import SRDTable from '@/components/SRDTable';
-import BrandGroupManager from '@/components/BrandGroupManager';
 import { Button } from '@/components/ui/button';
-import { FileText, Search, Filter, Plus } from 'lucide-react';
+import { Search, Filter, Plus } from 'lucide-react';
 import SRDPrintDialog from '@/components/SRDPrintDialog';
 
 function SRDListPageContent() {
@@ -15,72 +14,20 @@ function SRDListPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [srds, setSRDs] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  // Brand group filter — group id + brand names
-  const [activeGroupId, setActiveGroupId] = useState(null);
-  const [activeGroupBrands, setActiveGroupBrands] = useState([]); // string[]
-
   const departmentFilter = searchParams.get('department') || 'all';
   const statusFilter = searchParams.get('status') || 'all';
-  const readyForProductionFilter = searchParams.get('readyForProduction') === 'true';
 
   const canCreateSRD = session?.user?.role === 'vmd' || session?.user?.role === 'admin';
 
   useEffect(() => {
     if (status === 'loading') return;
     if (!session) { router.push('/login'); return; }
+  }, [session, status, router]);
 
-    const fetchSRDs = async () => {
-      setLoading(true);
-      try {
-        const query = new URLSearchParams();
-        if (departmentFilter !== 'all') query.append('department', departmentFilter);
-        if (statusFilter !== 'all') query.append('status', statusFilter);
-        if (readyForProductionFilter) query.append('readyForProduction', 'true');
-
-        const response = await fetch(`/api/srd?${query.toString()}`);
-        const data = await response.json();
-        if (data.success) setSRDs(data.data);
-      } catch (error) {
-        console.error('Error fetching SRDs:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSRDs();
-  }, [session, status, router, departmentFilter, statusFilter, readyForProductionFilter]);
-
-  // All unique brands from loaded SRDs (used by BrandGroupManager to populate pickers)
-  const allBrands = useMemo(() => {
-    const set = new Set(
-      srds.flatMap(srd =>
-        srd.dynamicFields
-          ?.filter(f => f.slug === 'brand' || f.name?.toLowerCase() === 'brand' || f.name?.toLowerCase() === 'buyer')
-          .map(f => f.value)
-          .filter(Boolean) || []
-      )
-    );
-    return [...set].sort();
-  }, [srds]);
-
-  // Filter SRDs by the active group brands (client-side, fast)
-  const filteredSrds = useMemo(() => {
-    if (!activeGroupBrands.length) return srds;
-    return srds.filter(srd =>
-      srd.dynamicFields?.some(
-        f =>
-          (f.slug === 'brand' || f.name?.toLowerCase() === 'brand' || f.name?.toLowerCase() === 'buyer') &&
-          activeGroupBrands.includes(f.value)
-      )
-    );
-  }, [srds, activeGroupBrands]);
-
-  if (loading) {
+  if (status === 'loading') {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -122,16 +69,6 @@ function SRDListPageContent() {
             </select>
           </div>
 
-          {/* Brand group manager — chips + manage panel */}
-          <BrandGroupManager
-            allBrands={allBrands}
-            activeGroupId={activeGroupId}
-            onGroupSelect={(id, brands) => {
-              setActiveGroupId(id);
-              setActiveGroupBrands(brands);
-            }}
-          />
-
           <SRDPrintDialog />
 
           {canCreateSRD && (
@@ -149,21 +86,10 @@ function SRDListPageContent() {
     >
       <div className="flex flex-col flex-1 h-[calc(100vh-56px)] overflow-hidden space-y-4 p-4">
         <SRDTable
-          srds={filteredSrds}
           department={departmentFilter}
           searchTerm={searchTerm}
           filterStatus={filterStatus}
         />
-
-        {filteredSrds.length === 0 && (
-          <div className="text-center py-12">
-            <FileText className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No SRDs found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {activeGroupId ? 'No SRDs match the selected brand group.' : 'Adjust your filters or create a new SRD.'}
-            </p>
-          </div>
-        )}
       </div>
     </Layout>
   );

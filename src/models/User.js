@@ -106,4 +106,9 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
+// Performance indexes for the most common user queries
+userSchema.index({ department: 1 });      // notification fan-out & status lookups
+userSchema.index({ role: 1 });            // role-based notifications/perms
+userSchema.index({ createdAt: -1 });      // users list default sort
+
 export default mongoose.models.User || mongoose.model('User', userSchema);
