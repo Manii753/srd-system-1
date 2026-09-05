@@ -6,9 +6,9 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import {
   LayoutDashboard, FileText, Settings, Users, Package,
-  PanelLeftClose, PanelLeftOpen, Plus, FileSpreadsheet,
+  PanelLeftClose, PanelLeftOpen, FileSpreadsheet,
   BarChart3, ChevronDown, Truck, MessageSquare, ClipboardList,
-  DollarSign, List, Calendar, LogOut, Shield, Factory, Wrench,
+  DollarSign, List, Calendar, LogOut, Shield, Factory,
 } from 'lucide-react';
 
 const COLLAPSED_KEY = 'sidebar_collapsed';
@@ -50,11 +50,40 @@ export default function DynamicSidebar() {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [liveUser, setLiveUser] = useState(null);
   const [expandedMenus, setExpandedMenus] = useState({ 'Samples Management': true, 'Cost Sheets': true });
   const toggleMenu = (name) => setExpandedMenus(prev => ({ ...prev, [name]: !prev[name] }));
   const unreadIntervalRef = useRef(null);
   const lastFetchTimeRef = useRef(0);
   const userRole = session?.user?.role;
+
+  // Admin always has full access. Otherwise use per-user sidebar preferences,
+  // falling back to role-based defaults when nothing is configured.
+  const isAdmin = userRole === 'admin';
+  const user = liveUser || session?.user;
+
+  const permissions = user?.permissions || {};
+  const sidebarMenuItems = user?.sidebarMenuItems || [];
+
+  // Returns true when the stored sidebarMenuItems explicitly grant a menu id.
+  const hasMenu = (id) => sidebarMenuItems.includes(id);
+  // Permission helper that respects admin override.
+  const can = (key) => isAdmin || permissions[key] === true;
+
+  // Live user record keeps permission changes effective without a re-login.
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    let cancelled = false;
+    const fetchLiveUser = async () => {
+      try {
+        const res = await fetch('/api/users/me');
+        const data = await res.json();
+        if (!cancelled && data.success) setLiveUser(data.data);
+      } catch {}
+    };
+    fetchLiveUser();
+    return () => { cancelled = true; };
+  }, [session?.user?.id]);
 
   const toggle = () => setCollapsed(prev => {
     const next = !prev;
@@ -83,82 +112,159 @@ export default function DynamicSidebar() {
     };
   }, [session?.user?.email]);
 
-  useEffect(() => { if (userRole) fetchMenuItems(); }, [userRole]);
+  useEffect(() => {
+    if (userRole) fetchMenuItems();
+  }, [userRole, user?.permissions, user?.sidebarMenuItems]);
 
   const fetchMenuItems = async () => {
+    setLoading(true);
     try {
       const samplesChildren = [
-        // { name: 'Create SRD', href: userRole === 'admin' ? '/dashboard/admin/create' : `/dashboard/${userRole}/create`, icon: Plus },
-        { name: 'SR In Process', href: '/srd', icon: FileText },
-        { name: 'Inter Dept Log', href: '/sample-management/sample-process', icon: Package },
-        { name: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList },
-        { name: 'Dispatch Detail', href: '/samples/dispatch', icon: Truck },
-        { name: 'Reports', href: '/sample-management/reports', icon: BarChart3 },
-        { name: 'Buyer Comment', href: '/samples/buyer-comment', icon: MessageSquare },
+        { id: 'all-srds', name: 'SR In Process', href: '/srd', icon: FileText },
+        { id: 'sample-process', name: 'Inter Dept Log', href: '/sample-management/sample-process', icon: Package },
+        { id: 'sample-card', name: 'Sample Card', href: '/samples/sample-card', icon: ClipboardList },
+        { id: 'dispatch', name: 'Dispatch Detail', href: '/samples/dispatch', icon: Truck },
+        { id: 'reports', name: 'Reports', href: '/sample-management/reports', icon: BarChart3 },
+        { id: 'buyer-comment', name: 'Buyer Comment', href: '/samples/buyer-comment', icon: MessageSquare },
       ];
 
-      if (userRole === 'admin') {
-        setMenuItems([
-          { name: 'Home', href: '/home', icon: LayoutDashboard },
-          { name: 'Cost Sheets',href:'/costing/pre', icon: DollarSign,},
-          { name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren },
-          { name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
-          { name: 'Planning', href: '#', icon: Calendar },
-          { name: 'BOM', href: '/bom', icon: List },
-          { name: 'Production', href: '/dashboard/production-manager', icon: Factory },
-          { name: 'SRD Fields', href: '/srdfields', icon: FileSpreadsheet },
-          { name: 'Users', href: '/users', icon: Users },
-          { name: 'Permissions', href: '/permissions', icon: Shield },
-          { name: 'Settings', icon: Settings, isSubmenu: true, children: [
-            { name: 'Company Settings', href: '/settings' },
-            { name: 'Auto-Approval', href: '/settings/auto-approval' },
-            { name: 'SR Diagnostics', href: '/settings/diagnose' },
-          ]},
-        ]);
-      } else if (userRole === 'cad') {
-        setMenuItems([
-          { name: 'Home', href: '/home', icon: LayoutDashboard },
-          { name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
-          { name: 'Work Queue', href: '/sample-management/sample-process', icon: Package },
-        ]);
-      } else if (['cutting','sewing','washing','finishing','dispatch'].includes(userRole)) {
-        const names = { cutting:'Cutting', sewing:'Sewing', washing:'Washing', finishing:'Finishing', dispatch:'Dispatch' };
-        setMenuItems([
-          { name: 'Home', href: '/home', icon: LayoutDashboard },
-          { name: names[userRole] + ' Stage', href: '/dashboard/stage', icon: Factory },
-          { name: 'Inter Dept Log', href: '/sample-management/sample-process', icon: Package },
-        ]);
-      } else if (userRole === 'production-manager') {
-        setMenuItems([
-          { name: 'Home', href: '/home', icon: LayoutDashboard },
-          { name: 'Production', href: '/dashboard/production-manager', icon: Factory },
-        ]);
-      } else {
+      // Every item carries a menu id so per-user sidebarMenuItems can filter it.
+      const allItems = (userRole) => {
         const items = [
-          { name: 'Home', href: '/home', icon: LayoutDashboard },
-          { name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
+          { id: 'home', name: 'Home', href: '/home', icon: LayoutDashboard },
+          { id: 'cost-sheets', name: 'Cost Sheets', href: '/costing/pre', icon: DollarSign, perm: 'canViewCostSheets' },
+          { id: 'samples-management', name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren },
+          { id: 'order-confirmation', name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList, perm: 'canViewOrderConfirmation' },
+          { id: 'planning', name: 'Planning', href: '/production', icon: Calendar, perm: 'canViewPlanning' },
+          { id: 'bom', name: 'BOM', href: '/bom', icon: List, perm: 'canViewBOM' },
+          { id: 'production', name: 'Production', href: '/dashboard/production-manager', icon: Factory, perm: 'canViewReports' },
+          { id: 'srd-fields', name: 'SRD Fields', href: '/srdfields', icon: FileSpreadsheet, perm: 'canManageSRDFields' },
+          { id: 'users', name: 'Users', href: '/users', icon: Users, perm: 'canManageUsers' },
+          { id: 'permissions', name: 'Permissions', href: '/permissions', icon: Shield, perm: 'canManagePermissions' },
+          { id: 'settings', name: 'Settings', icon: Settings, isSubmenu: true, perm: 'canAccessSettings', children: [
+            { id: 'settings', name: 'Company Settings', href: '/settings', icon: Settings, perm: 'canAccessSettings' },
+            { id: 'settings', name: 'Auto-Approval', href: '/settings/auto-approval', icon: Settings, perm: 'canAccessSettings' },
+            { id: 'settings', name: 'SR Diagnostics', href: '/settings/diagnose', icon: Settings, perm: 'canAccessSettings' },
+          ]},
+          { id: 'work-queue', name: 'Work Queue', href: '/sample-management/sample-process', icon: Package, perm: 'canViewAll' },
+          { id: 'stage', name: 'Stage', href: '/dashboard/stage', icon: Factory, perm: 'canViewAll' },
+          { id: 'mmc', name: 'MMC Portal', href: '/dashboard/mmc', icon: Factory, perm: 'canViewReports' },
+          { id: 'purchase-orders', name: 'Purchase Orders', href: '/dashboard/mmc/purchase-orders', icon: ClipboardList, perm: 'canViewReports' },
+          { id: 'cost-sheets-sub', name: 'All Costing', href: '/costing', icon: DollarSign, perm: 'canViewCostSheets' },
+          { id: 'pre-costing', name: 'Pre-Costing', href: '/costing/pre', icon: DollarSign, perm: 'canViewCostSheets' },
+          { id: 'vmd-production', name: 'Production', href: '/dashboard/vmd/production', icon: Factory, perm: 'canViewReports' },
+        ];
+        return items;
+      };
+
+      // Whether a user has explicitly configured their sidebar.
+      const hasCustomMenu = sidebarMenuItems.length > 0;
+
+      // Given a list of candidate items and an optional explicit-id set, decide
+      // which ones to show. Admin bypasses all filtering.
+      const filterItems = (candidates) => {
+        return candidates.filter(it => {
+          if (isAdmin) return true;
+          // Respect an explicit permission gate when present.
+          if (it.perm && !can(it.perm)) return false;
+          // If the user configured a custom menu, respect it.
+          if (hasCustomMenu && !hasMenu(it.id)) return false;
+          return true;
+        });
+      };
+
+      // Build the menu tree honoring custom sidebarMenuItems + permission flags,
+      // then fall back to role-based defaults when the user has no custom config.
+      const buildMenu = (candidates, childrenFilter) => {
+        const root = filterItems(candidates);
+        return root.map(item => {
+          if (item.children) {
+            const kept = filterItems(childrenFilter ? childrenFilter(item) : item.children);
+            if (kept.length === 0) return null;
+            return { ...item, children: kept };
+          }
+          return item;
+        }).filter(Boolean);
+      };
+
+      const menu = (() => {
+        // Custom config path: use the full catalog and let filtering decide.
+        if (hasCustomMenu && !isAdmin) {
+          return buildMenu(allItems(userRole));
+        }
+
+        // Role-based defaults (used for users without custom config and for admin).
+        if (isAdmin) {
+          return buildMenu([
+            { id: 'home', name: 'Home', href: '/home', icon: LayoutDashboard },
+            { id: 'cost-sheets', name: 'Cost Sheets', href: '/costing/pre', icon: DollarSign },
+            { id: 'samples-management', name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren },
+            { id: 'order-confirmation', name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
+            { id: 'planning', name: 'Planning', href: '/production', icon: Calendar },
+            { id: 'bom', name: 'BOM', href: '/bom', icon: List },
+            { id: 'production', name: 'Production', href: '/dashboard/production-manager', icon: Factory },
+            { id: 'srd-fields', name: 'SRD Fields', href: '/srdfields', icon: FileSpreadsheet },
+            { id: 'users', name: 'Users', href: '/users', icon: Users },
+            { id: 'permissions', name: 'Permissions', href: '/permissions', icon: Shield },
+            { id: 'settings', name: 'Settings', icon: Settings, isSubmenu: true, children: [
+              { id: 'settings', name: 'Company Settings', href: '/settings', icon: Settings },
+              { id: 'settings', name: 'Auto-Approval', href: '/settings/auto-approval', icon: Settings },
+              { id: 'settings', name: 'SR Diagnostics', href: '/settings/diagnose', icon: Settings },
+            ]},
+          ]);
+        }
+
+        if (userRole === 'cad') {
+          return buildMenu([
+            { id: 'home', name: 'Home', href: '/home', icon: LayoutDashboard },
+            { id: 'order-confirmation', name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
+            { id: 'work-queue', name: 'Work Queue', href: '/sample-management/sample-process', icon: Package },
+          ]);
+        }
+
+        if (['cutting','sewing','washing','finishing','dispatch'].includes(userRole)) {
+          const names = { cutting:'Cutting', sewing:'Sewing', washing:'Washing', finishing:'Finishing', dispatch:'Dispatch' };
+          return buildMenu([
+            { id: 'home', name: 'Home', href: '/home', icon: LayoutDashboard },
+            { id: 'stage', name: names[userRole] + ' Stage', href: '/dashboard/stage', icon: Factory },
+            { id: 'sample-process', name: 'Inter Dept Log', href: '/sample-management/sample-process', icon: Package },
+          ]);
+        }
+
+        if (userRole === 'production-manager') {
+          return buildMenu([
+            { id: 'home', name: 'Home', href: '/home', icon: LayoutDashboard },
+            { id: 'production', name: 'Production', href: '/dashboard/production-manager', icon: Factory },
+          ]);
+        }
+
+        const items = [
+          { id: 'home', name: 'Home', href: '/home', icon: LayoutDashboard },
+          { id: 'order-confirmation', name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
         ];
         if (userRole?.toLowerCase() === 'mmc') {
           items.push(
-            { name: 'MMC Portal', href: '/dashboard/mmc', icon: Factory },
-            { name: 'Purchase Orders', href: '/dashboard/mmc/purchase-orders', icon: ClipboardList },
+            { id: 'mmc', name: 'MMC Portal', href: '/dashboard/mmc', icon: Factory },
+            { id: 'purchase-orders', name: 'Purchase Orders', href: '/dashboard/mmc/purchase-orders', icon: ClipboardList },
           );
         }
         if (userRole?.toLowerCase() === 'vmd') {
-          items.push({ name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren });
-          items.push({ name: 'Cost Sheets', icon: DollarSign, isSubmenu: true, children: [
-            { name: 'Pre-Costing',  href: '/costing/pre',  icon: DollarSign },
-            // { name: 'Post-Costing', href: '/costing/post', icon: DollarSign },  // commented out for now
-            { name: 'All Costing',  href: '/costing',      icon: DollarSign },
+          items.push({ id: 'samples-management', name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren });
+          items.push({ id: 'cost-sheets', name: 'Cost Sheets', icon: DollarSign, isSubmenu: true, children: [
+            { id: 'pre-costing', name: 'Pre-Costing', href: '/costing/pre', icon: DollarSign },
+            // { id: 'post-costing', name: 'Post-Costing', href: '/costing/post', icon: DollarSign },  // commented out for now
+            { id: 'cost-sheets-sub', name: 'All Costing', href: '/costing', icon: DollarSign },
           ]});
-          items.push({ name: 'BOM', href: '/bom', icon: List });
-          items.push({ name: 'Planning', href: '#', icon: Calendar });
-          items.push({ name: 'Production', href: '/dashboard/vmd/production', icon: Factory });
+          items.push({ id: 'bom', name: 'BOM', href: '/bom', icon: List });
+          items.push({ id: 'planning', name: 'Planning', href: '/production', icon: Calendar });
+          items.push({ id: 'vmd-production', name: 'Production', href: '/dashboard/vmd/production', icon: Factory });
         }
-        setMenuItems(items);
-      }
+        return buildMenu(items);
+      })();
+
+      setMenuItems(menu);
     } catch {
-      setMenuItems([{ name: 'Home', href: `/dashboard/${userRole}`, icon: LayoutDashboard }]);
+      setMenuItems([{ id: 'home', name: 'Home', href: `/dashboard/${userRole}`, icon: LayoutDashboard }]);
     } finally {
       setLoading(false);
     }
@@ -238,7 +344,7 @@ export default function DynamicSidebar() {
                             onMouseEnter={e => { if (!ca) e.currentTarget.style.backgroundColor = '#f3f4f6'; }}
                             onMouseLeave={e => { if (!ca) e.currentTarget.style.backgroundColor = 'transparent'; }}
                           >
-                            <Icon style={{ width: 14, height: 14, flexShrink: 0, color: ca ? '#1d4ed8' : '#6b7280' }} />
+                            <CIcon style={{ width: 14, height: 14, flexShrink: 0, color: ca ? '#1d4ed8' : '#6b7280' }} />
                             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{child.name}</span>
                           </Link>
                         );

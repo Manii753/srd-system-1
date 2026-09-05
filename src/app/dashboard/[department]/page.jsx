@@ -33,7 +33,7 @@ export default function DynamicDepartmentDashboard() {
   const [viewMode, setViewMode] = useState('cards');
 
   // List of production stages that should use the new stage dashboard
-  const productionStages = ['cutting', 'sewing', 'washing', 'finishing', 'pattren'];
+  const productionStages = ['cutting', 'sewing', 'washing', 'finishing', 'pattern'];
   const isProductionStage = productionStages.includes(departmentSlug);
 
   useEffect(() => {

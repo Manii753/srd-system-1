@@ -13,29 +13,27 @@ export const authOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        console.log("Authorize function started");
         try {
           await dbConnect();
-          console.log("Database connected");
           const user = await User.findOne({ email: credentials.email });
-          console.log("User found:", user ? user.email : null);
           
           if (user) {
             const isMatch = await bcrypt.compare(credentials.password, user.password);
-            console.log("Password match result:", isMatch);
             if (isMatch) {
               return {
                 id: user._id,
                 email: user.email,
                 name: user.name,
-                role: user.role
+                role: user.role,
+                department: user.department,
+                permissions: user.permissions || {},
+                sidebarMenuItems: user.sidebarMenuItems || []
               };
             }
           }
         } catch (error) {
           console.error("Error in authorize function:", error);
         }
-        console.log("Authorize function returning null");
         return null;
       }
     })
@@ -45,6 +43,9 @@ export const authOptions = {
       if (user) {
         token.role = user.role;
         token.id = user.id;
+        token.department = user.department;
+        token.permissions = user.permissions;
+        token.sidebarMenuItems = user.sidebarMenuItems;
       }
       return token;
     },
@@ -52,6 +53,9 @@ export const authOptions = {
       if (token) {
         session.user.role = token.role;
         session.user.id = token.id;
+        session.user.department = token.department;
+        session.user.permissions = token.permissions;
+        session.user.sidebarMenuItems = token.sidebarMenuItems;
       }
       return session;
     }

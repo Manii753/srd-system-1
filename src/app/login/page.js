@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,10 +11,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Mail, Lock } from 'lucide-react';
 import { Suspense } from 'react';
 import { toast } from 'sonner';
-
-
-
-
 
 function isMobileBrowser() {
   if (typeof navigator === 'undefined') return false;
@@ -86,8 +82,6 @@ function LoginPageContent() {
 
       if (result?.error) {
         setError('Invalid email or password');
-      } else {
-
       }
     } catch (error) {
       setError('An error occurred during login');
@@ -95,19 +89,6 @@ function LoginPageContent() {
       setLoading(false);
     }
   };
-
-  const demoCredentials = [
-    { email: 'admin@demo.com', role: 'Admin', category: 'Management' },
-    { email: 'vmd@demo.com', role: 'VMD Manager', category: 'Approval' },
-    { email: 'cad@demo.com', role: 'CAD Manager', category: 'Approval' },
-    { email: 'commercial@demo.com', role: 'Commercial Manager', category: 'Approval' },
-    { email: 'mmc@demo.com', role: 'MMC Manager', category: 'Approval' },
-    { email: 'cutting@srds.com', role: 'Cutting', category: 'Production', password: 'cutting123' },
-    { email: 'sewing@srds.com', role: 'Sewing', category: 'Production', password: 'sewing123' },
-    { email: 'washing@srds.com', role: 'Washing', category: 'Production', password: 'washing123' },
-    { email: 'finishing@srds.com', role: 'Finishing', category: 'Production', password: 'finishing123' },
-    { email: 'dispatch@srds.com', role: 'Dispatch', category: 'Production', password: 'dispatch123' },
-  ];
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -183,65 +164,6 @@ function LoginPageContent() {
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="flex flex-col items-center">
-            <div className="w-full space-y-4">
-              <p className="text-app-text font-medium text-center text-gray-700">Demo Accounts:</p>
-
-              {/* Management */}
-              <div>
-                <p className="text-app-heading font-semibold text-gray-600 mb-2">Management:</p>
-                {demoCredentials.filter(c => c.category === 'Management').map((cred) => (
-                  <button
-                    key={cred.email}
-                    onClick={() => {
-                      setEmail(cred.email);
-                      setPassword(cred.password || 'password');
-                    }}
-                    className="w-full text-left p-2 text-app-text bg-purple-50 hover:bg-purple-100 rounded-md transition-colors mb-1"
-                  >
-                    <span className="font-medium">{cred.role}:</span> {cred.email}
-                    <span className="text-gray-500 ml-2">({cred.password || 'password'})</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Approval Departments */}
-              <div>
-                <p className="text-app-heading font-semibold text-gray-600 mb-2">Approval Departments:</p>
-                {demoCredentials.filter(c => c.category === 'Approval').map((cred) => (
-                  <button
-                    key={cred.email}
-                    onClick={() => {
-                      setEmail(cred.email);
-                      setPassword(cred.password || 'password');
-                    }}
-                    className="w-full text-left p-2 text-app-text bg-blue-50 hover:bg-blue-100 rounded-md transition-colors mb-1"
-                  >
-                    <span className="font-medium">{cred.role}:</span> {cred.email}
-                    <span className="text-gray-500 ml-2">({cred.password || 'password'})</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Production Stages */}
-              <div>
-                <p className="text-app-heading font-semibold text-gray-600 mb-2">🏭 Production Stages:</p>
-                {demoCredentials.filter(c => c.category === 'Production').map((cred) => (
-                  <button
-                    key={cred.email}
-                    onClick={() => {
-                      setEmail(cred.email);
-                      setPassword(cred.password || 'password');
-                    }}
-                    className="w-full text-left p-2 text-app-text bg-green-50 hover:bg-green-100 rounded-md transition-colors mb-1"
-                  >
-                    <span className="font-medium">{cred.role}:</span> {cred.email}
-                    <span className="text-gray-500 ml-2">({cred.password})</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </CardFooter>
         </Card>
       </div>
     </div>

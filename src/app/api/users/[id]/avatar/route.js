@@ -3,8 +3,16 @@ import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import fs from 'fs';
 import path from 'path';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function POST(request, { params }) {
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'admin';
+  const canManage = session?.user?.permissions?.canManageUsers === true;
+  if (!session || (!isAdmin && !canManage)) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
   await dbConnect();
   const { id } = await params;
 

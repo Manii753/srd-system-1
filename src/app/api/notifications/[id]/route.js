@@ -14,13 +14,13 @@ export async function PUT(request, { params }) {
     }
 
     const userId = session.user.id;
-    const { id } = params;
+    const { id } = await params;
 
     await Notification.findOneAndUpdate({ _id: id, user: userId }, { $set: { read: true } });
 
     return NextResponse.json({ success: true, message: 'Notification marked as read' });
   } catch (error) {
-    console.error(`Error in PUT /api/notifications/${params.id}:`, error);
+    console.error('Error in PUT /api/notifications/[id]:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

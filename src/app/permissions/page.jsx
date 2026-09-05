@@ -191,7 +191,9 @@ export default function PermissionsManagementPage() {
   useEffect(() => {
     if (status === 'loading') return;
     
-    if (!session || session.user.role !== 'admin') {
+    const isAdmin = session?.user?.role === 'admin';
+    const canManage = session?.user?.permissions?.canManagePermissions === true;
+    if (!session || (!isAdmin && !canManage)) {
       router.push('/login');
       return;
     }

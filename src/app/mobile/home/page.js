@@ -2,18 +2,16 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import {
   ClipboardCheck,
-  FlaskConical,
+  ClipboardList,
   DollarSign,
   Layers,
   CalendarDays,
   LogOut,
 } from 'lucide-react';
 import SRDLookupModal from './SRDLookupModal';
-import { signOut } from 'next-auth/react';
-import css from 'styled-jsx/css';
 
 const MODULES = [
   {
@@ -29,8 +27,7 @@ const MODULES = [
     key: 'sample-management',
     label: 'Sample Management',
     description: 'Track and manage samples',
-    icon: "/icons/cutting.png",
-    css: "translate-x-0.5",
+    icon: ClipboardList,
     color: 'bg-emerald-500',
     lightColor: 'bg-emerald-50',
     textColor: 'text-emerald-600',

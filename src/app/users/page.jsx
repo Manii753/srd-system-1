@@ -47,7 +47,9 @@ export default function UsersManagementPage() {
   useEffect(() => {
     if (status === 'loading') return;
     
-    if (!session || session.user.role !== 'admin') {
+    const isAdmin = session?.user?.role === 'admin';
+    const canManage = session?.user?.permissions?.canManageUsers === true;
+    if (!session || (!isAdmin && !canManage)) {
       router.push('/login');
       return;
     }

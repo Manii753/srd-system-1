@@ -8,7 +8,7 @@ import { FileText, Package, DollarSign, List, Calendar, Truck, BarChart2, Messag
 
 const APP_GROUPS = [
   {
-    label: '',
+    label: 'Applications',
     apps: [
       { 
         label: 'Cost Sheets', 
@@ -37,7 +37,7 @@ const APP_GROUPS = [
       { 
         label: 'Planning', 
         icon: Calendar, 
-        href: '#', 
+        href: '/production', 
         color: 'bg-violet-500', 
         lightColor: 'bg-violet-50', 
         textColor: 'text-violet-600' 
@@ -45,7 +45,7 @@ const APP_GROUPS = [
       { 
         label: 'Bom', 
         icon: List, 
-        href: '#', 
+        href: '/bom', 
         color: 'bg-rose-500', 
         lightColor: 'bg-rose-50', 
         textColor: 'text-rose-600' 

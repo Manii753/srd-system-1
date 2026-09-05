@@ -1,8 +1,20 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+async function isAdminOrUserManager() {
+  const session = await getServerSession(authOptions);
+  if (!session) return false;
+  if (session.user.role === 'admin') return true;
+  return session.user.permissions?.canManageUsers === true;
+}
 
 export async function GET(request) {
+  if (!(await isAdminOrUserManager())) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
   await dbConnect();
   
   try {
@@ -41,6 +53,9 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  if (!(await isAdminOrUserManager())) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
   await dbConnect();
 
   try {

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import pusher from '@/lib/pusher-server';
@@ -7,7 +8,7 @@ import pusher from '@/lib/pusher-server';
 // POST - Update user online status
 export async function POST(request) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
@@ -51,7 +52,7 @@ export async function POST(request) {
 // GET - Get all users with their online status
 export async function GET(request) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }

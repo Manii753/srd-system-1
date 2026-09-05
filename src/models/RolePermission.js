@@ -55,6 +55,11 @@ const rolePermissionSchema = new mongoose.Schema({
       default: false,
       description: 'Can view all SRDs (not just own department)'
     },
+    canApproveAnyDepartment: {
+      type: Boolean,
+      default: false,
+      description: 'Can approve VMD, CAD, MMC and COM from the status bar'
+    },
     
     // Admin Portal Permissions
     canAccessAdminPortal: {
