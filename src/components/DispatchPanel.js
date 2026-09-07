@@ -538,17 +538,25 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     }
     setEmailSending(true);
     try {
-      const res = await fetch('/api/mail/dispatch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          srdIds,
-          to: emailTo.split(',').map(e => e.trim()).filter(Boolean),
-          cc: emailCc ? emailCc.split(',').map(e => e.trim()).filter(Boolean) : [],
-          subject: emailSubject,
-          merge: emailMode === 'merge',
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      let res;
+      try {
+        res = await fetch('/api/mail/dispatch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            srdIds,
+            to: emailTo.split(',').map(e => e.trim()).filter(Boolean),
+            cc: emailCc ? emailCc.split(',').map(e => e.trim()).filter(Boolean) : [],
+            subject: emailSubject,
+            merge: emailMode === 'merge',
+          }),
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
       const data = await res.json();
       if (data.success) {
         toast({ title: 'Email sent', description: `Dispatch email sent successfully` });

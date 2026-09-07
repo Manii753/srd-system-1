@@ -191,6 +191,8 @@ export async function POST(request) {
     }
 
     // Create transporter
+    // connectionTimeout / greetingTimeout / socketTimeout prevent the send
+    // from hanging forever if the SMTP server is unresponsive.
     const transporter = nodemailer.createTransport({
       host:   process.env.SMTP_HOST,
       port:   parseInt(process.env.SMTP_PORT || '587'),
@@ -199,6 +201,9 @@ export async function POST(request) {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      connectionTimeout: 10000,
+      greetingTimeout:   10000,
+      socketTimeout:     15000,
     });
 
     const fromName  = process.env.SMTP_FROM_NAME  || 'VMD Team';
