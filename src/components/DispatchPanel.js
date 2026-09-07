@@ -18,7 +18,7 @@ import Image from 'next/image';
 import { X, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
-function DispatchImageCell({ label, images, onUploaded, onRemove, canEdit }) {
+export function DispatchImageCell({ label, images, onUploaded, onRemove, canEdit }) {
   const inputRef = useRef(null);
   const [preview, setPreview] = useState(null);
   const [previewIdx, setPreviewIdx] = useState(0);

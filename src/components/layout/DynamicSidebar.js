@@ -112,10 +112,6 @@ export default function DynamicSidebar() {
     };
   }, [session?.user?.email]);
 
-  useEffect(() => {
-    if (userRole) fetchMenuItems();
-  }, [userRole, user?.permissions, user?.sidebarMenuItems]);
-
   const fetchMenuItems = async () => {
     setLoading(true);
     try {
@@ -269,6 +265,13 @@ export default function DynamicSidebar() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!userRole) return;
+    const timer = setTimeout(fetchMenuItems, 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userRole, user?.permissions, user?.sidebarMenuItems]);
 
   const fullUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
   let activeHref = '';

@@ -10,6 +10,7 @@ import { useToast } from '@/lib/use-toast';
 import { FileText } from 'lucide-react';
 import DispatchPanel from '@/components/DispatchPanel';
 import WashReportUploader from '@/components/WashReportUploader';
+import BuyerCommentsSection from '@/components/BuyerCommentsSection';
 
 export default function SRDDetailPage() {
   const { data: session, status } = useSession();
@@ -18,6 +19,7 @@ export default function SRDDetailPage() {
   const { toast } = useToast();
   const [srd, setSrd] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [liveUser, setLiveUser] = useState(null);
   const [excelHeaderContent, setExcelHeaderContent] = useState(null);
   const [productionHeaderContent, setProductionHeaderContent] = useState(null);
   const [excelHeaderRightContent, setExcelHeaderRightContent] = useState(null);
@@ -44,7 +46,12 @@ export default function SRDDetailPage() {
       return;
     }
 
-
+    // Live permissions (e.g. canViewBuyerComments) so permission changes
+    // take effect without waiting for the JWT/session to rotate.
+    fetch('/api/users/me')
+      .then((res) => res.json())
+      .then((data) => { if (data.success) setLiveUser(data.data); })
+      .catch(() => {});
 
     const fetchSRD = async () => {
       try {
@@ -178,6 +185,14 @@ export default function SRDDetailPage() {
               canEdit={userRole === 'dispatch' || userRole === 'vmd' || userRole === 'admin'}
             />
           </div>
+        )}
+
+        {/* Read-only Buyer Comments — for users granted canViewBuyerComments
+            who don't already get the full DispatchPanel above */}
+        {(liveUser?.permissions?.canViewBuyerComments === true ||
+          session?.user?.permissions?.canViewBuyerComments === true) &&
+          userRole !== 'dispatch' && userRole !== 'vmd' && userRole !== 'admin' && (
+          <BuyerCommentsSection srd={srd} />
         )}
       </div>
     </Layout>

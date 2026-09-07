@@ -43,7 +43,11 @@ export class BackupScheduler {
     try {
       // Connect to database
       if (!mongoose.connection.readyState) {
-        await mongoose.connect(process.env.MONGODB_URI);
+        await mongoose.connect(process.env.MONGODB_URI, {
+          serverSelectionTimeoutMS: 10000,
+          connectTimeoutMS: 10000,
+          socketTimeoutMS: 60000,
+        });
       }
 
       // Get backup settings

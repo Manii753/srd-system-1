@@ -35,12 +35,17 @@ function getDeptVal(srd, dept) {
 }
 
 function getOverallStatus(srd) {
+  // If the SRD is fully complete, show Completed
+  const sp = srd.sampleProcess || [];
+  const allSamplesCompleted =
+    sp.length > 0 && sp.every(s => s.status === 'completed' || s.completedDate);
+  if (srd.isComplete || allSamplesCompleted) return 'Completed';
   // If in production, show current production stage
   if (srd.inProduction && srd.currentProductionStage) {
     return 'In Production';
   }
   if (srd.inProduction && !srd.currentProductionStage) {
-    return 'Production Complete';
+    return 'Completed';
   }
   // Otherwise show department approval status
   const vals = ['vmd', 'cad', 'mmc', 'commercial'].map(d => getDeptVal(srd, d));
@@ -48,6 +53,46 @@ function getOverallStatus(srd) {
   if (vals.some(v => v === 'flagged')) return 'Flagged';
   if (vals.some(v => v === 'approved' || v === 'in-progress')) return 'In Progress';
   return 'Not Started';
+}
+
+// Base status buckets shown in the All Status filter. Active production
+// stages are appended dynamically (see statusOptions in the component).
+const BASE_STATUS_OPTIONS = [
+  { value: 'not-started', label: 'Not Started' },
+  { value: 'in-progress', label: 'In Progress' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'flagged', label: 'Flagged' },
+  { value: 'ready-for-production', label: 'Ready for Production' },
+  { value: 'in-production', label: 'In Production' },
+];
+
+function slugify(text) {
+  return (text || '').toLowerCase().replace(/\s+/g, '-');
+}
+
+// Resolve the label shown in the Current Status column. For records in
+// production this shows the actual current stage (e.g. "Sewing") instead of
+// the generic "In Production" bucket.
+function getCurrentStatusLabel(srd, prodStages) {
+  const os = getOverallStatus(srd);
+  if (os !== 'In Production') return os;
+
+  const sp = srd.sampleProcess || [];
+  const active = sp.find(s => s.status === 'in-progress' || s.status === 'received');
+  if (active) return active.stageDisplayName || active.stage || 'In Production';
+
+  const curId = srd.currentProductionStage
+    ? String(srd.currentProductionStage._id || srd.currentProductionStage)
+    : null;
+  if (curId) {
+    const st = prodStages.find(s => String(s._id) === curId);
+    if (st) return st.displayName || st.name;
+  }
+
+  const hist = (srd.productionHistory || []).slice().reverse().find(h => h.status === 'in-progress');
+  if (hist) return hist.stageDisplayName || hist.stageName || 'In Production';
+
+  return 'In Production';
 }
 
 function getDelayDays(srd) {
@@ -271,6 +316,19 @@ export default function SRReportPage() {
   const allBrands = useMemo(() => [...new Set(srds.map(s => getDyn(s, 'brand')).filter(Boolean))].sort(), [srds]);
   const allTypes  = useMemo(() => [...new Set(srds.map(s => getDyn(s, 'sample type', 'sampleType')).filter(Boolean))].sort(), [srds]);
 
+  // Status filter options: base buckets + every active production stage
+  const statusOptions = useMemo(() => {
+    const seen = new Set();
+    const opts = [];
+    for (const o of [
+      ...BASE_STATUS_OPTIONS,
+      ...prodStages.map(s => ({ value: slugify(s.displayName || s.name), label: s.displayName || s.name })),
+    ]) {
+      if (!seen.has(o.value)) { seen.add(o.value); opts.push(o); }
+    }
+    return opts;
+  }, [prodStages]);
+
   // filter + group
   const filtered = useMemo(() => {
     let list = srds;
@@ -291,14 +349,14 @@ export default function SRReportPage() {
       if (filterBrand && getDyn(srd, 'brand').toLowerCase() !== filterBrand.toLowerCase()) return false;
       if (filterType  && getDyn(srd, 'sample type', 'sampleType').toLowerCase() !== filterType.toLowerCase()) return false;
       if (filterStatus !== 'all') {
-        const os = getOverallStatus(srd).toLowerCase().replace(' ', '-');
-        if (!os.includes(filterStatus.replace('in-progress', 'progress'))) return false;
+        const label = slugify(getCurrentStatusLabel(srd, prodStages));
+        if (label !== filterStatus) return false;
       }
       if (filterDateFrom && new Date(srd.createdAt) < new Date(filterDateFrom)) return false;
       if (filterDateTo   && new Date(srd.createdAt) > new Date(filterDateTo + 'T23:59:59')) return false;
       return true;
     });
-  }, [srds, activeGroup, groups, search, filterStatus, filterBrand, filterType, filterDateFrom, filterDateTo]);
+  }, [srds, activeGroup, groups, search, filterStatus, filterBrand, filterType, filterDateFrom, filterDateTo, prodStages]);
 
   const hasFilters = search || filterStatus !== 'all' || filterBrand || filterType || filterDateFrom || filterDateTo;
   const clearFilters = () => {
@@ -317,7 +375,7 @@ export default function SRReportPage() {
     const headers = [
       'Sr#', 'Inq#', 'SR. Date', 'SR. Raised Date', 'D.D',
       'Buyer', 'Sample Type', 'Priority', 'Buyer Style Ref', 'Description',
-      'Color/Wash', 'Size', 'Qty', 'Status', 'TDD',
+      'Color/Wash', 'Size', 'Qty', 'Current Status', 'TDD',
       'Dis. Date', 'App.Status', 'Reason',
     ];
 
@@ -331,7 +389,7 @@ export default function SRReportPage() {
       const size       = getDyn(srd, 'sample request size', 'size', 'Size');
       const qty        = getDyn(srd, 'sample request qty.', 'sample request qty', 'qty', 'quantity', 'Qty');
       const delay      = getDelayDays(srd);
-      const os         = getOverallStatus(srd);
+      const os         = getCurrentStatusLabel(srd, prodStages);
       const targetDate = fmtDate(getDyn(srd, 'sample etd', 'target dispatch date', 'etd', 'dispatch date'));
       const actualDate = srd.sampleDispatchedToBuyer ? fmtDate(srd.sampleDipatchedtoBuyerDate) : '';
 
@@ -397,7 +455,7 @@ export default function SRReportPage() {
       const size       = getDyn(srd, 'sample request size', 'size', 'Size');
       const qty        = getDyn(srd, 'sample request qty.', 'sample request qty', 'qty', 'quantity', 'Qty');
       const delay      = getDelayDays(srd);
-      const os         = getOverallStatus(srd);
+      const os         = getCurrentStatusLabel(srd, prodStages);
       const targetDate = fmtDate(getDyn(srd, 'sample etd', 'target dispatch date', 'etd', 'dispatch date'));
       const actualDate = srd.sampleDispatchedToBuyer ? fmtDate(srd.sampleDipatchedtoBuyerDate) : '-';
 
@@ -411,11 +469,12 @@ export default function SRReportPage() {
         (srd.BuyerRejectedReasons    || []).map(r => r.reason).join(', ') || '-';
 
       const delayCls = delay > 7 ? 'color:#dc2626' : delay > 3 ? 'color:#ea580c' : 'color:#374151';
-      const osCls    = os === 'Production Complete' ? 'color:#15803d;font-weight:600'
-                     : os === 'In Production'      ? 'color:#2563eb;font-weight:600'
-                     : os === 'Ready for Production' ? 'color:#7c3aed;font-weight:600'
-                     : os === 'Flagged'            ? 'color:#ea580c;font-weight:600'
-                     : os === 'In Progress'        ? 'color:#ca8a04;font-weight:600'
+      const osBucket = getOverallStatus(srd);
+      const osCls    = osBucket === 'Completed' ? 'color:#15803d;font-weight:600'
+                     : osBucket === 'In Production'      ? 'color:#2563eb;font-weight:600'
+                     : osBucket === 'Ready for Production' ? 'color:#7c3aed;font-weight:600'
+                     : osBucket === 'Flagged'            ? 'color:#ea580c;font-weight:600'
+                     : osBucket === 'In Progress'        ? 'color:#ca8a04;font-weight:600'
                      : 'color:#9ca3af';
       const appCls   = approvalStatus.includes('Rejected') ? 'color:#dc2626'
                      : approvalStatus !== '-' ? 'color:#15803d' : 'color:#9ca3af';
@@ -544,17 +603,6 @@ export default function SRReportPage() {
             >
               <Filter className="h-4 w-4" /> Filters{hasFilters ? ' (active)' : ''}
             </button>
-            <select
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-green-600"
-            >
-              <option value="all">All Status</option>
-              <option value="not-started">Not Started</option>
-              <option value="in-progress">In Progress</option>
-              <option value="completed">Completed</option>
-              <option value="flagged">Flagged</option>
-            </select>
             <button
               onClick={handleExport}
               className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-white bg-green-700 hover:bg-green-800 rounded-md"
@@ -634,6 +682,19 @@ export default function SRReportPage() {
                 </select>
               </div>
               <div>
+                <label className="block text-xs text-gray-500 mb-0.5">Status</label>
+                <select
+                  value={filterStatus}
+                  onChange={e => setFilterStatus(e.target.value)}
+                  className="w-full h-8 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-600"
+                >
+                  <option value="all">All Status</option>
+                  {statusOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <label className="block text-xs text-gray-500 mb-0.5">Date From</label>
                 <input
                   type="date"
@@ -681,7 +742,7 @@ export default function SRReportPage() {
                 <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Color/Wash</th>
                 <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Size</th>
                 <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Qty</th>
-                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Summary</th>
+                <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Current Status</th>
                 <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Dis. Date</th>
                 <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Act. Dis. Date</th>
                 <th className="px-1.5 py-1.5 text-left text-xs font-semibold text-gray-700 uppercase border-r border-gray-300 whitespace-nowrap" style={{ width: 'fit-content' }}>Approval Status</th>
@@ -705,7 +766,8 @@ export default function SRReportPage() {
                 const qty        = getDyn(srd, 'sample request qty.', 'sample request qty', 'qty', 'quantity', 'Qty');
                 const delay      = getDelayDays(srd);
                 const os         = getOverallStatus(srd);
-                const osCls      = os === 'Production Complete' ? 'text-green-700 font-semibold'
+                const osDisplay  = getCurrentStatusLabel(srd, prodStages);
+                const osCls      = os === 'Completed' ? 'text-green-700 font-semibold'
                                  : os === 'In Production'      ? 'text-blue-600 font-semibold'
                                  : os === 'Ready for Production' ? 'text-purple-600 font-semibold'
                                  : os === 'Flagged'            ? 'text-orange-600 font-semibold'
@@ -756,7 +818,7 @@ export default function SRReportPage() {
                       <td className="px-1.5 py-1.5 text-gray-700 border-r border-gray-200 whitespace-nowrap">{qty || '-'}</td>
                       <td className={`px-1.5 py-1.5 border-r border-gray-200 whitespace-nowrap ${osCls}`}>
                         <div className="flex items-center gap-1">
-                          <span>{os}</span>
+                          <span>{osDisplay}</span>
                           <ChevronDown className={`h-1.5 w-1.5 text-gray-400 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
                         </div>
                       </td>
@@ -784,13 +846,49 @@ export default function SRReportPage() {
                                   String(h.stage) === String(ps._id) ||
                                   h.stageName?.toLowerCase() === ps.name?.toLowerCase()
                                 );
+                                // Also check sampleProcess (slug/name-based matching)
+                                const stageName = (ps.name || '').toLowerCase();
+                                const stageSlug = (ps.slug || stageName).toLowerCase();
+                                const sampleEntry = (srd.sampleProcess || []).find(
+                                  s => {
+                                    const sStage = (s.stage || '').toLowerCase();
+                                    return sStage === stageName || sStage === stageSlug;
+                                  }
+                                );
                                 const isCurrent = String(srd.currentProductionStage) === String(ps._id);
+                                const isInProgress = isCurrent ||
+                                  histEntry?.status === 'in-progress' ||
+                                  sampleEntry?.status === 'in-progress' ||
+                                  sampleEntry?.status === 'received' ||
+                                  !!sampleEntry?.receivedDate;
+
+                                const completedDate =
+                                  histEntry?.status === 'completed'
+                                    ? (histEntry.endDate || histEntry.startDate || null)
+                                    : (sampleEntry?.status === 'completed' || sampleEntry?.completedDate)
+                                      ? (sampleEntry.completedDate || sampleEntry.handoverDate || null)
+                                      : null;
+
                                 let cls = 'bg-gray-100 text-gray-400';
                                 let text = '-';
-                                if (histEntry?.status === 'completed') {
+                                if (completedDate) {
                                   cls = 'bg-green-600 text-white';
-                                  text = histEntry.endDate ? fmtDate(histEntry.endDate) : 'Done';
-                                } else if (isCurrent || histEntry?.status === 'in-progress') {
+                                  text = fmtDate(completedDate);
+                                } else if (getOverallStatus(srd) === 'Completed') {
+                                  // SRD is fully complete but has no per-stage timestamps:
+                                  // fall back to the record's completion / last-updated date.
+                                  const fallbackDate =
+                                    srd.productionEndDate ||
+                                    srd.sampleDipatchedtoBuyerDate ||
+                                    srd.updatedAt;
+                                  if (fallbackDate) {
+                                    cls = 'bg-green-600 text-white';
+                                    text = fmtDate(fallbackDate);
+                                  } else {
+                                    cls = 'bg-green-700 text-white';
+                                    text = 'Completed';
+                                  }
+                                } else if (isInProgress) {
                                   cls = 'bg-yellow-500 text-white';
                                   text = 'In Process';
                                 }
