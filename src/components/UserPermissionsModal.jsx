@@ -133,6 +133,12 @@ const PERMISSION_GROUPS = [
       { key: 'canViewOrderConfirmation', label: 'Can View Order Confirmation', description: 'Can view order confirmation' },
       { key: 'canEditOrderConfirmation', label: 'Can Edit Order Confirmation', description: 'Can edit order confirmation' }
     ]
+  },
+  {
+    title: 'Brand Groups Permissions',
+    permissions: [
+      { key: 'canManageBrandGroups', label: 'Can Manage Brand Groups', description: 'Can create, edit, and delete brand-wise SR groups and assign users to them on the SR In Process page' }
+    ]
   }
 ];
 

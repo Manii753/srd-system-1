@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
@@ -9,7 +9,7 @@ const PRESET_COLORS = [
   '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
 ];
 
-// ─── small helpers ────────────────────────────────────────────────────────────
+// â”€â”€â”€ small helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function Badge({ color, children, onRemove, onClick, active }) {
   return (
@@ -52,7 +52,7 @@ function BrandPicker({ allBrands, selected, onChange }) {
       >
         <Tag className="h-3 w-3 text-gray-400" />
         <span className="flex-1 text-left text-gray-700">
-          {selected.length === 0 ? 'Pick brands…' : `${selected.length} brand${selected.length > 1 ? 's' : ''} selected`}
+          {selected.length === 0 ? 'Pick brandsâ€¦' : `${selected.length} brand${selected.length > 1 ? 's' : ''} selected`}
         </span>
         <ChevronDown className="h-3 w-3 text-gray-400" />
       </button>
@@ -63,7 +63,7 @@ function BrandPicker({ allBrands, selected, onChange }) {
             <input
               autoFocus
               type="text"
-              placeholder="Search brands…"
+              placeholder="Search brandsâ€¦"
               value={q}
               onChange={e => setQ(e.target.value)}
               className="w-full text-xs px-2 py-1 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
@@ -128,7 +128,7 @@ function UserPicker({ allUsers, selected, onChange }) {
       >
         <Users className="h-3 w-3 text-gray-400" />
         <span className="flex-1 text-left text-gray-700">
-          {selected.length === 0 ? 'Assign users…' : `${selected.length} user${selected.length > 1 ? 's' : ''}`}
+          {selected.length === 0 ? 'Assign usersâ€¦' : `${selected.length} user${selected.length > 1 ? 's' : ''}`}
         </span>
         <ChevronDown className="h-3 w-3 text-gray-400" />
       </button>
@@ -139,7 +139,7 @@ function UserPicker({ allUsers, selected, onChange }) {
             <input
               autoFocus
               type="text"
-              placeholder="Search users…"
+              placeholder="Search usersâ€¦"
               value={q}
               onChange={e => setQ(e.target.value)}
               className="w-full text-xs px-2 py-1 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
@@ -186,7 +186,7 @@ function GroupForm({ group, allBrands, allUsers, onSave, onCancel, saving }) {
       <div className="flex items-center gap-2">
         <input
           type="text"
-          placeholder="Group name…"
+          placeholder="Group nameâ€¦"
           value={name}
           onChange={e => setName(e.target.value)}
           className="flex-1 text-xs px-2.5 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -207,7 +207,7 @@ function GroupForm({ group, allBrands, allUsers, onSave, onCancel, saving }) {
 
       {/* Brands + users */}
       <div className="flex items-start gap-2 flex-wrap">
-        <BrandPicker allBrands={allBrands} selected={brands} onChange={setBrands} />
+        <BrandPicker allBrands={brands} selected={brands} onChange={setBrands} />
         <UserPicker allUsers={allUsers} selected={assignedUsers} onChange={setAssignedUsers} />
       </div>
 
@@ -241,17 +241,19 @@ function GroupForm({ group, allBrands, allUsers, onSave, onCancel, saving }) {
   );
 }
 
-// ─── main exported component ──────────────────────────────────────────────────
+// â”€â”€â”€ main exported component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 /**
  * Props:
- *   allBrands: string[]           — all unique brand values from current SRDs
- *   activeGroupId: string|null    — currently selected group id (controlled)
+ *   allBrands: string[]           â€” all unique brand values from current SRDs
+ *   activeGroupId: string|null    â€” currently selected group id (controlled)
  *   onGroupSelect: (id|null, brands: string[]) => void
  */
 export default function BrandGroupManager({ allBrands = [], activeGroupId, onGroupSelect }) {
   const { data: session } = useSession();
   const [groups, setGroups] = useState([]);
+  const [fetchedBrands, setFetchedBrands] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const [livePerms, setLivePerms] = useState(null);
   const [loading, setLoading] = useState(true);
   const [panelOpen, setPanelOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -262,10 +264,28 @@ export default function BrandGroupManager({ allBrands = [], activeGroupId, onGro
 
   const userId = session?.user?.id || session?.user?.email;
   const isAdminOrVmd = ['admin', 'vmd'].includes(session?.user?.role?.toLowerCase());
+  const canManage = isAdminOrVmd ||
+    session?.user?.permissions?.canManageBrandGroups === true ||
+    livePerms?.canManageBrandGroups === true;
+
+  // Brand values used by the picker; falls back to fetching them when the
+  // parent doesn't provide them (e.g. standalone usage on the SRD list page).
+  const brands = allBrands.length > 0 ? allBrands : fetchedBrands;
 
   useEffect(() => {
     fetchGroups();
     fetchUsers();
+    if (allBrands.length === 0) {
+      fetch('/api/srd?listBrands=true')
+        .then(r => r.json())
+        .then(d => { if (d.success && Array.isArray(d.data)) setFetchedBrands(d.data); })
+        .catch(() => {});
+    }
+    fetch('/api/users/me')
+      .then(r => r.json())
+      .then(d => { if (d.success) setLivePerms(d.data.permissions || {}); })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Close panel on outside click
@@ -295,8 +315,8 @@ export default function BrandGroupManager({ allBrands = [], activeGroupId, onGro
     } catch {}
   };
 
-  // Groups visible to this user: admin/vmd see all; others see only groups they're assigned to
-  const visibleGroups = isAdminOrVmd
+  // Groups visible to this user: managers see all; others see only groups they're assigned to
+  const visibleGroups = canManage
     ? groups
     : groups.filter(g =>
         (g.assignedUsers || []).some(u => {
@@ -368,7 +388,7 @@ export default function BrandGroupManager({ allBrands = [], activeGroupId, onGro
 
   return (
     <div className="relative" ref={panelRef}>
-      {/* ── chip bar ── */}
+      {/* â”€â”€ chip bar â”€â”€ */}
       <div className="flex items-center gap-2 flex-wrap">
         {loading ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />
@@ -390,8 +410,8 @@ export default function BrandGroupManager({ allBrands = [], activeGroupId, onGro
           ))
         )}
 
-        {/* Manage groups button — admin/vmd only */}
-        {isAdminOrVmd && (
+        {/* Manage groups button â€” admins, VMDs, or users with Can Manage Brand Groups permission */}
+        {canManage && (
           <button
             onClick={() => { setPanelOpen(v => !v); setCreating(false); setEditingId(null); }}
             className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded border transition-colors ${
@@ -417,7 +437,7 @@ export default function BrandGroupManager({ allBrands = [], activeGroupId, onGro
         )}
       </div>
 
-      {/* ── management panel (dropdown) ── */}
+      {/* â”€â”€ management panel (dropdown) â”€â”€ */}
       {panelOpen && (
         <div className="absolute top-full left-0 mt-2 w-[480px] max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-xl z-40 p-4 space-y-3">
           <div className="flex items-center justify-between">
@@ -434,14 +454,14 @@ export default function BrandGroupManager({ allBrands = [], activeGroupId, onGro
           {/* Existing groups */}
           <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
             {groups.length === 0 && !creating && (
-              <p className="text-xs text-gray-400 italic text-center py-3">No groups yet — create one below.</p>
+              <p className="text-xs text-gray-400 italic text-center py-3">No groups yet â€” create one below.</p>
             )}
             {groups.map(g => (
               <div key={g._id}>
                 {editingId === g._id ? (
                   <GroupForm
                     group={g}
-                    allBrands={allBrands}
+                    allBrands={brands}
                     allUsers={allUsers}
                     onSave={payload => handleUpdate(g._id, payload)}
                     onCancel={() => setEditingId(null)}
@@ -497,7 +517,7 @@ export default function BrandGroupManager({ allBrands = [], activeGroupId, onGro
           {/* Create new */}
           {creating ? (
             <GroupForm
-              allBrands={allBrands}
+              allBrands={brands}
               allUsers={allUsers}
               onSave={handleCreate}
               onCancel={() => setCreating(false)}

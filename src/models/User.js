@@ -46,6 +46,9 @@ const userSchema = new mongoose.Schema({
     canManageSRDFields: { type: Boolean, default: false },
     canAccessSettings: { type: Boolean, default: false },
     
+    // Brand Groups Permissions
+    canManageBrandGroups: { type: Boolean, default: false },
+    
     // Reports & Data Permissions
     canViewReports: { type: Boolean, default: false },
     canExportData: { type: Boolean, default: false },

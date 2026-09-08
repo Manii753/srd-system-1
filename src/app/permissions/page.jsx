@@ -143,6 +143,12 @@ const PERMISSION_GROUPS = [
       { key: 'canViewOrderConfirmation', label: 'Can View Order Confirmation', description: 'Can view order confirmation' },
       { key: 'canEditOrderConfirmation', label: 'Can Edit Order Confirmation', description: 'Can edit order confirmation' }
     ]
+  },
+  {
+    title: 'Brand Groups Permissions',
+    permissions: [
+      { key: 'canManageBrandGroups', label: 'Can Manage Brand Groups', description: 'Can create, edit, and delete brand-wise SR groups and assign users to them on the SR In Process page' }
+    ]
   }
 ];
 
@@ -199,7 +205,9 @@ export default function PermissionsManagementPage() {
       canEditPlanning: false,
       // Order Confirmation
       canViewOrderConfirmation: false,
-      canEditOrderConfirmation: false
+      canEditOrderConfirmation: false,
+      // Brand Groups
+      canManageBrandGroups: false
     },
     sidebarMenuItems: [],
     isActive: true
@@ -280,7 +288,9 @@ export default function PermissionsManagementPage() {
         canEditPlanning: false,
         // Order Confirmation
         canViewOrderConfirmation: false,
-        canEditOrderConfirmation: false
+        canEditOrderConfirmation: false,
+        // Brand Groups
+        canManageBrandGroups: false
       },
       sidebarMenuItems: [],
       isActive: true
@@ -335,7 +345,9 @@ export default function PermissionsManagementPage() {
         canEditPlanning: permission.permissions?.canEditPlanning || false,
         // Order Confirmation
         canViewOrderConfirmation: permission.permissions?.canViewOrderConfirmation || false,
-        canEditOrderConfirmation: permission.permissions?.canEditOrderConfirmation || false
+        canEditOrderConfirmation: permission.permissions?.canEditOrderConfirmation || false,
+        // Brand Groups
+        canManageBrandGroups: permission.permissions?.canManageBrandGroups || false
       },
       sidebarMenuItems: permission.sidebarMenuItems || [],
       isActive: permission.isActive

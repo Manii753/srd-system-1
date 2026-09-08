@@ -65,6 +65,8 @@ export async function GET(request) {
     const department = searchParams.get('department');
     const status = searchParams.get('status');
     const search = searchParams.get('search');
+    const brandsParam = searchParams.get('brands');
+    const listBrandsParam = searchParams.get('listBrands') === 'true';
     const readyForProduction = searchParams.get('readyForProduction');
     const inProduction = searchParams.get('inProduction');
     const currentProductionStage = searchParams.get('currentProductionStage');
@@ -119,6 +121,55 @@ export async function GET(request) {
         { refNo: { $regex: search, $options: 'i' } },
         { title: { $regex: search, $options: 'i' } },
       ];
+    }
+
+    // Filter by brand group (comma-separated list). Matches the same dynamic
+    // field (slug 'brand' or name 'brand'/'buyer') shown in the SRD Brand column.
+    if (brandsParam) {
+      const brands = brandsParam
+        .split(',')
+        .map(b => b.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .filter(Boolean);
+      if (brands.length > 0) {
+        query['dynamicFields'] = {
+          $elemMatch: {
+            value: { $in: brands.map(b => new RegExp(`^${b}$`, 'i')) },
+            $or: [
+              { slug: 'brand' },
+              { name: { $regex: '^brand$', $options: 'i' } },
+              { name: { $regex: '^buyer$', $options: 'i' } },
+            ],
+          },
+        };
+      }
+    }
+
+    // listBrands=true returns the distinct brand values across all SRDs so the
+    // brand-group manager can populate its picker without loading every row.
+    if (listBrandsParam) {
+      const agg = await SRD.aggregate([
+        { $match: {} },
+        { $unwind: '$dynamicFields' },
+        {
+          $match: {
+            'dynamicFields.value': { $type: 'string', $ne: '' },
+            $or: [
+              { 'dynamicFields.slug': 'brand' },
+              { 'dynamicFields.name': { $regex: '^brand$', $options: 'i' } },
+              { 'dynamicFields.name': { $regex: '^buyer$', $options: 'i' } },
+            ],
+          },
+        },
+        { $project: { v: { $trim: { input: '$dynamicFields.value' } } } },
+        { $group: { _id: { $toLower: '$v' }, value: { $first: '$v' } } },
+        { $sort: { value: 1 } },
+        { $limit: 500 },
+      ]);
+      return NextResponse.json({
+        success: true,
+        data: agg.map(x => x.value).filter(Boolean),
+        isBrandList: true,
+      });
     }
 
 

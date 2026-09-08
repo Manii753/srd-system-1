@@ -18,6 +18,7 @@ import {
   getImageAssetsFromDynamicFields,
 } from '@/lib/assetUtils';
 import { useSession } from 'next-auth/react';
+import BrandGroupManager from '@/components/BrandGroupManager';
 
 
 export default function SRDTable({ department, searchTerm: searchTermProp, filterStatus: filterStatusProp, initialProductionStages, initialQuickDetailsFields, initialPaginationSettings, initialDelayThresholdDays }) {
@@ -42,8 +43,10 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
   const [productionStages, setProductionStages] = useState([]);
   const [quickDetailsFields, setQuickDetailsFields] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
+  const [activeGroupId, setActiveGroupId] = useState(null);
+  const [activeBrands, setActiveBrands] = useState([]);
 
-  useEffect(() => { setCurrentPage(1); }, [effectiveSearch, effectiveFilter, department]);
+  useEffect(() => { setCurrentPage(1); }, [effectiveSearch, effectiveFilter, department, activeBrands]);
 
   useEffect(() => {
     if (initialProductionStages) setProductionStages(initialProductionStages.filter(s => s.isActive));
@@ -53,7 +56,7 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
 
   useEffect(() => {
     fetchSRDs();
-  }, [currentPage, effectiveSearch, effectiveFilter, department, sortField, sortDirection, paginationSettings.itemsPerPage]);
+  }, [currentPage, effectiveSearch, effectiveFilter, department, sortField, sortDirection, paginationSettings.itemsPerPage, activeBrands]);
 
   const fetchMetadata = async () => {
     try {
@@ -89,6 +92,7 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
       if (department && department !== 'all') query.append('department', department);
       if (effectiveFilter && effectiveFilter !== 'all') query.append('status', effectiveFilter);
       if (effectiveSearch) query.append('search', effectiveSearch);
+      if (activeBrands.length > 0) query.append('brands', activeBrands.join(','));
       query.append('page', currentPage);
       query.append('limit', paginationSettings.itemsPerPage || 20);
       query.append('sortBy', sortField);
@@ -279,6 +283,11 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
     setExpandedRows(prev => ({ ...prev, [srdId]: !prev[srdId] }));
   };
 
+  const handleGroupSelect = (id, brandList) => {
+    setActiveGroupId(id);
+    setActiveBrands(brandList || []);
+  };
+
 
 
 
@@ -290,6 +299,25 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
         </div>
       ) : (
       <>
+      {/* Brand groups filter bar */}
+      <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-3 flex-wrap bg-white">
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Brand Groups</span>
+        <BrandGroupManager
+          allBrands={[]}
+          activeGroupId={activeGroupId}
+          onGroupSelect={handleGroupSelect}
+        />
+        {activeBrands.length > 0 && (
+          <button
+            onClick={() => handleGroupSelect(null, [])}
+            className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-0.5"
+            title="Clear group filter"
+          >
+            <X className="h-3.5 w-3.5" />
+            Clear
+          </button>
+        )}
+      </div>
       {/* Table */}
       <div className="w-full flex-1 overflow-y-auto relative custom-scrollbar">
         <table className="w-full border-separate border-spacing-0">

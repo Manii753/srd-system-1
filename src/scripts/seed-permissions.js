@@ -43,6 +43,7 @@ const rolePermissionSchema = new mongoose.Schema({
     canEditPlanning: Boolean,
     canViewOrderConfirmation: Boolean,
     canEditOrderConfirmation: Boolean,
+    canManageBrandGroups: Boolean,
   },
   sidebarMenuItems: [String],
   isActive: Boolean,
@@ -86,6 +87,7 @@ const makePermissions = (overrides = {}) => ({
   canEditPlanning: false,
   canViewOrderConfirmation: false,
   canEditOrderConfirmation: false,
+  canManageBrandGroups: false,
   ...overrides,
 });
 
@@ -118,6 +120,7 @@ const defaultPermissions = [
       canEditPlanning: true,
       canViewOrderConfirmation: true,
       canEditOrderConfirmation: true,
+      canManageBrandGroups: true,
       stages: ['pattern', 'sewing', 'washing', 'finishing', 'vmd'],
     }),
     sidebarMenuItems: [
@@ -166,6 +169,7 @@ const defaultPermissions = [
       canEditPlanning: true,
       canViewOrderConfirmation: true,
       canEditOrderConfirmation: true,
+      canManageBrandGroups: true,
       stages: ['vmd'],
     }),
     sidebarMenuItems: [

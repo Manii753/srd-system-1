@@ -93,6 +93,13 @@ const rolePermissionSchema = new mongoose.Schema({
       description: 'Can access system settings'
     },
     
+    // Brand Groups Permissions
+    canManageBrandGroups: {
+      type: Boolean,
+      default: false,
+      description: 'Can create, edit, delete brand groups and assign users to them on the SR In Process page'
+    },
+    
     // Reports & Data Permissions
     canViewReports: {
       type: Boolean,

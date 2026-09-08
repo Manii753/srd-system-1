@@ -253,6 +253,18 @@ export function canEditPlanning(user) {
 }
 
 /**
+ * Check if user can manage brand groups (the brand-wise SR groups on the
+ * SR In Process page).
+ * @param {Object} user - User object with permissions
+ * @returns {Boolean}
+ */
+export function canManageBrandGroups(user) {
+  if (!user) return false;
+  if (user.role === 'admin' || user.role === 'vmd') return true;
+  return user.permissions?.canManageBrandGroups === true;
+}
+
+/**
  * Check if user can view order confirmation
  * @param {Object} user - User object with permissions
  * @returns {Boolean}
