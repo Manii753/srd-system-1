@@ -79,7 +79,7 @@ export default function SettingsPage() {
                     <Settings className="h-8 w-8 text-gray-700" />
                     <div>
                         <h1 className="text-app-heading font-bold text-gray-900">System Settings</h1>
-                        <p className="text-gray-600 mt-1">Configure and customize your SRD tracking system</p>
+                        <p className="text-gray-600 mt-1">Configure and customize your Merchandising Management System (MMS)</p>
                     </div>
                 </div>
 
@@ -144,7 +144,7 @@ export default function SettingsPage() {
                 <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
                     <h2 className="text-app-heading font-semibold text-blue-900 mb-2">Dynamic System Configuration</h2>
                     <p className="text-blue-800 mb-4">
-                        Your SRD system is now fully dynamic and customizable. You can:
+                        Your MMS is now fully dynamic and customizable. You can:
                     </p>
                     <ul className="space-y-2 text-blue-800">
                         <li className="flex items-start">

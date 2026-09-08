@@ -48,7 +48,7 @@ export default function MobileSplash() {
       <h1 className="text-2xl font-bold text-white tracking-wide">
         {company?.name ?? 'Loading…'}
       </h1>
-      <p className="text-gray-400 text-sm mt-2">SRD Tracking System</p>
+      <p className="text-gray-400 text-sm mt-2">Merchandising Management System (MMS)</p>
 
       <div className="absolute bottom-12 flex gap-1">
         {[0, 1, 2].map(i => (

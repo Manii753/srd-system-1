@@ -1,6 +1,6 @@
-# SRD Tracking System
+# Merchandising Management System (MMS)
 
-A comprehensive Sample Request & Development Tracking System built with Next.js, featuring role-based access control, real-time notifications, and department-specific workflows.
+A comprehensive Sample Request & Development Merchandising Management System built with Next.js, featuring role-based access control, real-time notifications, and department-specific workflows.
 
 ## Features
 

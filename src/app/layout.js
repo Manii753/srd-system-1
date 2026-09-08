@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'], display: 'swap', fallback: ['ui-sans-serif', 'system-ui'] })
 
 export const metadata = {
-  title: 'SRDS Communication System',
-  description: 'Real-time communication and call system for SRDS team',
+  title: 'MMS Communication System',
+  description: 'Real-time communication and call system for MMS team',
 
 }
 

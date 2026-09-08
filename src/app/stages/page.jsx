@@ -158,7 +158,7 @@ export default function StagesPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-app-heading font-bold text-gray-900">Manage Stages</h1>
-                    <p className="text-gray-600 mt-1">Configure workflow stages for your SRD system.</p>
+                    <p className="text-gray-600 mt-1">Configure workflow stages for your MMS.</p>
                 </div>
                 <div className="flex items-center space-x-3">
                     <Button

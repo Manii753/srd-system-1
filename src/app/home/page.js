@@ -57,7 +57,7 @@ const APP_GROUPS = [
 export default function HomePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [company, setCompany] = useState({ name: 'SRD System' });
+  const [company, setCompany] = useState({ name: 'MMS' });
   const [showSplash, setShowSplash] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
 
@@ -153,7 +153,7 @@ export default function HomePage() {
 
         {/* Bottom decoration */}
         <div className="absolute bottom-8 text-gray-600 text-xs">
-          Powered by SRD System
+          Powered by MMS
         </div>
       </div>
     );

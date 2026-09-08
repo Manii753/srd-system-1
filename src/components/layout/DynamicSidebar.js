@@ -297,7 +297,7 @@ export default function DynamicSidebar() {
         display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between',
         minHeight: 56, flexShrink: 0,
       }}>
-        {!collapsed && <span style={{ fontWeight: 700, fontSize: 15, color: '#111827', whiteSpace: 'nowrap' }}>SRD System</span>}
+        {!collapsed && <span style={{ fontWeight: 700, fontSize: 15, color: '#111827', whiteSpace: 'nowrap' }}>MMS</span>}
         <button onClick={toggle} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           width: 32, height: 32, borderRadius: 8, border: 'none',

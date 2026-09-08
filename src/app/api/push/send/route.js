@@ -36,7 +36,7 @@ export async function POST(request) {
 
     // Prepare notification payload
     const payload = JSON.stringify({
-      title: title || 'SRDS Notification',
+      title: title || 'MMS Notification',
       body: body || 'You have a new notification',
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-72x72.png',
