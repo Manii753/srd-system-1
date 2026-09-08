@@ -124,8 +124,6 @@ const defaultPermissions = [
       'home',
       'order-confirmation',
       'samples-management',
-      'create-srd',
-      'sample-request',
       'sample-process',
       'sample-card',
       'dispatch',
@@ -183,7 +181,6 @@ const defaultPermissions = [
       'bom',
       'planning',
       'all-srds',
-      'create-srd',
     ],
     isActive: true,
   },
@@ -240,7 +237,7 @@ const defaultPermissions = [
       canViewReports: true,
       stages: ['cad'],
     }),
-    sidebarMenuItems: ['home', 'order-confirmation', 'all-srds', 'sample-process', 'create-srd'],
+    sidebarMenuItems: ['home', 'order-confirmation', 'all-srds', 'sample-process'],
     isActive: true,
   },
   {
@@ -255,7 +252,7 @@ const defaultPermissions = [
       canEditOrderConfirmation: true,
       stages: ['commercial'],
     }),
-    sidebarMenuItems: ['home', 'order-confirmation', 'all-srds', 'sample-process', 'create-srd'],
+    sidebarMenuItems: ['home', 'order-confirmation', 'all-srds', 'sample-process'],
     isActive: true,
   },
   {
@@ -270,7 +267,7 @@ const defaultPermissions = [
       canEditOrderConfirmation: true,
       stages: ['mmc'],
     }),
-    sidebarMenuItems: ['home', 'order-confirmation', 'all-srds', 'sample-process', 'create-srd'],
+    sidebarMenuItems: ['home', 'order-confirmation', 'all-srds', 'sample-process'],
     isActive: true,
   },
   {

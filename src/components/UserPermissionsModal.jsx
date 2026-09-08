@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 
@@ -16,17 +16,23 @@ const AVAILABLE_MENU_ITEMS = [
   { id: 'home', name: 'Home' },
   { id: 'order-confirmation', name: 'Order Confirmation' },
   { id: 'samples-management', name: 'Samples Management' },
-  { id: 'create-srd', name: 'Create SRD' },
-  { id: 'sample-request', name: 'Sample Request' },
-  { id: 'sample-process', name: 'SR In Process' },
+  { id: 'all-srds', name: 'SR In Process' },
+  { id: 'sample-process', name: 'Inter Dept Log' },
   { id: 'sample-card', name: 'Sample Card' },
   { id: 'dispatch', name: 'Dispatch Detail' },
   { id: 'reports', name: 'Reports' },
   { id: 'buyer-comment', name: 'Buyer Comment' },
   { id: 'cost-sheets', name: 'Cost Sheets' },
+  { id: 'pre-costing', name: 'Pre-Costing' },
+  { id: 'cost-sheets-sub', name: 'All Costing' },
   { id: 'bom', name: 'BOM' },
   { id: 'planning', name: 'Planning' },
-  { id: 'all-srds', name: 'All SRDs' },
+  { id: 'production', name: 'Production' },
+  { id: 'vmd-production', name: 'VMD Production' },
+  { id: 'work-queue', name: 'Work Queue' },
+  { id: 'stage', name: 'Stage' },
+  { id: 'mmc', name: 'MMC Portal' },
+  { id: 'purchase-orders', name: 'Purchase Orders' },
   { id: 'srd-fields', name: 'SRD Fields' },
   { id: 'users', name: 'Users' },
   { id: 'permissions', name: 'Permissions' },
@@ -122,15 +128,8 @@ const PERMISSION_GROUPS = [
 ];
 
 export default function UserPermissionsModal({ user, isOpen, onClose, onSave }) {
-  const [permissions, setPermissions] = useState({});
-  const [sidebarMenuItems, setSidebarMenuItems] = useState([]);
-
-  useEffect(() => {
-    if (user) {
-      setPermissions(user.permissions || {});
-      setSidebarMenuItems(user.sidebarMenuItems || []);
-    }
-  }, [user]);
+  const [permissions, setPermissions] = useState(user?.permissions || {});
+  const [sidebarMenuItems, setSidebarMenuItems] = useState(user?.sidebarMenuItems || []);
 
   const togglePermission = (key) => {
     setPermissions(prev => ({

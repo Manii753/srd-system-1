@@ -26,17 +26,23 @@ const AVAILABLE_MENU_ITEMS = [
   { id: 'home', name: 'Home' },
   { id: 'order-confirmation', name: 'Order Confirmation' },
   { id: 'samples-management', name: 'Samples Management' },
-  { id: 'create-srd', name: 'Create SRD' },
-  { id: 'sample-request', name: 'Sample Request' },
-  { id: 'sample-process', name: 'SR In Process' },
+  { id: 'all-srds', name: 'SR In Process' },
+  { id: 'sample-process', name: 'Inter Dept Log' },
   { id: 'sample-card', name: 'Sample Card' },
   { id: 'dispatch', name: 'Dispatch Detail' },
   { id: 'reports', name: 'Reports' },
   { id: 'buyer-comment', name: 'Buyer Comment' },
   { id: 'cost-sheets', name: 'Cost Sheets' },
+  { id: 'pre-costing', name: 'Pre-Costing' },
+  { id: 'cost-sheets-sub', name: 'All Costing' },
   { id: 'bom', name: 'BOM' },
   { id: 'planning', name: 'Planning' },
-  { id: 'all-srds', name: 'All SRDs' },
+  { id: 'production', name: 'Production' },
+  { id: 'vmd-production', name: 'VMD Production' },
+  { id: 'work-queue', name: 'Work Queue' },
+  { id: 'stage', name: 'Stage' },
+  { id: 'mmc', name: 'MMC Portal' },
+  { id: 'purchase-orders', name: 'Purchase Orders' },
   { id: 'srd-fields', name: 'SRD Fields' },
   { id: 'users', name: 'Users' },
   { id: 'permissions', name: 'Permissions' },
@@ -58,7 +64,8 @@ const PERMISSION_GROUPS = [
       { key: 'canCreateSRD', label: 'Can Create SRD', description: 'Can create new Sample Request Documents' },
       { key: 'canEditSRD', label: 'Can Edit SRD', description: 'Can edit SRD details' },
       { key: 'canDeleteSRD', label: 'Can Delete SRD', description: 'Can delete SRDs' },
-      { key: 'canViewAllSRDs', label: 'Can View All SRDs', description: 'Can view all SRDs (not just own department)' }
+      { key: 'canViewAllSRDs', label: 'Can View All SRDs', description: 'Can view all SRDs (not just own department)' },
+      { key: 'canApproveAnyDepartment', label: 'Can Approve Any Department', description: 'Can approve VMD, CAD, MMC and COM from the status bar (typically for VMD users)' }
     ]
   },
   {
@@ -152,6 +159,7 @@ export default function PermissionsManagementPage() {
       canEditSRD: false,
       canDeleteSRD: false,
       canViewAllSRDs: false,
+      canApproveAnyDepartment: false,
       // Admin Portal
       canAccessAdminPortal: false,
       canManageUsers: false,
@@ -201,7 +209,7 @@ export default function PermissionsManagementPage() {
     fetchPermissions();
   }, [session, status, router]);
 
-  const fetchPermissions = async () => {
+  async function fetchPermissions() {
     try {
       const res = await fetch('/api/permissions');
       const data = await res.json();
@@ -215,7 +223,7 @@ export default function PermissionsManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const openNewPermissionModal = () => {
     setFormData({
@@ -232,6 +240,7 @@ export default function PermissionsManagementPage() {
         canEditSRD: false,
         canDeleteSRD: false,
         canViewAllSRDs: false,
+        canApproveAnyDepartment: false,
         // Admin Portal
         canAccessAdminPortal: false,
         canManageUsers: false,
@@ -286,6 +295,7 @@ export default function PermissionsManagementPage() {
         canEditSRD: permission.permissions?.canEditSRD || false,
         canDeleteSRD: permission.permissions?.canDeleteSRD || false,
         canViewAllSRDs: permission.permissions?.canViewAllSRDs || false,
+        canApproveAnyDepartment: permission.permissions?.canApproveAnyDepartment || false,
         // Admin Portal
         canAccessAdminPortal: permission.permissions?.canAccessAdminPortal || false,
         canManageUsers: permission.permissions?.canManageUsers || false,
@@ -444,7 +454,7 @@ export default function PermissionsManagementPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-app-heading font-bold text-gray-900">Role Permissions</h1>
-              <p className="text-app-text text-gray-600 mt-1">Manage SR in process permissions for each role</p>
+              <p className="text-app-text text-gray-600 mt-1">Manage role-based permissions and sidebar access</p>
             </div>
             <Button onClick={openNewPermissionModal} className="flex items-center space-x-2">
               <PlusCircle className="h-5 w-5" />

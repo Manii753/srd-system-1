@@ -738,6 +738,7 @@ export default function UsersManagementPage() {
 
         {/* Permissions Modal */}
         <UserPermissionsModal
+          key={editingPermissionsUser?._id || 'none'}
           user={editingPermissionsUser}
           isOpen={permissionsModalOpen}
           onClose={() => setPermissionsModalOpen(false)}
