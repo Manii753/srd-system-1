@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/lib/use-toast';
 import Layout from '@/components/layout/Layout';
+import BrandGroupManager from '@/components/BrandGroupManager';
 import { Loader2, RefreshCw, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -78,6 +79,8 @@ export default function SampleProcessPage() {
   const [filterStage, setFilterStage] = useState(''); // '' = all stages
   const [blinkingKey, setBlinkingKey] = useState(null);
   const [myPermissions, setMyPermissions] = useState(null);
+  const [activeGroupId, setActiveGroupId] = useState(null);
+  const [activeGroupBrands, setActiveGroupBrands] = useState([]);
 
   const userRole = session?.user?.role?.toLowerCase() || '';
   const canViewAll = userRole === 'admin' || userRole === 'vmd';
@@ -103,7 +106,12 @@ export default function SampleProcessPage() {
   }, [session?.user?.id]);
 
   useEffect(() => { fetchAll(); }, []);
-  useEffect(() => { setCurrentPage(1); }, [filterBrand, filterStatus, filterInquiry, filterStage]);
+  useEffect(() => { setCurrentPage(1); }, [filterBrand, filterStatus, filterInquiry, filterStage, activeGroupBrands]);
+
+  const handleGroupSelect = (id, brandList) => {
+    setActiveGroupId(id);
+    setActiveGroupBrands(brandList || []);
+  };
 
   const fetchAll = async () => {
     setLoading(true);
@@ -158,13 +166,18 @@ export default function SampleProcessPage() {
 
   const filteredSrds = useMemo(() => {
     let list = baseSrds;
-    if (filterBrand)   list = list.filter(s => getBrand(s) === filterBrand);
+    if (activeGroupBrands.length > 0) {
+      const brandSet = new Set(activeGroupBrands.map(b => b.toLowerCase().trim()));
+      list = list.filter(s => brandSet.has(getBrand(s).toLowerCase().trim()));
+    } else if (filterBrand) {
+      list = list.filter(s => getBrand(s) === filterBrand);
+    }
     if (filterInquiry) list = list.filter(s => s.refNo?.toLowerCase().includes(filterInquiry.toLowerCase()));
     if (filterStatus === 'pending')          list = list.filter(s => !s.inProduction && !s.isComplete);
     else if (filterStatus === 'in-progress') list = list.filter(s => s.inProduction && !s.isComplete);
     else if (filterStatus === 'completed')   list = list.filter(s => s.isComplete);
     return list;
-  }, [baseSrds, filterBrand, filterInquiry, filterStatus]);
+  }, [baseSrds, filterBrand, filterInquiry, filterStatus, activeGroupBrands]);
 
   const srdsForStage = (stageSlug, stageIndex) => {
     if (stageIndex === 0) {
@@ -377,6 +390,16 @@ export default function SampleProcessPage() {
     <Layout headerContent={headerBar}>
       <div className="flex flex-col h-[calc(100vh-56px)] overflow-hidden p-4">
         <div className="flex-1 bg-white shadow-sm border border-gray-100 rounded-xl overflow-hidden flex flex-col">
+
+          {/* Brand groups filter bar */}
+          <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-3 flex-wrap bg-white">
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Brand Groups</span>
+            <BrandGroupManager
+              allBrands={allBrands}
+              activeGroupId={activeGroupId}
+              onGroupSelect={handleGroupSelect}
+            />
+          </div>
 
           {dataRows.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
