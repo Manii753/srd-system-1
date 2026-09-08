@@ -389,12 +389,12 @@ export default function SampleProcessPage() {
                 <table className="w-full border-separate border-spacing-0">
                   <thead className="sticky top-0 z-10 bg-gray-50 shadow-sm">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-black/10 w-24">Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-black/10 w-36">Inquiry #</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-black/10 w-36">Brand</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-black/10">Description</th>
-                      <th className="px-4 py-3 text-center text-xs font-bold text-blue-500 uppercase tracking-wider border-b border-black/10 w-36">Click To Receive</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-black/10 w-44">Current Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-nowrap text-gray-500 uppercase tracking-wider border-b border-black/10 w-24">Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-nowrap text-gray-500 uppercase tracking-wider border-b border-black/10 w-36">Inquiry #</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-nowrap text-gray-500 uppercase tracking-wider border-b border-black/10 w-36">Brand</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-nowrap text-gray-500 uppercase tracking-wider border-b border-black/10">Description</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-nowrap text-gray-500 uppercase tracking-wider border-b border-black/10 w-36">Click To Receive</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-nowrap text-gray-500 uppercase tracking-wider border-b border-black/10 w-44">Current Status</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white">
