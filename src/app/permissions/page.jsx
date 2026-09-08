@@ -437,24 +437,36 @@ export default function PermissionsManagementPage() {
 
   const toggleMenuItem = (menuItemId) => {
     const currentItems = formData.sidebarMenuItems || [];
-    const isChecked = currentItems.includes(menuItemId) || (MENU_GROUP_CHILD_OF[menuItemId] && currentItems.includes(MENU_GROUP_CHILD_OF[menuItemId]));
-    const parentId = MENU_GROUP_CHILD_OF[menuItemId] || menuItemId;
+
+    // Toggling the group heading (e.g. Samples Management): it always includes
+    // every sub-page when enabled, and unhides them all when disabled.
     const group = MENU_GROUPS.find(g => g.id === menuItemId);
+    if (group) {
+      const wasChecked = currentItems.includes(group.id);
+      const newItems = wasChecked
+        ? currentItems.filter(i => i !== group.id && !group.children.includes(i))
+        : [...new Set([...currentItems, group.id, ...group.children])];
+      setFormData({ ...formData, sidebarMenuItems: newItems });
+      return;
+    }
 
-    // A menu group is all-or-nothing: toggling the group (or any of its
-    // sub-pages) enables or disables the whole group so the sidebar shows it.
-    const affects = group
-      ? [group.id, ...group.children]
-      : [parentId, menuItemId];
+    // Toggling an individual sub-page: only that link is added/removed, so the
+    // rest of the group stays in the navbar.
+    const parentId = MENU_GROUP_CHILD_OF[menuItemId];
+    const groupDef = MENU_GROUPS.find(g => g.id === parentId);
+    const willCheck = !currentItems.includes(menuItemId);
 
-    const newItems = isChecked
-      ? currentItems.filter(i => !affects.includes(i))
-      : [...new Set([...currentItems, parentId, ...(group ? affects : [])])];
-
-    setFormData({
-      ...formData,
-      sidebarMenuItems: newItems
-    });
+    let newItems;
+    if (willCheck) {
+      newItems = [...new Set([...currentItems, parentId, menuItemId])];
+    } else {
+      newItems = currentItems.filter(i => i !== menuItemId);
+      const remainingSiblings = (groupDef?.children || []).filter(s => newItems.includes(s));
+      if (remainingSiblings.length === 0) {
+        newItems = newItems.filter(i => i !== parentId);
+      }
+    }
+    setFormData({ ...formData, sidebarMenuItems: newItems });
   };
 
   const togglePermission = (permissionKey) => {
@@ -753,7 +765,7 @@ export default function PermissionsManagementPage() {
                   <div className="space-y-3 border-t pt-4">
                     <h3 className="font-semibold text-gray-900">Access Groups</h3>
                     <p className="text-sm text-gray-600">
-                      Select which menu groups should appear in the sidebar for this role. Enabling a group like &quot;Samples Management&quot; also grants its sub-pages (SR In Process, Inter Dept Log, Sample Card, etc.).
+                      Select which menu groups should appear in the sidebar for this role. The group heading (e.g. &quot;Samples Management&quot;) appears in the navbar with its sub-pages beneath it — untick a sub-page to hide just that link.
                     </p>
 
                     {MENU_GROUPS.map(group => {
@@ -782,7 +794,7 @@ export default function PermissionsManagementPage() {
                                 <input
                                   type="checkbox"
                                   id={`menu-${item.id}`}
-                                  checked={formData.sidebarMenuItems?.includes(item.id) || checked}
+                                  checked={formData.sidebarMenuItems?.includes(item.id)}
                                   onChange={() => toggleMenuItem(item.id)}
                                   className="form-checkbox h-4 w-4 text-blue-600"
                                 />

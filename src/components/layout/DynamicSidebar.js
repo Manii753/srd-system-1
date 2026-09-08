@@ -13,6 +13,14 @@ import {
 
 const COLLAPSED_KEY = 'sidebar_collapsed';
 
+// Sub-pages belonging to each submenu group. Used to reconcile per-user
+// sidebarMenuItems: a user configured before granular toggles only stored the
+// parent id (e.g. 'samples-management'), which should still reveal every
+// sub-page. Once any child id is stored explicitly, only those IDs win.
+const SUBGROUP_CHILDREN = {
+  'samples-management': ['all-srds', 'sample-process', 'sample-card', 'dispatch', 'reports', 'buyer-comment'],
+};
+
 function MenuItem({ icon, label, collapsed, active, onClick, suffix }) {
   const [hovered, setHovered] = useState(false);
   return (
@@ -163,8 +171,9 @@ export default function DynamicSidebar() {
           if (isAdmin) return true;
           // Respect an explicit permission gate when present.
           if (it.perm && !can(it.perm)) return false;
-          // If the user configured a custom menu, respect it.
-          if (hasCustomMenu && !hasMenu(it.id)) return false;
+          // If the user configured a custom menu, respect it. A submenu heading
+          // also appears when any of its sub-pages are granted.
+          if (hasCustomMenu && !hasMenu(it.id) && !(it.children?.some(c => hasMenu(c.id)))) return false;
           return true;
         });
       };
@@ -175,12 +184,15 @@ export default function DynamicSidebar() {
         const root = filterItems(candidates);
         return root.map(item => {
           if (item.children) {
+            // Legacy users stored only the group id, so a group grant implies
+            // every sub-page unless a child id has been stored explicitly.
+            const groupChildren = SUBGROUP_CHILDREN[item.id] || [];
+            const hasExplicitChildren = groupChildren.some(id => hasMenu(id));
             const kept = (childrenFilter ? childrenFilter(item) : item.children).filter(child => {
               if (isAdmin) return true;
               // Respect an explicit permission gate when present.
               if (child.perm && !can(child.perm)) return false;
-              // Granting a menu group (submenu parent) also grants its sub-pages.
-              if (hasCustomMenu && !hasMenu(child.id) && !hasMenu(item.id)) return false;
+              if (hasCustomMenu && !hasMenu(child.id) && !(hasMenu(item.id) && !hasExplicitChildren)) return false;
               return true;
             });
             if (kept.length === 0) return null;
