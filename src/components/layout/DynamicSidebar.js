@@ -175,7 +175,14 @@ export default function DynamicSidebar() {
         const root = filterItems(candidates);
         return root.map(item => {
           if (item.children) {
-            const kept = filterItems(childrenFilter ? childrenFilter(item) : item.children);
+            const kept = (childrenFilter ? childrenFilter(item) : item.children).filter(child => {
+              if (isAdmin) return true;
+              // Respect an explicit permission gate when present.
+              if (child.perm && !can(child.perm)) return false;
+              // Granting a menu group (submenu parent) also grants its sub-pages.
+              if (hasCustomMenu && !hasMenu(child.id) && !hasMenu(item.id)) return false;
+              return true;
+            });
             if (kept.length === 0) return null;
             return { ...item, children: kept };
           }

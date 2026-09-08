@@ -35,6 +35,7 @@ export async function GET() {
   if (logo) {
     icons.push({ src: logo, sizes: '192x192', type: iconMime(logo), purpose: 'any' });
     icons.push({ src: logo, sizes: '512x512', type: iconMime(logo), purpose: 'any' });
+    icons.push({ src: logo, sizes: 'any', type: iconMime(logo), purpose: 'any' });
   }
   icons.push(
     { src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

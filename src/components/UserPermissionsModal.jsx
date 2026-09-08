@@ -39,6 +39,15 @@ const AVAILABLE_MENU_ITEMS = [
   { id: 'settings', name: 'Settings' }
 ];
 
+// Menu groups whose sub-menu ids are auto-granted when the group is enabled.
+const MENU_GROUPS = [
+  { id: 'samples-management', name: 'Samples Management', children: ['all-srds', 'sample-process', 'sample-card', 'dispatch', 'reports', 'buyer-comment'] }
+];
+
+const MENU_GROUP_CHILD_OF = Object.fromEntries(
+  MENU_GROUPS.flatMap(g => g.children.map(childId => [childId, g.id]))
+);
+
 const PERMISSION_GROUPS = [
   {
     title: 'Sample Process Permissions',
@@ -151,10 +160,20 @@ export default function UserPermissionsModal({ user, isOpen, onClose, onSave }) 
   };
 
   const toggleMenuItem = (menuItemId) => {
-    const newItems = sidebarMenuItems.includes(menuItemId)
-      ? sidebarMenuItems.filter(i => i !== menuItemId)
-      : [...sidebarMenuItems, menuItemId];
-    
+    const isChecked = sidebarMenuItems.includes(menuItemId) || (MENU_GROUP_CHILD_OF[menuItemId] && sidebarMenuItems.includes(MENU_GROUP_CHILD_OF[menuItemId]));
+    const parentId = MENU_GROUP_CHILD_OF[menuItemId] || menuItemId;
+    const group = MENU_GROUPS.find(g => g.id === menuItemId);
+
+    // A menu group is all-or-nothing: toggling the group (or any of its
+    // sub-pages) enables or disables the whole group so the sidebar shows it.
+    const affects = group
+      ? [group.id, ...group.children]
+      : [parentId, menuItemId];
+
+    const newItems = isChecked
+      ? sidebarMenuItems.filter(i => !affects.includes(i))
+      : [...new Set([...sidebarMenuItems, parentId, ...(group ? affects : [])])];
+
     setSidebarMenuItems(newItems);
   };
 
@@ -242,24 +261,70 @@ export default function UserPermissionsModal({ user, isOpen, onClose, onSave }) 
 
             {/* Sidebar Menu Items */}
             <div className="space-y-3 border-t pt-4">
-              <h3 className="font-semibold text-gray-900">Sidebar Menu Items</h3>
-              <p className="text-sm text-gray-600">Select which menu items should appear in the sidebar for this user</p>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {AVAILABLE_MENU_ITEMS.map(item => (
-                  <div key={item.id} className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50">
-                    <input
-                      type="checkbox"
-                      id={`menu-${item.id}`}
-                      checked={sidebarMenuItems.includes(item.id)}
-                      onChange={() => toggleMenuItem(item.id)}
-                      className="form-checkbox h-4 w-4 text-blue-600"
-                    />
-                    <Label htmlFor={`menu-${item.id}`} className="cursor-pointer text-sm">
-                      {item.name}
-                    </Label>
+              <h3 className="font-semibold text-gray-900">Access Groups</h3>
+              <p className="text-sm text-gray-600">
+                Select which menu groups should appear in the sidebar for this user. Enabling a group like &quot;Samples Management&quot; also grants its sub-pages (SR In Process, Inter Dept Log, Sample Card, etc.).
+              </p>
+
+              {/* Menu groups (enabling a group auto-grants its sub-pages) */}
+              {MENU_GROUPS.map(group => {
+                const checked = sidebarMenuItems.includes(group.id);
+                const childrenItems = group.children
+                  .map(childId => AVAILABLE_MENU_ITEMS.find(i => i.id === childId))
+                  .filter(Boolean);
+                return (
+                  <div key={group.id} className="border rounded-lg overflow-hidden">
+                    <div className="flex items-center space-x-2 p-3 bg-gray-50 border-b">
+                      <input
+                        type="checkbox"
+                        id={`menu-${group.id}`}
+                        checked={checked}
+                        onChange={() => toggleMenuItem(group.id)}
+                        className="form-checkbox h-4 w-4 text-blue-600"
+                      />
+                      <Label htmlFor={`menu-${group.id}`} className="cursor-pointer font-medium text-sm">
+                        {group.name}
+                      </Label>
+                      <span className="text-xs text-gray-400 ml-auto">Group</span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3">
+                      {childrenItems.map(item => (
+                        <div key={item.id} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`menu-${item.id}`}
+                            checked={sidebarMenuItems.includes(item.id) || checked}
+                            onChange={() => toggleMenuItem(item.id)}
+                            className="form-checkbox h-4 w-4 text-blue-600"
+                          />
+                          <Label htmlFor={`menu-${item.id}`} className="cursor-pointer text-sm text-gray-600">
+                            {item.name}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                );
+              })}
+
+              {/* Standalone menu items */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {AVAILABLE_MENU_ITEMS
+                  .filter(item => !MENU_GROUPS.some(g => g.id === item.id || g.children.includes(item.id)))
+                  .map(item => (
+                    <div key={item.id} className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50">
+                      <input
+                        type="checkbox"
+                        id={`menu-${item.id}`}
+                        checked={sidebarMenuItems.includes(item.id)}
+                        onChange={() => toggleMenuItem(item.id)}
+                        className="form-checkbox h-4 w-4 text-blue-600"
+                      />
+                      <Label htmlFor={`menu-${item.id}`} className="cursor-pointer text-sm">
+                        {item.name}
+                      </Label>
+                    </div>
+                  ))}
               </div>
             </div>
 
