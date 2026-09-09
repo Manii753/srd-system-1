@@ -3,6 +3,7 @@ import fs from 'fs';
 import {
   buildAssetStorageInfo,
   buildStoredAssetRecord,
+  toAbsolutePublicPath,
 } from '@/lib/serverAssetUtils';
 
 export async function POST(request) {
@@ -76,7 +77,7 @@ export async function DELETE(request) {
 
     // url is like /uploads/filename.ext — map to public/uploads/filename.ext
     const relativePath = url.startsWith('/') ? url.slice(1) : url;
-    const absolutePath = `${process.cwd()}/public/${relativePath}`;
+    const absolutePath = toAbsolutePublicPath(relativePath);
 
     if (fs.existsSync(absolutePath)) {
       fs.unlinkSync(absolutePath);

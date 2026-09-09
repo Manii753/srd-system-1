@@ -6,15 +6,31 @@ import {
   toPublicAssetUrl,
 } from './assetUtils.js';
 
-export function getPublicDir(projectRoot = process.cwd()) {
+// Resolve the application root (the folder containing next.config.js / public/).
+//
+// By default we fall back to process.cwd(), which is correct when the server is
+// started from the project root (e.g. `npm start` / `next start`). However, if
+// the app is launched from a different working directory (a Windows service,
+// NSSM, a scheduled task, pm2, etc.), process.cwd() will NOT be the project
+// root: uploads would be written to `<startup-dir>/public/uploads/...` while
+// Next.js still serves static files from the app root's `public/` — so uploads
+// would "succeed" (the DB record plus URL is saved) but never show up.
+//
+// Set APP_ROOT to the application folder when deploying, so uploads always land
+// where Next.js serves them from, regardless of how the process is launched.
+export function getProjectRoot() {
+  return process.env.APP_ROOT ? path.resolve(process.env.APP_ROOT) : process.cwd();
+}
+
+export function getPublicDir(projectRoot = getProjectRoot()) {
   return path.join(projectRoot, 'public');
 }
 
-export function getUploadsRootDir(projectRoot = process.cwd()) {
+export function getUploadsRootDir(projectRoot = getProjectRoot()) {
   return path.join(getPublicDir(projectRoot), 'uploads');
 }
 
-export function toAbsolutePublicPath(relativePath, projectRoot = process.cwd()) {
+export function toAbsolutePublicPath(relativePath, projectRoot = getProjectRoot()) {
   const normalized = String(relativePath ?? '')
     .trim()
     .replace(/^\/+/, '')
@@ -24,7 +40,7 @@ export function toAbsolutePublicPath(relativePath, projectRoot = process.cwd()) 
 }
 
 export function buildAssetStorageInfo({
-  projectRoot = process.cwd(),
+  projectRoot = getProjectRoot(),
   srdId,
   fieldId,
   fieldType,

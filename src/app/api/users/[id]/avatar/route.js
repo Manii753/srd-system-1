@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { getUploadsRootDir } from '@/lib/serverAssetUtils';
 
 export async function POST(request, { params }) {
   const session = await getServerSession(authOptions);
@@ -39,7 +40,7 @@ export async function POST(request, { params }) {
     const base64Data = matches[2];
     const ext = path.extname(fileName) || '.jpg';
     const storedFileName = `avatar-${id}-${Date.now()}${ext}`;
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'avatars');
+    const uploadDir = path.join(getUploadsRootDir(), 'avatars');
 
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });

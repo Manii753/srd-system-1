@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { getPublicDir } from '@/lib/serverAssetUtils';
 
 export async function POST(request) {
   try {
@@ -11,7 +12,7 @@ export async function POST(request) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const ext = path.extname(file.name) || '.png';
     const filename = `company-logo${ext}`;
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    const uploadDir = path.join(getPublicDir(), 'uploads');
 
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
     fs.writeFileSync(path.join(uploadDir, filename), buffer);

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+import { getPublicDir } from '@/lib/serverAssetUtils';
 
 export async function POST(request) {
   try {
@@ -22,7 +23,7 @@ export async function POST(request) {
     const filename = `voice_${timestamp}_${randomStr}.${extension}`;
     
     // Create directory if it doesn't exist
-    const uploadDir = path.join(process.cwd(), 'public', 'assets', 'voice-chats');
+    const uploadDir = path.join(getPublicDir(), 'assets', 'voice-chats');
     try {
       await mkdir(uploadDir, { recursive: true });
     } catch (err) {

@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import archiver from 'archiver';
 import AdmZip from 'adm-zip';
 import { EJSON } from 'bson';
+import { getProjectRoot } from './serverAssetUtils.js';
 
 export const BACKUP_FORMAT_ZIP = 'zip-v2';
 export const BACKUP_FORMAT_JSON = 'json-v1';
@@ -21,11 +22,11 @@ const DEFAULT_EXCLUDED_COLLECTIONS = new Set(['backups', 'backup_schedule']);
 const BULK_RESTORE_CHUNK_SIZE = 500;
 
 export function getBackupsDirectory() {
-  return path.join(process.cwd(), 'backups');
+  return path.join(getProjectRoot(), 'backups');
 }
 
 export function getUploadsDirectory() {
-  return path.join(process.cwd(), 'public', 'uploads');
+  return path.join(getProjectRoot(), 'public', 'uploads');
 }
 
 export function getAutomaticBackupPath() {
