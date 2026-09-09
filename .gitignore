@@ -46,4 +46,6 @@ backups
 # Voice chat uploads
 /public/assets/voice-chats
 
+# User uploads (stored outside public/ so they are served via the route handler)
+/uploads
 /public/uploads

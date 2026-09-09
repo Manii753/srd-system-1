@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-import fs from 'fs';
 import dbConnect from '@/lib/db';
 import SRD from '@/models/SRD';
 import Dispatch from '@/models/Dispatch';
 import Buyer from '@/models/Buyer';
-import { resolveManagedUploadRelativePath, toAbsolutePublicPath } from '@/lib/serverAssetUtils';
+import { resolveUploadAbsolutePath } from '@/lib/serverAssetUtils';
 
 function esc(value) {
   return String(value ?? '')
@@ -16,10 +15,7 @@ function esc(value) {
 }
 
 function toAbsolutePath(url) {
-  const relativePath = resolveManagedUploadRelativePath(url);
-  if (!relativePath) return null;
-  const absolutePath = toAbsolutePublicPath(relativePath);
-  return fs.existsSync(absolutePath) ? absolutePath : null;
+  return resolveUploadAbsolutePath(url);
 }
 
 function formatDate(value) {

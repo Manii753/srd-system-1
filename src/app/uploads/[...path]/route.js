@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { getPublicDir } from '@/lib/serverAssetUtils';
+import { getUploadsRootDir, getLegacyPublicUploadsDir } from '@/lib/serverAssetUtils';
 
 // Minimal content-type map for the file kinds this app stores.
 const MIME_TYPES = {
@@ -37,45 +37,56 @@ function isSafeSegment(segment) {
   );
 }
 
+function isInside(root, candidate) {
+  const r = path.resolve(root);
+  const c = path.resolve(candidate);
+  return c === r || c.startsWith(r + path.sep);
+}
+
 // Next.js serves files in public/ only for content present at build/start time.
 // Files written to public/ at runtime (user uploads, avatars, etc.) are not
 // added to that in-memory route table, so the browser gets a 404 until the
-// server is restarted. This route handler serves uploads directly from disk on
-// every request, so newly uploaded files are available immediately without a
-// restart. It also guards against path traversal.
+// server is restarted. Uploads are therefore stored outside public/ (in the
+// project-root uploads/ folder) and served here directly from disk on every
+// request, so newly uploaded files are available immediately. This also guards
+// against path traversal.
 export async function GET(request, { params }) {
   const segments = (await params).path || [];
   if (!Array.isArray(segments) || segments.length === 0 || !segments.every(isSafeSegment)) {
     return new NextResponse('Not Found', { status: 404 });
   }
 
-  const publicDir = getPublicDir();
-  const absolutePath = path.join(publicDir, ...segments);
+  const candidates = [getUploadsRootDir(), getLegacyPublicUploadsDir()];
 
-  // Ensure the resolved file stays inside the public directory.
-  const resolved = path.resolve(absolutePath);
-  const publicRoot = path.resolve(publicDir);
-  if (resolved !== publicRoot && !resolved.startsWith(publicRoot + path.sep)) {
-    return new NextResponse('Forbidden', { status: 403 });
-  }
-
-  try {
-    const data = fs.readFileSync(resolved);
-    const ext = path.extname(resolved).toLowerCase();
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-
-    return new NextResponse(data, {
-      status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=0',
-        'X-Content-Type-Options': 'nosniff',
-      },
-    });
-  } catch (error) {
-    if (error && error.code === 'ENOENT') {
-      return new NextResponse('Not Found', { status: 404 });
+  for (const root of candidates) {
+    const target = path.join(root, ...segments);
+    if (!isInside(root, target)) {
+      continue;
     }
-    return new NextResponse('Internal Server Error', { status: 500 });
+    if (!fs.existsSync(target)) {
+      continue;
+    }
+
+    try {
+      const data = fs.readFileSync(target);
+      const ext = path.extname(target).toLowerCase();
+      const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+
+      return new NextResponse(data, {
+        status: 200,
+        headers: {
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=0',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      });
+    } catch (error) {
+      if (error && error.code === 'ENOENT') {
+        continue;
+      }
+      return new NextResponse('Internal Server Error', { status: 500 });
+    }
   }
+
+  return new NextResponse('Not Found', { status: 404 });
 }

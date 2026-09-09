@@ -26,7 +26,7 @@ export function getBackupsDirectory() {
 }
 
 export function getUploadsDirectory() {
-  return path.join(getProjectRoot(), 'public', 'uploads');
+  return path.join(getProjectRoot(), 'uploads');
 }
 
 export function getAutomaticBackupPath() {

@@ -3,7 +3,7 @@ import fs from 'fs';
 import {
   buildAssetStorageInfo,
   buildStoredAssetRecord,
-  toAbsolutePublicPath,
+  resolveUploadAbsolutePath,
 } from '@/lib/serverAssetUtils';
 
 export async function POST(request) {
@@ -75,11 +75,10 @@ export async function DELETE(request) {
     const { url } = await request.json();
     if (!url) return NextResponse.json({ success: false, error: 'Missing url' }, { status: 400 });
 
-    // url is like /uploads/filename.ext — map to public/uploads/filename.ext
-    const relativePath = url.startsWith('/') ? url.slice(1) : url;
-    const absolutePath = toAbsolutePublicPath(relativePath);
+    // url is like /uploads/images/x/file.png — resolve to the stored file
+    const absolutePath = resolveUploadAbsolutePath(url);
 
-    if (fs.existsSync(absolutePath)) {
+    if (absolutePath && fs.existsSync(absolutePath)) {
       fs.unlinkSync(absolutePath);
     }
 

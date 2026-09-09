@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs';
 import {
   getAssetDirectoryName,
   sanitizeFileName,
@@ -26,7 +27,19 @@ export function getPublicDir(projectRoot = getProjectRoot()) {
   return path.join(projectRoot, 'public');
 }
 
+// Uploads (user images, excel files, avatars, logos) are stored outside the
+// public/ directory on purpose. Next.js only serves files inside public/ if
+// they exist at build/start time — files written there at runtime are not
+// added to its in-memory static route table and return 404 until the server is
+// restarted. By storing uploads here and serving them through the catch-all
+// route handler at /uploads/[...path], newly uploaded files are available
+// immediately without a restart. The URL scheme (/uploads/...) is unchanged.
 export function getUploadsRootDir(projectRoot = getProjectRoot()) {
+  return path.join(projectRoot, 'uploads');
+}
+
+// Legacy fallback: uploads that existed inside public/ before this change.
+export function getLegacyPublicUploadsDir(projectRoot = getProjectRoot()) {
   return path.join(getPublicDir(projectRoot), 'uploads');
 }
 
@@ -37,6 +50,42 @@ export function toAbsolutePublicPath(relativePath, projectRoot = getProjectRoot(
     .replace(/\//g, path.sep);
 
   return path.join(getPublicDir(projectRoot), normalized);
+}
+
+// Resolve a public upload URL (e.g. "/uploads/images/x/file.png" or
+// "/uploads/file.png") to the absolute path on disk where the file lives,
+// checking the new uploads root first, then the legacy public/uploads folder.
+// Returns null if the originating path is unsafe or the file cannot be found.
+export function resolveUploadAbsolutePath(url, projectRoot = getProjectRoot()) {
+  const stringValue = String(url ?? '').trim();
+  let relativePath = '';
+
+  if (stringValue.startsWith('/uploads/')) {
+    relativePath = stringValue.slice('/uploads/'.length);
+  } else if (stringValue.startsWith('uploads/')) {
+    relativePath = stringValue.slice('uploads/'.length);
+  } else {
+    return null;
+  }
+
+  const safeSegments = relativePath.split('/').filter((seg) => {
+    return !(seg === '' || seg === '.' || seg === '..' || seg.includes('\\'));
+  });
+  if (!safeSegments.length) return null;
+
+  const roots = [getUploadsRootDir(projectRoot), getLegacyPublicUploadsDir(projectRoot)];
+  for (const root of roots) {
+    const candidate = path.join(root, ...safeSegments);
+    if (!isPathInside(root, candidate)) continue;
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+function isPathInside(baseDir, candidate) {
+  const base = path.resolve(baseDir);
+  const resolved = path.resolve(candidate);
+  return resolved === base || resolved.startsWith(base + path.sep);
 }
 
 export function buildAssetStorageInfo({
@@ -58,12 +107,14 @@ export function buildAssetStorageInfo({
   const storedFileName = `srd_${safeSrdId}__field_${safeFieldId}__${timestamp}__${safeFileName}`;
   const relativePath = path.posix.join('uploads', directoryName, safeSrdId, storedFileName);
 
+  const uploadsRoot = getUploadsRootDir(projectRoot);
+
   return {
     directoryName,
     storedFileName,
     relativePath,
-    absoluteDirectory: path.join(getUploadsRootDir(projectRoot), directoryName, safeSrdId),
-    absolutePath: toAbsolutePublicPath(relativePath, projectRoot),
+    absoluteDirectory: path.join(uploadsRoot, directoryName, safeSrdId),
+    absolutePath: path.join(uploadsRoot, directoryName, safeSrdId, storedFileName),
     url: toPublicAssetUrl(relativePath),
   };
 }
