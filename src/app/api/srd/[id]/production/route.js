@@ -140,6 +140,7 @@ export async function PATCH(request, { params }) {
         srd.productionProgress = 100;
         srd.productionEndDate = new Date();
         srd.currentProductionStage = null;
+        srd.inProduction = false;
         srd.isComplete = true;
         srd.inDispatch = true;
 

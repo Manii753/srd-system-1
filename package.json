@@ -18,6 +18,7 @@
     "fix:srd-status": "node src/lib/fixSRDStatus.js",
     "fix:srd-status-format": "node src/lib/fixSRDStatusFormat.js",
     "fix:srd-production-state": "node src/lib/fixSRDProductionState.js",
+    "fix:srd-completion": "node src/lib/fixSRDCompletion.js",
     "backup:scheduler": "node src/lib/startBackupScheduler.js",
     "backup:create": "node src/lib/createBackup.js",
     "pwa:setup": "node setup-pwa.js",

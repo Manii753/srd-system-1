@@ -145,6 +145,18 @@ export async function PATCH(request, { params }) {
       }
     }
 
+    // ── Reconcile sampleProcess against the current stage list ─────────────
+    // Drop stale entries (e.g. a "dispatch" stage that was deactivated or
+    // removed from the ProductionStage collection). Otherwise the tail-based
+    // "is this the last stage" check below fails on the last REAL stage and
+    // the SRD never becomes Completed.
+    const knownStageIds = new Set(productionStages.map(p => p.id));
+    const hadStale = srd.sampleProcess.some(e => !knownStageIds.has(e.stage));
+    if (hadStale) {
+      srd.sampleProcess = srd.sampleProcess.filter(e => knownStageIds.has(e.stage));
+      srd.markModified('sampleProcess');
+    }
+
     // ── Find the target stage ──────────────────────────────────────────────
     const stageIndex = srd.sampleProcess.findIndex(s => s.stage === stage);
     if (stageIndex === -1) {
@@ -227,13 +239,21 @@ export async function PATCH(request, { params }) {
       srd.sampleProcess[stageIndex].status = 'completed';
       if (notes) srd.sampleProcess[stageIndex].notes = notes;
 
-      // Mark next stage as in-progress so the next person knows to receive
+      // Mark next stage as in-progress so the next person knows to receive,
+      // but only if the next entry is a real production stage.
       if (stageIndex < srd.sampleProcess.length - 1) {
-        srd.sampleProcess[stageIndex + 1].status = 'in-progress';
+        const nextStageId = srd.sampleProcess[stageIndex + 1]?.stage;
+        if (nextStageId && knownStageIds.has(nextStageId)) {
+          srd.sampleProcess[stageIndex + 1].status = 'in-progress';
+        }
       }
 
-      // If this was the LAST stage, mark the SRD as complete immediately
-      const isLastStage = stageIndex === srd.sampleProcess.length - 1;
+      // If this was the LAST real stage, mark the SRD as complete immediately.
+      // Determine "last" from the authoritative production list (CAD + active
+      // ProductionStage docs) rather than the sampleProcess tail, which can lag
+      // behind the real stage lineup (e.g. a stale "dispatch" entry).
+      const lastRealStageId = productionStages[productionStages.length - 1]?.id;
+      const isLastStage = lastRealStageId !== undefined && stage === lastRealStageId;
       if (isLastStage) {
         srd.isComplete = true;
         srd.currentProductionStage = null;

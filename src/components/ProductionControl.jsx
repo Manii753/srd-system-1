@@ -195,6 +195,28 @@ export default function ProductionControl({ srdId, initialData, onUpdate, onHead
     return;
   }
 
+  // Production complete
+  if (isComplete) {
+    return (
+      <Card className="border-green-200 bg-green-50">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="font-medium text-green-900">Production Complete</p>
+                <p className="text-app-text text-green-700">
+                  All production stages completed successfully.
+                  {productionProgress ? ` ${productionProgress}% overall progress.` : ''}
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Ready but not started
   if (readyForProduction && !inProduction) {
     return (
