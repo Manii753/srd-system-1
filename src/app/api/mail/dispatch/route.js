@@ -60,7 +60,7 @@ function buildImageAttachments(srd, prefix) {
 }
 
 function buildDispatchBlock(srd, idx) {
-  const dispatch = srd.DispatchDetails || {};
+  const dispatch   = srd.DispatchDetails || {};
   const brand      = getDynField(srd, 'brand', 'Brand');
   const sampleType = getDynField(srd, 'sample type', 'Sample Type', 'sampleType') || 'PRODUCTION SAMPLE';
   const styleRef   = getDynField(srd, 'buyer style ref', 'style ref', 'Buyer Style Ref');
@@ -69,121 +69,142 @@ function buildDispatchBlock(srd, idx) {
   const color      = getDynField(srd, 'wash / color', 'wash/color', 'color/wash', 'color', 'wash');
   const size       = getDynField(srd, 'sample request size', 'size', 'Size');
   const qty        = dispatch.dispatchQuantity || getDynField(srd, 'sample request qty.', 'sample request qty', 'qty', 'quantity', 'Qty');
-  const awb        = dispatch.awb || '';
 
   const { attachments, cids } = buildImageAttachments(srd, `img${idx}`);
-
-  // Collect all image cids in one flat list (front + back together, no labels)
   const allCids = [...cids.front, ...cids.back];
 
-  const tableRow = `
-    <tr>
-      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(brand)}</td>
-      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(sampleType)}</td>
-      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(srd.refNo || '')}</td>
-      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(styleRef)}</td>
-      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(desc)}</td>
-      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(fit)}</td>
-      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(color)}</td>
-      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(size)}</td>
-      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(qty)}</td>
-    </tr>`;
+  // Shared cell style strings to keep HTML compact
+  const hCell = `border:1px solid #d0d0d0;padding:6px 10px;font-size:13px;font-family:Calibri,Arial,sans-serif;font-weight:bold;color:#000;text-align:left;white-space:nowrap;`;
+  const dCell = `border:1px solid #d0d0d0;padding:6px 10px;font-size:13px;font-family:Calibri,Arial,sans-serif;color:#1a1a1a;`;
 
   const imagesHtml = allCids.length
-    ? `<div style="margin:12px 0 16px 0;">
+    ? `<table cellpadding="0" cellspacing="0" style="margin:14px 0 0 0;"><tr>
         ${allCids.map(cid =>
-          `<img src="cid:${cid}" alt="Product" style="max-width:180px;max-height:200px;border:1px solid #ddd;margin:0 8px 0 0;display:inline-block;" />`
+          `<td style="padding:0 10px 0 0;vertical-align:top;">
+            <img src="cid:${cid}" alt="Product" width="160" style="max-width:160px;max-height:200px;display:block;border:0;" />
+           </td>`
         ).join('')}
-       </div>`
+       </tr></table>`
     : '';
 
   return {
     attachments,
     html: `
-      <div style="margin:0 0 20px 0;">
-        ${idx > 0 ? `<hr style="border:none;border-top:1px solid #e0e0e0;margin:0 0 20px 0;" />` : ''}
+      ${idx > 0 ? `<table cellpadding="0" cellspacing="0" width="100%" style="margin:20px 0;"><tr><td style="border-top:1px solid #e0e0e0;font-size:0;line-height:0;">&nbsp;</td></tr></table>` : ''}
 
-        <table style="border-collapse:collapse;width:100%;margin-bottom:14px;font-family:Calibri,Arial,sans-serif;">
-          <thead>
-            <tr style="background:#f2f2f2;">
-              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Brand</td>
-              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Sample Type</td>
-              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Inq Ref No</td>
-              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Buyer Style Ref.</td>
-              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Description</td>
-              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Fit</td>
-              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Color</td>
-              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Size</td>
-              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Qty</td>
-            </tr>
-          </thead>
-          <tbody>
-            ${tableRow}
-          </tbody>
-        </table>
+      <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;margin-bottom:0;table-layout:fixed;">
+        <colgroup>
+          <col style="width:13%;" />
+          <col style="width:15%;" />
+          <col style="width:10%;" />
+          <col style="width:13%;" />
+          <col style="width:18%;" />
+          <col style="width:8%;" />
+          <col style="width:10%;" />
+          <col style="width:6%;" />
+          <col style="width:5%;" />
+        </colgroup>
+        <tr style="background:#f2f2f2;">
+          <td style="${hCell}">Brand</td>
+          <td style="${hCell}">Sample Type</td>
+          <td style="${hCell}">Inq Ref No</td>
+          <td style="${hCell}">Buyer Style Ref.</td>
+          <td style="${hCell}">Description</td>
+          <td style="${hCell}">Fit</td>
+          <td style="${hCell}">Color</td>
+          <td style="${hCell}">Size</td>
+          <td style="${hCell}">Qty</td>
+        </tr>
+        <tr>
+          <td style="${dCell}">${esc(brand)}</td>
+          <td style="${dCell}">${esc(sampleType)}</td>
+          <td style="${dCell}">${esc(srd.refNo || '')}</td>
+          <td style="${dCell}">${esc(styleRef)}</td>
+          <td style="${dCell}">${esc(desc)}</td>
+          <td style="${dCell}">${esc(fit)}</td>
+          <td style="${dCell}">${esc(color)}</td>
+          <td style="${dCell}">${esc(size)}</td>
+          <td style="${dCell}">${esc(qty)}</td>
+        </tr>
+      </table>
 
-        ${imagesHtml}
-      </div>`,
+      ${imagesHtml}`,
   };
 }
 
-function buildEmailHTML({ blocks, awb, dispatchDate, representativeName, representativeEmail }) {
-
-  // Build representative contact block — bullet-list style like the screenshot
-  let repLines = '';
-  if (representativeName && representativeEmail) {
-    repLines = `<li style="margin:2px 0;"><strong>${esc(representativeName)}:</strong> <a href="mailto:${esc(representativeEmail)}" style="color:#1a56b0;text-decoration:none;">${esc(representativeEmail)}</a></li>`;
-  } else {
-    repLines = `
-      <li style="margin:2px 0;"><strong>Usman:</strong> <a href="mailto:Usman@lazienda.com.pk" style="color:#1a56b0;text-decoration:none;">Usman@lazienda.com.pk</a></li>
-      <li style="margin:2px 0;"><strong>Tayyab:</strong> <a href="mailto:Tayyab@lazienda.com.pk" style="color:#1a56b0;text-decoration:none;">Tayyab@lazienda.com.pk</a></li>`;
-  }
-
+function buildEmailHTML({ blocks, awb, representativeName, representativeEmail }) {
   const dhlUrl = `https://www.dhl.com/pk-en/home/tracking.html${awb ? `?tracking-id=${esc(awb)}` : ''}`;
 
+  const repLines = (representativeName && representativeEmail)
+    ? `<li style="margin:3px 0;font-family:Calibri,Arial,sans-serif;font-size:13px;">
+         <strong>${esc(representativeName)}:</strong>
+         <a href="mailto:${esc(representativeEmail)}" style="color:#1a56b0;text-decoration:none;">${esc(representativeEmail)}</a>
+       </li>`
+    : `<li style="margin:3px 0;font-family:Calibri,Arial,sans-serif;font-size:13px;"><strong>Usman:</strong> <a href="mailto:Usman@lazienda.com.pk" style="color:#1a56b0;text-decoration:none;">Usman@lazienda.com.pk</a></li>
+       <li style="margin:3px 0;font-family:Calibri,Arial,sans-serif;font-size:13px;"><strong>Tayyab:</strong> <a href="mailto:Tayyab@lazienda.com.pk" style="color:#1a56b0;text-decoration:none;">Tayyab@lazienda.com.pk</a></li>`;
+
+  // p style used throughout body
+  const pStyle = `margin:0 0 14px 0;font-size:14px;font-family:Calibri,Arial,sans-serif;color:#1a1a1a;line-height:1.6;`;
+
   return `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8" /></head>
-<body style="margin:0;padding:0;background:#ffffff;">
-<table width="100%" cellpadding="0" cellspacing="0" style="max-width:720px;margin:0 auto;padding:24px 28px;font-family:Calibri,Arial,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.5;">
-  <tr><td>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="x-apple-disable-message-reformatting" />
+  <meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no" />
+</head>
+<body style="margin:0;padding:0;background:#ffffff;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
 
-    <!-- Greeting -->
-    <p style="margin:0 0 12px 0;font-size:14px;font-family:Calibri,Arial,sans-serif;"><strong>Dear Merchandising Team,</strong></p>
+<!-- Outer wrapper -->
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#ffffff;">
+  <tr>
+    <td align="left" style="padding:28px 32px;font-family:Calibri,Arial,sans-serif;">
 
-    <!-- Intro -->
-    <p style="margin:0 0 12px 0;font-size:14px;font-family:Calibri,Arial,sans-serif;">Please find the shipment details below for your tracking convenience:</p>
+      <!-- Greeting -->
+      <p style="${pStyle}"><strong>Dear Merchandising Team,</strong></p>
 
-    <!-- Per-SRD blocks (table + images) -->
-    ${blocks.map(b => b.html).join('')}
+      <!-- Intro -->
+      <p style="${pStyle}">Please find the shipment details below for your tracking convenience:</p>
 
-    <!-- DHL tracking line -->
-    <p style="margin:0 0 18px 0;font-size:14px;font-family:Calibri,Arial,sans-serif;">
-      You can monitor the real-time status of your delivery directly on the official
-      <a href="${dhlUrl}" style="color:#1a56b0;text-decoration:underline;" target="_blank">DHL Tracking Portal</a>.
-    </p>
+      <!-- SRD blocks -->
+      ${blocks.map(b => b.html).join('')}
 
-    <!-- Divider -->
-    <hr style="border:none;border-top:1px solid #cccccc;margin:0 0 14px 0;" />
+      <!-- Spacer after last block -->
+      <table cellpadding="0" cellspacing="0" width="100%"><tr><td style="padding:14px 0 0 0;font-size:0;line-height:0;">&nbsp;</td></tr></table>
 
-    <!-- Footer note -->
-    <p style="margin:0 0 8px 0;font-size:13px;font-family:Calibri,Arial,sans-serif;color:#333;font-style:italic;">
-      <strong style="font-style:normal;">Please note:</strong>
-      This is a system-generated message. If you require immediate merchandise assistance, please do not hesitate to contact our account management team directly:
-    </p>
-    <ul style="margin:0 0 14px 0;padding-left:22px;font-size:13px;font-family:Calibri,Arial,sans-serif;color:#1a1a1a;">
-      ${repLines}
-    </ul>
+      <!-- DHL line -->
+      <p style="${pStyle}">
+        You can monitor the real-time status of your delivery directly on the official
+        <a href="${dhlUrl}" style="color:#1a56b0;text-decoration:underline;" target="_blank">DHL Tracking Portal</a>.
+      </p>
 
-    <!-- Sign-off -->
-    <p style="margin:0 0 12px 0;font-size:14px;font-family:Calibri,Arial,sans-serif;">Thank you for your continued partnership.</p>
+      <!-- Divider -->
+      <table cellpadding="0" cellspacing="0" width="100%" style="margin:4px 0 18px 0;">
+        <tr><td style="border-top:1px solid #cccccc;font-size:0;line-height:0;">&nbsp;</td></tr>
+      </table>
 
-    <!-- Company -->
-    <p style="margin:0 0 2px 0;font-size:14px;font-family:Calibri,Arial,sans-serif;"><strong>LAZIENDA DENIM (PVT) LTD.</strong></p>
-    <p style="margin:0;font-size:12px;font-family:Calibri,Arial,sans-serif;color:#555;font-style:italic;">🌱 Think before you print. Save paper, save trees.</p>
+      <!-- Footer note -->
+      <p style="margin:0 0 8px 0;font-size:13px;font-family:Calibri,Arial,sans-serif;color:#333;font-style:italic;line-height:1.5;">
+        <strong style="font-style:normal;">Please note:</strong>
+        This is a system-generated message. If you require immediate merchandise assistance, please do not hesitate to contact our account management team directly:
+      </p>
+      <ul style="margin:0 0 16px 0;padding-left:22px;">
+        ${repLines}
+      </ul>
 
-  </td></tr>
+      <!-- Sign-off — wrap in span to prevent Gmail auto-linking -->
+      <p style="${pStyle}"><span style="color:#1a1a1a;text-decoration:none;">Thank you for your continued partnership.</span></p>
+
+      <!-- Company name -->
+      <p style="margin:0 0 2px 0;font-size:14px;font-family:Calibri,Arial,sans-serif;color:#1a1a1a;"><strong>LAZIENDA DENIM (PVT) LTD.</strong></p>
+
+      <!-- Eco note -->
+      <p style="margin:0;font-size:12px;font-family:Calibri,Arial,sans-serif;color:#555;font-style:italic;">&#127807; Think before you print. Save paper, save trees.</p>
+
+    </td>
+  </tr>
 </table>
+
 </body>
 </html>`;
 }
