@@ -94,67 +94,98 @@ export default function HomePage() {
 
   if (status === 'loading') return null;
 
-  // Show splash screen
+  // Show splash screen — matches loading.js theme (dark + green)
   if (showSplash) {
     return (
       <div
-        className={`min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-900 flex flex-col items-center justify-center transition-opacity duration-500 ${
+        className={`min-h-screen flex flex-col items-center justify-center overflow-hidden transition-opacity duration-500 ${
           fadeOut ? 'opacity-0' : 'opacity-100'
         }`}
+        style={{ background: 'linear-gradient(135deg, #111827 0%, #1f2937 50%, #111827 100%)' }}
       >
-        {/* Animated background effects */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-700" />
-        </div>
+        <style>{`
+          @keyframes sp-orbit {
+            0%   { transform: rotate(0deg)   translateX(52px) rotate(0deg);    }
+            100% { transform: rotate(360deg) translateX(52px) rotate(-360deg); }
+          }
+          @keyframes sp-bar {
+            0%   { width: 0%;   }
+            50%  { width: 70%;  }
+            100% { width: 100%; }
+          }
+          @keyframes sp-dot {
+            0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+            40%           { opacity: 1;   transform: scale(1.2); }
+          }
+          @keyframes sp-fade {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0);   }
+          }
+          .sp-orbit { animation: sp-orbit 3s linear infinite; }
+          .sp-bar   { animation: sp-bar 2s ease-in-out infinite; }
+          .sp-dot-1 { animation: sp-dot 1.4s ease-in-out infinite 0s;   }
+          .sp-dot-2 { animation: sp-dot 1.4s ease-in-out infinite 0.2s; }
+          .sp-dot-3 { animation: sp-dot 1.4s ease-in-out infinite 0.4s; }
+          .sp-fade  { animation: sp-fade 0.8s ease-out both; }
+        `}</style>
 
-        {/* Main content */}
-        <div className="relative z-10 flex flex-col items-center gap-8">
-          {/* Logo container with glow effect */}
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl blur-2xl opacity-50 animate-pulse" />
+        {/* Logo mark with orbiting dot */}
+        <div style={{ position: 'relative', marginBottom: 32 }}>
+          <div style={{
+            width: 80, height: 80,
+            borderRadius: 16,
+            background: 'linear-gradient(135deg, #22c55e, #10b981)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 40px rgba(34,197,94,0.35)',
+            overflow: 'hidden',
+          }}>
             {company.logo ? (
-              <div className="relative w-32 h-32 rounded-2xl overflow-hidden shadow-2xl bg-white p-4">
-                <img
-                  src={company.logo}
-                  alt="Company logo"
-                  className="w-full h-full object-contain"
-                />
-              </div>
+              <img
+                src={company.logo}
+                alt={company.name}
+                style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }}
+              />
             ) : (
-              <div className="relative w-32 h-32 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-2xl">
-                <span className="text-5xl font-bold text-white">
-                  {company?.name?.[0] ?? 'S'}
-                </span>
-              </div>
+              <span style={{ color: '#fff', fontSize: 32, fontWeight: 900, letterSpacing: -1 }}>
+                {(company?.name?.[0] ?? 'M').toUpperCase()}
+              </span>
             )}
           </div>
-
-          {/* Company name with gradient text */}
-          <div className="text-center space-y-2">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-pulse">
-              {company?.name ?? 'Loading...'}
-            </h1>
-            <p className="text-gray-400 text-sm tracking-wider uppercase">
-            </p>
-          </div>
-
-          {/* Loading animation */}
-          <div className="flex gap-2 mt-4">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 animate-bounce"
-                style={{ animationDelay: `${i * 0.15}s` }}
-              />
-            ))}
+          {/* Orbiting dot */}
+          <div className="sp-orbit" style={{ position: 'absolute', inset: 0 }}>
+            <div style={{
+              width: 12, height: 12, borderRadius: '50%',
+              background: '#4ade80',
+              boxShadow: '0 0 8px rgba(74,222,128,0.6)',
+            }} />
           </div>
         </div>
 
-        {/* Bottom decoration */}
-        <div className="absolute bottom-8 text-gray-600 text-xs">
-          Powered by MMS
+        {/* Company name */}
+        <div className="sp-fade" style={{ textAlign: 'center', marginBottom: 12 }}>
+          <p style={{ margin: '0 0 4px 0', fontSize: 11, fontWeight: 500, color: 'rgba(74,222,128,0.8)', letterSpacing: 4, textTransform: 'uppercase' }}>
+            Welcome To
+          </p>
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: -0.5, lineHeight: 1.3 }}>
+            {company?.name ?? 'Loading...'}
+          </h1>
         </div>
+
+        {/* Progress bar */}
+        <div style={{ width: 192, height: 4, background: '#374151', borderRadius: 9999, overflow: 'hidden', marginTop: 24 }}>
+          <div className="sp-bar" style={{ height: '100%', background: 'linear-gradient(to right, #22c55e, #34d399)', borderRadius: 9999 }} />
+        </div>
+
+        {/* Bouncing dots */}
+        <div style={{ display: 'flex', gap: 6, marginTop: 16 }}>
+          <span className="sp-dot-1" style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'block' }} />
+          <span className="sp-dot-2" style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'block' }} />
+          <span className="sp-dot-3" style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'block' }} />
+        </div>
+
+        <p style={{ color: '#6b7280', fontSize: 11, marginTop: 24 }}>
+          LAZIENDA DENIM (PVT) LTD.
+        </p>
       </div>
     );
   }
