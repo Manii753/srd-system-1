@@ -830,9 +830,9 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
       </div>
 
-      <div className={`border border-gray-300 bg-white mt-2 relative ${(srd.inDispatch || srd.isComplete) && !srd.sampleDispatchedToBuyer ? '' : 'pointer-events-none'}`}>
+      <div className={`border border-gray-300 bg-white mt-2 relative ${(srd.inDispatch || srd.isComplete || srd.internalApproved || srd.readyForProduction) && !srd.sampleDispatchedToBuyer ? '' : 'pointer-events-none'}`}>
         {/* Locked overlay */}
-        {!(srd.inDispatch || srd.isComplete) && !srd.sampleDispatchedToBuyer && (
+        {!(srd.inDispatch || srd.isComplete || srd.internalApproved || srd.readyForProduction) && !srd.sampleDispatchedToBuyer && (
           <div className="absolute inset-0 z-10 bg-white/60 flex items-center justify-center">
             <span className="bg-white border border-orange-300 rounded-lg px-4 py-2 text-sm text-orange-700 font-medium shadow">
               🔒 Available after Finishing stage is marked Ready
