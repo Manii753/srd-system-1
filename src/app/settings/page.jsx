@@ -68,6 +68,13 @@ export default function SettingsPage() {
             icon: List,
             href: "/settings/pagination",
             color: "bg-cyan-500"
+        },
+        {
+            title: "Sample Types",
+            description: "Manage and deduplicate sample type values across all SRDs",
+            icon: List,
+            href: "/settings/sample-types",
+            color: "bg-emerald-500"
         }
     ];
 

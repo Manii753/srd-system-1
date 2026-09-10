@@ -72,8 +72,8 @@ function BrandPicker({ allBrands, selected, onChange }) {
           <div className="max-h-44 overflow-y-auto py-1">
             {filtered.length === 0 ? (
               <p className="px-3 py-2 text-xs text-gray-400">No brands found</p>
-            ) : filtered.map(b => (
-              <label key={b} className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer">
+) : filtered.map((b, i) => (
+                <label key={i} className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={selected.includes(b)}
@@ -214,8 +214,8 @@ function GroupForm({ group, allBrands, allUsers, onSave, onCancel, saving }) {
       {/* Selected brand pills */}
       {brands.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {brands.map(b => (
-            <Badge key={b} color={color} onRemove={() => setBrands(brands.filter(x => x !== b))}>
+{brands.map((b, i) => (
+              <Badge key={i} color={color} onRemove={() => setBrands(brands.filter(x => x !== b))}>
               {b}
             </Badge>
           ))}
