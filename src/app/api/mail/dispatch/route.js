@@ -103,18 +103,18 @@ function buildDispatchBlock(srd, idx) {
       <div style="margin:0 0 20px 0;">
         ${idx > 0 ? `<hr style="border:none;border-top:1px solid #e0e0e0;margin:0 0 20px 0;" />` : ''}
 
-        <table style="border-collapse:collapse;width:100%;margin-bottom:14px;">
+        <table style="border-collapse:collapse;width:100%;margin-bottom:14px;font-family:Calibri,Arial,sans-serif;">
           <thead>
             <tr style="background:#f2f2f2;">
-              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Brand</th>
-              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Sample Type</th>
-              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Inq Ref No</th>
-              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Buyer Style Ref.</th>
-              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Description</th>
-              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Fit</th>
-              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Color</th>
-              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Size</th>
-              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Qty</th>
+              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Brand</td>
+              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Sample Type</td>
+              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Inq Ref No</td>
+              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Buyer Style Ref.</td>
+              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Description</td>
+              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Fit</td>
+              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Color</td>
+              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Size</td>
+              <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;color:#000;">Qty</td>
             </tr>
           </thead>
           <tbody>
@@ -128,8 +128,6 @@ function buildDispatchBlock(srd, idx) {
 }
 
 function buildEmailHTML({ blocks, awb, dispatchDate, representativeName, representativeEmail }) {
-  const formattedDate = formatDate(dispatchDate);
-  void formattedDate; // used if needed in subject
 
   // Build representative contact block — bullet-list style like the screenshot
   let repLines = '';
@@ -145,43 +143,47 @@ function buildEmailHTML({ blocks, awb, dispatchDate, representativeName, represe
 
   return `<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
-<body style="margin:0;padding:24px 28px;background:#ffffff;font-family:Calibri,Arial,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.5;">
+<head><meta charset="UTF-8" /></head>
+<body style="margin:0;padding:0;background:#ffffff;">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:720px;margin:0 auto;padding:24px 28px;font-family:Calibri,Arial,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.5;">
+  <tr><td>
 
-  <!-- Greeting -->
-  <p style="margin:0 0 14px 0;font-size:14px;"><strong>Dear Merchandising Team,</strong></p>
+    <!-- Greeting -->
+    <p style="margin:0 0 12px 0;font-size:14px;font-family:Calibri,Arial,sans-serif;"><strong>Dear Merchandising Team,</strong></p>
 
-  <!-- Intro -->
-  <p style="margin:0 0 14px 0;font-size:14px;">Please find the shipment details below for your tracking convenience:</p>
+    <!-- Intro -->
+    <p style="margin:0 0 12px 0;font-size:14px;font-family:Calibri,Arial,sans-serif;">Please find the shipment details below for your tracking convenience:</p>
 
-  <!-- Per-SRD blocks (table + images) -->
-  ${blocks.map(b => b.html).join('')}
+    <!-- Per-SRD blocks (table + images) -->
+    ${blocks.map(b => b.html).join('')}
 
-  <!-- DHL tracking line -->
-  <p style="margin:0 0 18px 0;font-size:14px;">
-    You can monitor the real-time status of your delivery directly on the official
-    <a href="${dhlUrl}" style="color:#1a56b0;text-decoration:underline;" target="_blank">DHL Tracking Portal</a>.
-  </p>
+    <!-- DHL tracking line -->
+    <p style="margin:0 0 18px 0;font-size:14px;font-family:Calibri,Arial,sans-serif;">
+      You can monitor the real-time status of your delivery directly on the official
+      <a href="${dhlUrl}" style="color:#1a56b0;text-decoration:underline;" target="_blank">DHL Tracking Portal</a>.
+    </p>
 
-  <!-- Divider -->
-  <hr style="border:none;border-top:1px solid #cccccc;margin:0 0 14px 0;" />
+    <!-- Divider -->
+    <hr style="border:none;border-top:1px solid #cccccc;margin:0 0 14px 0;" />
 
-  <!-- Footer note -->
-  <p style="margin:0 0 10px 0;font-size:13px;color:#444;font-style:italic;">
-    <strong style="font-style:normal;">Please note:</strong>
-    This is a system-generated message. If you require immediate merchandise assistance, please do not hesitate to contact our account management team directly:
-  </p>
-  <ul style="margin:0 0 14px 0;padding-left:22px;font-size:13px;color:#1a1a1a;">
-    ${repLines}
-  </ul>
+    <!-- Footer note -->
+    <p style="margin:0 0 8px 0;font-size:13px;font-family:Calibri,Arial,sans-serif;color:#333;font-style:italic;">
+      <strong style="font-style:normal;">Please note:</strong>
+      This is a system-generated message. If you require immediate merchandise assistance, please do not hesitate to contact our account management team directly:
+    </p>
+    <ul style="margin:0 0 14px 0;padding-left:22px;font-size:13px;font-family:Calibri,Arial,sans-serif;color:#1a1a1a;">
+      ${repLines}
+    </ul>
 
-  <!-- Sign-off -->
-  <p style="margin:0 0 14px 0;font-size:14px;">Thank you for your continued partnership.</p>
+    <!-- Sign-off -->
+    <p style="margin:0 0 12px 0;font-size:14px;font-family:Calibri,Arial,sans-serif;">Thank you for your continued partnership.</p>
 
-  <!-- Company -->
-  <p style="margin:0 0 2px 0;font-size:14px;"><strong>LAZIENDA DENIM (PVT) LTD.</strong></p>
-  <p style="margin:0;font-size:12px;color:#555;font-style:italic;">🌱 Think before you print. Save paper, save trees.</p>
+    <!-- Company -->
+    <p style="margin:0 0 2px 0;font-size:14px;font-family:Calibri,Arial,sans-serif;"><strong>LAZIENDA DENIM (PVT) LTD.</strong></p>
+    <p style="margin:0;font-size:12px;font-family:Calibri,Arial,sans-serif;color:#555;font-style:italic;">🌱 Think before you print. Save paper, save trees.</p>
 
+  </td></tr>
+</table>
 </body>
 </html>`;
 }
