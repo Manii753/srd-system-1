@@ -314,7 +314,6 @@ export default function SRReportPage() {
   }, []);
 
   const allBrands = useMemo(() => [...new Set(srds.map(s => getDyn(s, 'brand')).filter(Boolean))].sort(), [srds]);
-gb
   // Deduplicate sample types case-insensitively — group variants by uppercase key,
   // prefer the ALL-CAPS form (most common), fall back to trimmed original.
   const allTypes = useMemo(() => {
