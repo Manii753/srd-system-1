@@ -110,7 +110,6 @@ export default function HomePage() {
           }
           @keyframes sp-bar {
             0%   { width: 0%;   }
-            50%  { width: 70%;  }
             100% { width: 100%; }
           }
           @keyframes sp-dot {
@@ -122,7 +121,7 @@ export default function HomePage() {
             to   { opacity: 1; transform: translateY(0);   }
           }
           .sp-orbit { animation: sp-orbit 3s linear infinite; }
-          .sp-bar   { animation: sp-bar 2s ease-in-out infinite; }
+          .sp-bar   { animation: sp-bar 5s ease-out forwards; }
           .sp-dot-1 { animation: sp-dot 1.4s ease-in-out infinite 0s;   }
           .sp-dot-2 { animation: sp-dot 1.4s ease-in-out infinite 0.2s; }
           .sp-dot-3 { animation: sp-dot 1.4s ease-in-out infinite 0.4s; }
@@ -166,9 +165,12 @@ export default function HomePage() {
           <p style={{ margin: '0 0 4px 0', fontSize: 11, fontWeight: 500, color: 'rgba(74,222,128,0.8)', letterSpacing: 4, textTransform: 'uppercase' }}>
             Welcome To
           </p>
-          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: -0.5, lineHeight: 1.3 }}>
+          <h1 style={{ margin: '0 0 4px 0', fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: -0.5, lineHeight: 1.3 }}>
             {company?.name ?? 'Loading...'}
           </h1>
+          <p style={{ margin: 0, fontSize: 13, color: '#9ca3af', letterSpacing: 0.3 }}>
+            Merchandising Management System <span style={{ color: '#4ade80', fontWeight: 600 }}>(MMS)</span>
+          </p>
         </div>
 
         {/* Progress bar */}
