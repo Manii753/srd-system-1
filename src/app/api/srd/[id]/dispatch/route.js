@@ -127,6 +127,9 @@ export async function PATCH(request, context) {
           srd.dispatchBy = payload.dispatchBy;
           srd.dispatchNotes = payload.dispatchNotes;
           srd.dispatchDate = new Date();
+          srd.isComplete = true;
+          srd.inProduction = false;
+          srd.currentProductionStage = null;
           actionDescription = 'Final Dispatch Completed';
         } else {
           return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });

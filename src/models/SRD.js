@@ -93,6 +93,8 @@ const srdSchema = new mongoose.Schema({
   BuyerApprovedDate: { type: Date },
   BuyerDetails: { type: mongoose.Schema.Types.ObjectId, ref: 'Buyer' },
   DispatchDetails: { type: mongoose.Schema.Types.ObjectId, ref: 'Dispatch' },
+  dispatchBy: { type: String },
+  dispatchNotes: { type: String },
 
   // Sample Process Tracking
   sampleProcess: [{
