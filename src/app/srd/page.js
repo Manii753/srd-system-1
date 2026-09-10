@@ -53,7 +53,7 @@ function SRDListPageContent() {
             />
           </div>
 
-          {/* Status filter */}
+          {/* Status filter — matches the STATUS column (production progress) */}
           <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm">
             <Filter className="h-4 w-4 text-gray-500" />
             <select
@@ -62,10 +62,9 @@ function SRDListPageContent() {
               className="border-0 focus:ring-0 focus:outline-none bg-transparent text-sm text-gray-700 font-medium"
             >
               <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="in-progress">In Progress</option>
-              <option value="approved">Approved</option>
-              <option value="flagged">Flagged</option>
+              <option value="pre-production">Pre-Production</option>
+              <option value="in-production">In Production</option>
+              <option value="completed">Completed</option>
             </select>
           </div>
 

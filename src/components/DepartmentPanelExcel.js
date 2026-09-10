@@ -416,6 +416,15 @@ export default function DepartmentPanelExcel({
   activeTemplateRef.current = activeTemplate;
   const autoApprovalTimeoutRef = useRef(null);
 
+  // ── Sample-type options (for the combobox datalist) ─────────────────────
+  const [sampleTypeOptions, setSampleTypeOptions] = useState([]);
+  useEffect(() => {
+    fetch('/api/srd?listSampleTypes=true')
+      .then(r => r.json())
+      .then(d => { if (d.success && Array.isArray(d.data)) setSampleTypeOptions(d.data); })
+      .catch(() => {});
+  }, []);
+
   // Check if user can edit a specific field based on its department
   const canEditField = useCallback((fieldDepartment) => {
     // Global fields are editable by everyone
@@ -1578,6 +1587,46 @@ export default function DepartmentPanelExcel({
             {name}
           </div>
         );
+
+      case 'select-dynamic': {
+        // Combobox: shows existing values from DB as a datalist + allows free text
+        const sdValue = getFieldValue(fieldId, fieldDef);
+        const sdReqLevel = getFieldRequirementLevel(fieldDef);
+        const sdReqApplies = departmentsForUserRole(userRole).includes(fieldDef.department);
+        const sdEmpty = canEdit && sdReqApplies && sdReqLevel !== 'none' && !hasMeaningfulValue(sdValue, 'text');
+        const listId = `dl-${fieldId}`;
+        return (
+          <div className="flex items-baseline gap-2 w-full px-1 py-0">
+            <span className="text-[12px] text-gray-700 font-semibold shrink-0 min-w-[140px]">
+              {name}
+              {sdReqLevel !== 'none' && sdReqApplies && <span className="text-red-500 ml-0.5">*</span>}
+            </span>
+            <div className="flex-1 min-w-0 relative">
+              <datalist id={listId}>
+                {sampleTypeOptions.map(opt => <option key={opt} value={opt} />)}
+              </datalist>
+              <DebouncedInput
+                type="text"
+                fieldId={fieldId}
+                list={listId}
+                placeholder={sdEmpty ? (placeholder || 'Select or type…') : (placeholder || 'Select or type…')}
+                value={sdValue}
+                onDebouncedChange={(val) => handleFieldChange(fieldId, name, val, fieldDef.department, fieldDef)}
+                required={isRequired}
+                disabled={!canEdit}
+                maxLength={60}
+                showCharLimitToast={showCharLimitToast}
+                className={cn(
+                  "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-app-text py-0 px-0 h-5",
+                  !canEdit && "cursor-not-allowed text-gray-500",
+                  isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field",
+                  sdEmpty && "placeholder-red-500"
+                )}
+              />
+            </div>
+          </div>
+        );
+      }
 
       case 'text':
       case 'number':

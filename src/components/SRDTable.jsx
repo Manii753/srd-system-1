@@ -90,7 +90,15 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
       setLoading(true);
       const query = new URLSearchParams();
       if (department && department !== 'all') query.append('department', department);
-      if (effectiveFilter && effectiveFilter !== 'all') query.append('status', effectiveFilter);
+      // completionStatus values route to a different API param than dept-approval status
+      const completionValues = ['pre-production', 'in-production', 'completed'];
+      if (effectiveFilter && effectiveFilter !== 'all') {
+        if (completionValues.includes(effectiveFilter)) {
+          query.append('completionStatus', effectiveFilter);
+        } else {
+          query.append('status', effectiveFilter);
+        }
+      }
       if (effectiveSearch) query.append('search', effectiveSearch);
       if (activeBrands.length > 0) query.append('brands', activeBrands.join(','));
       query.append('page', currentPage);

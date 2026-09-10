@@ -172,6 +172,31 @@ export async function GET(request) {
       });
     }
 
+    // listSampleTypes=true returns distinct sample-type values across all SRDs
+    const listSampleTypesParam = searchParams.get('listSampleTypes') === 'true';
+    if (listSampleTypesParam) {
+      const agg = await SRD.aggregate([
+        { $unwind: '$dynamicFields' },
+        {
+          $match: {
+            'dynamicFields.value': { $type: 'string', $ne: '' },
+            $or: [
+              { 'dynamicFields.slug': 'sample-type' },
+              { 'dynamicFields.name': { $regex: '^sample\\s*type$', $options: 'i' } },
+            ],
+          },
+        },
+        { $project: { v: { $trim: { input: '$dynamicFields.value' } } } },
+        { $group: { _id: { $toLower: '$v' }, value: { $first: '$v' } } },
+        { $sort: { value: 1 } },
+        { $limit: 200 },
+      ]);
+      return NextResponse.json({
+        success: true,
+        data: agg.map(x => x.value).filter(Boolean),
+      });
+    }
+
 
 
     // Filter by date range
