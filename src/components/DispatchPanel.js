@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronDown, ChevronUp, Table, Upload } from 'lucide-react';
@@ -44,7 +44,7 @@ export function DispatchImageCell({ label, images, onUploaded, onRemove, canEdit
       />
 
       {hasImages ? (
-        /* Attached state — green pill with eye, +, × */
+        /* Attached state â€” green pill with eye, +, Ã— */
         <div className="flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5">
           <span className="text-[10px] font-medium text-emerald-700">
             {label} attached{images.length > 1 ? ` (${images.length})` : ''}
@@ -78,7 +78,7 @@ export function DispatchImageCell({ label, images, onUploaded, onRemove, canEdit
           )}
         </div>
       ) : (
-        /* Empty state — upload button */
+        /* Empty state â€” upload button */
         canEdit && (
           <button type="button" onClick={() => inputRef.current?.click()}
             className="inline-flex items-center gap-1 border border-gray-300 bg-white hover:bg-gray-50 px-2 py-0.5 rounded text-xs font-medium text-gray-900 shadow-sm">
@@ -95,9 +95,9 @@ export function DispatchImageCell({ label, images, onUploaded, onRemove, canEdit
             <img src={images[previewIdx]} alt="preview" className="max-h-[80vh] max-w-full object-contain rounded shadow-xl" />
             {images.length > 1 && (
               <div className="flex items-center gap-2">
-                <button onClick={() => setPreviewIdx(i => Math.max(0, i - 1))} disabled={previewIdx === 0} className="bg-white/80 rounded-full px-2 py-0.5 text-sm disabled:opacity-30">‹</button>
+                <button onClick={() => setPreviewIdx(i => Math.max(0, i - 1))} disabled={previewIdx === 0} className="bg-white/80 rounded-full px-2 py-0.5 text-sm disabled:opacity-30">â€¹</button>
                 <span className="text-white text-xs">{previewIdx + 1} / {images.length}</span>
-                <button onClick={() => setPreviewIdx(i => Math.min(images.length - 1, i + 1))} disabled={previewIdx === images.length - 1} className="bg-white/80 rounded-full px-2 py-0.5 text-sm disabled:opacity-30">›</button>
+                <button onClick={() => setPreviewIdx(i => Math.min(images.length - 1, i + 1))} disabled={previewIdx === images.length - 1} className="bg-white/80 rounded-full px-2 py-0.5 text-sm disabled:opacity-30">â€º</button>
               </div>
             )}
             <button onClick={() => setPreview(null)} className="absolute top-1 right-1 bg-white/80 hover:bg-white rounded-full p-1">
@@ -143,6 +143,11 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showExcel, setShowExcel] = useState(false);
+
+  // Admin and VMD can always edit dispatch details even after dispatch to buyer
+  const isAdminOrVmd = session?.user?.role === 'admin' || session?.user?.role === 'vmd';
+  // dispatchLocked = true means fields are permanently readonly (non-admin after email sent)
+  const dispatchLocked = srd.sampleDispatchedToBuyer && !isAdminOrVmd;
 
   // Buyer comment/image editable only by those with canAddBuyerComments permission or admin/vmd
   const canEditBuyer = canEdit && (
@@ -404,7 +409,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     }
   };
 
-  // Re-match buyer when Brand field changes — create if doesn't exist
+  // Re-match buyer when Brand field changes â€” create if doesn't exist
   // Debounced to prevent excessive API calls
   useEffect(() => {
     if (!buyers.length || !srd.dynamicFields) return;
@@ -421,7 +426,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         if (match.address) setDispatchAddress(match.address);
       }
     } else {
-      // Brand doesn't exist — create it automatically
+      // Brand doesn't exist â€” create it automatically
       fetch('/api/buyers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -643,7 +648,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         )}
       </div> */}
 
-      {/* Dispatch Approval - Excel Style — only visible to vmd and admin */}
+      {/* Dispatch Approval - Excel Style â€” only visible to vmd and admin */}
       <div className="border border-gray-300 bg-white">
         {/* Section Header */}
         <div className="flex justify-between bg-gray-100 border-b border-gray-300 px-2 py-0 items-center h-6">
@@ -769,7 +774,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   </div>
                 )}
 
-                {/* Inline reject form — just combobox + Reject */}
+                {/* Inline reject form â€” just combobox + Reject */}
                 {activeAction === 'reject' && !srd.internalApprovedDate && (
                   <div className="flex items-center gap-1.5">
                     {/* Combobox */}
@@ -794,7 +799,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                         value=""
                         onChange={e => { if (e.target.value) setNewReason({ ...newReason, reason: e.target.value }); }}
                       >
-                        <option value="">▾</option>
+                        <option value="">â–¾</option>
                         {reasonOptions.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </div>
@@ -830,12 +835,12 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
       </div>
 
-      <div className={`border border-gray-300 bg-white mt-2 relative ${(srd.inDispatch || srd.isComplete || srd.internalApproved || srd.readyForProduction) && !srd.sampleDispatchedToBuyer ? '' : 'pointer-events-none'}`}>
+      <div className={`border border-gray-300 bg-white mt-2 relative ${(srd.inDispatch || srd.isComplete || srd.internalApproved || srd.readyForProduction) && !dispatchLocked ? '' : 'pointer-events-none'}`}>
         {/* Locked overlay */}
-        {!(srd.inDispatch || srd.isComplete || srd.internalApproved || srd.readyForProduction) && !srd.sampleDispatchedToBuyer && (
+        {!(srd.inDispatch || srd.isComplete || srd.internalApproved || srd.readyForProduction) && !dispatchLocked && (
           <div className="absolute inset-0 z-10 bg-white/60 flex items-center justify-center">
             <span className="bg-white border border-orange-300 rounded-lg px-4 py-2 text-sm text-orange-700 font-medium shadow">
-              🔒 Available after Finishing stage is marked Ready
+              ðŸ”’ Available after Finishing stage is marked Ready
             </span>
           </div>
         )}
@@ -857,7 +862,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           </div>
           <div className="col-span-3 border-r border-gray-300 px-2 py-0.5">
             <Input type="date" value={dispatchDate} onChange={e => setDispatchDate(e.target.value)}
-              disabled={!canEdit || srd.sampleDispatchedToBuyer}
+              disabled={(!canEdit || dispatchLocked)}
               onBlur={() => selectedBuyer && triggerAutoSave()}
               className="h-6 text-app-text rounded-none border-0 border-b border-gray-300 px-0 w-full" />
           </div>
@@ -866,7 +871,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           </div>
           <div className="col-span-3 border-r border-gray-300 px-2 py-0.5">
             <Input value={dispatchAWB} onChange={e => setDispatchAWB(e.target.value)} placeholder="####"
-              disabled={!canEdit || srd.sampleDispatchedToBuyer}
+              disabled={(!canEdit || dispatchLocked)}
               onBlur={() => selectedBuyer && triggerAutoSave()}
               className="h-6 text-app-text rounded-none border-0 border-b border-gray-300 px-0 w-full" />
           </div>
@@ -874,7 +879,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <DispatchImageCell
               label="Front Pic"
               images={dispatchFrontImages}
-              canEdit={canEdit && !srd.sampleDispatchedToBuyer}
+              canEdit={(canEdit && !dispatchLocked)}
               onUploaded={(urls) => { setDispatchFrontImages(prev => { const next = [...prev, ...urls]; triggerAutoSave(); return next; }) }}
               onRemove={(i) => setDispatchFrontImages(prev => prev.filter((_, idx) => idx !== i))}
             />
@@ -888,7 +893,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           </div>
           <div className="col-span-3 border-r border-gray-300 px-2 py-0">
             <Input type="number" min="0" value={dispatchQty} onChange={e => setDispatchQty(Math.max(0, e.target.value))} placeholder="0"
-              disabled={!canEdit || srd.sampleDispatchedToBuyer}
+              disabled={(!canEdit || dispatchLocked)}
               onBlur={() => selectedBuyer && triggerAutoSave()}
               className="h-6 text-app-text rounded-none border-0 border-b border-gray-300 px-0 w-full" />
           </div>
@@ -903,7 +908,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   className="h-6 text-app-text rounded-none border-0 border-b border-gray-300 px-0 w-full bg-transparent focus:outline-none text-gray-700"
                   value={b ? (b.department ?? '') : draftBuyer.department}
                   placeholder=""
-                  disabled={!canEdit || srd.sampleDispatchedToBuyer}
+                  disabled={(!canEdit || dispatchLocked)}
                   onChange={e => {
                     if (b) setBuyers(prev => prev.map(x => x._id?.toString() === b._id?.toString() ? { ...x, department: e.target.value } : x));
                     else setDraftBuyer(prev => ({ ...prev, department: e.target.value }));
@@ -922,14 +927,14 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             <DispatchImageCell
               label="Back Pic"
               images={dispatchBackImages}
-              canEdit={canEdit && !srd.sampleDispatchedToBuyer}
+              canEdit={(canEdit && !dispatchLocked)}
               onUploaded={(urls) => { setDispatchBackImages(prev => { const next = [...prev, ...urls]; triggerAutoSave(); return next; }) }}
               onRemove={(i) => setDispatchBackImages(prev => prev.filter((_, idx) => idx !== i))}
             />
           </div>
         </div>
 
-        {/* Buyer row — auto-matched, no dropdown */}
+        {/* Buyer row â€” auto-matched, no dropdown */}
         <div className="grid grid-cols-12 border-b border-gray-300 h-6 py-0.5">
           <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
             <span className="text-app-text font-semibold text-gray-700">Brand</span>
@@ -1004,7 +1009,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
           return (
             <>
-              {/* Buyer name — only when no buyer matched */}
+              {/* Buyer name â€” only when no buyer matched */}
               {!b && (
                 <div className="grid grid-cols-12 border-b border-gray-300">
                   <div className="col-span-2 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
@@ -1015,7 +1020,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                       className="w-full h-6 text-app-text border-0 border-b border-gray-300 bg-transparent focus:outline-none px-0 text-gray-700"
                       value={draftBuyer.name}
                       placeholder="Enter buyer name..."
-                      disabled={!canEdit || srd.sampleDispatchedToBuyer}
+                      disabled={(!canEdit || dispatchLocked)}
                       onChange={e => updateDraft({ name: e.target.value })}
                       onBlur={e => e.target.value.trim() && createBuyerFromDraft(e.target.value.trim())}
                     />
@@ -1033,7 +1038,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                     className="w-full h-5 text-app-text border-0 border-b border-gray-300 bg-transparent focus:outline-none px-0 text-gray-700"
                     value={dispatchAddress}
                     placeholder=""
-                    disabled={!canEdit || srd.sampleDispatchedToBuyer}
+                    disabled={(!canEdit || dispatchLocked)}
                     onChange={e => { setDispatchAddress(e.target.value); if (!b) updateDraft({ address: e.target.value }); }}
                     onBlur={e => b && patchBuyer({ address: e.target.value })}
                   />
@@ -1053,7 +1058,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                       className="flex-1 h-6 text-app-text border-0 border-b border-gray-300 bg-transparent focus:outline-none px-0 text-gray-700"
                       value={cp.name || ''}
                       placeholder="Name"
-                      disabled={!canEdit || srd.sampleDispatchedToBuyer}
+                      disabled={(!canEdit || dispatchLocked)}
                       onChange={e => updateContact(i, 'name', e.target.value)}
                       onBlur={e => saveContact(i, 'name', e.target.value)}
                     />
@@ -1065,7 +1070,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                       value={cp.email || ''}
                       placeholder="Email"
                       type="email"
-                      disabled={!canEdit || srd.sampleDispatchedToBuyer}
+                      disabled={(!canEdit || dispatchLocked)}
                       onChange={e => updateContact(i, 'email', e.target.value)}
                       onBlur={e => saveContact(i, 'email', e.target.value)}
                     />
@@ -1076,12 +1081,12 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                       className="flex-1 h-6 text-app-text border-0 border-b border-gray-300 bg-transparent focus:outline-none px-0 text-gray-700"
                       value={cp.phone || ''}
                       placeholder="Phone"
-                      disabled={!canEdit || srd.sampleDispatchedToBuyer}
+                      disabled={(!canEdit || dispatchLocked)}
                       onChange={e => updateContact(i, 'phone', e.target.value)}
                       onBlur={e => saveContact(i, 'phone', e.target.value)}
                     />
                     {/* + to add new contact on last row */}
-                    {i === safeContacts.length - 1 && canEdit && !srd.sampleDispatchedToBuyer && (
+                    {i === safeContacts.length - 1 && (canEdit && !dispatchLocked) && (
                       <button className="text-xs text-blue-600 hover:text-blue-800 shrink-0 ml-1"
                         onClick={() => {
                           const updated = [...safeContacts, { name: '', phone: '', email: '' }];
@@ -1089,8 +1094,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                           else updateDraft({ contactPerson: updated });
                         }}>+</button>
                     )}
-                    {/* × to remove this contact */}
-                    {safeContacts.length > 1 && canEdit && !srd.sampleDispatchedToBuyer && (
+                    {/* Ã— to remove this contact */}
+                    {safeContacts.length > 1 && (canEdit && !dispatchLocked) && (
                       <button className="text-gray-300 hover:text-red-500"
                         onClick={() => {
                           const updated = safeContacts.filter((_, j) => j !== i);
@@ -1106,7 +1111,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         })()}
 
         {/* Buttons row */}
-        {canEdit && !srd.sampleDispatchedToBuyer && (dispatchAWB || dispatchQty || dispatchAddress || dispatchDate || dispatchFrontImages.length > 0 || dispatchBackImages.length > 0) && (
+        {(canEdit && !dispatchLocked) && (dispatchAWB || dispatchQty || dispatchAddress || dispatchDate || dispatchFrontImages.length > 0 || dispatchBackImages.length > 0) && (
           <div className="grid grid-cols-12 border-gray-300">
             <div className="col-span-2 bg-gray-50 border-r border-gray-300"></div>
             <div className="col-span-10 px-2 py-0.5 flex gap-1.5 items-center">
@@ -1118,14 +1123,14 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   disabled={loading}
                   className="h-6 text-app-text rounded-md bg-green-700 hover:bg-green-800 text-white border-0"
                 >
-                  ✉ Send Mail
+                  âœ‰ Send Mail
                 </Button>
                 <Button
                   onClick={() => openEmailModal('merge')}
                   disabled={loading}
                   className="h-6 text-app-text rounded-md bg-green-700 hover:bg-green-800 text-white border-0"
                 >
-                  ⊞ Merge & Send Mail
+                  âŠž Merge & Send Mail
                 </Button>
             </div>
           </div>
@@ -1145,7 +1150,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         </div>
 
         {canEditBuyer ? (
-          /* ── EDITABLE VIEW: action buttons + comment fields ── */
+          /* â”€â”€ EDITABLE VIEW: action buttons + comment fields â”€â”€ */
           <>
             {/* Row 1: Approved */}
             <div className="grid grid-cols-12 border-b border-gray-300">
@@ -1274,7 +1279,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                       />
                       <select className="h-full w-6 border-l border-gray-300 bg-white text-gray-600 focus:outline-none cursor-pointer appearance-none text-center text-xs"
                         value="" onChange={e => { if (e.target.value) setBuyerNewReason(e.target.value); }}>
-                        <option value="">▾</option>
+                        <option value="">â–¾</option>
                         {buyerReasonOptions.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </div>
@@ -1301,7 +1306,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             </div>
           </>
         ) : (
-          /* ── READ-ONLY VIEW: comment text + image only ── */
+          /* â”€â”€ READ-ONLY VIEW: comment text + image only â”€â”€ */
           <div className="px-3 py-2 flex items-center gap-4">
             {srd.BuyerComments ? (
               <span className="text-app-text text-gray-800">{srd.BuyerComments}</span>
@@ -1312,7 +1317,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                 Rejected by {srd.BuyerApprovedBy}
                 {(srd.BuyerRejectedReasons || []).length > 0 && (
                   <span className="ml-1 text-gray-600 font-normal">
-                    — {srd.BuyerRejectedReasons.map(r => r.reason).join(', ')}
+                    â€” {srd.BuyerRejectedReasons.map(r => r.reason).join(', ')}
                   </span>
                 )}
               </span>
@@ -1338,13 +1343,13 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
         <DialogContent className={emailMode === 'merge' ? 'sm:max-w-3xl max-h-[90vh] overflow-y-auto' : 'sm:max-w-lg'}>
           <DialogHeader>
             <DialogTitle>
-              {emailMode === 'merge' ? '⊞ Merge & Send Mail' : '✉ Send Dispatch Mail'}
+              {emailMode === 'merge' ? 'âŠž Merge & Send Mail' : 'âœ‰ Send Dispatch Mail'}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3 py-2">
 
-            {/* ── MERGE: SRD picker ── */}
+            {/* â”€â”€ MERGE: SRD picker â”€â”€ */}
             {emailMode === 'merge' && (
               <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <div className="bg-gray-50 border-b border-gray-200 px-3 py-2">
@@ -1357,7 +1362,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                       type="text"
                       value={srdSearch}
                       onChange={e => setSrdSearch(e.target.value)}
-                      placeholder="🔍 Search by Ref No or Style..."
+                      placeholder="ðŸ” Search by Ref No or Style..."
                       className="col-span-2 h-7 px-2 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
                     />
                     {/* Brand filter */}
@@ -1390,7 +1395,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                         onClick={() => { setSrdSearch(''); setSrdFilterBrand(''); setSrdFilterContact(''); setSrdFilterEmail(''); }}
                         className="h-7 px-2 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50"
                       >
-                        ✕ Clear filters
+                        âœ• Clear filters
                       </button>
                     )}
                   </div>
@@ -1432,9 +1437,9 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                     return filtered.map(s => {
                       const id = s._id?.toString();
                       const checked = selectedMergeSRDs.includes(id);
-                      const brand = s.dynamicFields?.find(f => f.name?.toLowerCase() === 'brand')?.value || '—';
-                      const desc  = s.dynamicFields?.find(f => ['description','style'].includes(f.name?.toLowerCase()))?.value || '—';
-                      const buyerName = s.BuyerDetails?.name || '—';
+                      const brand = s.dynamicFields?.find(f => f.name?.toLowerCase() === 'brand')?.value || 'â€”';
+                      const desc  = s.dynamicFields?.find(f => ['description','style'].includes(f.name?.toLowerCase()))?.value || 'â€”';
+                      const buyerName = s.BuyerDetails?.name || 'â€”';
                       const isCurrent = id === srd._id?.toString();
 
                       return (
@@ -1494,7 +1499,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               </div>
             )}
 
-            {/* ── To / Cc / Subject ── */}
+            {/* â”€â”€ To / Cc / Subject â”€â”€ */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">To *</Label>
               <input
@@ -1539,7 +1544,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                 <option value="">Default (Usman & Tayyab)</option>
                 {representatives.map(r => (
                   <option key={r._id} value={r._id}>
-                    {r.name} ({r.email}) — {r.department || r.role}
+                    {r.name} ({r.email}) â€” {r.department || r.role}
                   </option>
                 ))}
               </select>
@@ -1551,7 +1556,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               const rep = selectedRepresentative ? representatives.find(r => r._id?.toString() === selectedRepresentative) : null;
               const repName = rep?.name || 'Usman & Tayyab';
               const repEmail = rep?.email || '';
-              const awb = srd.DispatchDetails?.awb || '—';
+              const awb = srd.DispatchDetails?.awb || 'â€”';
               const dhlLink = srd.DispatchDetails?.awb
                 ? `https://www.dhl.com/pk-en/home/tracking.html?tracking-id=${srd.DispatchDetails.awb}`
                 : 'https://www.dhl.com/pk-en/home/tracking.html';
@@ -1560,7 +1565,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   <p className="font-semibold text-gray-500 mb-1">Email Preview:</p>
                   <p>Dear Merchandising Team,</p>
                   <p>Please find the shipment details below for your tracking convenience:</p>
-                  <p className="italic text-gray-400">[Table with {emailMode === 'merge' ? `${selectedMergeSRDs.length} SRD(s)` : '1 SRD'} — Brand, Sample Type, Inq Ref No, Buyer Style Ref., Description, Fit, Color, Size, Qty]</p>
+                  <p className="italic text-gray-400">[Table with {emailMode === 'merge' ? `${selectedMergeSRDs.length} SRD(s)` : '1 SRD'} â€” Brand, Sample Type, Inq Ref No, Buyer Style Ref., Description, Fit, Color, Size, Qty]</p>
                   {(srd.DispatchDetails?.images?.[0]?.front?.length || srd.DispatchDetails?.images?.[0]?.back?.length) && (
                     <p className="text-gray-400 italic">[Front/Back pictures attached]</p>
                   )}
@@ -1569,7 +1574,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   <p className="text-gray-500">{repName}{repEmail ? `: ${repEmail}` : ': Usman@lazienda.com.pk / Tayyab@lazienda.com.pk'}</p>
                   <p>Thank you for your continued partnership.</p>
                   <p><strong>LAZIENDA DENIM (PVT) LTD.</strong></p>
-                  <p className="text-gray-400">🌱 Think before you print. Save paper, save trees.</p>
+                  <p className="text-gray-400">ðŸŒ± Think before you print. Save paper, save trees.</p>
                   <p className="font-semibold text-gray-500 mt-2">DHL Tracking: {awb}</p>
                 </div>
               );
@@ -1585,7 +1590,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               disabled={emailSending || !emailTo.trim() || (emailMode === 'merge' && selectedMergeSRDs.length === 0)}
               className="bg-green-700 hover:bg-green-800 text-white"
             >
-              {emailSending ? 'Sending...' : emailMode === 'merge' ? `⊞ Merge & Send (${selectedMergeSRDs.length})` : '✉ Send Mail'}
+              {emailSending ? 'Sending...' : emailMode === 'merge' ? `âŠž Merge & Send (${selectedMergeSRDs.length})` : 'âœ‰ Send Mail'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1621,3 +1626,5 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     </div>
   );
 }
+
+
