@@ -201,6 +201,9 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   const [emailCc, setEmailCc] = useState('');
   const [emailSubject, setEmailSubject] = useState('');
   const [emailSending, setEmailSending] = useState(false);
+  // Representative selector state
+  const [representatives, setRepresentatives] = useState([]);
+  const [selectedRepresentative, setSelectedRepresentative] = useState('');
   // Merge SRD picker state
   const [allSRDs, setAllSRDs] = useState([]);
   const [srdSearch, setSrdSearch] = useState('');
@@ -277,6 +280,18 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       })
       .catch(err => console.error('Failed to fetch buyers', err));
   }, [srd._id, srd.dynamicFields]);
+
+  // Fetch representatives for email sender selection
+  useEffect(() => {
+    fetch('/api/users/representatives')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setRepresentatives(data.data || []);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleCreateBuyer = async () => {
     if (!newBuyer.name) {
@@ -506,6 +521,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     setEmailCc('');
     setEmailSubject(`SDD-Development Sample-${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: '2-digit' })}`);
     setEmailMode(mode);
+    setSelectedRepresentative('');
     // Reset merge state
     setSrdSearch('');
     setSrdFilterBrand('');
@@ -538,6 +554,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     }
     setEmailSending(true);
     try {
+      const rep = selectedRepresentative ? representatives.find(r => r._id?.toString() === selectedRepresentative) : null;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
       let res;
@@ -552,6 +569,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
             cc: emailCc ? emailCc.split(',').map(e => e.trim()).filter(Boolean) : [],
             subject: emailSubject,
             merge: emailMode === 'merge',
+            representativeName: rep?.name || '',
+            representativeEmail: rep?.email || '',
           }),
         });
       } finally {
@@ -561,6 +580,14 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       if (data.success) {
         toast({ title: 'Email sent', description: `Dispatch email sent successfully` });
         setEmailModalOpen(false);
+        // Refresh SRD to reflect completion status
+        try {
+          const refreshed = await fetch(`/api/srd/${srd._id}`);
+          const refreshData = await refreshed.json();
+          if (refreshData.success && onUpdate) {
+            onUpdate(refreshData.data);
+          }
+        } catch (_) {}
       } else {
         toast({ title: 'Failed', description: data.error || 'Failed to send email', variant: 'destructive' });
       }
@@ -678,7 +705,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
                 <button
                   className="inline-flex items-center justify-center w-36 px-2 rounded-full bg-green-700 text-white text-app-text font-medium hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                  disabled={!!srd.internalApprovedDate || !canEdit || (!srd.inProduction && !srd.inDispatch)}
+                  disabled={!!srd.internalApprovedDate || !canEdit || !srd.inDispatch}
                   onClick={() => setActiveAction(activeAction === 'approve' ? null : 'approve')}
                 >
                   Approved For Dispatch
@@ -721,7 +748,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
                 <button
                   className="inline-flex items-center justify-center w-36 px-2 rounded-full bg-red-700 text-white text-app-text font-medium hover:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                  disabled={!!srd.internalApprovedDate || !canEdit || (!srd.inProduction && !srd.inDispatch)}
+                  disabled={!!srd.internalApprovedDate || !canEdit || !srd.inDispatch}
                   onClick={() => setActiveAction(activeAction === 'reject' ? null : 'reject')}
                 >
                   Internal Rejected
@@ -803,12 +830,12 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
 
       </div>
 
-      <div className={`border border-gray-300 bg-white mt-2 relative ${!srd.inProduction && !srd.inDispatch && !srd.sampleDispatchedToBuyer ? 'pointer-events-none' : ''}`}>
+      <div className={`border border-gray-300 bg-white mt-2 relative ${!srd.inDispatch && !srd.sampleDispatchedToBuyer ? 'pointer-events-none' : ''}`}>
         {/* Locked overlay */}
-        {!srd.inProduction && !srd.inDispatch && !srd.sampleDispatchedToBuyer && (
+        {!srd.inDispatch && !srd.sampleDispatchedToBuyer && (
           <div className="absolute inset-0 z-10 bg-white/60 flex items-center justify-center">
             <span className="bg-white border border-orange-300 rounded-lg px-4 py-2 text-sm text-orange-700 font-medium shadow">
-              🔒 Available when SR is in production
+              🔒 Available after Finishing stage is marked Ready
             </span>
           </div>
         )}
@@ -1501,18 +1528,52 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               />
             </div>
 
-            {/* Email body preview */}
-            <div className="border border-gray-200 rounded p-3 bg-gray-50 text-xs text-gray-700 space-y-1">
-              <p className="font-semibold text-gray-500 mb-1">Email Preview:</p>
-              <p>Hi,</p>
-              <p>Pls note courier no <strong>DHL {srd.DispatchDetails?.awb || '—'}</strong> of below mentioned samples dispatch on Dated <strong>{srd.DispatchDetails?.sampleDispatchDate ? new Date(srd.DispatchDetails.sampleDispatchDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: '2-digit' }) : '—'}</strong></p>
-              <p className="italic text-gray-400">[Table with {emailMode === 'merge' ? `${selectedMergeSRDs.length} SRD(s)` : '1 SRD'}]</p>
-              {(srd.DispatchDetails?.images?.[0]?.front?.length || srd.DispatchDetails?.images?.[0]?.back?.length) && (
-                <p className="text-gray-400 italic">[Front/Back pictures attached]</p>
-              )}
-              <p className="italic">If you have any questions relating to the above, please do not hesitate to contact <strong>Usman and Tayyab</strong> directly at Usman@lazienda.com.pk or Tayyab@lazienda.com.pk</p>
-              <p>Thanks,<br/>Regards,<br/>Vmd Team<br/><strong>Lazienda Denim Pvt Ltd</strong> | Lahore Office - 22km Ferozpur Road Near Khan Khaca Railway Station</p>
+            {/* Representative selector */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Sending As (Representative)</Label>
+              <select
+                value={selectedRepresentative}
+                onChange={e => setSelectedRepresentative(e.target.value)}
+                className="w-full h-8 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
+              >
+                <option value="">Default (Usman & Tayyab)</option>
+                {representatives.map(r => (
+                  <option key={r._id} value={r._id}>
+                    {r.name} ({r.email}) — {r.department || r.role}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-400">Who should appear as the contact in the email footer</p>
             </div>
+
+            {/* Email body preview */}
+            {(() => {
+              const rep = selectedRepresentative ? representatives.find(r => r._id?.toString() === selectedRepresentative) : null;
+              const repName = rep?.name || 'Usman & Tayyab';
+              const repEmail = rep?.email || '';
+              const awb = srd.DispatchDetails?.awb || '—';
+              const dhlLink = srd.DispatchDetails?.awb
+                ? `https://www.dhl.com/pk-en/home/tracking.html?tracking-id=${srd.DispatchDetails.awb}`
+                : 'https://www.dhl.com/pk-en/home/tracking.html';
+              return (
+                <div className="border border-gray-200 rounded p-3 bg-gray-50 text-xs text-gray-700 space-y-1">
+                  <p className="font-semibold text-gray-500 mb-1">Email Preview:</p>
+                  <p>Dear Merchandising Team,</p>
+                  <p>Please find the shipment details below for your tracking convenience:</p>
+                  <p className="italic text-gray-400">[Table with {emailMode === 'merge' ? `${selectedMergeSRDs.length} SRD(s)` : '1 SRD'} — Brand, Sample Type, Inq Ref No, Buyer Style Ref., Description, Fit, Color, Size, Qty]</p>
+                  {(srd.DispatchDetails?.images?.[0]?.front?.length || srd.DispatchDetails?.images?.[0]?.back?.length) && (
+                    <p className="text-gray-400 italic">[Front/Back pictures attached]</p>
+                  )}
+                  <p>You can monitor the real-time status of your delivery directly on the official <a href={dhlLink} className="text-blue-600 underline" target="_blank" rel="noreferrer">DHL Tracking Portal</a>.</p>
+                  <p className="text-gray-500">Please note: This is a system-generated message. If you require immediate merchandise assistance, please do not hesitate to contact our account management team directly:</p>
+                  <p className="text-gray-500">{repName}{repEmail ? `: ${repEmail}` : ': Usman@lazienda.com.pk / Tayyab@lazienda.com.pk'}</p>
+                  <p>Thank you for your continued partnership.</p>
+                  <p><strong>LAZIENDA DENIM (PVT) LTD.</strong></p>
+                  <p className="text-gray-400">🌱 Think before you print. Save paper, save trees.</p>
+                  <p className="font-semibold text-gray-500 mt-2">DHL Tracking: {awb}</p>
+                </div>
+              );
+            })()}
           </div>
 
           <DialogFooter>

@@ -24,9 +24,6 @@ function formatDate(value) {
     : '—';
 }
 
-// Extract a dynamic field value from SRD.
-// Names are normalized (lowercase, punctuation stripped) so that
-// e.g. "Wash / Color", "Buyer Style Ref." and "Sample Request Size" all match.
 function getDynField(srd, ...names) {
   const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
   const normNames = names.map(norm);
@@ -38,7 +35,6 @@ function getDynField(srd, ...names) {
   return '';
 }
 
-// Collect front/back image files and turn them into inline (cid) attachments
 function buildImageAttachments(srd, prefix) {
   const attachments = [];
   const cids = { front: [], back: [] };
@@ -66,7 +62,7 @@ function buildImageAttachments(srd, prefix) {
 function buildDispatchBlock(srd, idx) {
   const dispatch = srd.DispatchDetails || {};
   const brand      = getDynField(srd, 'brand', 'Brand');
-  const sampleType = getDynField(srd, 'sample type', 'Sample Type', 'sampleType') || 'DEVELOPMENT';
+  const sampleType = getDynField(srd, 'sample type', 'Sample Type', 'sampleType') || 'PRODUCTION SAMPLE';
   const styleRef   = getDynField(srd, 'buyer style ref', 'style ref', 'Buyer Style Ref');
   const desc       = getDynField(srd, 'description', 'Description', 'style', 'Style');
   const fit        = getDynField(srd, 'fit', 'Fit');
@@ -129,9 +125,16 @@ function buildDispatchBlock(srd, idx) {
   };
 }
 
-// Build the HTML email body
-function buildEmailHTML({ blocks, awb, dispatchDate }) {
+function buildEmailHTML({ blocks, awb, dispatchDate, representativeName, representativeEmail }) {
   const formattedDate = formatDate(dispatchDate);
+  const dhlLink = awb
+    ? `<a href="https://www.dhl.com/pk-en/home/tracking.html?tracking-id=${esc(awb)}" style="color:#1a73e8;text-decoration:underline;" target="_blank">${esc(awb)}</a>`
+    : '—';
+
+  const repBlock = (representativeName && representativeEmail)
+    ? `${esc(representativeName)}: <a href="mailto:${esc(representativeEmail)}" style="color:#1a73e8;">${esc(representativeEmail)}</a>`
+    : `Usman: <a href="mailto:Usman@lazienda.com.pk" style="color:#1a73e8;">Usman@lazienda.com.pk</a>
+       Tayyab: <a href="mailto:Tayyab@lazienda.com.pk" style="color:#1a73e8;">Tayyab@lazienda.com.pk</a>`;
 
   return `
 <!DOCTYPE html>
@@ -139,24 +142,26 @@ function buildEmailHTML({ blocks, awb, dispatchDate }) {
 <head><meta charset="UTF-8"></head>
 <body style="font-family:Calibri,Arial,sans-serif;font-size:13px;color:#222;margin:0;padding:20px;">
 
-  <p style="margin:0 0 6px 0;">Hi,</p>
+  <p style="margin:0 0 16px 0;">Dear Merchandising Team,</p>
   <p style="margin:0 0 16px 0;">
-    Pls note courier no <strong>DHL ${esc(awb) || '—'}</strong> of below mentioned samples dispatch on Dated
-    <strong>${esc(formattedDate)}</strong>
+    Please find the shipment details below for your tracking convenience:
   </p>
 
   ${blocks.map(b => b.html).join('')}
 
-  <p style="font-style:italic;margin:0 0 16px 0;">
-    If you have any questions relating to the above, please do not hesitate to contact
-    <strong>Usman and Tayyab</strong> directly at
-    <a href="mailto:Usman@lazienda.com.pk" style="color:#1a73e8;">Usman@lazienda.com.pk</a> or
-    <a href="mailto:Tayyab@lazienda.com.pk" style="color:#1a73e8;">Tayyab@lazienda.com.pk</a>
+  <p style="margin:0 0 10px 0;">
+    You can monitor the real-time status of your delivery directly on the official
+    <a href="https://www.dhl.com/pk-en/home/tracking.html${awb ? `?tracking-id=${esc(awb)}` : ''}" style="color:#1a73e8;text-decoration:underline;" target="_blank">DHL Tracking Portal</a>.
   </p>
 
-  <p style="margin:0;">Thanks,<br>Regards,<br>Vmd Team<br>
-    <strong>Lazienda Denim Pvt Ltd</strong> | Lahore Office - 22km Ferozpur Road Near Khan Khaca Railway Station
+  <p style="margin:0 0 16px 0;font-size:12px;color:#555;">
+    Please note: This is a system-generated message. If you require immediate merchandise assistance, please do not hesitate to contact our account management team directly:<br/>
+    ${repBlock}
   </p>
+
+  <p style="margin:0 0 4px 0;">Thank you for your continued partnership.</p>
+  <p style="margin:0 0 4px 0;"><strong>LAZIENDA DENIM (PVT) LTD.</strong></p>
+  <p style="margin:0;font-size:11px;color:#888;">🌱 Think before you print. Save paper, save trees.</p>
 
 </body>
 </html>`;
@@ -166,7 +171,7 @@ export async function POST(request) {
   try {
     await dbConnect();
     const body = await request.json();
-    const { srdIds, to, cc, subject, merge } = body;
+    const { srdIds, to, cc, subject, merge, representativeName, representativeEmail } = body;
 
     if (!srdIds?.length) {
       return NextResponse.json({ error: 'No SRD IDs provided' }, { status: 400 });
@@ -186,8 +191,6 @@ export async function POST(request) {
     }
 
     // Create transporter
-    // connectionTimeout / greetingTimeout / socketTimeout prevent the send
-    // from hanging forever if the SMTP server is unresponsive.
     const transporter = nodemailer.createTransport({
       host:   process.env.SMTP_HOST,
       port:   parseInt(process.env.SMTP_PORT || '587'),
@@ -213,6 +216,8 @@ export async function POST(request) {
       blocks,
       awb: firstDispatch.awb || '',
       dispatchDate: firstDispatch.sampleDispatchDate || null,
+      representativeName,
+      representativeEmail,
     });
     const subjectLine = subject || defaultSubject;
 
@@ -224,6 +229,22 @@ export async function POST(request) {
       html,
       attachments: allAttachments,
     });
+
+    // Mark all SRDs as completed after successful email send
+    for (const srd of srds) {
+      try {
+        await SRD.findByIdAndUpdate(srd._id, {
+          $set: {
+            isComplete: true,
+            inProduction: false,
+            currentProductionStage: null,
+            productionEndDate: srd.productionEndDate || new Date(),
+          }
+        });
+      } catch (err) {
+        console.error(`Failed to mark SRD ${srd.refNo} as complete:`, err);
+      }
+    }
 
     return NextResponse.json({ success: true, sent: srds.length });
 
