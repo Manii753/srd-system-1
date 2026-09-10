@@ -69,6 +69,7 @@ function buildDispatchBlock(srd, idx) {
   const color      = getDynField(srd, 'wash / color', 'wash/color', 'color/wash', 'color', 'wash');
   const size       = getDynField(srd, 'sample request size', 'size', 'Size');
   const qty        = dispatch.dispatchQuantity || getDynField(srd, 'sample request qty.', 'sample request qty', 'qty', 'quantity', 'Qty');
+  const awb        = dispatch.awb || '';
 
   const { attachments, cids } = buildImageAttachments(srd, `img${idx}`);
 
@@ -83,6 +84,7 @@ function buildDispatchBlock(srd, idx) {
       <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(color)}</td>
       <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(size)}</td>
       <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(qty)}</td>
+      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(awb)}</td>
     </tr>`;
 
   const renderImages = (side, label) => {
@@ -103,15 +105,16 @@ function buildDispatchBlock(srd, idx) {
         <table style="border-collapse:collapse;width:100%;margin-bottom:12px;">
           <thead>
             <tr style="background:#f2f2f2;">
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Brand</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Sample Type</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Inq Ref No</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Buyer Style Ref.</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Description</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Fit</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Color</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Size</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;">Qty</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Brand</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Sample Type</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Inq Ref No</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Buyer Style Ref.</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Description</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Fit</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Color</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Size</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Qty</th>
+              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Awb #</th>
             </tr>
           </thead>
           <tbody>
@@ -142,7 +145,7 @@ function buildEmailHTML({ blocks, awb, dispatchDate, representativeName, represe
 <head><meta charset="UTF-8"></head>
 <body style="font-family:Calibri,Arial,sans-serif;font-size:13px;color:#222;margin:0;padding:20px;">
 
-  <p style="margin:0 0 16px 0;">Dear Merchandising Team,</p>
+  <p style="margin:0 0 16px 0;"><strong>Dear Merchandising Team,</strong></p>
   <p style="margin:0 0 16px 0;">
     Please find the shipment details below for your tracking convenience:
   </p>
@@ -151,15 +154,16 @@ function buildEmailHTML({ blocks, awb, dispatchDate, representativeName, represe
 
   <p style="margin:0 0 10px 0;">
     You can monitor the real-time status of your delivery directly on the official
-    <a href="https://www.dhl.com/pk-en/home/tracking.html${awb ? `?tracking-id=${esc(awb)}` : ''}" style="color:#1a73e8;text-decoration:underline;" target="_blank">DHL Tracking Portal</a>.
+    <a href="https://www.dhl.com/pk-en/home/tracking.html${awb ? `?tracking-id=${esc(awb)}` : ''}" style="color:#1a73e8;text-decoration:underline;" target="_blank"><strong>DHL Tracking Portal</strong></a>.
   </p>
 
   <p style="margin:0 0 16px 0;font-size:12px;color:#555;">
-    Please note: This is a system-generated message. If you require immediate merchandise assistance, please do not hesitate to contact our account management team directly:<br/>
+    <strong>Please note:</strong> This is a system-generated message. If you require immediate merchandise assistance, please do not hesitate to contact our account management team directly:<br/>
     ${repBlock}
   </p>
 
-  <p style="margin:0 0 4px 0;">Thank you for your continued partnership.</p>
+  <p style="margin:0 0 4px 0;"><strong>Thank you for your continued partnership.</strong></p>
+  <br/>
   <p style="margin:0 0 4px 0;"><strong>LAZIENDA DENIM (PVT) LTD.</strong></p>
   <p style="margin:0;font-size:11px;color:#888;">🌱 Think before you print. Save paper, save trees.</p>
 
