@@ -73,99 +73,114 @@ function buildDispatchBlock(srd, idx) {
 
   const { attachments, cids } = buildImageAttachments(srd, `img${idx}`);
 
-  const tableRows = `
+  // Collect all image cids in one flat list (front + back together, no labels)
+  const allCids = [...cids.front, ...cids.back];
+
+  const tableRow = `
     <tr>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(brand)}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(sampleType)}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(srd.refNo || '')}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(styleRef)}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(desc)}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(fit)}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(color)}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(size)}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(qty)}</td>
-      <td style="border:1px solid #ccc;padding:4px 8px;font-size:12px;">${esc(awb)}</td>
+      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(brand)}</td>
+      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(sampleType)}</td>
+      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(srd.refNo || '')}</td>
+      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(styleRef)}</td>
+      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(desc)}</td>
+      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(fit)}</td>
+      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(color)}</td>
+      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(size)}</td>
+      <td style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;">${esc(qty)}</td>
     </tr>`;
 
-  const renderImages = (side, label) => {
-    if (!cids[side].length) return '';
-    return `
-      <div style="margin:0 0 12px 0;">
-        <p style="margin:0 0 6px 0;font-size:13px;"><strong>${esc(label)}</strong></p>
-        ${cids[side].map(cid => `<img src="cid:${cid}" alt="${esc(label)}" style="max-width:220px;max-height:220px;border:1px solid #ccc;border-radius:4px;margin:0 6px 6px 0;" />`).join('')}
-      </div>`;
-  };
+  const imagesHtml = allCids.length
+    ? `<div style="margin:12px 0 16px 0;">
+        ${allCids.map(cid =>
+          `<img src="cid:${cid}" alt="Product" style="max-width:180px;max-height:200px;border:1px solid #ddd;margin:0 8px 0 0;display:inline-block;" />`
+        ).join('')}
+       </div>`
+    : '';
 
   return {
     attachments,
     html: `
       <div style="margin:0 0 20px 0;">
-        ${idx > 0 ? `<hr style="border:none;border-top:2px solid #eee;margin:0 0 20px 0;" />` : ''}
+        ${idx > 0 ? `<hr style="border:none;border-top:1px solid #e0e0e0;margin:0 0 20px 0;" />` : ''}
 
-        <table style="border-collapse:collapse;width:100%;margin-bottom:12px;">
+        <table style="border-collapse:collapse;width:100%;margin-bottom:14px;">
           <thead>
             <tr style="background:#f2f2f2;">
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Brand</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Sample Type</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Inq Ref No</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Buyer Style Ref.</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Description</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Fit</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Color</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Size</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Qty</th>
-              <th style="border:1px solid #ccc;padding:4px 8px;font-size:12px;text-align:left;font-weight:bold;">Awb #</th>
+              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Brand</th>
+              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Sample Type</th>
+              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Inq Ref No</th>
+              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Buyer Style Ref.</th>
+              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Description</th>
+              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Fit</th>
+              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Color</th>
+              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Size</th>
+              <th style="border:1px solid #d0d0d0;padding:5px 8px;font-size:13px;font-family:Calibri,Arial,sans-serif;text-align:left;font-weight:bold;">Qty</th>
             </tr>
           </thead>
           <tbody>
-            ${tableRows}
+            ${tableRow}
           </tbody>
         </table>
 
-        ${renderImages('front', 'Front Pictures')}
-        ${renderImages('back', 'Back Pictures')}
+        ${imagesHtml}
       </div>`,
   };
 }
 
 function buildEmailHTML({ blocks, awb, dispatchDate, representativeName, representativeEmail }) {
   const formattedDate = formatDate(dispatchDate);
-  const dhlLink = awb
-    ? `<a href="https://www.dhl.com/pk-en/home/tracking.html?tracking-id=${esc(awb)}" style="color:#1a73e8;text-decoration:underline;" target="_blank">${esc(awb)}</a>`
-    : '—';
+  void formattedDate; // used if needed in subject
 
-  const repBlock = (representativeName && representativeEmail)
-    ? `${esc(representativeName)}: <a href="mailto:${esc(representativeEmail)}" style="color:#1a73e8;">${esc(representativeEmail)}</a>`
-    : `Usman: <a href="mailto:Usman@lazienda.com.pk" style="color:#1a73e8;">Usman@lazienda.com.pk</a>
-       Tayyab: <a href="mailto:Tayyab@lazienda.com.pk" style="color:#1a73e8;">Tayyab@lazienda.com.pk</a>`;
+  // Build representative contact block — bullet-list style like the screenshot
+  let repLines = '';
+  if (representativeName && representativeEmail) {
+    repLines = `<li style="margin:2px 0;"><strong>${esc(representativeName)}:</strong> <a href="mailto:${esc(representativeEmail)}" style="color:#1a56b0;text-decoration:none;">${esc(representativeEmail)}</a></li>`;
+  } else {
+    repLines = `
+      <li style="margin:2px 0;"><strong>Usman:</strong> <a href="mailto:Usman@lazienda.com.pk" style="color:#1a56b0;text-decoration:none;">Usman@lazienda.com.pk</a></li>
+      <li style="margin:2px 0;"><strong>Tayyab:</strong> <a href="mailto:Tayyab@lazienda.com.pk" style="color:#1a56b0;text-decoration:none;">Tayyab@lazienda.com.pk</a></li>`;
+  }
 
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"></head>
-<body style="font-family:Calibri,Arial,sans-serif;font-size:13px;color:#222;margin:0;padding:20px;">
+  const dhlUrl = `https://www.dhl.com/pk-en/home/tracking.html${awb ? `?tracking-id=${esc(awb)}` : ''}`;
 
-  <p style="margin:0 0 16px 0;"><strong>Dear Merchandising Team,</strong></p>
-  <p style="margin:0 0 16px 0;">
-    Please find the shipment details below for your tracking convenience:
-  </p>
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
+<body style="margin:0;padding:24px 28px;background:#ffffff;font-family:Calibri,Arial,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.5;">
 
+  <!-- Greeting -->
+  <p style="margin:0 0 14px 0;font-size:14px;"><strong>Dear Merchandising Team,</strong></p>
+
+  <!-- Intro -->
+  <p style="margin:0 0 14px 0;font-size:14px;">Please find the shipment details below for your tracking convenience:</p>
+
+  <!-- Per-SRD blocks (table + images) -->
   ${blocks.map(b => b.html).join('')}
 
-  <p style="margin:0 0 10px 0;">
+  <!-- DHL tracking line -->
+  <p style="margin:0 0 18px 0;font-size:14px;">
     You can monitor the real-time status of your delivery directly on the official
-    <a href="https://www.dhl.com/pk-en/home/tracking.html${awb ? `?tracking-id=${esc(awb)}` : ''}" style="color:#1a73e8;text-decoration:underline;" target="_blank"><strong>DHL Tracking Portal</strong></a>.
+    <a href="${dhlUrl}" style="color:#1a56b0;text-decoration:underline;" target="_blank">DHL Tracking Portal</a>.
   </p>
 
-  <p style="margin:0 0 16px 0;font-size:12px;color:#555;">
-    <strong>Please note:</strong> This is a system-generated message. If you require immediate merchandise assistance, please do not hesitate to contact our account management team directly:<br/>
-    ${repBlock}
-  </p>
+  <!-- Divider -->
+  <hr style="border:none;border-top:1px solid #cccccc;margin:0 0 14px 0;" />
 
-  <p style="margin:0 0 4px 0;"><strong>Thank you for your continued partnership.</strong></p>
-  <br/>
-  <p style="margin:0 0 4px 0;"><strong>LAZIENDA DENIM (PVT) LTD.</strong></p>
-  <p style="margin:0;font-size:11px;color:#888;">🌱 Think before you print. Save paper, save trees.</p>
+  <!-- Footer note -->
+  <p style="margin:0 0 10px 0;font-size:13px;color:#444;font-style:italic;">
+    <strong style="font-style:normal;">Please note:</strong>
+    This is a system-generated message. If you require immediate merchandise assistance, please do not hesitate to contact our account management team directly:
+  </p>
+  <ul style="margin:0 0 14px 0;padding-left:22px;font-size:13px;color:#1a1a1a;">
+    ${repLines}
+  </ul>
+
+  <!-- Sign-off -->
+  <p style="margin:0 0 14px 0;font-size:14px;">Thank you for your continued partnership.</p>
+
+  <!-- Company -->
+  <p style="margin:0 0 2px 0;font-size:14px;"><strong>LAZIENDA DENIM (PVT) LTD.</strong></p>
+  <p style="margin:0;font-size:12px;color:#555;font-style:italic;">🌱 Think before you print. Save paper, save trees.</p>
 
 </body>
 </html>`;
