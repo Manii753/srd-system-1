@@ -314,7 +314,26 @@ export default function SRReportPage() {
   }, []);
 
   const allBrands = useMemo(() => [...new Set(srds.map(s => getDyn(s, 'brand')).filter(Boolean))].sort(), [srds]);
-  const allTypes  = useMemo(() => [...new Set(srds.map(s => getDyn(s, 'sample type', 'sampleType')).filter(Boolean))].sort(), [srds]);
+gb
+  // Deduplicate sample types case-insensitively — group variants by uppercase key,
+  // prefer the ALL-CAPS form (most common), fall back to trimmed original.
+  const allTypes = useMemo(() => {
+    const map = new Map(); // key = UPPERCASE → { canonical, count }
+    for (const srd of srds) {
+      const raw = getDyn(srd, 'sample type', 'sampleType');
+      if (!raw) continue;
+      const trimmed = raw.trim();
+      const key = trimmed.toUpperCase();
+      if (!key) continue;
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, { canonical: key, count: 1 }); // always store uppercase canonical
+      } else {
+        existing.count++;
+      }
+    }
+    return [...map.values()].map(v => v.canonical).sort();
+  }, [srds]);
 
   // Status filter options: base buckets + every active production stage
   const statusOptions = useMemo(() => {
