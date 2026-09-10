@@ -249,10 +249,13 @@ export async function PATCH(request, { params }) {
       }
 
       // If this was the LAST real stage, mark the SRD as complete immediately.
-      // Determine "last" from the authoritative production list (CAD + active
-      // ProductionStage docs) rather than the sampleProcess tail, which can lag
-      // behind the real stage lineup (e.g. a stale "dispatch" entry).
-      const lastRealStageId = productionStages[productionStages.length - 1]?.id;
+      // "dispatch" is a workflow stage, not a physical production stage — skip it
+      // when determining the real last stage.  Finishing (order 4) is the actual
+      // final production stage.
+      const realProductionStages = productionStages.filter(
+        s => s.id !== 'dispatch' && s.name?.toLowerCase() !== 'dispatch'
+      );
+      const lastRealStageId = realProductionStages[realProductionStages.length - 1]?.id;
       const isLastStage = lastRealStageId !== undefined && stage === lastRealStageId;
       if (isLastStage) {
         srd.isComplete = true;
@@ -353,10 +356,15 @@ export async function PATCH(request, { params }) {
           srd.currentProductionStage = matchingDbStage._id;
         }
       } else if (!currentActiveEntry) {
-        const allCompleted = srd.sampleProcess.every(s => s.status === 'completed');
+        // Check if all REAL production stages are completed (exclude "dispatch"
+        // which is a workflow stage, not a physical production stage)
+        const allCompleted = srd.sampleProcess
+          .filter(s => s.stage !== 'dispatch')
+          .every(s => s.status === 'completed');
         if (allCompleted) {
           srd.isComplete = true;
           srd.currentProductionStage = null;
+          srd.inDispatch = true;
         }
       }
     }
