@@ -56,6 +56,21 @@ async function diagnoseOne(srd, validDepts, stages) {
     issues.push({ type: 'missing_stage', fix: 'assign_stage', data: {}, label: 'In production but no current stage assigned' });
   }
 
+  // 7. All real production stages completed but inDispatch / isComplete not set
+  //    (root cause: "dispatch" was a production stage, so finishing was never the "last")
+  const knownStageSlugs = new Set(['cad', ...(stages || []).map(s => (s.slug || s.name || '').toLowerCase())]);
+  const realEntries = (srd.sampleProcess || []).filter(e => knownStageSlugs.has((e.stage || '').toLowerCase()) && e.stage !== 'dispatch');
+  const allRealStagesDone = realEntries.length > 0 && realEntries.every(e => e.status === 'completed' || e.completedDate);
+  if (allRealStagesDone && !srd.inDispatch) {
+    issues.push({ type: 'not_in_dispatch', fix: 'fix_dispatch', data: {}, label: 'All production stages completed but inDispatch is false — dispatch form locked' });
+  }
+
+  // 8. Stale sampleProcess entries (e.g. "dispatch" stage that's no longer active)
+  const staleEntries = (srd.sampleProcess || []).filter(e => !knownStageSlugs.has((e.stage || '').toLowerCase()));
+  if (staleEntries.length > 0) {
+    issues.push({ type: 'stale_stages', fix: 'prune_stale_stages', data: { stale: staleEntries.map(e => e.stage) }, label: `Stale sampleProcess stages: ${staleEntries.map(e => e.stage).join(', ')}` });
+  }
+
   return issues;
 }
 
@@ -81,6 +96,8 @@ export async function GET() {
           progress: srd.progress,
           readyForProduction: srd.readyForProduction,
           inProduction: srd.inProduction,
+          inDispatch: srd.inDispatch,
+          isComplete: srd.isComplete,
           issues,
         });
       }
@@ -181,6 +198,22 @@ export async function POST(request) {
               srd.currentProductionStage = firstStage._id;
               changes.push(`Assigned to stage ${firstStage.displayName || firstStage.name}`);
             }
+            break;
+          }
+          case 'fix_dispatch': {
+            srd.inDispatch = true;
+            srd.isComplete = true;
+            srd.inProduction = false;
+            srd.currentProductionStage = null;
+            if (!srd.productionEndDate) srd.productionEndDate = new Date();
+            changes.push('Set inDispatch=true, isComplete=true');
+            break;
+          }
+          case 'prune_stale_stages': {
+            const known = new Set(['cad', ...stages.map(s => (s.slug || s.name || '').toLowerCase())]);
+            srd.sampleProcess = (srd.sampleProcess || []).filter(e => known.has((e.stage || '').toLowerCase()));
+            srd.markModified('sampleProcess');
+            changes.push(`Pruned stale stages: ${issue.data.stale.join(', ')}`);
             break;
           }
         }

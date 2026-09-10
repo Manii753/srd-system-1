@@ -15,6 +15,8 @@ const ISSUE_COLORS = {
   wrong_progress:      'bg-blue-50 border-blue-200 text-blue-700',
   not_in_production:   'bg-purple-50 border-purple-200 text-purple-700',
   missing_stage:       'bg-red-50 border-red-200 text-red-700',
+  not_in_dispatch:     'bg-amber-50 border-amber-200 text-amber-700',
+  stale_stages:        'bg-gray-50 border-gray-200 text-gray-700',
 };
 
 export default function DiagnosePage() {
@@ -213,10 +215,12 @@ export default function DiagnosePage() {
                   {/* Expanded details */}
                   {isOpen && (
                     <div className="border-t border-gray-100 px-4 py-3 bg-gray-50 space-y-2">
-                      <div className="grid grid-cols-3 gap-3 text-xs text-gray-600 mb-3">
+                      <div className="grid grid-cols-5 gap-3 text-xs text-gray-600 mb-3">
                         <span>Progress: <strong>{srd.progress}%</strong></span>
                         <span>Ready: <strong>{srd.readyForProduction ? 'Yes' : 'No'}</strong></span>
                         <span>In Production: <strong>{srd.inProduction ? 'Yes' : 'No'}</strong></span>
+                        <span>In Dispatch: <strong>{srd.inDispatch ? 'Yes' : 'No'}</strong></span>
+                        <span>Complete: <strong>{srd.isComplete ? 'Yes' : 'No'}</strong></span>
                       </div>
                       {srd.issues.map((issue, i) => (
                         <div key={i} className={`flex items-start gap-2 px-3 py-2 rounded border text-sm ${ISSUE_COLORS[issue.type] || 'bg-gray-50 border-gray-200 text-gray-700'}`}>
