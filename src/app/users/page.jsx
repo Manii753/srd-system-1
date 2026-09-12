@@ -23,6 +23,7 @@ export default function UsersManagementPage() {
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -79,6 +80,7 @@ export default function UsersManagementPage() {
       toast.error('Failed to load data');
     } finally {
       setLoading(false);
+      setHasLoadedOnce(true);
     }
   };
 
@@ -331,7 +333,7 @@ export default function UsersManagementPage() {
     return colors[role] || 'bg-gray-100 text-gray-800';
   };
 
-  if (loading) {
+  if (loading && !hasLoadedOnce) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -534,6 +536,16 @@ export default function UsersManagementPage() {
                         </td>
                       </tr>
                     ))}
+                    {loading && hasLoadedOnce && (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-4 text-center">
+                          <div className="flex items-center justify-center gap-2 text-gray-500">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                            <span className="text-app-text">Loading...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

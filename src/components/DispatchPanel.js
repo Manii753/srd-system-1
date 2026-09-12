@@ -1157,7 +1157,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
                 <button
                   className="inline-flex items-center justify-center w-40 px-2 rounded-full bg-green-700 text-white text-app-text font-medium hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                  disabled={!!srd.BuyerApprovedDate || !srd.sampleDispatchedToBuyer}
+                  disabled={!!srd.BuyerApprovedDate}
                   onClick={() => setBuyerActiveAction(buyerActiveAction === 'approved' ? null : 'approved')}
                 >
                   Approved
@@ -1184,7 +1184,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               <div className="col-span-3 border-r border-gray-300 px-2 flex items-center">
                 <button
                   className="inline-flex items-center justify-center w-40 px-0 rounded-full bg-yellow-600 text-white text-app-text font-medium hover:bg-yellow-700 disabled:opacity-40 disabled:cursor-not-allowed"
-                  disabled={!!srd.BuyerApprovedDate || !srd.sampleDispatchedToBuyer}
+                  disabled={!!srd.BuyerApprovedDate}
                   onClick={() => setBuyerActiveAction(buyerActiveAction === 'approved-comments' ? null : 'approved-comments')}
                 >
                   Approved With Comments
@@ -1196,7 +1196,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                     <Input
                       placeholder="Enter comments..."
                       value={buyerComments}
-                      disabled={!srd.sampleDispatchedToBuyer? true: session?.user?.role !== 'dispatch' && session?.user?.role !== 'vmd' && session?.user?.role !== 'admin'}
+                      disabled={session?.user?.role !== 'dispatch' && session?.user?.role !== 'vmd' && session?.user?.role !== 'admin'}
                       onChange={e => setBuyerComments(e.target.value)}
                       onBlur={() => saveBuyerComment({ BuyerComments: buyerComments })}
                       className="border-gray-300 rounded-none h-6 flex-1"
@@ -1240,7 +1240,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
               <div className="col-span-3 border-r border-gray-300 px-2 py-0.5 flex items-center">
                 <button
                   className="inline-flex items-center justify-center w-40 px-2 rounded-full bg-red-700 text-white text-app-text font-medium hover:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                  disabled={!!srd.BuyerApprovedDate || !srd.sampleDispatchedToBuyer}
+                  disabled={!!srd.BuyerApprovedDate}
                   onClick={() => setBuyerActiveAction(buyerActiveAction === 'rejected' ? null : 'rejected')}
                 >
                   Rejected
