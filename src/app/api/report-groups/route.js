@@ -15,6 +15,7 @@ export async function POST(request) {
     name: body.name,
     brands: body.brands || [],
     assignedUsers: body.assignedUsers || [],
+    representatives: body.representatives || [],
     color: body.color || '#2d6a2d',
   });
   return NextResponse.json({ success: true, data: group });

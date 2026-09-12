@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { Loader2, Plus, Pencil, Trash2, X, Check, ChevronDown, Users, Tag } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, X, Check, ChevronDown, Users, Tag, Mail } from 'lucide-react';
 
 const PRESET_COLORS = [
   '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
@@ -177,6 +177,9 @@ function GroupForm({ group, allBrands, allUsers, onSave, onCancel, saving }) {
   const [assignedUsers, setAssignedUsers] = useState(
     (group?.assignedUsers || []).map(u => (typeof u === 'object' ? u._id : u))
   );
+  const [representatives, setRepresentatives] = useState(
+    (group?.representatives || []).map(r => ({ name: r.name || '', email: r.email || '' }))
+  );
 
   const valid = name.trim() && brands.length > 0;
 
@@ -211,7 +214,7 @@ function GroupForm({ group, allBrands, allUsers, onSave, onCancel, saving }) {
         <UserPicker allUsers={allUsers} selected={assignedUsers} onChange={setAssignedUsers} />
       </div>
 
-      {/* Selected brand pills */}
+{/* Selected brand pills */}
       {brands.length > 0 && (
         <div className="flex flex-wrap gap-1">
 {brands.map((b, i) => (
@@ -222,6 +225,51 @@ function GroupForm({ group, allBrands, allUsers, onSave, onCancel, saving }) {
         </div>
       )}
 
+      {/* Representatives — contact people shown in dispatch emails for this group */}
+      <div className="space-y-1.5 border-t border-gray-200 pt-2">
+        <span className="text-[11px] font-medium text-gray-500 flex items-center gap-1">
+          <Mail className="h-3 w-3" /> Representatives (shown in emails sent for this group)
+        </span>
+        {representatives.length === 0 && (
+          <p className="text-[11px] text-gray-400 italic">No representatives assigned</p>
+        )}
+        <div className="space-y-1">
+          {representatives.map((r, i) => (
+            <div key={i} className="flex items-center gap-1">
+              <input
+                type="text"
+                placeholder="Name"
+                value={r.name}
+                onChange={e => setRepresentatives(prev => prev.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                className="flex-1 min-w-0 text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                value={r.email}
+                onChange={e => setRepresentatives(prev => prev.map((x, j) => j === i ? { ...x, email: e.target.value } : x))}
+                className="flex-1 min-w-0 text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={() => setRepresentatives(prev => prev.filter((_, j) => j !== i))}
+                className="p-1 text-gray-400 hover:text-red-500 shrink-0"
+                title="Remove representative"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setRepresentatives(prev => [...prev, { name: '', email: '' }])}
+          className="text-xs text-blue-600 hover:text-blue-800 inline-flex items-center gap-1"
+        >
+          <Plus className="h-3 w-3" /> Add representative
+        </button>
+      </div>
+
       {/* Actions */}
       <div className="flex items-center gap-2 justify-end">
         <button type="button" onClick={onCancel} className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1">
@@ -229,7 +277,13 @@ function GroupForm({ group, allBrands, allUsers, onSave, onCancel, saving }) {
         </button>
         <button
           type="button"
-          onClick={() => onSave({ name: name.trim(), brands, color, assignedUsers })}
+          onClick={() => onSave({
+            name: name.trim(),
+            brands,
+            color,
+            assignedUsers,
+            representatives: representatives.filter(r => r.name?.trim() || r.email?.trim()),
+          })}
           disabled={!valid || saving}
           className="inline-flex items-center gap-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded px-3 py-1.5 font-medium disabled:opacity-40"
         >
@@ -486,6 +540,15 @@ export default function BrandGroupManager({ allBrands = [], activeGroupId, onGro
                         <div className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
                           <Users className="h-2.5 w-2.5" />
                           {(g.assignedUsers || []).map(u => typeof u === 'object' ? u.name : u).join(', ')}
+                        </div>
+                      )}
+                      {(g.representatives || []).some(r => r.name?.trim() || r.email?.trim()) && (
+                        <div className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
+                          <Mail className="h-2.5 w-2.5" />
+                          {(g.representatives || [])
+                            .filter(r => r.name?.trim() || r.email?.trim())
+                            .map(r => `${r.name || ''}${r.name && r.email ? ' - ' : ''}${r.email || ''}`)
+                            .join(' · ')}
                         </div>
                       )}
                     </div>

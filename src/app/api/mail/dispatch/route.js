@@ -4,6 +4,7 @@ import dbConnect from '@/lib/db';
 import SRD from '@/models/SRD';
 import Dispatch from '@/models/Dispatch';
 import Buyer from '@/models/Buyer';
+import ReportGroup from '@/models/ReportGroup';
 import { resolveUploadAbsolutePath } from '@/lib/serverAssetUtils';
 
 function esc(value) {
@@ -132,16 +133,30 @@ function buildDispatchBlock(srd, idx) {
   };
 }
 
-function buildEmailHTML({ blocks, awb, representativeName, representativeEmail }) {
+function buildEmailHTML({ blocks, awb, representatives = [], representativeName, representativeEmail }) {
   const dhlUrl = `https://www.dhl.com/pk-en/home/tracking.html${awb ? `?tracking-id=${esc(awb)}` : ''}`;
 
-  const repLines = (representativeName && representativeEmail)
-    ? `<li style="margin:3px 0;font-family:Calibri,Arial,sans-serif;font-size:13px;">
-         <strong>${esc(representativeName)}:</strong>
-         <a href="mailto:${esc(representativeEmail)}" style="color:#1a56b0;text-decoration:none;">${esc(representativeEmail)}</a>
-       </li>`
-    : `<li style="margin:3px 0;font-family:Calibri,Arial,sans-serif;font-size:13px;"><strong>Usman:</strong> <a href="mailto:Usman@lazienda.com.pk" style="color:#1a56b0;text-decoration:none;">Usman@lazienda.com.pk</a></li>
-       <li style="margin:3px 0;font-family:Calibri,Arial,sans-serif;font-size:13px;"><strong>Tayyab:</strong> <a href="mailto:Tayyab@lazienda.com.pk" style="color:#1a56b0;text-decoration:none;">Tayyab@lazienda.com.pk</a></li>`;
+  // Reps shown in the "contact our account management team" footer.
+  // Priority: brand-group representatives -> single selected representative -> defaults.
+  let repList = Array.isArray(representatives) && representatives.length
+    ? representatives.filter(r => r && (r.name || '').trim() && (r.email || '').trim())
+    : [];
+  if (repList.length === 0 && representativeName && representativeEmail) {
+    repList = [{ name: representativeName, email: representativeEmail }];
+  }
+  if (repList.length === 0) {
+    repList = [
+      { name: 'Usman', email: 'Usman@lazienda.com.pk' },
+      { name: 'Tayyab', email: 'Tayyab@lazienda.com.pk' },
+    ];
+  }
+
+  const repLines = repList
+    .map(r => `<li style="margin:3px 0;font-family:Calibri,Arial,sans-serif;font-size:13px;">
+          <strong>${esc(r.name)}:</strong>
+          <a href="mailto:${esc(r.email)}" style="color:#1a56b0;text-decoration:none;">${esc(r.email)}</a>
+        </li>`)
+    .join('');
 
   // p style used throughout body
   const pStyle = `margin:0 0 14px 0;font-size:14px;font-family:Calibri,Arial,sans-serif;color:#1a1a1a;line-height:1.6;`;
@@ -232,6 +247,35 @@ export async function POST(request) {
       return NextResponse.json({ error: 'SRDs not found' }, { status: 404 });
     }
 
+    // Resolve brand-group representatives for the SRDs being emailed, so the
+    // email footer shows the reps assigned to the group(s) those brands belong to.
+    const groupReps = [];
+    try {
+      const groups = await ReportGroup.find({ isActive: true })
+        .select('brands representatives')
+        .lean();
+      const seen = new Set();
+      for (const srd of srds) {
+        const brand = getDynField(srd, 'brand', 'Brand').trim().toLowerCase();
+        if (!brand) continue;
+        for (const g of groups) {
+          const reps = g.representatives || [];
+          if (!reps.length) continue;
+          const matchesGroup = (g.brands || []).some(b => String(b).trim().toLowerCase() === brand);
+          if (!matchesGroup) continue;
+          for (const r of reps) {
+            const email = (r?.email || '').trim().toLowerCase();
+            if (email && !seen.has(email)) {
+              seen.add(email);
+              groupReps.push({ name: (r.name || '').trim(), email: r.email.trim() });
+            }
+          }
+        }
+      }
+    } catch (groupError) {
+      console.error('Error resolving group representatives:', groupError);
+    }
+
     // Create transporter
     const transporter = nodemailer.createTransport({
       host:   process.env.SMTP_HOST,
@@ -258,6 +302,7 @@ export async function POST(request) {
       blocks,
       awb: firstDispatch.awb || '',
       dispatchDate: firstDispatch.sampleDispatchDate || null,
+      representatives: groupReps,
       representativeName,
       representativeEmail,
     });

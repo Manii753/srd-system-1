@@ -124,12 +124,12 @@ function getStageStatus(srd, stageKey) {
 // ── Group Manager Modal ───────────────────────────────────────────────────────
 function GroupManagerModal({ open, onClose, groups, allBrands, allUsers, onSave, onDelete }) {
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', brands: [], assignedUsers: [], color: '#2d6a2d' });
+  const [form, setForm] = useState({ name: '', brands: [], assignedUsers: [], representatives: [], color: '#2d6a2d' });
 
   if (!open) return null;
 
   const startNew = () => {
-    setForm({ name: '', brands: [], assignedUsers: [], color: '#2d6a2d' });
+    setForm({ name: '', brands: [], assignedUsers: [], representatives: [], color: '#2d6a2d' });
     setEditing('new');
   };
   const startEdit = (g) => {
@@ -137,6 +137,7 @@ function GroupManagerModal({ open, onClose, groups, allBrands, allUsers, onSave,
       name: g.name,
       brands: g.brands || [],
       assignedUsers: (g.assignedUsers || []).map(u => u._id || u),
+      representatives: (g.representatives || []).map(r => ({ name: r.name || '', email: r.email || '' })),
       color: g.color || '#2d6a2d',
     });
     setEditing(g._id);
@@ -214,6 +215,43 @@ function GroupManagerModal({ open, onClose, groups, allBrands, allUsers, onSave,
                 ))}
               </div>
             </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 uppercase">Representatives ({form.representatives.length}) <span className="font-normal normal-case text-gray-400">— shown in dispatch emails for this group</span></label>
+              <div className="mt-1 space-y-1">
+                {form.representatives.length === 0 && (
+                  <p className="text-xs text-gray-400 italic">No representatives assigned</p>
+                )}
+                {form.representatives.map((r, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <input
+                      value={r.name}
+                      onChange={e => setForm(f => ({ ...f, representatives: f.representatives.map((x, j) => j === i ? { ...x, name: e.target.value } : x) }))}
+                      placeholder="Name"
+                      className="flex-1 h-8 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-600"
+                    />
+                    <input
+                      type="email"
+                      value={r.email}
+                      onChange={e => setForm(f => ({ ...f, representatives: f.representatives.map((x, j) => j === i ? { ...x, email: e.target.value } : x) }))}
+                      placeholder="Email"
+                      className="flex-1 h-8 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-600"
+                    />
+                    <button
+                      onClick={() => setForm(f => ({ ...f, representatives: f.representatives.filter((_, j) => j !== i) }))}
+                      className="p-1 text-gray-400 hover:text-red-500"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setForm(f => ({ ...f, representatives: [...f.representatives, { name: '', email: '' }] }))}
+                  className="text-xs text-green-700 hover:text-green-800 inline-flex items-center gap-1"
+                >
+                  <Plus className="h-3 w-3" /> Add representative
+                </button>
+              </div>
+            </div>
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => { onSave(editing, form); setEditing(null); }}
@@ -247,7 +285,7 @@ function GroupManagerModal({ open, onClose, groups, allBrands, allUsers, onSave,
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{ background: g.color || '#2d6a2d' }} />
                     <span className="font-medium text-sm text-gray-800">{g.name}</span>
-                    <span className="text-xs text-gray-400">{(g.brands || []).length} brands · {(g.assignedUsers || []).length} users</span>
+                    <span className="text-xs text-gray-400">{(g.brands || []).length} brands · {(g.assignedUsers || []).length} users · {(g.representatives || []).filter(r => r.name || r.email).length} reps</span>
                   </div>
                   <div className="flex gap-1">
                     <button onClick={() => startEdit(g)} className="p-1 hover:bg-blue-50 rounded">
