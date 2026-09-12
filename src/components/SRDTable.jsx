@@ -1,7 +1,7 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ChevronUp, ChevronDown, X, ChevronLeft, ChevronRight, Copy, Repeat, Eye } from 'lucide-react';
+import { ChevronUp, ChevronDown, X, ChevronLeft, ChevronRight, Copy, Repeat, Eye, Trash2 } from 'lucide-react';
 
 // Helper: get status value for a department from the status array
 const getDeptStatus = (statusArray, dept) =>
@@ -160,6 +160,25 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
       alert(`An error occurred: ${error.message}`);
     }
   };
+
+  const handleDelete = async (srdId) => {
+    if (!confirm('Are you sure you want to delete this SRD? This action cannot be undone.')) return;
+
+    try {
+      const response = await fetch(`/api/srd/${srdId}`, { method: 'DELETE' });
+      const result = await response.json();
+      if (result.success) {
+        alert('SRD deleted successfully!');
+        fetchSRDs();
+      } else {
+        alert(`Error deleting SRD: ${result.error || 'Permission denied'}`);
+      }
+    } catch (error) {
+      alert(`An error occurred: ${error.message}`);
+    }
+  };
+
+  const canDeleteSRD = session?.user?.role === 'admin' || session?.user?.permissions?.canDeleteSRD === true;
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -499,6 +518,17 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
+                        {canDeleteSRD && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDelete(srd._id)}
+                            title="Delete SRD"
+                            className="border-gray-300 hover:border-red-500 hover:text-red-600 transition-colors duration-200"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
