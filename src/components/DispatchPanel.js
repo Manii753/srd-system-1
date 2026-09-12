@@ -110,6 +110,16 @@ export function DispatchImageCell({ label, images, onUploaded, onRemove, canEdit
   );
 }
 
+const isValidEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || '').trim());
+const normalizeEmailList = (input) =>
+  [...new Set(
+    String(input || '')
+      .split(/[,;\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .filter(isValidEmail)
+  )];
+
 function AddEmailRow({ onAdd }) {
   const [val, setVal] = useState('');
   return (
@@ -522,7 +532,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     const contactEmails = (buyer?.contactPerson || []).map(cp => cp.email).filter(Boolean);
     const buyerEmails = buyer?.email || [];
     const allEmails = [...new Set([...contactEmails, ...buyerEmails])];
-    setEmailTo(allEmails.join(', '));
+    setEmailTo(normalizeEmailList(allEmails.join(', ')).join(', '));
     setEmailCc('');
     setEmailSubject(`SDD-Development Sample-${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: '2-digit' })}`);
     setEmailMode(mode);
@@ -552,6 +562,16 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       toast({ title: 'Error', description: 'Please enter a recipient email', variant: 'destructive' });
       return;
     }
+    const rawRecipients = emailTo.split(/[,;\n]/).map(e => e.trim()).filter(Boolean);
+    const toList = normalizeEmailList(emailTo);
+    if (toList.length === 0) {
+      toast({ title: 'Error', description: 'Please enter at least one valid recipient email', variant: 'destructive' });
+      return;
+    }
+    if (rawRecipients.length !== toList.length) {
+      const skipped = rawRecipients.filter(e => !isValidEmail(e));
+      toast({ title: 'Notice', description: `Skipped invalid recipient email(s): ${skipped.join(', ')}`, variant: 'destructive' });
+    }
     const srdIds = emailMode === 'merge' ? selectedMergeSRDs : [srd._id];
     if (emailMode === 'merge' && srdIds.length === 0) {
       toast({ title: 'Error', description: 'Please select at least one SRD to merge', variant: 'destructive' });
@@ -561,7 +581,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     try {
       const rep = selectedRepresentative ? representatives.find(r => r._id?.toString() === selectedRepresentative) : null;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
       let res;
       try {
         res = await fetch('/api/mail/dispatch', {
@@ -570,8 +590,8 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           signal: controller.signal,
           body: JSON.stringify({
             srdIds,
-            to: emailTo.split(',').map(e => e.trim()).filter(Boolean),
-            cc: emailCc ? emailCc.split(',').map(e => e.trim()).filter(Boolean) : [],
+            to: toList,
+            cc: normalizeEmailList(emailCc),
             subject: emailSubject,
             merge: emailMode === 'merge',
             representativeName: rep?.name || '',

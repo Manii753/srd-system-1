@@ -36,6 +36,25 @@ function getDynField(srd, ...names) {
   return '';
 }
 
+// Normalize a recipient list: accept a string or array, split on commas/semicolons/
+// newlines, trim, dedupe and drop anything that is not a valid email address so a
+// single bad entry (e.g. junk saved on a buyer profile) can't fail the whole send.
+function normalizeRecipients(value) {
+  const list = Array.isArray(value) ? value : String(value || '').split(/[,;\n]/);
+  const seen = new Set();
+  const out = [];
+  for (const raw of list) {
+    const email = String(raw || '').trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) continue;
+    const key = email.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(email);
+    }
+  }
+  return out;
+}
+
 function buildImageAttachments(srd, prefix) {
   const attachments = [];
   const cids = { front: [], back: [] };
@@ -230,11 +249,14 @@ export async function POST(request) {
     const body = await request.json();
     const { srdIds, to, cc, subject, merge, representativeName, representativeEmail } = body;
 
+    const toList = normalizeRecipients(to);
+    const ccList = normalizeRecipients(cc);
+
     if (!srdIds?.length) {
       return NextResponse.json({ error: 'No SRD IDs provided' }, { status: 400 });
     }
-    if (!to?.length) {
-      return NextResponse.json({ error: 'No recipient email provided' }, { status: 400 });
+    if (!toList.length) {
+      return NextResponse.json({ error: 'No valid recipient email provided' }, { status: 400 });
     }
 
     // Fetch all SRDs
@@ -310,8 +332,8 @@ export async function POST(request) {
 
     await transporter.sendMail({
       from:    `"${fromName}" <${fromEmail}>`,
-      to:      Array.isArray(to) ? to.join(', ') : to,
-      cc:      cc ? (Array.isArray(cc) ? cc.join(', ') : cc) : undefined,
+      to:      toList,
+      cc:      ccList.length ? ccList : undefined,
       subject: subjectLine,
       html,
       attachments: allAttachments,
