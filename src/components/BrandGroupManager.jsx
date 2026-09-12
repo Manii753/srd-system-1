@@ -210,7 +210,7 @@ function GroupForm({ group, allBrands, allUsers, onSave, onCancel, saving }) {
 
       {/* Brands + users */}
       <div className="flex items-start gap-2 flex-wrap">
-        <BrandPicker allBrands={brands} selected={brands} onChange={setBrands} />
+        <BrandPicker allBrands={allBrands} selected={brands} onChange={setBrands} />
         <UserPicker allUsers={allUsers} selected={assignedUsers} onChange={setAssignedUsers} />
       </div>
 
