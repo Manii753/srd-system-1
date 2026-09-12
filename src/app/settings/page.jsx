@@ -75,6 +75,13 @@ export default function SettingsPage() {
             icon: List,
             href: "/settings/sample-types",
             color: "bg-emerald-500"
+        },
+        {
+            title: "Brands",
+            description: "Manage and deduplicate brand values across all SRDs",
+            icon: List,
+            href: "/settings/brands",
+            color: "bg-pink-500"
         }
     ];
 
