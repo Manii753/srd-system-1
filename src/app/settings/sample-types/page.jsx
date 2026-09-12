@@ -1,270 +1,368 @@
-'use client'
+'use client';
 
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Layout from '@/components/layout/Layout';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { useState, useMemo, useEffect } from 'react';
-import { ChevronDown, X } from 'lucide-react';
+import { Search, Pencil, Trash2, X, Loader2, Merge } from 'lucide-react';
+import { toast } from 'sonner';
 
-export default function SampleTypeManager() {
+export default function SampleTypesPage() {
+  const { data: session, status } = useSession();
   const [types, setTypes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState('');
-  const [editing, setEditing] = useState(null);
-  const [newType, setNewType] = useState('');
+  const [selected, setSelected] = useState(new Set());
+  const [mergeName, setMergeName] = useState('');
+  const [renaming, setRenaming] = useState(null);
+  const [deleting, setDeleting] = useState(null);
 
-  // Fetch sample types from API
-  useEffect(() => {
-    fetch('/api/srd?listSampleTypes=true')
-      .then(r => r.json())
-      .then(d => {
-        if (d.success) {
-          // Normalize: uppercase, trim, deduplicate case-insensitively, count occurrences
-          const map = new Map();
-          for (const t of d.data || []) {
-            const key = t.trim().toUpperCase();
-            if (!key) continue;
-            const existing = map.get(key);
-            if (!existing) {
-              map.set(key, { canonical: key, count: 1, variants: [t] });
-            } else {
-              existing.count++;
-              if (!existing.variants.includes(t)) existing.variants.push(t);
-            }
-          }
-          setTypes([...map.values()].sort((a, b) => a.canonical.localeCompare(b.canonical)));
-        }
-      })
-      .catch(() => {});
+  const isAdmin = status !== 'loading' && session?.user?.role === 'admin';
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch('/api/srd/sample-types');
+      const d = await res.json();
+      if (d.success) setTypes(d.data || []);
+      else toast.error(d.error || 'Failed to load sample types');
+    } catch {
+      toast.error('Failed to load sample types');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const handleRename = async (oldVal, newVal) => {
-    if (!newVal || newVal.trim() === oldVal) {
-      setEditing(null);
+  useEffect(() => {
+    if (!isAdmin) return;
+    let cancelled = false;
+    fetch('/api/srd/sample-types')
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        if (d.success) setTypes(d.data || []);
+        else toast.error(d.error || 'Failed to load sample types');
+      })
+      .catch(() => { if (!cancelled) toast.error('Failed to load sample types'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [isAdmin]);
+
+  const filtered = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return types;
+    return types.filter(
+      (t) =>
+        t.canonical.toLowerCase().includes(q) ||
+        (t.variants || []).some((v) => v.value.toLowerCase().includes(q))
+    );
+  }, [types, filter]);
+
+  const selectedRows = useMemo(
+    () => types.filter((t) => selected.has(t.canonical)),
+    [types, selected]
+  );
+
+  const totalAssociations = useMemo(
+    () => types.reduce((sum, t) => sum + t.count, 0),
+    [types]
+  );
+
+  const toggle = (canonical) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(canonical)) next.delete(canonical);
+      else next.add(canonical);
+      return next;
+    });
+
+  const runOperation = async (values, newValue, summary) => {
+    if (values.length === 0) return;
+    setBusy(true);
+    try {
+      const res = await fetch('/api/srd/sample-types', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values, newValue }),
+      });
+      const d = await res.json();
+      if (d.success) {
+        if (d.modifiedCount) toast.success(`${summary} Updated ${d.modifiedCount} SRD(s).`);
+        else toast.success('No SRDs matched.');
+        setSelected(new Set());
+        setMergeName('');
+        setRenaming(null);
+        setDeleting(null);
+        await load();
+      } else {
+        toast.error(d.error || 'Operation failed');
+      }
+    } catch {
+      toast.error('Operation failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleMerge = () => {
+    const target = mergeName.trim();
+    if (selectedRows.length < 2) {
+      toast.error('Select at least two sample types to merge');
       return;
     }
-    const trimmed = newVal.trim();
-    await fetch('/api/srd/bulk-rename-sample-type', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ oldValue: oldVal.trim(), newValue: trimmed }),
-    });
-    setTypes(prev =>
-      prev.map(t =>
-        t.canonical === oldVal.trim().toUpperCase()
-          ? { ...t, canonical: trimmed.toUpperCase(), variants: [...new Set([trimmed.toUpperCase(), ...t.variants])] }
-          : t
-      )
-    );
-    setEditing(null);
-    setFilter('');
-    fetch('/api/srd?listSampleTypes=true').then(r => r.json()).then(d => {
-      if (d.success) {
-        const map = new Map();
-        for (const t of d.data || []) {
-          const key = t.trim().toUpperCase();
-          if (!key) continue;
-          const existing = map.get(key);
-          if (!existing) {
-            map.set(key, { canonical: key, count: 1, variants: [t] });
-          } else {
-            existing.count++;
-            if (!existing.variants.includes(t)) existing.variants.push(t);
-          }
-        }
-        setTypes([...map.values()].sort((a, b) => a.canonical.localeCompare(b.canonical)));
-      }
-    });
-  };
-
-  const handleDelete = async (canonical) => {
-    await fetch(`/api/srd/bulk-rename-sample-type`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ oldValue: canonical, newValue: '' }),
-    });
-    setTypes(prev => prev.filter(t => t.canonical !== canonical));
-    setFilter('');
-    fetch('/api/srd?listSampleTypes=true').then(r => r.json()).then(d => {
-      if (d.success) {
-        const map = new Map();
-        for (const t of d.data || []) {
-          const key = t.trim().toUpperCase();
-          if (!key) continue;
-          const existing = map.get(key);
-          if (!existing) {
-            map.set(key, { canonical: key, count: 1, variants: [t] });
-          } else {
-            existing.count++;
-            if (!existing.variants.includes(t)) existing.variants.push(t);
-          }
-        }
-        setTypes([...map.values()].sort((a, b) => a.canonical.localeCompare(b.canonical)));
-      }
-    });
-  };
-
-  const groupedTypes = useMemo(() => {
-    const map = new Map();
-    for (const t of types) {
-      const key = t.canonical;
-      if (!map.has(key)) {
-        map.set(key, { canonical: key, count: t.count, variants: t.variants });
-      }
+    if (!target) {
+      toast.error('Enter the name for the merged sample type');
+      return;
     }
-    return [...map.values()].sort((a, b) => a.canonical.localeCompare(b.canonical));
-  }, [types]);
+    const affected = selectedRows.reduce((sum, t) => sum + t.count, 0);
+    if (!confirm(`Merge ${selectedRows.length} sample types (${affected} SRDs) into "${target}"?`)) return;
+    const values = selectedRows.flatMap((t) => (t.variants || []).map((v) => v.value));
+    runOperation(values, target, `Merged into "${target}".`);
+  };
+
+  const handleRename = () => {
+    if (!renaming) return;
+    const target = renaming.newValue.trim();
+    if (!target) {
+      toast.error('Enter the new name');
+      return;
+    }
+    const values = renaming.variants.map((v) => v.value);
+    runOperation(values, target, `Renamed "${renaming.canonical}" to "${target}".`);
+  };
+
+  const handleDelete = () => {
+    if (!deleting) return;
+    if (!confirm(`Clear sample type "${deleting.canonical}" from ${deleting.count} SRD(s)?`)) return;
+    const values = deleting.variants.map((v) => v.value);
+    runOperation(values, '', `Deleted "${deleting.canonical}".`);
+  };
+
+  if (status === 'loading') {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-600 font-medium">Admin access required.</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
-      <div className="p-6">
-        <h1 className="text-app-heading font-bold text-gray-900 mb-6">Sample Type Manager</h1>
-
-        {/* Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {groupedTypes.map(t => (
-            <Card key={t.canonical} className="p-4 bg-gray-50 border border-gray-200 rounded">
-              <div className="flex items-center justify-between">
-                <span className="text-app-text font-medium">{t.canonical}</span>
-                <span className="text-sm text-gray-500">{t.count} SRDs</span>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Add New Type */}
-        <div className="mb-4">
-          <Input
-            placeholder="Add new sample type"
-            value={newType}
-            onChange={e => setNewType(e.target.value)}
-            className="w-full mb-2"
-          />
-          <Button
-            onClick={() => {
-              if (!newType.trim()) return;
-              fetch('/api/srd/bulk-rename-sample-type', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ oldValue: '', newValue: newType.trim() }),
-              });
-              setNewType('');
-              fetch('/api/srd?listSampleTypes=true').then(r => r.json()).then(d => {
-                if (d.success) {
-                  const map = new Map();
-                  for (const t of d.data || []) {
-                    const key = t.trim().toUpperCase();
-                    if (!key) continue;
-                    const existing = map.get(key);
-                    if (!existing) {
-                      map.set(key, { canonical: key, count: 1, variants: [t] });
-                    } else {
-                      existing.count++;
-                      if (!existing.variants.includes(t)) existing.variants.push(t);
-                    }
-                  }
-                  setTypes([...map.values()].sort((a, b) => a.canonical.localeCompare(b.canonical)));
-                }
-              });
-            }}
-            className="w-full mt-2 bg-green-600 text-white hover:bg-green-700"
-          >
-            Add Type
-          </Button>
-        </div>
-
-        {/* Types List with Rename/Delete */}
-        {groupedTypes.length === 0 ? (
-          <p className="text-gray-500">No sample types found</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-gray-500 border border-gray-200 rounded">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="left text-left p-2 text-xs font-semibold text-gray-600 uppercase tracking-wider">Sample Type</th>
-                  <th className="left text-left p-2 text-xs font-semibold text-gray-600 uppercase tracking-wider">SRDs</th>
-                  <th className="left text-left p-2 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groupedTypes.map(t => (
-                  <tr key={t.canonical} className="border-b border-gray-100">
-                    <td className="left p-2">
-                      <span className="font-medium">{t.canonical}</span>
-                      {t.variants.length > 1 && (
-                        <div className="mt-1 text-xs text-gray-400">
-                          {t.variants.map((v, i) => (
-                            <span key={i} className="mr-2">{v}</span>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                    <td className="left p-2">{t.count}</td>
-                    <td className="left p-2">
-                      {t.count > 1 && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setEditing(t.canonical)}
-                            className="text-blue-600 hover underline text-xs"
-                          >
-                            Rename
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(t.canonical)}
-                            className="text-red-600 hover underline text-xs ml-2"
-                          >
-                            Delete
-                          </Button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div className="h-full overflow-y-auto custom-scrollbar p-2">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-app-heading font-bold text-gray-900">Sample Type Manager</h1>
+            <p className="text-app-text text-gray-600 mt-1">
+              Rename, merge or delete sample type values. Changes are applied to every SRD that uses the value.
+            </p>
           </div>
-        )}
 
-        {/* Rename Modal */}
-        {editing && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full border border-gray-200">
-              <h3 className="text-app-heading font-bold text-gray-900 mb-4">Rename Sample Type</h3>
-              <Input
-                value={editing}
-                onChange={e => setEditing(e.target.value)}
-                placeholder="New sample type value"
-                className="w-full mb-4"
-              />
-              <div className="flex gap-2">
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <p className="text-app-text font-medium text-gray-500">Sample Types</p>
+              <p className="text-app-heading font-bold text-2xl mt-1">{types.length}</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <p className="text-app-text font-medium text-gray-500">SRDs Using These Types</p>
+              <p className="text-app-heading font-bold text-2xl mt-1">{totalAssociations}</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <p className="text-app-text font-medium text-gray-500">Selected for Merge</p>
+              <p className="text-app-heading font-bold text-2xl mt-1">{selected.size}</p>
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search sample types..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Merge bar */}
+          <div
+            className={`flex items-center gap-2 flex-wrap p-3 rounded-lg border transition-colors ${
+              selectedRows.length >= 2
+                ? 'border-blue-300 bg-blue-50'
+                : 'border-gray-200 bg-gray-50'
+            }`}
+          >
+            <span className="text-sm font-medium text-gray-700">
+              {selectedRows.length >= 2
+                ? `Merge ${selectedRows.length} selected types:`
+                : 'Select two or more types below to merge them into one.'}
+            </span>
+            {selectedRows.length >= 2 && (
+              <>
+                <Input
+                  type="text"
+                  placeholder="New merged name (e.g. DEVELOPMENT)"
+                  value={mergeName}
+                  onChange={(e) => setMergeName(e.target.value)}
+                  className="flex-1 min-w-[200px]"
+                  maxLength={60}
+                />
                 <Button
-                  onClick={() => {
-                    setEditing(null);
-                  }}
-                  className="flex-1 bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  onClick={handleMerge}
+                  disabled={busy}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Merge className="h-4 w-4" />}
+                  Merge {selectedRows.length} into one
+                </Button>
+              </>
+            )}
+          </div>
+
+          {/* Table */}
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="text-gray-500">No sample types found.</p>
+          ) : (
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 w-10"></th>
+                    <th className="px-4 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">
+                      Sample Type
+                    </th>
+                    <th className="px-4 py-3 text-left text-app-text font-medium text-gray-500 uppercase tracking-wider">
+                      SRDs
+                    </th>
+                    <th className="px-4 py-3 text-right text-app-text font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filtered.map((t) => (
+                    <tr key={t.canonical} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(t.canonical)}
+                          onChange={() => toggle(t.canonical)}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-app-text font-semibold text-gray-900">{t.canonical}</span>
+                        {t.variants.length > 1 && (
+                          <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-gray-400">
+                            {t.variants.map((v) => (
+                              <span key={v.value}>
+                                {v.value} ({v.count})
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-app-text text-sm text-gray-600">{t.count}</td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={busy}
+                          onClick={() =>
+                            setRenaming({
+                              canonical: t.canonical,
+                              count: t.count,
+                              variants: t.variants,
+                              newValue: t.canonical,
+                            })
+                          }
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Rename"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={busy}
+                          onClick={() =>
+                            setDeleting({
+                              canonical: t.canonical,
+                              count: t.count,
+                              variants: t.variants,
+                            })
+                          }
+                          className="text-red-600 hover:text-red-900 ml-1"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Rename Modal */}
+      {renaming && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md border border-gray-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h2 className="text-app-heading font-semibold">Rename Sample Type</h2>
+              <button className="text-gray-500 hover:text-gray-800" onClick={() => setRenaming(null)}>
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <p className="text-sm text-gray-600">
+                Renaming <strong>{renaming.canonical}</strong> ({renaming.count} SRD(s)) to a new value
+                updates every SRD that uses it.
+              </p>
+              <Input
+                type="text"
+                value={renaming.newValue}
+                onChange={(e) => setRenaming({ ...renaming, newValue: e.target.value })}
+                placeholder="New sample type value"
+                maxLength={60}
+              />
+              <div className="flex justify-end gap-3 pt-2">
+                <Button variant="outline" onClick={() => setRenaming(null)} disabled={busy}>
                   Cancel
                 </Button>
                 <Button
-                  onClick={() => {
-                    if (!editing.trim()) return;
-                    // This will be handled by the re-fetch after setEditing
-                    setEditing(null);
-                  }}
-                  className="flex-1 bg-green-600 text-white hover:bg-green-700"
+                  onClick={handleRename}
+                  disabled={busy || !renaming.newValue.trim()}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
-                  Save
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Rename'}
                 </Button>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </Layout>
   );
 }
