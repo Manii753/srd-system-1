@@ -2,17 +2,21 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { evaluateFormula, isFiniteNumber } from '@/lib/costSheetFormula';
-import { Trash2, Plus, PanelTop, GripVertical } from 'lucide-react';
+import { Trash2, Plus, PanelTop, ListPlus, GripVertical } from 'lucide-react';
 
-const fmt = (v) =>
+const fmt2 = (v) =>
   isFiniteNumber(v)
     ? v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '';
 
-const SECTION_COLOR = 'rgb(241, 245, 249)';
+const SECTION_COLOR = 'rgb(249, 250, 251)';
 
 function isSection(row) { return row?.type === 'section'; }
-function isData(row)    { return !row || row.type !== 'section'; }
+function isKv(row)      { return row?.type === 'kv'; }
+function isData(row)    { return !row || (row.type !== 'section' && row.type !== 'kv'); }
+
+const newEmptyData = () => ({ type: 'data' });
+const newEmptyKv = () => ({ type: 'kv', label: '', value: '' });
 
 export default function CostSheetGrid({
   columns,
@@ -21,50 +25,51 @@ export default function CostSheetGrid({
   editable = true,
   onAddRow,
   onRemoveRow,
-  emptyRow = () => ({ type: 'data' }),
+  emptyRow = newEmptyData,
   showRowNumbers = true,
+  subtotalColumnKey,
+  totalLabel = 'Total',
 }) {
-  const inputRefs = useRef(new Map());
   const [pendingFocus, setPendingFocus] = useState(null);
+  const inputRefs = useRef(new Map());
 
   const cols = useMemo(() => columns || [], [columns]);
   const formulaCols = useMemo(() => cols.filter(c => c.type === 'formula' && c.formula), [cols]);
+  const subCol = useMemo(
+    () => cols.find(c => c.key === subtotalColumnKey),
+    [cols, subtotalColumnKey]
+  );
 
-  // Map array-index -> data row number (1-based).  Section rows get index 0.
+  // Map array-index -> data row number (1-based). Non-data rows -> 0.
   const dataRowMap = useMemo(() => {
     const map = [];
     let n = 0;
-    rows.forEach((r) => {
-      if (isData(r)) { n += 1; map.push(n); } else { map.push(0); }
-    });
+    rows.forEach((r) => { if (isData(r)) { n += 1; map.push(n); } else { map.push(0); } });
     return map;
   }, [rows]);
 
   const totalDataRows = useMemo(() => rows.filter(isData).length, [rows]);
 
-  // Live formula evaluation — returns a map keyed `${colKey}:${arrayIndex}`.
+  // ── Live formula evaluation — keyed `${colKey}:${arrayIndex}` ──
   const formulaValues = useMemo(() => {
     const map = {};
     if (formulaCols.length === 0) return map;
     const colByKey = new Map(cols.map(c => [c.key, c]));
     const inProgress = new Set();
+    const arrayIndexOfDataRow = (dataRowNum) => {
+      let count = 0;
+      for (let i = 0; i < rows.length; i += 1) {
+        if (isData(rows[i])) { count += 1; if (count === dataRowNum) return i; }
+      }
+      return -1;
+    };
 
     const compute = (colKey, dataRowNum) => {
       if (dataRowNum < 1 || dataRowNum > totalDataRows) return 0;
       const colDef = colByKey.get(colKey);
       if (!colDef) return 0;
-
-      // find the array index of the N-th data row
-      let arrayIdx = -1;
-      let count = 0;
-      for (let i = 0; i < rows.length; i += 1) {
-        if (isData(rows[i])) {
-          count += 1;
-          if (count === dataRowNum) { arrayIdx = i; break; }
-        }
-      }
+      const arrayIdx = arrayIndexOfDataRow(dataRowNum);
       if (arrayIdx < 0) return 0;
-
       const key = `${colKey}:${arrayIdx}`;
       if (key in map) return map[key];
 
@@ -75,7 +80,7 @@ export default function CostSheetGrid({
         return r;
       }
 
-      if (inProgress.has(key)) return 0;
+      if (inProgress.has(key)) return 0; // circular reference
       inProgress.add(key);
       const val = evaluateFormula(colDef.formula, {
         rowIndex: dataRowNum,
@@ -96,6 +101,38 @@ export default function CostSheetGrid({
     return map;
   }, [rows, cols, formulaCols, dataRowMap, totalDataRows]);
 
+  // ── Section subtotals + grand total for the subtotal column ──
+  const subtotals = useMemo(() => {
+    const bySection = new Map(); // tag (section row index) -> sum
+    const sectionOfRow = [];
+    let tag = -1; // -1 = rows before any section
+    let grand = 0;
+    const isFormulaCol = subCol?.type === 'formula';
+
+    rows.forEach((row, idx) => {
+      if (isSection(row)) {
+        tag = idx;
+        bySection.set(tag, 0);
+        sectionOfRow.push(null);
+        return;
+      }
+      if (!isData(row)) { sectionOfRow.push(null); return; }
+      sectionOfRow.push(tag);
+      if (!subtotalColumnKey || !subCol) return;
+      let v = 0;
+      if (isFormulaCol) {
+        const fv = formulaValues[`${subtotalColumnKey}:${idx}`];
+        if (isFiniteNumber(fv)) v = Number(fv);
+      } else {
+        v = Number(row[subtotalColumnKey]) || 0;
+      }
+      bySection.set(tag, (bySection.get(tag) || 0) + v);
+      grand += v;
+    });
+
+    return { bySection, sectionOfRow, grandTotal: grand };
+  }, [rows, subCol, subtotalColumnKey, formulaValues]);
+
   // ── Focus ──
   useEffect(() => {
     if (!pendingFocus) return;
@@ -104,29 +141,30 @@ export default function CostSheetGrid({
     if (el) { el.focus(); el.select?.(); setPendingFocus(null); }
   }, [pendingFocus, rows]);
 
-  // ── Handlers ──
+  // ── Helpers ──
   const isFormula = (col) => col.type === 'formula';
+
+  const moveDownOrCreate = (colKey, rowIdx) => {
+    for (let i = rowIdx + 1; i < rows.length; i += 1) {
+      if (isData(rows[i])) { setPendingFocus({ colKey, rowIdx: i }); return; }
+    }
+    if (!editable) return;
+    const next = [...rows];
+    next.splice(rowIdx + 1, 0, emptyRow());
+    onRowsChange(next);
+    setPendingFocus({ colKey, rowIdx: rowIdx + 1 });
+  };
 
   const handleCellKeyDown = (e, colKey, rowIdx) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       if (e.shiftKey) {
-        // Move up — skip section rows
         for (let i = rowIdx - 1; i >= 0; i -= 1) {
           if (isData(rows[i])) { setPendingFocus({ colKey, rowIdx: i }); return; }
         }
         return;
       }
-      // Move down — find next data row
-      for (let i = rowIdx + 1; i < rows.length; i += 1) {
-        if (isData(rows[i])) { setPendingFocus({ colKey, rowIdx: i }); return; }
-      }
-      // No data row below (may still be sections below) — insert right here
-      if (!editable) return;
-      const next = [...rows];
-      next.splice(rowIdx + 1, 0, emptyRow());
-      onRowsChange(next);
-      setPendingFocus({ colKey, rowIdx: rowIdx + 1 });
+      moveDownOrCreate(colKey, rowIdx);
     } else if (e.key === 'Delete' && e.ctrlKey) {
       e.preventDefault();
       const next = [...rows];
@@ -136,34 +174,28 @@ export default function CostSheetGrid({
     }
   };
 
-  const updateCell = (rowIdx, colKey, value) => {
-    const next = rows.map((r, i) => (i === rowIdx ? { ...r, [colKey]: value } : r));
-    onRowsChange(next);
-  };
-
-  const updateSectionTitle = (rowIdx, title) => {
-    const next = rows.map((r, i) => (i === rowIdx ? { ...r, title } : r));
-    onRowsChange(next);
-  };
-
-  const handleSectionTitleKeyDown = (e, rowIdx) => {
+  const handleKvKeyDown = (e, rowIdx) => {
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    const colKey = cols[0]?.key || '';
     if (e.shiftKey) {
       for (let i = rowIdx - 1; i >= 0; i -= 1) {
-        if (isData(rows[i])) { setPendingFocus({ colKey, rowIdx: i }); return; }
+        if (isData(rows[i])) { setPendingFocus({ colKey: cols[0]?.key || '', rowIdx: i }); return; }
       }
       return;
     }
-    for (let i = rowIdx + 1; i < rows.length; i += 1) {
-      if (isData(rows[i])) { setPendingFocus({ colKey, rowIdx: i }); return; }
-    }
-    if (!editable) return;
-    const next = [...rows];
-    next.splice(rowIdx + 1, 0, emptyRow());
-    onRowsChange(next);
-    setPendingFocus({ colKey, rowIdx: rowIdx + 1 });
+    moveDownOrCreate(cols[0]?.key || '', rowIdx);
+  };
+
+  const updateCell = (rowIdx, colKey, value) => {
+    onRowsChange(rows.map((r, i) => (i === rowIdx ? { ...r, [colKey]: value } : r)));
+  };
+
+  const updateSectionTitle = (rowIdx, title) => {
+    onRowsChange(rows.map((r, i) => (i === rowIdx ? { ...r, title } : r)));
+  };
+
+  const updateKv = (rowIdx, patch) => {
+    onRowsChange(rows.map((r, i) => (i === rowIdx ? { ...r, ...patch } : r)));
   };
 
   const handleAddRow = () => {
@@ -181,23 +213,37 @@ export default function CostSheetGrid({
     setPendingFocus({ colKey: '_section_title', rowIdx: insertIdx });
   };
 
-  const handleRemoveRow = (rowIdx) => {
-    onRemoveRow(rowIdx);
+  const handleAddKv = (afterRowIdx) => {
+    const next = [...rows];
+    const insertIdx = afterRowIdx != null ? afterRowIdx + 1 : next.length;
+    next.splice(insertIdx, 0, newEmptyKv());
+    onRowsChange(next);
+    setPendingFocus({ colKey: '_kv_label', rowIdx: insertIdx });
   };
 
-  const addRowBtn = editable && onAddRow && (
-    <div className="flex items-center gap-3 px-3 py-1.5 border-t border-gray-100">
-      <button
-        onClick={handleAddRow}
-        className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-500 transition-colors"
-      >
-        <Plus size={11} /> Add row
-      </button>
+  const handleRemoveRow = (rowIdx) => { if (onRemoveRow) onRemoveRow(rowIdx); };
+
+  const footerBtns = editable && (
+    <div className="flex items-center gap-4 px-3 py-1.5 border-t border-gray-100 print:hidden">
+      {onAddRow && (
+        <button
+          onClick={handleAddRow}
+          className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-500 transition-colors"
+        >
+          <Plus size={11} /> add row
+        </button>
+      )}
       <button
         onClick={() => handleAddSection()}
         className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-700 transition-colors"
       >
-        <PanelTop size={11} /> Add section
+        <PanelTop size={11} /> add section
+      </button>
+      <button
+        onClick={() => handleAddKv()}
+        className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-700 transition-colors"
+      >
+        <ListPlus size={11} /> add value row
       </button>
     </div>
   );
@@ -218,6 +264,71 @@ export default function CostSheetGrid({
     );
   }
 
+  // ── Shared gutter cell (row number / actions) ──
+  const gutterCell = (row, rowIdx) => {
+    if (isData(row)) {
+      return (
+        <td className="py-1 px-1 text-center text-[10px] text-gray-400 border-r border-gray-100 select-none relative">
+          {dataRowMap[rowIdx]}
+          {editable && (
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={() => handleAddSection(rowIdx)}
+                title="Insert section below"
+                className="p-0.5 text-gray-300 hover:text-gray-600"
+              >
+                <PanelTop size={9} />
+              </button>
+              <button
+                onClick={() => handleAddKv(rowIdx)}
+                title="Insert value row below"
+                className="p-0.5 text-gray-300 hover:text-gray-600"
+              >
+                <ListPlus size={9} />
+              </button>
+              <button
+                onClick={() => handleRemoveRow(rowIdx)}
+                title="Delete row"
+                className="p-0.5 text-gray-300 hover:text-red-400"
+              >
+                <Trash2 size={9} />
+              </button>
+            </div>
+          )}
+        </td>
+      );
+    }
+    if (isSection(row)) {
+      return (
+        <td className="py-1 px-1 text-center select-none relative" style={{ background: SECTION_COLOR }}>
+          <GripVertical size={11} className="text-gray-300 mx-auto" />
+          {editable && (
+            <button
+              onClick={() => handleRemoveRow(rowIdx)}
+              title="Delete section"
+              className="absolute right-0 top-1/2 -translate-y-1/2 p-0.5 text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Trash2 size={10} />
+            </button>
+          )}
+        </td>
+      );
+    }
+    return (
+      <td className="py-1 px-1 text-center select-none relative">
+        {editable && (
+          <button
+            onClick={() => handleRemoveRow(rowIdx)}
+            title="Delete value row"
+            className="absolute right-0 top-1/2 -translate-y-1/2 p-0.5 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400"
+          >
+            <Trash2 size={10} />
+          </button>
+        )}
+      </td>
+    );
+  };
+
   return (
     <div className="rounded-lg border border-gray-200 overflow-hidden bg-white shadow-sm">
       <div className="overflow-x-auto custom-scrollbar">
@@ -230,24 +341,26 @@ export default function CostSheetGrid({
           </colgroup>
 
           <thead>
-            <tr className="bg-gray-800 text-white">
+            <tr className="bg-gray-100/50 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
               {showRowNumbers && <th className="p-0 w-11" />}
               {cols.map(c => (
                 <th
                   key={c.key}
-                  className={`px-2 py-1.5 text-left font-semibold uppercase tracking-wide align-bottom ${
-                    isFormula(c) ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-300' : ''
-                  }`}
+                  className={`px-2 py-1.5 align-bottom ${
+                    c.type === 'number' || isFormula(c)
+                      ? 'text-right'
+                      : 'text-left'
+                  } ${isFormula(c) ? 'text-indigo-700' : ''}`}
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-gray-400 font-mono border border-gray-600 rounded px-1 bg-gray-900">
-                      {c.key}
-                    </span>
-                    <span className="truncate">{c.label || 'Unnamed'}</span>
-                  </div>
+                  {c.label || `Col ${c.key}`}
                   {isFormula(c) && (
-                    <div className="text-[10px] font-mono normal-case tracking-normal text-indigo-500 mt-0.5 truncate">
+                    <div className="text-[9px] font-mono normal-case tracking-normal text-indigo-400 font-normal mt-0.5 truncate">
                       ={c.formula}
+                    </div>
+                  )}
+                  {subCol && c.key === subtotalColumnKey && (
+                    <div className="text-[9px] font-normal normal-case tracking-normal text-gray-400 mt-0.5">
+                      subtotal
                     </div>
                   )}
                 </th>
@@ -259,80 +372,100 @@ export default function CostSheetGrid({
             {rows.map((row, rowIdx) => {
               // ── Section row ──
               if (isSection(row)) {
+                const secTotal = subtotals.bySection.get(rowIdx) || 0;
                 return (
                   <tr key={rowIdx} className="group border-y border-gray-200" style={{ background: SECTION_COLOR }}>
-                    {showRowNumbers && (
-                      <td className="py-1 px-1 text-center select-none relative" style={{ background: SECTION_COLOR }}>
-                        <GripVertical size={11} className="text-gray-300 mx-auto" />
-                        {editable && (
-                          <button
-                            onClick={() => handleRemoveRow(rowIdx)}
-                            title="Delete section"
-                            className="absolute right-0 top-1/2 -translate-y-1/2 p-0.5 text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <Trash2 size={10} />
-                          </button>
-                        )}
-                      </td>
-                    )}
+                    {showRowNumbers && gutterCell(row, rowIdx)}
                     <td colSpan={cols.length} className="px-3 py-0 border-l border-gray-200" style={{ background: SECTION_COLOR }}>
                       <div className="flex items-center gap-2 h-7">
-                        <PanelTop size={12} className="text-gray-500 shrink-0" />
+                        <PanelTop size={12} className="text-gray-400 shrink-0" />
                         {editable ? (
                           <input
                             type="text"
-                            ref={el => {
-                              if (el) inputRefs.current.set(`_section_title:${rowIdx}`, el);
-                            }}
+                            ref={el => { if (el) inputRefs.current.set(`_section_title:${rowIdx}`, el); }}
                             value={row.title || ''}
                             onChange={e => updateSectionTitle(rowIdx, e.target.value)}
-                            onKeyDown={e => editable && handleSectionTitleKeyDown(e, rowIdx)}
+                            onKeyDown={e => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  moveDownOrCreate(cols[0]?.key || '', rowIdx);
+}}
                             placeholder="Section heading…"
-                            className="flex-1 bg-transparent text-[11px] font-bold text-gray-800 uppercase tracking-widest outline-none placeholder:text-gray-400 placeholder:normal-case placeholder:tracking-normal placeholder:font-normal focus:bg-white focus:rounded px-1"
+                            className="flex-1 bg-transparent text-[11px] font-semibold text-gray-500 uppercase tracking-widest outline-none placeholder:text-gray-300 placeholder:normal-case placeholder:tracking-normal placeholder:font-normal focus:bg-white focus:rounded px-1 py-0.5"
                           />
                         ) : (
-                          <span className="flex-1 text-[11px] font-bold text-gray-800 uppercase tracking-widest">
+                          <span className="flex-1 min-w-0 truncate text-[11px] font-semibold text-gray-500 uppercase tracking-widest">
                             {row.title || ''}
                           </span>
                         )}
-                        <span className="text-[10px] text-gray-400 font-mono shrink-0">
-                          §{rows.slice(0, rowIdx + 1).filter(isSection).length}
-                        </span>
+                        {secTotal > 0 && (
+                          <span className="text-[11px] font-semibold text-gray-600 shrink-0">{fmt2(secTotal)}</span>
+                        )}
                       </div>
                     </td>
                   </tr>
                 );
               }
 
-              // ── Data row ──
-              const dn = dataRowMap[rowIdx];
-              return (
-                <tr key={rowIdx} className="group border-b border-gray-100 hover:bg-gray-50/60">
-                  {showRowNumbers && (
-                    <td className="py-1 px-1 text-center text-[10px] text-gray-400 border-r border-gray-100 select-none relative">
-                      {dn}
-                      {editable && (
-                        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => handleAddSection(rowIdx)}
-                            title="Insert section below this row"
-                            className="p-0.5 text-gray-300 hover:text-gray-600"
-                          >
-                            <PanelTop size={9} />
-                          </button>
-                          {onRemoveRow && (
-                            <button
-                              onClick={() => handleRemoveRow(rowIdx)}
-                              title="Delete row"
-                              className="p-0.5 text-gray-300 hover:text-red-400"
-                            >
-                              <Trash2 size={9} />
-                            </button>
-                          )}
+              // ── Key-value row ──
+              if (isKv(row)) {
+                return (
+                  <tr key={rowIdx} className="group border-b border-gray-100 hover:bg-gray-50/60">
+                    {showRowNumbers && gutterCell(row, rowIdx)}
+                    <td colSpan={Math.max(1, cols.length - 1)} className="border-r border-gray-100 py-0 pl-6 pr-1">
+                      {cols.length === 1 ? (
+                        <div className="flex items-center">
+                          <input
+                            type="text"
+                            ref={el => { if (el) inputRefs.current.set(`_kv_label:${rowIdx}`, el); }}
+                            value={row.label || ''}
+                            onChange={e => updateKv(rowIdx, { label: e.target.value })}
+                            onKeyDown={e => editable && handleKvKeyDown(e, rowIdx)}
+                            placeholder="Field label"
+                            className="w-1/2 text-xs bg-transparent outline-none focus:bg-blue-50 px-1 py-1 placeholder:text-gray-300"
+                          />
+                          <span className="w-1/2 text-right">
+                            <input
+                              type="text"
+                              value={row.value ?? ''}
+                              onChange={e => updateKv(rowIdx, { value: e.target.value })}
+                              disabled={!editable}
+                              className="w-full text-right text-xs font-semibold bg-transparent outline-none focus:bg-blue-50 px-2 py-1 disabled:cursor-default"
+                            />
+                          </span>
                         </div>
+                      ) : (
+                        <input
+                          type="text"
+                          ref={el => { if (el) inputRefs.current.set(`_kv_label:${rowIdx}`, el); }}
+                          value={row.label || ''}
+                          onChange={e => updateKv(rowIdx, { label: e.target.value })}
+                          onKeyDown={e => editable && handleKvKeyDown(e, rowIdx)}
+                          placeholder="Field label"
+                          className="w-full text-xs text-gray-700 bg-transparent outline-none focus:bg-blue-50 px-1 py-1 placeholder:text-gray-300"
+                        />
                       )}
                     </td>
-                  )}
+                    {cols.length > 1 && (
+                      <td className="border-r border-gray-100">
+                        <input
+                          type="text"
+                          value={row.value ?? ''}
+                          onChange={e => updateKv(rowIdx, { value: e.target.value })}
+                          disabled={!editable}
+                          onKeyDown={e => editable && handleKvKeyDown(e, rowIdx)}
+                          className="w-full text-right text-xs font-semibold text-gray-900 bg-transparent outline-none focus:bg-blue-50 px-2 py-1 disabled:cursor-default"
+                        />
+                      </td>
+                    )}
+                  </tr>
+                );
+              }
+
+              // ── Data row ──
+              return (
+                <tr key={rowIdx} className="group border-b border-gray-100 hover:bg-gray-50/60">
+                  {showRowNumbers && gutterCell(row, rowIdx)}
                   {cols.map(c => {
                     const key = `${c.key}:${rowIdx}`;
                     if (isFormula(c)) {
@@ -345,7 +478,7 @@ export default function CostSheetGrid({
                             onKeyDown={e => editable && handleCellKeyDown(e, c.key, rowIdx)}
                             className="w-full h-full px-2 py-1 text-right font-semibold text-indigo-700 outline-none focus:bg-indigo-100 cursor-default"
                           >
-                            {val === null ? <span className="text-red-400 font-bold">#ERR!</span> : fmt(val)}
+                            {val === null ? <span className="text-red-400 font-bold">#ERR!</span> : fmt2(val)}
                           </div>
                         </td>
                       );
@@ -371,10 +504,24 @@ export default function CostSheetGrid({
               );
             })}
           </tbody>
+
+          {subtotalColumnKey && subCol && totalDataRows > 0 && (
+            <tfoot>
+              <tr className="bg-gray-900 text-white border-t border-gray-200">
+                {showRowNumbers && <td className="w-11" style={{ background: '#111827' }} />}
+                <td colSpan={cols.length - 1} className="px-3 py-2 text-xs font-bold uppercase tracking-wide" style={{ background: '#111827' }}>
+                  {totalLabel}
+                </td>
+                <td className="text-right px-3 py-2 font-bold text-xs" style={{ background: '#111827' }}>
+                  {fmt2(subtotals.grandTotal)}
+                </td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
 
-      {addRowBtn}
+      {footerBtns}
     </div>
   );
 }

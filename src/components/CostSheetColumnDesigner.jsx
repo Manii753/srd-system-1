@@ -11,7 +11,12 @@ const nextColumnKey = (columns) => {
   return columnKeyFromIndex(columns.length);
 };
 
-export default function CostSheetColumnDesigner({ columns, onChange }) {
+export default function CostSheetColumnDesigner({
+  columns,
+  onChange,
+  subtotalColumnKey,
+  onSubtotalColumnChange,
+}) {
   const update = (idx, patch) => onChange(columns.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
   const remove = (idx) => onChange(columns.filter((_, i) => i !== idx));
   const add = () => onChange([
@@ -35,6 +40,24 @@ export default function CostSheetColumnDesigner({ columns, onChange }) {
 
   return (
     <div className="overflow-x-auto">
+      {onSubtotalColumnChange && (
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 text-xs text-gray-600">
+          <span className="font-medium text-gray-500">Subtotal column</span>
+          <select
+            value={subtotalColumnKey || ''}
+            onChange={e => onSubtotalColumnChange(e.target.value)}
+            className="border border-gray-200 rounded bg-white px-1.5 py-0.5 text-xs"
+          >
+            <option value="">None</option>
+            {columns.filter(c => c.type === 'formula').map(c => (
+              <option key={c.key} value={c.key}>{c.label || c.key}</option>
+            ))}
+            {columns.filter(c => c.type !== 'formula').map(c => (
+              <option key={c.key} value={c.key}>{c.label || c.key} (raw)</option>
+            ))}
+          </select>
+        </div>
+      )}
       <table className="w-full text-xs">
         <thead>
           <tr className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-wide">

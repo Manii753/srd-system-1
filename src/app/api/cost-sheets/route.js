@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import CostSheet from '@/models/CostSheet';
 import CostSheetTemplate from '@/models/CostSheetTemplate';
+import { DEFAULT_HEADER_FIELDS } from '@/lib/costSheetDefaults';
 import '@/models/SRD';
 
 export async function GET(request) {
@@ -33,6 +34,8 @@ export async function POST(request) {
     let templateName = '';
     let defaultRows = 5;
     let skeleton = null;
+    let headerFields = DEFAULT_HEADER_FIELDS.map(f => ({ ...f, options: [...f.options] }));
+    let subtotalColumnKey = '';
 
     if (templateId) {
       const tpl = await CostSheetTemplate.findById(templateId).lean();
@@ -41,6 +44,10 @@ export async function POST(request) {
         templateName = tpl.name || '';
         defaultRows = Math.max(1, parseInt(tpl.defaultRows, 10) || 5);
         if (Array.isArray(tpl.skeleton) && tpl.skeleton.length) skeleton = tpl.skeleton;
+        if (Array.isArray(tpl.headerFields) && tpl.headerFields.length) {
+          headerFields = JSON.parse(JSON.stringify(tpl.headerFields));
+        }
+        if (tpl.subtotalColumnKey) subtotalColumnKey = tpl.subtotalColumnKey;
       }
     }
 
@@ -56,6 +63,11 @@ export async function POST(request) {
       srdRefNo: body.srdRefNo || '',
       standalone: body.standalone !== undefined ? !!body.standalone : !body.srd,
       columns,
+      headerFields,
+      headers: {},
+      subtotalColumnKey,
+      currency: body.currency || 'USD',
+      notes: body.notes || '',
       rows,
       createdBy: author || '',
       updatedBy: author || '',

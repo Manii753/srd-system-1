@@ -9,6 +9,16 @@ const normalizeSkeleton = (rows) =>
       ? { type: 'section', title: String(r.title || '') }
       : { type: 'data' }));
 
+const normalizeHeaderFields = (fields) =>
+  (Array.isArray(fields) ? fields : [])
+    .filter(f => f && f.key)
+    .map(f => ({
+      key: f.key,
+      label: f.label || f.key,
+      type: f.type === 'select' ? 'select' : 'text',
+      options: Array.isArray(f.options) ? f.options.filter(o => o != null).map(String) : [],
+    }));
+
 export async function GET(request, { params }) {
   try {
     await dbConnect();
@@ -43,6 +53,12 @@ export async function PATCH(request, { params }) {
     }
     if (body.skeleton !== undefined) {
       existing.skeleton = normalizeSkeleton(body.skeleton);
+    }
+    if (body.headerFields !== undefined) {
+      existing.headerFields = normalizeHeaderFields(body.headerFields);
+    }
+    if (body.subtotalColumnKey !== undefined) {
+      existing.subtotalColumnKey = body.subtotalColumnKey || '';
     }
     if (body.author !== undefined) existing.updatedBy = body.author;
 

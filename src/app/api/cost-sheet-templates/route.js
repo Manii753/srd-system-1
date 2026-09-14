@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import CostSheetTemplate from '@/models/CostSheetTemplate';
+import { DEFAULT_HEADER_FIELDS } from '@/lib/costSheetDefaults';
 
 const normalizeSkeleton = (rows) =>
   (Array.isArray(rows) ? rows : [])
@@ -8,6 +9,16 @@ const normalizeSkeleton = (rows) =>
     .map(r => (r.type === 'section'
       ? { type: 'section', title: String(r.title || '') }
       : { type: 'data' }));
+
+const normalizeHeaderFields = (fields) =>
+  (Array.isArray(fields) ? fields : [])
+    .filter(f => f && f.key)
+    .map(f => ({
+      key: f.key,
+      label: f.label || f.key,
+      type: f.type === 'select' ? 'select' : 'text',
+      options: Array.isArray(f.options) ? f.options.filter(o => o != null).map(String) : [],
+    }));
 
 export async function GET(request) {
   try {
@@ -40,6 +51,10 @@ export async function POST(request) {
       name: String(body.name).trim(),
       description: body.description || '',
       columns: Array.isArray(body.columns) ? body.columns : [],
+      headerFields: body.headerFields !== undefined
+        ? normalizeHeaderFields(body.headerFields)
+        : normalizeHeaderFields(DEFAULT_HEADER_FIELDS),
+      subtotalColumnKey: body.subtotalColumnKey || '',
       defaultRows: Math.max(1, parseInt(body.defaultRows, 10) || 5),
       skeleton: normalizeSkeleton(body.skeleton),
       createdBy: body.author || '',

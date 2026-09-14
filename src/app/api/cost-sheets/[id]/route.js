@@ -32,6 +32,11 @@ export async function PATCH(request, { params }) {
     if (body.title !== undefined) existing.title = String(body.title);
     if (Array.isArray(body.columns)) existing.columns = body.columns;
     if (Array.isArray(body.rows)) existing.rows = body.rows;
+    if (body.headerFields !== undefined) existing.headerFields = body.headerFields;
+    if (body.headers !== undefined && typeof body.headers === 'object') existing.headers = body.headers;
+    if (body.subtotalColumnKey !== undefined) existing.subtotalColumnKey = body.subtotalColumnKey || '';
+    if (body.currency !== undefined) existing.currency = body.currency || 'USD';
+    if (body.notes !== undefined) existing.notes = body.notes || '';
     if (body.srd !== undefined) existing.srd = body.srd || null;
     if (body.srdRefNo !== undefined) existing.srdRefNo = body.srdRefNo || '';
     if (body.standalone !== undefined) existing.standalone = !!body.standalone;
