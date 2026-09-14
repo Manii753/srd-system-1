@@ -32,6 +32,7 @@ export async function POST(request) {
     let columns = [];
     let templateName = '';
     let defaultRows = 5;
+    let skeleton = null;
 
     if (templateId) {
       const tpl = await CostSheetTemplate.findById(templateId).lean();
@@ -39,10 +40,13 @@ export async function POST(request) {
         columns = tpl.columns || [];
         templateName = tpl.name || '';
         defaultRows = Math.max(1, parseInt(tpl.defaultRows, 10) || 5);
+        if (Array.isArray(tpl.skeleton) && tpl.skeleton.length) skeleton = tpl.skeleton;
       }
     }
 
-    const rows = Array.from({ length: defaultRows }, () => ({}));
+    const rows = skeleton
+      ? JSON.parse(JSON.stringify(skeleton))
+      : Array.from({ length: defaultRows }, () => ({ type: 'data' }));
 
     const doc = await CostSheet.create({
       title: title || templateName || 'Untitled Cost Sheet',

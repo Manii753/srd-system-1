@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import CostSheetTemplate from '@/models/CostSheetTemplate';
 
+const normalizeSkeleton = (rows) =>
+  (Array.isArray(rows) ? rows : [])
+    .filter(r => r)
+    .map(r => (r.type === 'section'
+      ? { type: 'section', title: String(r.title || '') }
+      : { type: 'data' }));
+
 export async function GET(request) {
   try {
     await dbConnect();
@@ -34,6 +41,7 @@ export async function POST(request) {
       description: body.description || '',
       columns: Array.isArray(body.columns) ? body.columns : [],
       defaultRows: Math.max(1, parseInt(body.defaultRows, 10) || 5),
+      skeleton: normalizeSkeleton(body.skeleton),
       createdBy: body.author || '',
       updatedBy: body.author || '',
     });

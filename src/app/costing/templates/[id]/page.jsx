@@ -10,7 +10,7 @@ import CostSheetGrid from '@/components/CostSheetGrid';
 import CostSheetColumnDesigner from '@/components/CostSheetColumnDesigner';
 import { useToast } from '@/lib/use-toast';
 
-const newEmptyRow = () => ({});
+const newEmptyRow = () => ({ type: 'data' });
 
 export default function TemplateDesignerPage() {
   const { id } = useParams();
@@ -27,7 +27,7 @@ export default function TemplateDesignerPage() {
   const [defaultRows, setDefaultRows] = useState(5);
   const [columns, setColumns] = useState([]);
   const [previewRows, setPreviewRows] = useState(() =>
-    Array.from({ length: 5 }, () => ({}))
+    Array.from({ length: 5 }, () => newEmptyRow())
   );
   const [isDirty, setIsDirty] = useState(false);
 
@@ -46,7 +46,11 @@ export default function TemplateDesignerPage() {
             setDescription(t.description || '');
             setDefaultRows(Math.max(1, parseInt(t.defaultRows, 10) || 5));
             setColumns((t.columns || []).map(c => ({ ...c, width: c.width || 120 })));
-            setPreviewRows(Array.from({ length: Math.max(1, parseInt(t.defaultRows, 10) || 5) }, () => ({})));
+            if (Array.isArray(t.skeleton) && t.skeleton.length) {
+              setPreviewRows(JSON.parse(JSON.stringify(t.skeleton)));
+            } else {
+              setPreviewRows(Array.from({ length: Math.max(1, parseInt(t.defaultRows, 10) || 5) }, () => newEmptyRow()));
+            }
           } else {
             toast({ title: 'Error', description: d.error, variant: 'destructive' });
           }
@@ -76,6 +80,9 @@ export default function TemplateDesignerPage() {
         width: parseInt(c.width, 10) || 120,
       })),
       defaultRows,
+      // Save the section skeleton — section headings are kept, data values are
+      // treated as throwaway preview content and stripped by the API.
+      skeleton: previewRows,
       author: session?.user?.name || session?.user?.email || '',
     };
 
@@ -199,7 +206,7 @@ export default function TemplateDesignerPage() {
 
             {/* ── Live preview ── */}
             <div>
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Live Preview — press Enter to move down (a new row is added automatically)</h3>
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Live Preview — press Enter to move down (new rows/sections are added automatically; this structure becomes the default skeleton for new sheets)</h3>
               <CostSheetGrid
                 columns={columns}
                 rows={previewRows}

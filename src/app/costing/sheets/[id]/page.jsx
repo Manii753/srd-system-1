@@ -10,7 +10,7 @@ import CostSheetGrid from '@/components/CostSheetGrid';
 import CostSheetColumnDesigner from '@/components/CostSheetColumnDesigner';
 import { useToast } from '@/lib/use-toast';
 
-const newEmptyRow = () => ({});
+const newEmptyRow = () => ({ type: 'data' });
 
 function SheetEditorContent() {
   const { id } = useParams();
