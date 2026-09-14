@@ -8,7 +8,7 @@ import {
   LayoutDashboard, FileText, Settings, Users, Package,
   PanelLeftClose, PanelLeftOpen, FileSpreadsheet,
   BarChart3, ChevronDown, Truck, MessageSquare, ClipboardList,
-  DollarSign, List, Calendar, LogOut, Shield, Factory,
+  DollarSign, List, Calendar, LogOut, Shield, Factory, LayoutTemplate,
 } from 'lucide-react';
 
 const COLLAPSED_KEY = 'sidebar_collapsed';
@@ -156,6 +156,8 @@ export default function DynamicSidebar() {
           { id: 'purchase-orders', name: 'Purchase Orders', href: '/dashboard/mmc/purchase-orders', icon: ClipboardList, perm: 'canViewReports' },
           { id: 'cost-sheets-sub', name: 'All Costing', href: '/costing', icon: DollarSign, perm: 'canViewCostSheets' },
           { id: 'pre-costing', name: 'Pre-Costing', href: '/costing/pre', icon: DollarSign, perm: 'canViewCostSheets' },
+          { id: 'cost-sheets-templates', name: 'Cost Sheet Templates', href: '/costing/templates', icon: LayoutTemplate, perm: 'canEditCostSheets' },
+          { id: 'cost-sheets-custom', name: 'Cost Sheets', href: '/costing/sheets', icon: ClipboardList, perm: 'canViewCostSheets' },
           { id: 'vmd-production', name: 'Production', href: '/dashboard/vmd/production', icon: Factory, perm: 'canViewReports' },
         ];
         return items;
@@ -213,6 +215,8 @@ export default function DynamicSidebar() {
           return buildMenu([
             { id: 'home', name: 'Home', href: '/home', icon: LayoutDashboard },
             { id: 'cost-sheets', name: 'Cost Sheets', href: '/costing/pre', icon: DollarSign },
+            { id: 'cost-sheets-templates', name: 'Cost Sheet Templates', href: '/costing/templates', icon: LayoutTemplate },
+            { id: 'cost-sheets-custom', name: 'Cost Sheets', href: '/costing/sheets', icon: ClipboardList },
             { id: 'samples-management', name: 'Samples Management', icon: Package, isSubmenu: true, children: samplesChildren },
             { id: 'order-confirmation', name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
             { id: 'planning', name: 'Planning', href: '/production', icon: Calendar },
@@ -269,6 +273,8 @@ export default function DynamicSidebar() {
             { id: 'pre-costing', name: 'Pre-Costing', href: '/costing/pre', icon: DollarSign },
             // { id: 'post-costing', name: 'Post-Costing', href: '/costing/post', icon: DollarSign },  // commented out for now
             { id: 'cost-sheets-sub', name: 'All Costing', href: '/costing', icon: DollarSign },
+            { id: 'cost-sheets-templates', name: 'Cost Sheet Templates', href: '/costing/templates', icon: LayoutTemplate },
+            { id: 'cost-sheets-custom', name: 'Cost Sheets', href: '/costing/sheets', icon: ClipboardList },
           ]});
           items.push({ id: 'bom', name: 'BOM', href: '/bom', icon: List });
           items.push({ id: 'planning', name: 'Planning', href: '/production', icon: Calendar });
