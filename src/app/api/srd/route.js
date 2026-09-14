@@ -72,7 +72,7 @@ export async function GET(request) {
     const currentProductionStage = searchParams.get('currentProductionStage');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
-    const completionStatus = searchParams.get('completionStatus'); // 'completed', 'in-production', 'pre-production'
+    const completionStatus = searchParams.get('completionStatus'); // 'active', 'completed', 'in-production', 'pre-production'
     const shouldPopulate = searchParams.get('populate') === 'true';
 
     let query = {};
@@ -218,7 +218,9 @@ export async function GET(request) {
 
     // Filter by completion status
     if (completionStatus) {
-      if (completionStatus === 'completed') {
+      if (completionStatus === 'active') {
+        query.isComplete = { $ne: true };
+      } else if (completionStatus === 'completed') {
         query.isComplete = true;
       } else if (completionStatus === 'in-production') {
         query.inProduction = true;

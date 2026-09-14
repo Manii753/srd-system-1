@@ -6,7 +6,7 @@ import { useEffect, useState, Suspense } from 'react';
 import Layout from '@/components/layout/Layout';
 import SRDTable from '@/components/SRDTable';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, Plus } from 'lucide-react';
+import { Search, Filter, Plus, X } from 'lucide-react';
 import SRDPrintDialog from '@/components/SRDPrintDialog';
 
 function SRDListPageContent() {
@@ -15,7 +15,10 @@ function SRDListPageContent() {
   const searchParams = useSearchParams();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('active');
+  const [filterBrand, setFilterBrand] = useState('');
+  const [brands, setBrands] = useState([]);
+  const [recordCount, setRecordCount] = useState(0);
 
   const departmentFilter = searchParams.get('department') || 'all';
   const statusFilter = searchParams.get('status') || 'all';
@@ -26,6 +29,13 @@ function SRDListPageContent() {
     if (status === 'loading') return;
     if (!session) { router.push('/login'); return; }
   }, [session, status, router]);
+
+  useEffect(() => {
+    fetch('/api/srd?listBrands=true')
+      .then(r => r.json())
+      .then(d => { if (d?.success && d.isBrandList) setBrands(d.data || []); })
+      .catch(() => {});
+  }, []);
 
   if (status === 'loading') {
     return (
@@ -53,7 +63,8 @@ function SRDListPageContent() {
             />
           </div>
 
-          {/* Status filter — matches the STATUS column (production progress) */}
+          {/* Status filter — matches the STATUS column (production progress).
+              Defaults to "active" so completed SRDs stay hidden until enabled. */}
           <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm">
             <Filter className="h-4 w-4 text-gray-500" />
             <select
@@ -61,12 +72,39 @@ function SRDListPageContent() {
               onChange={e => setFilterStatus(e.target.value)}
               className="border-0 focus:ring-0 focus:outline-none bg-transparent text-sm text-gray-700 font-medium"
             >
-              <option value="all">All Status</option>
+              <option value="active">All Active</option>
               <option value="pre-production">Pre-Production</option>
               <option value="in-production">In Production</option>
               <option value="completed">Completed</option>
+              <option value="all">All Statuses</option>
             </select>
           </div>
+
+          {/* Brand filter */}
+          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm">
+            <Filter className="h-4 w-4 text-gray-500" />
+            <select
+              value={filterBrand}
+              onChange={e => setFilterBrand(e.target.value)}
+              className="border-0 focus:ring-0 focus:outline-none bg-transparent text-sm text-gray-700 font-medium"
+            >
+              <option value="">All Brands</option>
+              {brands.map(b => <option key={b} value={b}>{b}</option>)}
+            </select>
+          </div>
+
+          {(searchTerm || filterStatus !== 'active' || filterBrand) && (
+            <button
+              onClick={() => { setSearchTerm(''); setFilterStatus('active'); setFilterBrand(''); }}
+              className="flex items-center gap-1 text-sm text-gray-400 hover:text-red-500"
+              title="Clear filters"
+            >
+              <X className="h-4 w-4" />
+              Clear
+            </button>
+          )}
+
+          <span className="text-sm text-gray-500 whitespace-nowrap">{recordCount} records</span>
 
           <SRDPrintDialog />
 
@@ -88,6 +126,8 @@ function SRDListPageContent() {
           department={departmentFilter}
           searchTerm={searchTerm}
           filterStatus={filterStatus}
+          filterBrand={filterBrand}
+          onCountChange={setRecordCount}
         />
       </div>
     </Layout>

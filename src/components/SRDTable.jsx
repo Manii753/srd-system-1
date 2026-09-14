@@ -21,7 +21,7 @@ import { useSession } from 'next-auth/react';
 import BrandGroupManager from '@/components/BrandGroupManager';
 
 
-export default function SRDTable({ department, searchTerm: searchTermProp, filterStatus: filterStatusProp, initialProductionStages, initialQuickDetailsFields, initialPaginationSettings, initialDelayThresholdDays }) {
+export default function SRDTable({ department, searchTerm: searchTermProp, filterStatus: filterStatusProp, filterBrand: filterBrandProp, initialProductionStages, initialQuickDetailsFields, initialPaginationSettings, initialDelayThresholdDays, onCountChange }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [srds, setSRDs] = useState([]);
@@ -32,12 +32,14 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
   const [sortDirection, setSortDirection] = useState('desc');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterBrand, setFilterBrand] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [paginationSettings, setPaginationSettings] = useState(initialPaginationSettings || { enabled: true, itemsPerPage: 10 });
   const [delayThresholdDays, setDelayThresholdDays] = useState(initialDelayThresholdDays ?? 3);
 
   const effectiveSearch = searchTermProp !== undefined ? searchTermProp : searchTerm;
   const effectiveFilter = filterStatusProp !== undefined ? filterStatusProp : filterStatus;
+  const effectiveBrand = filterBrandProp !== undefined ? filterBrandProp : filterBrand;
   const [selectedImages, setSelectedImages] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [productionStages, setProductionStages] = useState([]);
@@ -46,7 +48,7 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
   const [activeGroupId, setActiveGroupId] = useState(null);
   const [activeBrands, setActiveBrands] = useState([]);
 
-  useEffect(() => { setCurrentPage(1); }, [effectiveSearch, effectiveFilter, department, activeBrands]);
+  useEffect(() => { setCurrentPage(1); }, [effectiveSearch, effectiveFilter, department, activeBrands, effectiveBrand]);
 
   useEffect(() => {
     if (initialProductionStages) setProductionStages(initialProductionStages.filter(s => s.isActive));
@@ -56,7 +58,7 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
 
   useEffect(() => {
     fetchSRDs();
-  }, [currentPage, effectiveSearch, effectiveFilter, department, sortField, sortDirection, paginationSettings.itemsPerPage, activeBrands]);
+  }, [currentPage, effectiveSearch, effectiveFilter, department, sortField, sortDirection, paginationSettings.itemsPerPage, activeBrands, effectiveBrand]);
 
   const fetchMetadata = async () => {
     try {
@@ -91,7 +93,7 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
       const query = new URLSearchParams();
       if (department && department !== 'all') query.append('department', department);
       // completionStatus values route to a different API param than dept-approval status
-      const completionValues = ['pre-production', 'in-production', 'completed'];
+      const completionValues = ['active', 'pre-production', 'in-production', 'completed'];
       if (effectiveFilter && effectiveFilter !== 'all') {
         if (completionValues.includes(effectiveFilter)) {
           query.append('completionStatus', effectiveFilter);
@@ -100,7 +102,11 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
         }
       }
       if (effectiveSearch) query.append('search', effectiveSearch);
-      if (activeBrands.length > 0) query.append('brands', activeBrands.join(','));
+      const brandSet = new Set([
+        ...(effectiveBrand ? [effectiveBrand] : []),
+        ...(Array.isArray(activeBrands) ? activeBrands : []),
+      ]);
+      if (brandSet.size > 0) query.append('brands', [...brandSet].join(','));
       query.append('page', currentPage);
       query.append('limit', paginationSettings.itemsPerPage || 20);
       query.append('sortBy', sortField);
@@ -112,6 +118,7 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
         setSRDs(data.data);
         setTotalCount(data.totalCount);
         setTotalPages(data.totalPages);
+        onCountChange?.(data.totalCount);
       }
     } catch (error) {
       console.error('Error fetching SRDs:', error);
