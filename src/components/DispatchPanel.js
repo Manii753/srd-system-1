@@ -545,7 +545,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     setSelectedMergeSRDs([srd._id?.toString()]); // pre-select current SRD
     if (mode === 'merge') {
       setLoadingSRDs(true);
-      fetch('/api/srd?limit=200&populateBuyer=true')
+      fetch('/api/srd?limit=200&populateBuyer=true&select=_id,refNo,dynamicFields,BuyerDetails')
         .then(r => r.json())
         .then(data => {
           const list = data.data || data.srds || (Array.isArray(data) ? data : []);

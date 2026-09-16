@@ -359,7 +359,7 @@ export default function InboxPage() {
 
   const fetchSRDs = async () => {
     try {
-      const response = await fetch('/api/srd?limit=500');
+      const response = await fetch('/api/srd?limit=500&select=_id,refNo,title,description,progress');
       const data = await response.json();
       if (data.success) {
         setSrds(data.data);

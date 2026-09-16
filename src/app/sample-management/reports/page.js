@@ -337,7 +337,7 @@ export default function SRReportPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/srd?limit=500').then(r => r.json()),
+      fetch('/api/srd?limit=500&select=refNo,createdAt,updatedAt,productionEndDate,isComplete,inProduction,currentProductionStage,sampleProcess,productionHistory,status,dynamicFields,sampleDispatchedToBuyer,sampleDipatchedtoBuyerDate,BuyerApproved,internalApproved,internalApprovedDate,internalRejectedReasons,BuyerRejectedReasons').then(r => r.json()),
       fetch('/api/report-groups').then(r => r.json()),
       fetch('/api/users?limit=100').then(r => r.json()),
       fetch('/api/production-stages').then(r => r.json()),

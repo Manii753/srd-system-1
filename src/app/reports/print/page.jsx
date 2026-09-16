@@ -59,6 +59,9 @@ function ReportPrintContent() {
         const query = new URLSearchParams(searchParams);
         query.set('populate', 'true');
         query.set('limit', '500'); // Print reports need the full matching set
+        // Fetch only the fields reports actually render; images come from
+        // dynamicFields, and production info is needed for status display.
+        query.set('select', 'refNo,title,description,createdAt,updatedAt,isComplete,inProduction,productionStartDate,productionEndDate,currentProductionStage,sampleProcess,dynamicFields');
 
         const response = await fetch(`/api/srd?${query.toString()}`);
         const data = await response.json();

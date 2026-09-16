@@ -74,6 +74,8 @@ export async function GET(request) {
     const endDate = searchParams.get('endDate');
     const completionStatus = searchParams.get('completionStatus'); // 'active', 'completed', 'in-production', 'pre-production'
     const shouldPopulate = searchParams.get('populate') === 'true';
+    const selectFields = searchParams.get('select'); // comma-separated field list
+    const useLean = searchParams.get('lean') !== 'false'; // lean by default
 
     let query = {};
 
@@ -247,6 +249,26 @@ export async function GET(request) {
 
     let queryExec = SRD.find(query).sort({ [sortBy]: sortDir }).skip(skip).limit(limit);
 
+    if (selectFields) {
+      const fieldsList = selectFields
+        .split(',')
+        .map(f => f.trim())
+        .filter(Boolean);
+
+      // Work-queue gating needs dynamicFields + status for compulsory-field checks.
+      // If the caller only wants specific fields, force-include these so gating
+      // works correctly when a department filter is applied.
+      if (needsWorkQueueGating && fieldsList.length > 0 && !fieldsList.includes('dynamicFields')) {
+        fieldsList.push('dynamicFields');
+      }
+      if (needsWorkQueueGating && fieldsList.length > 0 && !fieldsList.includes('status')) {
+        fieldsList.push('status');
+      }
+
+      const fields = fieldsList.join(' ');
+      if (fields) queryExec = queryExec.select(fields);
+    }
+
     if (shouldPopulate) {
       queryExec = queryExec
         .populate('dynamicFields.field')
@@ -257,6 +279,10 @@ export async function GET(request) {
     const shouldPopulateBuyer = searchParams.get('populateBuyer') === 'true';
     if (shouldPopulateBuyer) {
       queryExec = queryExec.populate('BuyerDetails', 'name email contactPerson');
+    }
+
+    if (useLean) {
+      queryExec = queryExec.lean();
     }
 
     const srds = await queryExec;

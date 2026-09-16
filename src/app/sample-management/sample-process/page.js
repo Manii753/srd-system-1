@@ -117,7 +117,7 @@ export default function SampleProcessPage() {
     setLoading(true);
     try {
       const [srdsRes, stagesRes, companyRes] = await Promise.all([
-        fetch('/api/srd?limit=1000'),
+        fetch('/api/srd?limit=1000&select=refNo,title,description,createdAt,isComplete,inProduction,sampleProcess,status,dynamicFields&lean=true'),
         fetch('/api/production-stages'),
         fetch('/api/company'),
       ]);
