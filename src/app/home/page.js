@@ -94,99 +94,162 @@ export default function HomePage() {
 
   if (status === 'loading') return null;
 
-  // Show splash screen — matches loading.js theme (dark + green)
+  // Show splash screen — premium blue/indigo design, no green
   if (showSplash) {
     return (
       <div
         className={`min-h-screen flex flex-col items-center justify-center overflow-hidden transition-opacity duration-500 ${
           fadeOut ? 'opacity-0' : 'opacity-100'
         }`}
-        style={{ background: 'linear-gradient(135deg, #111827 0%, #1f2937 50%, #111827 100%)' }}
+        style={{
+          background: 'radial-gradient(ellipse at 50% 40%, #0f172a 0%, #0c1120 60%, #080d18 100%)',
+          position: 'relative',
+        }}
       >
         <style>{`
-          @keyframes sp-orbit {
-            0%   { transform: rotate(0deg)   translateX(52px) rotate(0deg);    }
-            100% { transform: rotate(360deg) translateX(52px) rotate(-360deg); }
+          @keyframes sp-grid-move {
+            0%   { background-position: 0 0; }
+            100% { background-position: 40px 40px; }
           }
-          @keyframes sp-bar {
-            0%   { width: 0%;   }
-            100% { width: 100%; }
+          @keyframes sp-ring {
+            0%   { transform: scale(1);   opacity: 0.6; }
+            100% { transform: scale(1.9); opacity: 0;   }
           }
-          @keyframes sp-dot {
-            0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-            40%           { opacity: 1;   transform: scale(1.2); }
+          @keyframes sp-float {
+            0%, 100% { transform: translateY(0px);  }
+            50%       { transform: translateY(-6px); }
           }
-          @keyframes sp-fade {
-            from { opacity: 0; transform: translateY(8px); }
-            to   { opacity: 1; transform: translateY(0);   }
+          @keyframes sp-shine {
+            0%   { left: -100%; }
+            60%, 100% { left: 160%; }
           }
-          .sp-orbit { animation: sp-orbit 3s linear infinite; }
-          .sp-bar   { animation: sp-bar 5s ease-out forwards; }
-          .sp-dot-1 { animation: sp-dot 1.4s ease-in-out infinite 0s;   }
-          .sp-dot-2 { animation: sp-dot 1.4s ease-in-out infinite 0.2s; }
-          .sp-dot-3 { animation: sp-dot 1.4s ease-in-out infinite 0.4s; }
-          .sp-fade  { animation: sp-fade 0.8s ease-out both; }
+          @keyframes sp-up {
+            0%   { opacity: 0; transform: translateY(14px); }
+            100% { opacity: 1; transform: translateY(0);    }
+          }
+          @keyframes sp-scan {
+            0%   { left: 0%;   opacity: 1; }
+            90%  { left: 100%; opacity: 1; }
+            100% { left: 100%; opacity: 0; }
+          }
+          @keyframes sp-tick {
+            0%, 60%, 100% { transform: scaleY(0.4); opacity: 0.3; }
+            30%            { transform: scaleY(1.0); opacity: 1;   }
+          }
+          .sp-grid {
+            position: absolute; inset: 0;
+            background-image:
+              linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+            animation: sp-grid-move 4s linear infinite;
+            pointer-events: none;
+          }
+          .sp-ring {
+            position: absolute; inset: -10px;
+            border-radius: 24px;
+            border: 1.5px solid rgba(99,102,241,0.7);
+            animation: sp-ring 2s ease-out infinite;
+          }
+          .sp-ring-2 { animation-delay: 0.7s; }
+          .sp-ring-3 { animation-delay: 1.4s; }
+          .sp-logo-wrap { animation: sp-float 3s ease-in-out infinite; }
+          .sp-shine { position: relative; overflow: hidden; }
+          .sp-shine::after {
+            content: '';
+            position: absolute; top: 0; bottom: 0;
+            width: 40%;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+            animation: sp-shine 2.4s ease-in-out infinite 0.5s;
+          }
+          .sp-line-1 { animation: sp-up 0.6s cubic-bezier(.22,.68,0,1.2) 0.2s both; }
+          .sp-line-2 { animation: sp-up 0.6s cubic-bezier(.22,.68,0,1.2) 0.4s both; }
+          .sp-line-3 { animation: sp-up 0.6s cubic-bezier(.22,.68,0,1.2) 0.6s both; }
+          .sp-track {
+            position: relative; width: 200px; height: 2px;
+            background: rgba(99,102,241,0.15); border-radius: 9999px;
+            overflow: visible; margin-top: 28px;
+          }
+          .sp-fill {
+            position: absolute; left: 0; top: 0; height: 100%; width: 0%;
+            background: linear-gradient(90deg, #6366f1, #818cf8);
+            border-radius: 9999px;
+            box-shadow: 0 0 8px rgba(99,102,241,0.6);
+            animation: sp-scan 5s cubic-bezier(.4,0,.2,1) forwards 0.3s;
+          }
+          .sp-ticker { display: flex; gap: 4px; align-items: center; margin-top: 18px; }
+          .sp-b1 { animation: sp-tick 1.2s ease-in-out infinite 0s;    }
+          .sp-b2 { animation: sp-tick 1.2s ease-in-out infinite 0.15s; }
+          .sp-b3 { animation: sp-tick 1.2s ease-in-out infinite 0.3s;  }
+          .sp-b4 { animation: sp-tick 1.2s ease-in-out infinite 0.45s; }
+          .sp-b5 { animation: sp-tick 1.2s ease-in-out infinite 0.6s;  }
+          .sp-b6 { animation: sp-tick 1.2s ease-in-out infinite 0.75s; }
+          .sp-b7 { animation: sp-tick 1.2s ease-in-out infinite 0.9s;  }
         `}</style>
 
-        {/* Logo mark with orbiting dot */}
-        <div style={{ position: 'relative', marginBottom: 32 }}>
-          <div style={{
-            width: 80, height: 80,
-            borderRadius: 16,
-            background: 'linear-gradient(135deg, #22c55e, #10b981)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 40px rgba(34,197,94,0.35)',
-            overflow: 'hidden',
-          }}>
-            {company.logo ? (
-              <img
-                src={company.logo}
-                alt={company.name}
-                style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }}
-              />
-            ) : (
-              <span style={{ color: '#fff', fontSize: 32, fontWeight: 900, letterSpacing: -1 }}>
-                {(company?.name?.[0] ?? 'M').toUpperCase()}
-              </span>
-            )}
-          </div>
-          {/* Orbiting dot */}
-          <div className="sp-orbit" style={{ position: 'absolute', inset: 0 }}>
-            <div style={{
-              width: 12, height: 12, borderRadius: '50%',
-              background: '#4ade80',
-              boxShadow: '0 0 8px rgba(74,222,128,0.6)',
-            }} />
+        {/* Grid bg */}
+        <div className="sp-grid" />
+
+        {/* Glow */}
+        <div style={{
+          position: 'absolute', width: 320, height: 320, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }} />
+
+        {/* Logo */}
+        <div style={{ position: 'relative', marginBottom: 28 }}>
+          <div className="sp-ring" />
+          <div className="sp-ring sp-ring-2" />
+          <div className="sp-ring sp-ring-3" />
+          <div className="sp-logo-wrap">
+            <div className="sp-shine" style={{
+              width: 84, height: 84, borderRadius: 20,
+              background: 'linear-gradient(145deg, #1e293b, #0f172a)',
+              border: '1.5px solid rgba(99,102,241,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 0 1px rgba(99,102,241,0.1), 0 20px 40px rgba(0,0,0,0.4)',
+              overflow: 'hidden', position: 'relative',
+            }}>
+              {company.logo ? (
+                <img src={company.logo} alt={company.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }} />
+              ) : (
+                <span style={{ color: '#818cf8', fontSize: 34, fontWeight: 900, letterSpacing: -1 }}>
+                  {(company?.name?.[0] ?? 'M').toUpperCase()}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Company name */}
-        <div className="sp-fade" style={{ textAlign: 'center', marginBottom: 12 }}>
-          <p style={{ margin: '0 0 4px 0', fontSize: 11, fontWeight: 500, color: 'rgba(74,222,128,0.8)', letterSpacing: 4, textTransform: 'uppercase' }}>
+        {/* Text */}
+        <div style={{ textAlign: 'center' }}>
+          <p className="sp-line-1" style={{ margin: '0 0 6px 0', fontSize: 10, fontWeight: 600, color: 'rgba(129,140,248,0.7)', letterSpacing: 5, textTransform: 'uppercase' }}>
             Welcome To
           </p>
-          <h1 style={{ margin: '0 0 4px 0', fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: -0.5, lineHeight: 1.3 }}>
+          <h1 className="sp-line-2" style={{ margin: '0 0 5px 0', fontSize: 22, fontWeight: 700, color: '#f1f5f9', letterSpacing: -0.3, lineHeight: 1.25 }}>
             {company?.name ?? 'Loading...'}
           </h1>
-          <p style={{ margin: 0, fontSize: 13, color: '#9ca3af', letterSpacing: 0.3 }}>
-            Merchandising Management System <span style={{ color: '#4ade80', fontWeight: 600 }}>(MMS)</span>
+          <p className="sp-line-3" style={{ margin: 0, fontSize: 12, color: '#64748b', letterSpacing: 0.3 }}>
+            Merchandising Management System&nbsp;<span style={{ color: '#818cf8', fontWeight: 600 }}>(MMS)</span>
           </p>
         </div>
 
-        {/* Progress bar */}
-        <div style={{ width: 192, height: 4, background: '#374151', borderRadius: 9999, overflow: 'hidden', marginTop: 24 }}>
-          <div className="sp-bar" style={{ height: '100%', background: 'linear-gradient(to right, #22c55e, #34d399)', borderRadius: 9999 }} />
+        {/* Scan bar */}
+        <div className="sp-track"><div className="sp-fill" /></div>
+
+        {/* Visualizer */}
+        <div className="sp-ticker">
+          {[['sp-b1',0],['sp-b2',1],['sp-b3',2],['sp-b4',3],['sp-b5',2],['sp-b6',1],['sp-b7',0]].map(([cls,d],i) => (
+            <span key={i} className={cls} style={{
+              display: 'block', width: 3, height: 16, borderRadius: 9999,
+              background: d === 3 ? 'rgba(129,140,248,0.9)' : `rgba(99,102,241,${0.3 + d * 0.1})`,
+            }} />
+          ))}
         </div>
 
-        {/* Bouncing dots */}
-        <div style={{ display: 'flex', gap: 6, marginTop: 16 }}>
-          <span className="sp-dot-1" style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'block' }} />
-          <span className="sp-dot-2" style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'block' }} />
-          <span className="sp-dot-3" style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'block' }} />
-        </div>
-
-        <p style={{ color: '#6b7280', fontSize: 11, marginTop: 24 }}>
-          LAZIENDA DENIM (PVT) LTD.
+        <p style={{ color: '#334155', fontSize: 10, marginTop: 28, letterSpacing: 2, textTransform: 'uppercase' }}>
+          Lazienda Denim (PVT) Ltd.
         </p>
       </div>
     );
