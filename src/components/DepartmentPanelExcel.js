@@ -161,19 +161,22 @@ function findMissingRequiredFields({ fieldDefsMap, sourceFields, depts, template
 
 // Debounced input: keeps local state while typing so parent re-renders don't revert the value
 
-// A field is treated as a "Brand" field when configured with the brand slug or
-// a Brand/Buyer name — these render as an autocomplete dropdown of saved values.
+// A field is treated as a "Brand" field when configured with a brand/buyer slug
+// or name — these render as an autocomplete dropdown of saved values. Since
+// slugs/names can use dashes, spaces or camelCase ("brand","Brand","buyer"),
+// matching is punctuation-insensitive like the shared sampleFilters helpers.
 const isBrandLikeField = (field) =>
   !!(field && (
-    (field.slug === 'brand') ||
+    /^brand$/i.test(String(field.slug || '').trim()) ||
     /^brand$/i.test(String(field.name || '').trim()) ||
     /^buyer$/i.test(String(field.name || '').trim())
   ));
 
-// A field is treated as a "Sample Type" field by slug or name.
+// A field is treated as a "Sample Type" field by slug or name, matching the
+// same field the shared filters read ("sample-type"/"sampletype"/"Sample Type").
 const isSampleTypeLikeField = (field) =>
   !!(field && (
-    (field.slug === 'sample-type') ||
+    /^sample\s*type$/i.test(String(field.slug || '').trim()) ||
     /^sample\s*type$/i.test(String(field.name || '').trim())
   ));
 

@@ -134,6 +134,12 @@ export async function GET(request) {
 
     // Escape a literal string for use inside a RegExp.
     const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Case-insensitive regex where dashes, spaces and no separator are treated
+    // as equivalent — "sample-type" matches "Sample Type", "sampletype", etc.
+    const slugishRegex = (term) => {
+      const parts = String(term).toLowerCase().split(/[^a-z0-9]+/i).filter(Boolean);
+      return `^${parts.map(p => escapeRegex(p)).join('[ -]?')}$`;
+    };
 
     // Filter by brand (single) or brand group (comma-separated list). Matches the
     // same dynamic field (slug 'brand' or name 'brand'/'buyer') shown in the SRD
@@ -297,16 +303,15 @@ export async function GET(request) {
     const listFieldValuesParam = searchParams.get('listFieldValues');
     if (listFieldValuesParam) {
       const fieldTerm = listFieldValuesParam.trim().slice(0, 100);
-      const slugTerm = fieldTerm.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+      const slugish = slugishRegex(fieldTerm);
       const agg = await SRD.aggregate([
         { $unwind: '$dynamicFields' },
         {
           $match: {
             'dynamicFields.value': { $type: 'string', $ne: '' },
             $or: [
-              { 'dynamicFields.slug': { $regex: `^${escapeRegex(fieldTerm)}$`, $options: 'i' } },
-              { 'dynamicFields.slug': { $regex: `^${escapeRegex(slugTerm)}$`, $options: 'i' } },
-              { 'dynamicFields.name': { $regex: `^${escapeRegex(fieldTerm)}$`, $options: 'i' } },
+              { 'dynamicFields.slug': { $regex: slugish, $options: 'i' } },
+              { 'dynamicFields.name': { $regex: slugish, $options: 'i' } },
             ],
           },
         },
