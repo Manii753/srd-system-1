@@ -27,7 +27,7 @@ const AVAILABLE_MENU_ITEMS = [
   { id: 'order-confirmation', name: 'Order Confirmation' },
   { id: 'samples-management', name: 'Samples Management' },
   { id: 'all-srds', name: 'SR In Process' },
-  { id: 'sample-process', name: 'Inter Dept Log' },
+  { id: 'sample-process', name: 'Pending' },
   { id: 'sample-card', name: 'Sample Card' },
   { id: 'dispatch', name: 'Dispatch Detail' },
   { id: 'reports', name: 'Reports' },

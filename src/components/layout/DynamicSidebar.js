@@ -58,6 +58,7 @@ export default function DynamicSidebar() {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
   const [liveUser, setLiveUser] = useState(null);
   const [expandedMenus, setExpandedMenus] = useState({ 'Samples Management': true, 'Cost Sheets': true });
   const toggleMenu = (name) => setExpandedMenus(prev => ({ ...prev, [name]: !prev[name] }));
@@ -120,6 +121,28 @@ export default function DynamicSidebar() {
     };
   }, [session?.user?.email]);
 
+  // Live "Pending" badge for the work-queue item: my pending work at my own
+  // production stage. Refreshes on mount, on window focus, and every 30s.
+  useEffect(() => {
+    const role = String(userRole || '').toLowerCase();
+    if (!['cad', 'cutting', 'sewing', 'washing', 'finishing', 'dispatch'].includes(role)) return;
+    const load = async () => {
+      try {
+        const res = await fetch('/api/work-queue/count');
+        const data = await res.json();
+        if (data.success) setPendingCount(data.pending || 0);
+      } catch {}
+    };
+    load();
+    const onFocus = () => load();
+    window.addEventListener('focus', onFocus);
+    const iv = setInterval(load, 30000);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      clearInterval(iv);
+    };
+  }, [userRole]);
+
   const fetchMenuItems = async () => {
     setLoading(true);
     try {
@@ -150,7 +173,7 @@ export default function DynamicSidebar() {
             { id: 'settings', name: 'Auto-Approval', href: '/settings/auto-approval', icon: Settings, perm: 'canAccessSettings' },
             { id: 'settings', name: 'SR Diagnostics', href: '/settings/diagnose', icon: Settings, perm: 'canAccessSettings' },
           ]},
-          { id: 'work-queue', name: 'Work Queue', href: '/sample-management/sample-process', icon: Package, perm: 'canViewAll' },
+          { id: 'work-queue', name: 'Pending', href: '/sample-management/sample-process', icon: Package, perm: 'canViewAll' },
           { id: 'stage', name: 'Stage', href: '/dashboard/stage', icon: Factory, perm: 'canViewAll' },
           { id: 'mmc', name: 'MMC Portal', href: '/dashboard/mmc', icon: Factory, perm: 'canViewReports' },
           { id: 'purchase-orders', name: 'Purchase Orders', href: '/dashboard/mmc/purchase-orders', icon: ClipboardList, perm: 'canViewReports' },
@@ -237,7 +260,7 @@ export default function DynamicSidebar() {
           return buildMenu([
             { id: 'home', name: 'Home', href: '/home', icon: LayoutDashboard },
             { id: 'order-confirmation', name: 'Order Confirmation', href: '/dashboard/vmd', icon: ClipboardList },
-            { id: 'work-queue', name: 'Work Queue', href: '/sample-management/sample-process', icon: Package },
+            { id: 'work-queue', name: 'Pending', href: '/sample-management/sample-process', icon: Package },
           ]);
         }
 
@@ -246,7 +269,7 @@ export default function DynamicSidebar() {
           return buildMenu([
             { id: 'home', name: 'Home', href: '/home', icon: LayoutDashboard },
             { id: 'stage', name: names[userRole] + ' Stage', href: '/dashboard/stage', icon: Factory },
-            { id: 'sample-process', name: 'Inter Dept Log', href: '/sample-management/sample-process', icon: Package },
+            { id: 'sample-process', name: 'Pending', href: '/sample-management/sample-process', icon: Package },
           ]);
         }
 
@@ -347,6 +370,7 @@ export default function DynamicSidebar() {
               const Icon = item.icon;
               const isActive = item.href === activeHref;
               const hasActiveChild = item.children?.some(c => c.href === activeHref);
+              const isQueueItem = item.id === 'work-queue' || item.id === 'sample-process';
 
               if (item.isSubmenu) return (
                 <div key={i}>
@@ -398,7 +422,16 @@ export default function DynamicSidebar() {
                   onMouseLeave={e => { e.currentTarget.style.backgroundColor = isActive ? '#eff6ff' : 'transparent'; }}
                 >
                   <Icon style={{ width: 18, height: 18, flexShrink: 0, color: isActive ? '#1d4ed8' : '#4b5563' }} />
-                  {!collapsed && <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</span>}
+                  {!collapsed && <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>{item.name}</span>}
+                  {!collapsed && isQueueItem && pendingCount > 0 && (
+                    <span style={{
+                      flexShrink: 0, minWidth: 20, height: 18, padding: '0 5px', borderRadius: 999,
+                      background: pendingCount > 0 ? '#ef4444' : '#e5e7eb', color: '#fff',
+                      fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {pendingCount > 99 ? '99+' : pendingCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}

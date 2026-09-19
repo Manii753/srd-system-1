@@ -79,6 +79,7 @@ export default function SampleProcessPage() {
   const [myPermissions, setMyPermissions] = useState(null);
   const [activeGroupId, setActiveGroupId] = useState(null);
   const [activeGroupBrands, setActiveGroupBrands] = useState([]);
+  const [activeTab, setActiveTab] = useState('pending'); // 'incoming' | 'pending'
 
   const userRole = session?.user?.role?.toLowerCase() || '';
   const canViewAll = userRole === 'admin' || userRole === 'vmd';
@@ -223,12 +224,33 @@ export default function SampleProcessPage() {
     });
   };
 
+  // Pending vs Coming Soon tallies for the two tabs (production stage users).
+  const queueCounts = useMemo(() => {
+    const counts = { incoming: 0, pending: 0 };
+    if (canViewAll) return counts;
+    const stageIndex = stages.findIndex(s => s.name?.toLowerCase() === userRole);
+    if (stageIndex < 0) return counts;
+    const slug = stages[stageIndex].name?.toLowerCase();
+    const prevSlug = stageIndex > 0 ? stages[stageIndex - 1]?.name?.toLowerCase() : null;
+    for (const srd of filteredSrds) {
+      const cls = classifyForStage(
+        srd,
+        getStageEntry(srd, slug),
+        prevSlug ? getStageEntry(srd, prevSlug) : null,
+        { first: stageIndex === 0 }
+      );
+      if (cls === 'incoming') counts.incoming++;
+      else if (cls === 'my-work') counts.pending++;
+    }
+    return counts;
+  }, [filteredSrds, stages, canViewAll, userRole]);
+
   // Build a flat list of rows for the single table:
   // each item is either { type:'header', label, slug, count }
   // or { type:'row', srd, stageSlug, stageIndex }
   const flatRows = useMemo(() => {
-    // Production stage user (not admin/vmd): show two clear sections —
-    // what is coming to me soon vs. my pending work at my own stage.
+    // Production stage user (not admin/vmd): two tabs — what is coming to me
+    // soon (Ready at the previous stage) vs. my pending work at my own stage.
     if (!canViewAll) {
       const rows = [];
       const stageIndex = stages.findIndex(s => s.name?.toLowerCase() === userRole);
@@ -246,11 +268,10 @@ export default function SampleProcessPage() {
           else if (cls === 'my-work') myWork.push(srd);
         }
 
-        if (incoming.length) {
+        if (activeTab === 'incoming' && incoming.length) {
           rows.push({ type: 'header', label: 'Coming to Me Soon', slug, stageIndex, count: incoming.length });
           incoming.forEach(srd => rows.push({ type: 'row', srd, slug, stageIndex }));
-        }
-        if (myWork.length) {
+        } else if (activeTab === 'pending' && myWork.length) {
           rows.push({ type: 'header', label: 'My Pending Work', slug, stageIndex, count: myWork.length });
           myWork.forEach(srd => rows.push({ type: 'row', srd, slug, stageIndex }));
         }
@@ -271,7 +292,7 @@ export default function SampleProcessPage() {
     });
     return rows;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredSrds, stages, canViewAll, userRole]);
+  }, [filteredSrds, stages, canViewAll, userRole, activeTab]);
 
   // Pagination on the flat rows (headers always stay with their group —
   // we paginate only the data rows, headers follow their group)
@@ -450,6 +471,38 @@ export default function SampleProcessPage() {
               onGroupSelect={handleGroupSelect}
             />
           </div>
+
+          {/* Two tabs for production stage users: Coming Soon vs Pending */}
+          {!canViewAll && (
+            <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-2 bg-white">
+              <button
+                onClick={() => { setActiveTab('incoming'); setCurrentPage(1); }}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'incoming' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                Coming Soon
+                {queueCounts.incoming > 0 && (
+                  <span className={`text-[11px] font-bold px-1.5 rounded-full ${activeTab === 'incoming' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700'}`}>
+                    {queueCounts.incoming}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => { setActiveTab('pending'); setCurrentPage(1); }}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'pending' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                Pending
+                {queueCounts.pending > 0 && (
+                  <span className={`text-[11px] font-bold px-1.5 rounded-full ${activeTab === 'pending' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700'}`}>
+                    {queueCounts.pending}
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
 
           {dataRows.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
