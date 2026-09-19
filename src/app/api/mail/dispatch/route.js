@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import nodemailer from 'nodemailer';
 import dbConnect from '@/lib/db';
 import SRD from '@/models/SRD';
@@ -340,6 +342,9 @@ export async function POST(request) {
     });
 
     // Mark all SRDs as completed after successful email send
+    const session = await getServerSession(authOptions);
+    const sentByName = session?.user?.name || session?.user?.email || 'System';
+    const sentAt = new Date();
     for (const srd of srds) {
       try {
         await SRD.findByIdAndUpdate(srd._id, {
@@ -348,6 +353,9 @@ export async function POST(request) {
             inProduction: false,
             currentProductionStage: null,
             productionEndDate: srd.productionEndDate || new Date(),
+            dispatchMailSent: true,
+            dispatchMailSentAt: sentAt,
+            dispatchMailSentBy: sentByName,
           }
         });
       } catch (err) {

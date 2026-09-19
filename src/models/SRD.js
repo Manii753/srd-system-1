@@ -95,6 +95,9 @@ const srdSchema = new mongoose.Schema({
   DispatchDetails: { type: mongoose.Schema.Types.ObjectId, ref: 'Dispatch' },
   dispatchBy: { type: String },
   dispatchNotes: { type: String },
+  dispatchMailSent: { type: Boolean, default: false },
+  dispatchMailSentAt: { type: Date },
+  dispatchMailSentBy: { type: String },
 
   // Sample Process Tracking
   sampleProcess: [{

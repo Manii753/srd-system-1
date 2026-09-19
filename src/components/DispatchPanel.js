@@ -869,9 +869,16 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           <div className=" px-2 py-0.5">
             <span className="text-app-text font-semibold uppercase">Dispatch Details</span>
           </div>
-          <div className="px-2 py-0.5 flex justify-end items-center">
-            <span className={`text-app-text font-medium text-xs ${srd.DispatchDetails ? 'text-green-600' : 'text-yellow-600'}`}>
-              {srd.DispatchDetails ? 'Details Saved' : 'Pending Details'}
+          <div className="px-2 py-0.5 flex justify-end items-center gap-3">
+            <span className={`text-app-text font-medium text-xs ${srd.sampleDispatchedToBuyer ? 'text-green-600' : 'text-yellow-600'}`}>
+              {srd.sampleDispatchedToBuyer
+                ? `Dispatched by ${srd.dispatchBy || '—'}${srd.sampleDipatchedtoBuyerDate ? ` · ${new Date(srd.sampleDipatchedtoBuyerDate).toLocaleDateString()}` : ''}`
+                : 'Not Dispatched'}
+            </span>
+            <span className={`text-app-text font-medium text-xs ${srd.dispatchMailSent ? 'text-green-600' : 'text-yellow-600'}`}>
+              {srd.dispatchMailSent
+                ? `Mail Sent${srd.dispatchMailSentBy ? ` by ${srd.dispatchMailSentBy}` : ''}`
+                : 'Mail Not Sent'}
             </span>
           </div>
         </div>
