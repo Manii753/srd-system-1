@@ -160,6 +160,31 @@ function findMissingRequiredFields({ fieldDefsMap, sourceFields, depts, template
 }
 
 // Debounced input: keeps local state while typing so parent re-renders don't revert the value
+
+// A field is treated as a "Brand" field when configured with the brand slug or
+// a Brand/Buyer name — these render as an autocomplete dropdown of saved values.
+const isBrandLikeField = (field) =>
+  !!(field && (
+    (field.slug === 'brand') ||
+    /^brand$/i.test(String(field.name || '').trim()) ||
+    /^buyer$/i.test(String(field.name || '').trim())
+  ));
+
+// A field is treated as a "Sample Type" field by slug or name.
+const isSampleTypeLikeField = (field) =>
+  !!(field && (
+    (field.slug === 'sample-type') ||
+    /^sample\s*type$/i.test(String(field.name || '').trim())
+  ));
+
+// Key used to look up the saved-value datalist for a dynamic select field.
+const getDynamicSelectKey = (field) =>
+  (isBrandLikeField(field) && 'brand') ||
+  (isSampleTypeLikeField(field) && 'sample-type') ||
+  (field?.slug) ||
+  (field?.name) ||
+  null;
+
 function DebouncedInput({ value, onDebouncedChange, delay = 400, fieldId, onKeyDown: parentKeyDown, onBlur: parentBlur, maxLength, showCharLimitToast, ...props }) {
   const [local, setLocal] = React.useState(value ?? '');
   const timerRef = React.useRef(null);
@@ -416,14 +441,36 @@ export default function DepartmentPanelExcel({
   activeTemplateRef.current = activeTemplate;
   const autoApprovalTimeoutRef = useRef(null);
 
-  // ── Sample-type options (for the combobox datalist) ─────────────────────
-  const [sampleTypeOptions, setSampleTypeOptions] = useState([]);
+  // ── Dynamic select options (for datalist comboboxes) ──────────────────────
+  // Holds saved-value options per fieldId: { [fieldId]: string[] }.
+  const [fieldOptions, setFieldOptions] = useState({});
+
+  // Load existing values from the DB for every field that renders as an
+  // autocomplete dropdown (select-dynamic type, plus Brand / Sample Type).
   useEffect(() => {
-    fetch('/api/srd?listSampleTypes=true')
-      .then(r => r.json())
-      .then(d => { if (d.success && Array.isArray(d.data)) setSampleTypeOptions(d.data); })
-      .catch(() => {});
-  }, []);
+    const targetFields = Object.values(allFieldDefs).filter(f =>
+      f?.type === 'select-dynamic' || isBrandLikeField(f) || isSampleTypeLikeField(f)
+    );
+    if (targetFields.length === 0) return;
+
+    const queued = new Set();
+    targetFields.forEach(async (fieldDef) => {
+      const fieldId = fieldDef._id?.toString?.();
+      const key = getDynamicSelectKey(fieldDef);
+      if (!fieldId || !key || queued.has(fieldId) || queued.has(key)) return;
+      queued.add(fieldId);
+      queued.add(key);
+      try {
+        const res = await fetch(`/api/srd?listFieldValues=${encodeURIComponent(key)}`);
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          setFieldOptions(prev => ({ ...prev, [fieldId]: json.data }));
+        }
+      } catch (err) {
+        console.error(`Failed to load options for ${key}:`, err);
+      }
+    });
+  }, [allFieldDefs]);
 
   // Check if user can edit a specific field based on its department
   const canEditField = useCallback((fieldDepartment) => {
@@ -1580,6 +1627,49 @@ export default function DepartmentPanelExcel({
     const reqLevel = getFieldRequirementLevel(fieldDef);
     const reqAppliesToUser = departmentsForUserRole(userRole).includes(department);
 
+    // Brand / Sample Type always render as an autocomplete dropdown populated
+    // from saved SRD values — even before the field is migrated to
+    // select-dynamic. Any select-dynamic field gets the same treatment below.
+    if (isBrandLikeField(fieldDef) || isSampleTypeLikeField(fieldDef) || type === 'select-dynamic') {
+      const sdValue = getFieldValue(fieldId, fieldDef);
+      const sdReqLevel = getFieldRequirementLevel(fieldDef);
+      const sdReqApplies = departmentsForUserRole(userRole).includes(fieldDef.department);
+      const sdEmpty = canEdit && sdReqApplies && sdReqLevel !== 'none' && !hasMeaningfulValue(sdValue, 'text');
+      const sdOptions = fieldOptions[fieldId] || [];
+      const listId = `dl-${fieldId}`;
+      return (
+        <div className="flex items-baseline gap-2 w-full px-1 py-0">
+          <span className="text-[12px] text-gray-700 font-semibold shrink-0 min-w-[140px]">
+            {name}
+            {sdReqLevel !== 'none' && sdReqApplies && <span className="text-red-500 ml-0.5">*</span>}
+          </span>
+          <div className="flex-1 min-w-0 relative">
+            <datalist id={listId}>
+              {sdOptions.map(opt => <option key={opt} value={opt} />)}
+            </datalist>
+            <DebouncedInput
+              type="text"
+              fieldId={fieldId}
+              list={listId}
+              placeholder={placeholder || 'Select or type…'}
+              value={sdValue}
+              onDebouncedChange={(val) => handleFieldChange(fieldId, name, val, fieldDef.department, fieldDef)}
+              required={isRequired}
+              disabled={!canEdit}
+              maxLength={60}
+              showCharLimitToast={showCharLimitToast}
+              className={cn(
+                "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-app-text py-0 px-0 h-5",
+                !canEdit && "cursor-not-allowed text-gray-500",
+                isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field",
+                sdEmpty && "placeholder-red-500"
+              )}
+            />
+          </div>
+        </div>
+      );
+    }
+
     switch (type) {
       case 'heading':
         return (
@@ -1587,46 +1677,6 @@ export default function DepartmentPanelExcel({
             {name}
           </div>
         );
-
-      case 'select-dynamic': {
-        // Combobox: shows existing values from DB as a datalist + allows free text
-        const sdValue = getFieldValue(fieldId, fieldDef);
-        const sdReqLevel = getFieldRequirementLevel(fieldDef);
-        const sdReqApplies = departmentsForUserRole(userRole).includes(fieldDef.department);
-        const sdEmpty = canEdit && sdReqApplies && sdReqLevel !== 'none' && !hasMeaningfulValue(sdValue, 'text');
-        const listId = `dl-${fieldId}`;
-        return (
-          <div className="flex items-baseline gap-2 w-full px-1 py-0">
-            <span className="text-[12px] text-gray-700 font-semibold shrink-0 min-w-[140px]">
-              {name}
-              {sdReqLevel !== 'none' && sdReqApplies && <span className="text-red-500 ml-0.5">*</span>}
-            </span>
-            <div className="flex-1 min-w-0 relative">
-              <datalist id={listId}>
-                {sampleTypeOptions.map(opt => <option key={opt} value={opt} />)}
-              </datalist>
-              <DebouncedInput
-                type="text"
-                fieldId={fieldId}
-                list={listId}
-                placeholder={sdEmpty ? (placeholder || 'Select or type…') : (placeholder || 'Select or type…')}
-                value={sdValue}
-                onDebouncedChange={(val) => handleFieldChange(fieldId, name, val, fieldDef.department, fieldDef)}
-                required={isRequired}
-                disabled={!canEdit}
-                maxLength={60}
-                showCharLimitToast={showCharLimitToast}
-                className={cn(
-                  "w-full bg-transparent border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none text-app-text py-0 px-0 h-5",
-                  !canEdit && "cursor-not-allowed text-gray-500",
-                  isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field",
-                  sdEmpty && "placeholder-red-500"
-                )}
-              />
-            </div>
-          </div>
-        );
-      }
 
       case 'text':
       case 'number':
@@ -2442,7 +2492,7 @@ export default function DepartmentPanelExcel({
           </div>
         );
     }
-  }, [getFieldValue, handleFieldChange, handleRemoveImage, handleSetCoverImage, srd?._id, srd?.createdAt, toast, userRole]);
+  }, [getFieldValue, handleFieldChange, handleRemoveImage, handleSetCoverImage, srd?._id, srd?.createdAt, toast, userRole, fieldOptions]);
 
   // Loading state
   if (isLoading) {

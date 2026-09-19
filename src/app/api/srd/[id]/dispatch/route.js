@@ -87,7 +87,10 @@ export async function PATCH(request, context) {
               await disp.save();
             }
           }
-          srd.sampleDispatchDate = dDate;
+          // sampleDipatchedtoBuyerDate is the stored schema field (this spelling
+          // matches the model). dispatchBy records who performed the dispatch.
+          srd.sampleDipatchedtoBuyerDate = dDate;
+          srd.dispatchBy = payload.dispatchBy || payload.author || srd.dispatchBy || 'System';
           
           actionDescription = 'Sample Dispatched to Buyer';
         } else if (action === 'buyer_approval') {

@@ -66,6 +66,9 @@ export async function GET(request) {
     const status = searchParams.get('status');
     const search = searchParams.get('search');
     const brandsParam = searchParams.get('brands');
+    const brandParam = searchParams.get('brand');
+    const sampleTypeParam = searchParams.get('sampleType');
+    const stageParam = searchParams.get('stage');
     const listBrandsParam = searchParams.get('listBrands') === 'true';
     const readyForProduction = searchParams.get('readyForProduction');
     const inProduction = searchParams.get('inProduction');
@@ -125,25 +128,114 @@ export async function GET(request) {
       ];
     }
 
-    // Filter by brand group (comma-separated list). Matches the same dynamic
-    // field (slug 'brand' or name 'brand'/'buyer') shown in the SRD Brand column.
-    if (brandsParam) {
-      const brands = brandsParam
-        .split(',')
-        .map(b => b.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-        .filter(Boolean);
-      if (brands.length > 0) {
-        query['dynamicFields'] = {
+    // Brand + Sample Type + Stage filters are built as explicit $and conditions
+    // so multiple dynamic-field filters (and search's top-level $or) compose.
+    const andFilters = [];
+
+    // Escape a literal string for use inside a RegExp.
+    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Filter by brand (single) or brand group (comma-separated list). Matches the
+    // same dynamic field (slug 'brand' or name 'brand'/'buyer') shown in the SRD
+    // Brand column.
+    const brandsToMatch = [];
+    if (brandParam) brandsToMatch.push(brandParam);
+    if (brandsParam) brandsParam.split(',').map(b => b.trim()).forEach(b => { if (b) brandsToMatch.push(b); });
+    if (brandsToMatch.length > 0) {
+      andFilters.push({
+        'dynamicFields': {
           $elemMatch: {
-            value: { $in: brands.map(b => new RegExp(`^${b}$`, 'i')) },
+            value: { $in: brandsToMatch.map(b => new RegExp(`^${escapeRegex(b)}$`, 'i')) },
             $or: [
               { slug: 'brand' },
               { name: { $regex: '^brand$', $options: 'i' } },
               { name: { $regex: '^buyer$', $options: 'i' } },
             ],
           },
-        };
+        },
+      });
+    }
+
+    // Filter by sample type (dynamic field slug 'sample-type' or name 'sample type').
+    if (sampleTypeParam) {
+      andFilters.push({
+        'dynamicFields': {
+          $elemMatch: {
+            value: new RegExp(`^${escapeRegex(sampleTypeParam)}$`, 'i'),
+            $or: [
+              { slug: 'sample-type' },
+              { name: { $regex: '^sample\\s*type$', $options: 'i' } },
+            ],
+          },
+        },
+      });
+    }
+
+    // Filter by lifecycle stage. Values match STAGE_FILTER_OPTIONS in
+    // src/lib/sampleFilters.js.
+    if (stageParam && stageParam !== 'all') {
+      const stageLower = stageParam.toLowerCase();
+      if (stageLower === 'incomplete') {
+        andFilters.push({ isComplete: { $ne: true } });
+      } else if (stageLower === 'dispatched') {
+        andFilters.push({ sampleDispatchedToBuyer: true });
+      } else if (stageLower === 'approved') {
+        andFilters.push({ BuyerApproved: true });
+      } else if (stageLower === 'rejected') {
+        andFilters.push({
+          $expr: {
+            $gt: [
+              {
+                $add: [
+                  { $size: { $ifNull: ['$internalRejectedReasons', []] } },
+                  { $size: { $ifNull: ['$BuyerRejectedReasons', []] } },
+                ],
+              },
+              0,
+            ],
+          },
+        });
+      } else if (stageLower === 'cad' || stageLower === 'sewing' || stageLower === 'finishing') {
+        const stageNameRegex = new RegExp(`^${escapeRegex(stageLower)}$`, 'i');
+        const displayNameRegex = new RegExp(`^${escapeRegex(stageLower)}$`, 'i');
+        const stageDocs = await ProductionStage.find({
+          $or: [{ name: stageNameRegex }, { displayName: displayNameRegex }],
+        }).select('_id').lean();
+        const stageIds = stageDocs.map(s => s._id);
+
+        const stageMatches = [];
+        if (stageIds.length > 0) {
+          stageMatches.push(
+            { currentProductionStage: { $in: stageIds } },
+            {
+              'productionHistory': {
+                $elemMatch: { stage: { $in: stageIds }, status: 'in-progress' },
+              },
+            },
+          );
+        }
+        stageMatches.push({
+          'sampleProcess': {
+            $elemMatch: { stage: stageNameRegex, status: { $in: ['in-progress', 'received'] } },
+          },
+        });
+        // CAD is also handled as a department approval (pre-production CAD sign-off).
+        if (stageLower === 'cad') {
+          stageMatches.push({
+            'status': { $elemMatch: { department: 'cad', value: 'approved' } },
+          });
+        }
+        andFilters.push({
+          $and: [
+            { $or: stageMatches },
+          ],
+        });
       }
+    }
+
+    if (andFilters.length > 0) {
+      if (query.$and) query.$and.push(...andFilters);
+      else query.$and = andFilters;
     }
 
     // listBrands=true returns the distinct brand values across all SRDs so the
@@ -196,6 +288,37 @@ export async function GET(request) {
       return NextResponse.json({
         success: true,
         data: agg.map(x => x.value).filter(Boolean),
+      });
+    }
+
+    // listFieldValues=<slug or name> returns distinct existing values for any
+    // single dynamic field — the backing data for select-dynamic comboboxes
+    // (e.g. "brand", "sample-type", or any custom field name).
+    const listFieldValuesParam = searchParams.get('listFieldValues');
+    if (listFieldValuesParam) {
+      const fieldTerm = listFieldValuesParam.trim().slice(0, 100);
+      const slugTerm = fieldTerm.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+      const agg = await SRD.aggregate([
+        { $unwind: '$dynamicFields' },
+        {
+          $match: {
+            'dynamicFields.value': { $type: 'string', $ne: '' },
+            $or: [
+              { 'dynamicFields.slug': { $regex: `^${escapeRegex(fieldTerm)}$`, $options: 'i' } },
+              { 'dynamicFields.slug': { $regex: `^${escapeRegex(slugTerm)}$`, $options: 'i' } },
+              { 'dynamicFields.name': { $regex: `^${escapeRegex(fieldTerm)}$`, $options: 'i' } },
+            ],
+          },
+        },
+        { $project: { v: { $trim: { input: '$dynamicFields.value' } } } },
+        { $group: { _id: { $toLower: '$v' }, value: { $first: '$v' } } },
+        { $sort: { value: 1 } },
+        { $limit: 200 },
+      ]);
+      return NextResponse.json({
+        success: true,
+        data: agg.map(x => x.value).filter(Boolean),
+        isFieldValues: true,
       });
     }
 

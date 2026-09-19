@@ -21,7 +21,7 @@ import { useSession } from 'next-auth/react';
 import BrandGroupManager from '@/components/BrandGroupManager';
 
 
-export default function SRDTable({ department, searchTerm: searchTermProp, filterStatus: filterStatusProp, filterBrand: filterBrandProp, initialProductionStages, initialQuickDetailsFields, initialPaginationSettings, initialDelayThresholdDays, onCountChange }) {
+export default function SRDTable({ department, searchTerm: searchTermProp, filterStatus: filterStatusProp, filterBrand: filterBrandProp, filterSampleType: filterSampleTypeProp, filterStage: filterStageProp, initialProductionStages, initialQuickDetailsFields, initialPaginationSettings, initialDelayThresholdDays, onCountChange }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [srds, setSRDs] = useState([]);
@@ -33,6 +33,8 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterBrand, setFilterBrand] = useState('');
+  const [sampleType, setSampleType] = useState('');
+  const [stage, setStage] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [paginationSettings, setPaginationSettings] = useState(initialPaginationSettings || { enabled: true, itemsPerPage: 10 });
   const [delayThresholdDays, setDelayThresholdDays] = useState(initialDelayThresholdDays ?? 3);
@@ -40,6 +42,8 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
   const effectiveSearch = searchTermProp !== undefined ? searchTermProp : searchTerm;
   const effectiveFilter = filterStatusProp !== undefined ? filterStatusProp : filterStatus;
   const effectiveBrand = filterBrandProp !== undefined ? filterBrandProp : filterBrand;
+  const effectiveSampleType = filterSampleTypeProp !== undefined ? filterSampleTypeProp : sampleType;
+  const effectiveStage = filterStageProp !== undefined ? filterStageProp : stage;
   const [selectedImages, setSelectedImages] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [productionStages, setProductionStages] = useState([]);
@@ -48,7 +52,7 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
   const [activeGroupId, setActiveGroupId] = useState(null);
   const [activeBrands, setActiveBrands] = useState([]);
 
-  useEffect(() => { setCurrentPage(1); }, [effectiveSearch, effectiveFilter, department, activeBrands, effectiveBrand]);
+  useEffect(() => { setCurrentPage(1); }, [effectiveSearch, effectiveFilter, department, activeBrands, effectiveBrand, effectiveSampleType, effectiveStage]);
 
   useEffect(() => {
     if (initialProductionStages) setProductionStages(initialProductionStages.filter(s => s.isActive));
@@ -58,7 +62,7 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
 
   useEffect(() => {
     fetchSRDs();
-  }, [currentPage, effectiveSearch, effectiveFilter, department, sortField, sortDirection, paginationSettings.itemsPerPage, activeBrands, effectiveBrand]);
+  }, [currentPage, effectiveSearch, effectiveFilter, department, sortField, sortDirection, paginationSettings.itemsPerPage, activeBrands, effectiveBrand, effectiveSampleType, effectiveStage]);
 
   const fetchMetadata = async () => {
     try {
@@ -107,6 +111,8 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
         ...(Array.isArray(activeBrands) ? activeBrands : []),
       ]);
       if (brandSet.size > 0) query.append('brands', [...brandSet].join(','));
+      if (effectiveSampleType) query.append('sampleType', effectiveSampleType);
+      if (effectiveStage) query.append('stage', effectiveStage);
       query.append('page', currentPage);
       query.append('limit', paginationSettings.itemsPerPage || 20);
       query.append('sortBy', sortField);
@@ -381,6 +387,9 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
               <th className="px-6 py-4 text-center text-app-heading font-bold text-gray-600 uppercase tracking-wider">MMC</th>
               <th className="px-6 py-4 text-center text-app-heading font-bold text-gray-600 uppercase tracking-wider">COM</th>
               <th className="px-6 py-4 text-left text-app-heading font-bold text-gray-600 uppercase tracking-wider">Status</th>
+              {department === 'dispatch' && (
+                <th className="px-6 py-4 text-center text-app-heading font-bold text-gray-600 uppercase tracking-wider">Dispatch</th>
+              )}
               <th className="px-6 py-4 text-center text-app-heading font-bold text-gray-600 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -492,6 +501,22 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
                         </button>
                       </div>
                     </td>
+                    {department === 'dispatch' && (
+                      <td className="px-6 py-2 border-b border-black/10 text-center">
+                        {srd.sampleDispatchedToBuyer ? (
+                          <div className="flex flex-col items-center">
+                            <span className="text-app-text font-medium text-green-700">
+                              {new Date(srd.sampleDipatchedtoBuyerDate || srd.dispatchDate || srd.createdAt).toLocaleDateString()}
+                            </span>
+                            {srd.dispatchBy && (
+                              <span className="text-[11px] text-gray-500">by {srd.dispatchBy}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-app-text text-gray-400">Not dispatched</span>
+                        )}
+                      </td>
+                    )}
                     <td className="justify-center align-middle px-6 py-2 whitespace-nowrap text-app-text font-medium border-b border-black/10">
                       <div className="flex gap-2 justify-center">
                         <Link href={`/srd/${srd._id}`}>
@@ -543,7 +568,7 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
                   {/* Expanded production stage timeline */}
                   {isExpanded && (
                     <tr className="bg-gray-50">
-                      <td colSpan={9} className="px-6 py-3 border-b border-black/10">
+                      <td colSpan={department === 'dispatch' ? 10 : 9} className="px-6 py-3 border-b border-black/10">
                         {productionStages.length === 0 ? (
                           <p className="text-app-text text-gray-400 italic">No production stages configured.</p>
                         ) : (

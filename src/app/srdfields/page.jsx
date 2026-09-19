@@ -908,6 +908,7 @@ export default function Page() {
                         <option value="date">📅 Date</option>
                         <option value="boolean">☑️ Boolean (Yes/No)</option>
                         <option value="textarea">📄 Textarea</option>
+                        <option value="select-dynamic">🔽 Select (Autocomplete from saved values)</option>
                         <option value="table">📊 Table (Excel-like)</option>
                         <option value="file">📎 File Upload</option>
                         <option value="image">🖼️ Image Upload</option>

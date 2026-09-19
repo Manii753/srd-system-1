@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/lib/use-toast';
 import Layout from '@/components/layout/Layout';
+import { STAGE_FILTER_OPTIONS, matchesStage } from '@/lib/sampleFilters';
 import {
   Loader2, Download, Filter, ChevronDown,
   Search, X, Plus, Trash2, Edit2, Printer,
@@ -322,6 +323,7 @@ export default function SRReportPage() {
   const [filterStatus, setFilterStatus]     = useState('all');
   const [filterBrand, setFilterBrand]       = useState('');
   const [filterType, setFilterType]         = useState('');
+  const [filterStage, setFilterStage]       = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo]     = useState('');
   const [showFilters, setShowFilters]       = useState(false);
@@ -404,6 +406,7 @@ export default function SRReportPage() {
       ) return false;
       if (filterBrand && getDyn(srd, 'brand').toLowerCase() !== filterBrand.toLowerCase()) return false;
       if (filterType  && getDyn(srd, 'sample type', 'sampleType').toLowerCase() !== filterType.toLowerCase()) return false;
+      if (filterStage && !matchesStage(srd, filterStage)) return false;
       if (filterStatus !== 'all') {
         const label = slugify(getCurrentStatusLabel(srd, prodStages));
         if (label !== filterStatus) return false;
@@ -412,12 +415,12 @@ export default function SRReportPage() {
       if (filterDateTo   && new Date(srd.createdAt) > new Date(filterDateTo + 'T23:59:59')) return false;
       return true;
     });
-  }, [srds, activeGroup, groups, search, filterStatus, filterBrand, filterType, filterDateFrom, filterDateTo, prodStages]);
+  }, [srds, activeGroup, groups, search, filterStatus, filterBrand, filterType, filterStage, filterDateFrom, filterDateTo, prodStages]);
 
-  const hasFilters = search || filterStatus !== 'all' || filterBrand || filterType || filterDateFrom || filterDateTo;
+  const hasFilters = search || filterStatus !== 'all' || filterBrand || filterType || filterStage || filterDateFrom || filterDateTo;
   const clearFilters = () => {
     setSearch(''); setFilterStatus('all'); setFilterBrand('');
-    setFilterType(''); setFilterDateFrom(''); setFilterDateTo('');
+    setFilterType(''); setFilterStage(''); setFilterDateFrom(''); setFilterDateTo('');
   };
 
   const toggleRow = id => setExpandedRows(prev => {
@@ -704,8 +707,8 @@ export default function SRReportPage() {
         {/* Filter Panel */}
         {showFilters && (
           <div className="mb-3 border border-gray-200 rounded-lg bg-gray-50 p-3">
-            <div className="grid grid-cols-6 gap-2 items-end">
-              <div className="col-span-2 relative">
+            <div className="grid grid-cols-12 gap-2 items-end">
+              <div className="col-span-12 md:col-span-4 relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
                 <input
                   type="text"
@@ -715,7 +718,7 @@ export default function SRReportPage() {
                   className="w-full pl-7 h-8 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-600"
                 />
               </div>
-              <div>
+              <div className="col-span-6 md:col-span-2">
                 <label className="block text-xs text-gray-500 mb-0.5">Brand</label>
                 <select
                   value={filterBrand}
@@ -726,7 +729,7 @@ export default function SRReportPage() {
                   {allBrands.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
-              <div>
+              <div className="col-span-6 md:col-span-2">
                 <label className="block text-xs text-gray-500 mb-0.5">Sample Type</label>
                 <select
                   value={filterType}
@@ -737,7 +740,20 @@ export default function SRReportPage() {
                   {allTypes.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-              <div>
+              <div className="col-span-6 md:col-span-2">
+                <label className="block text-xs text-gray-500 mb-0.5">Stage</label>
+                <select
+                  value={filterStage}
+                  onChange={e => setFilterStage(e.target.value)}
+                  className="w-full h-8 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-600"
+                >
+                  <option value="">All Stages</option>
+                  {STAGE_FILTER_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-span-6 md:col-span-2">
                 <label className="block text-xs text-gray-500 mb-0.5">Status</label>
                 <select
                   value={filterStatus}
@@ -750,7 +766,7 @@ export default function SRReportPage() {
                   ))}
                 </select>
               </div>
-              <div>
+              <div className="col-span-6 md:col-span-3">
                 <label className="block text-xs text-gray-500 mb-0.5">Date From</label>
                 <input
                   type="date"
@@ -759,7 +775,7 @@ export default function SRReportPage() {
                   className="w-full h-8 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-600"
                 />
               </div>
-              <div>
+              <div className="col-span-6 md:col-span-3">
                 <label className="block text-xs text-gray-500 mb-0.5">Date To</label>
                 <div className="flex gap-1">
                   <input

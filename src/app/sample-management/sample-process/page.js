@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useToast } from '@/lib/use-toast';
 import Layout from '@/components/layout/Layout';
 import BrandGroupManager from '@/components/BrandGroupManager';
+import { STAGE_FILTER_OPTIONS, getSampleType, matchesStage, getStageEntry, classifyForStage } from '@/lib/sampleFilters';
 import { Loader2, RefreshCw, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -17,10 +18,6 @@ function fmtDate(d) {
 function daysSince(d) {
   if (!d) return 0;
   return Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
-}
-
-function getStageEntry(srd, stageSlug) {
-  return (srd.sampleProcess || []).find(s => s.stage === stageSlug) || null;
 }
 
 function getBrand(srd) {
@@ -74,6 +71,7 @@ export default function SampleProcessPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const [filterBrand, setFilterBrand] = useState('');
+  const [filterSampleType, setFilterSampleType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterInquiry, setFilterInquiry] = useState('');
   const [filterStage, setFilterStage] = useState(''); // '' = all stages
@@ -106,7 +104,7 @@ export default function SampleProcessPage() {
   }, [session?.user?.id]);
 
   useEffect(() => { fetchAll(); }, []);
-  useEffect(() => { setCurrentPage(1); }, [filterBrand, filterStatus, filterInquiry, filterStage, activeGroupBrands]);
+  useEffect(() => { setCurrentPage(1); }, [filterBrand, filterSampleType, filterStatus, filterInquiry, filterStage, activeGroupBrands]);
 
   const handleGroupSelect = (id, brandList) => {
     setActiveGroupId(id);
@@ -117,7 +115,7 @@ export default function SampleProcessPage() {
     setLoading(true);
     try {
       const [srdsRes, stagesRes, companyRes] = await Promise.all([
-        fetch('/api/srd?limit=1000&select=refNo,title,description,createdAt,isComplete,inProduction,sampleProcess,status,dynamicFields&lean=true'),
+        fetch('/api/srd?limit=1000&select=refNo,title,description,createdAt,isComplete,inProduction,sampleProcess,status,dynamicFields,sampleDispatchedToBuyer,sampleDipatchedtoBuyerDate,dispatchBy,dispatchDate&lean=true'),
         fetch('/api/production-stages'),
         fetch('/api/company'),
       ]);
@@ -151,18 +149,28 @@ export default function SampleProcessPage() {
     return [...set].sort();
   }, [srds]);
 
+  const allSampleTypes = useMemo(() => {
+    const set = new Set(srds.map(getSampleType).filter(Boolean));
+    return [...set].sort();
+  }, [srds]);
+
   const baseSrds = useMemo(() => {
     if (canViewAll) return srds;
     return srds.filter(srd => {
       if (userRole === 'cad') return true;
-      if (srd.inProduction) {
-        return (srd.sampleProcess || []).some(
-          s => s.stage === userRole && ['pending', 'in-progress', 'received'].includes(s.status)
-        );
-      }
-      return false;
+      if (!srd.inProduction) return false;
+      // Only SRDs that are actually heading to / sitting at my stage belong in
+      // my view — classify by checking the sampleProcess chain (previous stage
+      // ready vs. mine received) instead of a crude status string match.
+      const stageIndex = stages.findIndex(s => s.name?.toLowerCase() === userRole);
+      if (stageIndex < 0) return false;
+      const slug = stages[stageIndex].name?.toLowerCase();
+      const prevSlug = stageIndex > 0 ? stages[stageIndex - 1]?.name?.toLowerCase() : null;
+      const entry = getStageEntry(srd, slug);
+      const prevEntry = prevSlug ? getStageEntry(srd, prevSlug) : null;
+      return classifyForStage(srd, entry, prevEntry, { first: stageIndex === 0 }) !== null;
     });
-  }, [srds, canViewAll, userRole]);
+  }, [srds, canViewAll, userRole, stages]);
 
   const filteredSrds = useMemo(() => {
     let list = baseSrds;
@@ -172,12 +180,18 @@ export default function SampleProcessPage() {
     } else if (filterBrand) {
       list = list.filter(s => getBrand(s) === filterBrand);
     }
+    if (filterSampleType) {
+      list = list.filter(s => getSampleType(s).toLowerCase() === filterSampleType.toLowerCase());
+    }
+    if (filterStage) {
+      list = list.filter(s => matchesStage(s, filterStage));
+    }
     if (filterInquiry) list = list.filter(s => s.refNo?.toLowerCase().includes(filterInquiry.toLowerCase()));
     if (filterStatus === 'pending')          list = list.filter(s => !s.inProduction && !s.isComplete);
     else if (filterStatus === 'in-progress') list = list.filter(s => s.inProduction && !s.isComplete);
     else if (filterStatus === 'completed')   list = list.filter(s => s.isComplete);
     return list;
-  }, [baseSrds, filterBrand, filterInquiry, filterStatus, activeGroupBrands]);
+  }, [baseSrds, filterBrand, filterSampleType, filterInquiry, filterStatus, filterStage, activeGroupBrands]);
 
   const srdsForStage = (stageSlug, stageIndex) => {
     if (stageIndex === 0) {
@@ -213,14 +227,41 @@ export default function SampleProcessPage() {
   // each item is either { type:'header', label, slug, count }
   // or { type:'row', srd, stageSlug, stageIndex }
   const flatRows = useMemo(() => {
+    // Production stage user (not admin/vmd): show two clear sections —
+    // what is coming to me soon vs. my pending work at my own stage.
+    if (!canViewAll) {
+      const rows = [];
+      const stageIndex = stages.findIndex(s => s.name?.toLowerCase() === userRole);
+      if (stageIndex >= 0) {
+        const slug = stages[stageIndex].name?.toLowerCase();
+        const prevSlug = stageIndex > 0 ? stages[stageIndex - 1]?.name?.toLowerCase() : null;
+        const incoming = [];
+        const myWork = [];
+
+        for (const srd of filteredSrds) {
+          const entry = getStageEntry(srd, slug);
+          const prevEntry = prevSlug ? getStageEntry(srd, prevSlug) : null;
+          const cls = classifyForStage(srd, entry, prevEntry, { first: stageIndex === 0 });
+          if (cls === 'incoming') incoming.push(srd);
+          else if (cls === 'my-work') myWork.push(srd);
+        }
+
+        if (incoming.length) {
+          rows.push({ type: 'header', label: 'Coming to Me Soon', slug, stageIndex, count: incoming.length });
+          incoming.forEach(srd => rows.push({ type: 'row', srd, slug, stageIndex }));
+        }
+        if (myWork.length) {
+          rows.push({ type: 'header', label: 'My Pending Work', slug, stageIndex, count: myWork.length });
+          myWork.forEach(srd => rows.push({ type: 'row', srd, slug, stageIndex }));
+        }
+      }
+      return rows;
+    }
+
     const rows = [];
     stages.forEach((stage, stageIndex) => {
       const slug  = stage.name?.toLowerCase();
       const label = stage.displayName || stage.name?.toUpperCase();
-
-      if (!canViewAll && userRole !== slug) return;
-      // Stage filter: skip if a specific stage is selected and this isn't it
-      if (filterStage && slug !== filterStage) return;
 
       const sectionSrds = srdsForStage(slug, stageIndex);
       if (sectionSrds.length === 0) return;
@@ -230,7 +271,7 @@ export default function SampleProcessPage() {
     });
     return rows;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredSrds, stages, canViewAll, userRole, filterStage]);
+  }, [filteredSrds, stages, canViewAll, userRole]);
 
   // Pagination on the flat rows (headers always stay with their group —
   // we paginate only the data rows, headers follow their group)
@@ -292,6 +333,7 @@ export default function SampleProcessPage() {
   };
 
   const canMarkReady = (srd, stageSlug, stageIndex) => {
+    if (srd.sampleDispatchedToBuyer) return false;
     if (!(userRole === stageSlug || userRole === 'admin' || canCompleteAnyStage)) return false;
     const entry = getStageEntry(srd, stageSlug);
     if (entry?.status === 'completed' || entry?.completedDate) return false;
@@ -303,6 +345,7 @@ export default function SampleProcessPage() {
   };
 
   const canReceive = (srd, stageSlug, stageIndex) => {
+    if (srd.sampleDispatchedToBuyer) return false;
     if (stageIndex === 0 || !(userRole === stageSlug || userRole === 'admin' || canReceiveAnyStage)) return false;
     const entry = getStageEntry(srd, stageSlug);
     if (entry?.receivedDate || entry?.status === 'received') return false;
@@ -332,10 +375,8 @@ export default function SampleProcessPage() {
         <select value={filterStage} onChange={e => setFilterStage(e.target.value)}
           className="border-0 focus:ring-0 focus:outline-none bg-transparent text-sm text-gray-700 font-medium">
           <option value="">All Stages</option>
-          {stages.map(s => (
-            <option key={s._id || s.name} value={s.name?.toLowerCase()}>
-              {s.displayName || s.name}
-            </option>
+          {STAGE_FILTER_OPTIONS.map(s => (
+            <option key={s.value} value={s.value}>{s.label}</option>
           ))}
         </select>
       </div>
@@ -351,6 +392,15 @@ export default function SampleProcessPage() {
 
       <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 shadow-sm">
         <Filter className="h-3.5 w-3.5 text-gray-400" />
+        <select value={filterSampleType} onChange={e => setFilterSampleType(e.target.value)}
+          className="border-0 focus:ring-0 focus:outline-none bg-transparent text-sm text-gray-700 font-medium">
+          <option value="">All Sample Types</option>
+          {allSampleTypes.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </div>
+
+      <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 shadow-sm">
+        <Filter className="h-3.5 w-3.5 text-gray-400" />
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
           className="border-0 focus:ring-0 focus:outline-none bg-transparent text-sm text-gray-700 font-medium">
           <option value="">All Statuses</option>
@@ -360,8 +410,8 @@ export default function SampleProcessPage() {
         </select>
       </div>
 
-      {(filterBrand || filterStatus || filterInquiry || filterStage) && (
-        <button onClick={() => { setFilterBrand(''); setFilterStatus(''); setFilterInquiry(''); setFilterStage(''); }}
+      {(filterBrand || filterSampleType || filterStatus || filterInquiry || filterStage) && (
+        <button onClick={() => { setFilterBrand(''); setFilterSampleType(''); setFilterStatus(''); setFilterInquiry(''); setFilterStage(''); }}
           className="flex items-center gap-1 text-sm text-gray-400 hover:text-red-500">
           <X className="h-3.5 w-3.5" />
         </button>
@@ -438,8 +488,9 @@ export default function SampleProcessPage() {
 
                       // ── data row ─────────────────────────────────────
                       const { srd, slug, stageIndex } = item;
-                      const isFirst     = stageIndex === 0;
-                      const entry       = getStageEntry(srd, slug);
+                      const isFirst         = stageIndex === 0;
+                      const isDispatchStage = slug === 'dispatch';
+                      const entry           = getStageEntry(srd, slug);
                       const stageStatus = getStageStatus(srd, slug);
                       const showReady   = canMarkReady(srd, slug, stageIndex);
                       const showRcv     = canReceive(srd, slug, stageIndex);
@@ -449,6 +500,10 @@ export default function SampleProcessPage() {
                       const isReady     = !!entry?.completedDate;
                       const cadApprovedDate = isFirst ? (srd.status || []).find(s => s.department === 'cad' && s.value === 'approved')?.updatedAt : null;
                       const cadReceived = isFirst && (isReceived || !!cadApprovedDate);
+                      const prevEntry = stageIndex > 0 ? getStageEntry(srd, stages[stageIndex - 1]?.name?.toLowerCase()) : null;
+                      const prevLabel = stageIndex > 0
+                        ? (stages[stageIndex - 1]?.displayName || stages[stageIndex - 1]?.name || 'previous stage')
+                        : null;
 
                       return (
                         <tr key={`${srd._id}-${slug}`} className={`hover:bg-blue-50 transition-colors ${blinkingKey === `${srd._id}-${slug}` ? 'animate-pulse bg-yellow-50' : ''}`}>
@@ -502,7 +557,16 @@ export default function SampleProcessPage() {
 
                           {/* Current Status (with Ready button merged in) */}
                           <td className="px-4 py-2 border-b border-black/10">
-                            {isReady ? (
+                            {isDispatchStage && srd.sampleDispatchedToBuyer ? (
+                              <span className="text-sm">
+                                <span className="font-semibold text-green-700">
+                                  Dispatched {fmtDate(srd.sampleDipatchedtoBuyerDate || srd.dispatchDate)}
+                                </span>
+                                {srd.dispatchBy && (
+                                  <span className="block text-[11px] text-gray-500">by {srd.dispatchBy}</span>
+                                )}
+                              </span>
+                            ) : isReady ? (
                               <span className="text-sm font-semibold text-green-700">
                                 Ready {fmtDate(entry.completedDate)}
                               </span>
@@ -515,6 +579,13 @@ export default function SampleProcessPage() {
                                 {actionLoading === readyKey && <Loader2 className="h-3 w-3 animate-spin" />}
                                 Ready
                               </button>
+                            ) : showRcv ? (
+                              <span className="text-sm">
+                                <span className="font-semibold text-green-700">Ready at {prevLabel}</span>
+                                {prevEntry?.completedDate && (
+                                  <span className="block text-[11px] text-gray-500">{fmtDate(prevEntry.completedDate)}</span>
+                                )}
+                              </span>
                             ) : (
                               <span className={`text-sm ${stageStatus.cls}`}>{stageStatus.text}</span>
                             )}

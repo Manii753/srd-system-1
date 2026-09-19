@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
+import { STAGE_FILTER_OPTIONS } from '@/lib/sampleFilters';
 import {
   Calendar,
   ExternalLink,
@@ -25,7 +26,6 @@ export default function ReportsPage() {
     brand: '',
     sampleType: '',
   });
-  const [stages, setStages] = useState([]);
   const [activeTemplate, setActiveTemplate] = useState(null);
   const [loadingTemplate, setLoadingTemplate] = useState(true);
   const [reportTemplates, setReportTemplates] = useState([]);
@@ -77,19 +77,6 @@ export default function ReportsPage() {
     fetchReportTemplates();
   }, [session, status]);
 
-  useEffect(() => {
-    if (status === 'loading' || !session) return;
-
-    fetch('/api/stages')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setStages(Array.isArray(data.data) ? data.data.filter((s) => s.isActive !== false) : []);
-        }
-      })
-      .catch((err) => console.error('Failed to load production stages', err));
-  }, [session, status]);
-
   const generateReport = (reportType, templateId = '') => {
     const params = new URLSearchParams();
 
@@ -97,8 +84,6 @@ export default function ReportsPage() {
       if (!value) return;
       if (key === 'status') {
         params.set('completionStatus', value);
-      } else if (key === 'stage') {
-        params.set('currentProductionStage', value);
       } else {
         params.set(key, value);
       }
@@ -207,9 +192,9 @@ export default function ReportsPage() {
                   onChange={(event) => setFilters({ ...filters, stage: event.target.value })}
                 >
                   <option value="">All Stages</option>
-                  {stages.map((stage) => (
-                    <option key={stage._id} value={stage._id}>
-                      {stage.displayName || stage.name}
+                  {STAGE_FILTER_OPTIONS.map((stage) => (
+                    <option key={stage.value} value={stage.value}>
+                      {stage.label}
                     </option>
                   ))}
                 </select>

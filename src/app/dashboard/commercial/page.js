@@ -2,39 +2,17 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
-import SRDCard from '@/components/SRDCard';
-import SRDTable from '@/components/SRDTable';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ShoppingCart, Clock, CheckCircle, AlertCircle, DollarSign, Plus } from 'lucide-react';
-
-// Read a department's status from an SRD status field, supporting both the
-// canonical array [{department, value}] and legacy flat object.
-const getStatus = (srd, dept) => {
-  const status = srd.status;
-  if (Array.isArray(status)) {
-    return status.find(s => s?.department === dept)?.value || 'pending';
-  }
-  if (status && typeof status === 'object') {
-    const v = status[dept];
-    return v === undefined || v === null ? 'pending' : String(v);
-  }
-  return 'pending';
-};
+import SrdListPage from '@/components/SrdListPage';
 
 export default function CommercialDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [srds, setSRDs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('cards');
 
   useEffect(() => {
     if (status === 'loading') return;
-    
+
     if (!session) {
       router.push('/login');
       return;
@@ -43,39 +21,10 @@ export default function CommercialDashboard() {
     const allowedRoles = ['commercial', 'admin'];
     if (!allowedRoles.includes(session.user.role)) {
       router.push(`/dashboard/${session.user.role}`);
-      return;
     }
-
-    fetchSRDs();
   }, [session, status, router]);
 
-  const fetchSRDs = async () => {
-    try {
-      const response = await fetch('/api/srd?department=commercial&limit=100');
-      const data = await response.json();
-      if (data.success) {
-        setSRDs(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching SRDs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStats = () => {
-    const total = srds.length;
-    const pending = srds.filter(srd => getStatus(srd, 'commercial') === 'pending').length;
-    const approved = srds.filter(srd => getStatus(srd, 'commercial') === 'approved').length;
-    const flagged = srds.filter(srd => getStatus(srd, 'commercial') === 'flagged').length;
-    const totalCost = srds.reduce((sum, srd) => sum + (0), 0);
-    
-    return { total, pending, approved, flagged, totalCost };
-  };
-
-  const stats = getStats();
-
-  if (loading) {
+  if (status === 'loading' || !session) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -86,121 +35,10 @@ export default function CommercialDashboard() {
   }
 
   return (
-    <Layout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-app-heading font-bold text-gray-900">Commercial Portal</h1>
-            <p className="text-gray-600 mt-1">Manage supplier quotations and procurement</p>
-          </div>
-          <Link href="/dashboard/commercial/create">
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Create SRD
-            </Button>
-          </Link>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-app-text font-medium">Total SRDs</CardTitle>
-              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-app-heading font-bold">{stats.total}</div>
-              <p className="text-app-text text-muted-foreground">For procurement</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-app-text font-medium">Pending Quotes</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-app-heading font-bold">{stats.pending}</div>
-              <p className="text-app-text text-muted-foreground">Awaiting quotes</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-app-text font-medium">Approved</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-app-heading font-bold">{stats.approved}</div>
-              <p className="text-app-text text-muted-foreground">Quotes approved</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-app-text font-medium">Flagged</CardTitle>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-app-heading font-bold">{stats.flagged}</div>
-              <p className="text-app-text text-muted-foreground">Issues flagged</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-app-text font-medium">Total Value</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-app-heading font-bold">${stats.totalCost.toFixed(2)}</div>
-              <p className="text-app-text text-muted-foreground">Estimated value</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* View Toggle */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-app-heading font-semibold">Commercial SRDs</h2>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant={viewMode === 'cards' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('cards')}
-            >
-              Cards
-            </Button>
-            <Button
-              variant={viewMode === 'table' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('table')}
-            >
-              Table
-            </Button>
-          </div>
-        </div>
-
-        {/* SRDs List */}
-        {viewMode === 'cards' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {srds.map((srd) => (
-              <SRDCard key={srd._id} srd={srd} department="commercial" />
-            ))}
-          </div>
-        ) : (
-          <SRDTable department="commercial" />
-        )}
-
-        {srds.length === 0 && (
-          <div className="text-center py-12">
-            <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-app-text font-medium text-gray-900">No SRDs available</h3>
-            <p className="mt-1 text-app-text text-gray-500">SRDs will appear here when approved by VMD.</p>
-          </div>
-        )}
-      </div>
-    </Layout>
+    <SrdListPage
+      department="commercial"
+      canCreate={session.user.role === 'commercial' || session.user.role === 'admin'}
+      createHref="/dashboard/commercial/create"
+    />
   );
 }
-

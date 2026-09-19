@@ -2,39 +2,17 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
-import SRDCard from '@/components/SRDCard';
-import SRDTable from '@/components/SRDTable';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Factory, Clock, CheckCircle, AlertCircle, Package, Plus } from 'lucide-react';
-
-// Read a department's status from an SRD status field, supporting both the
-// canonical array [{department, value}] and legacy flat object {mmc: 'pending'}.
-const getStatus = (srd, dept) => {
-  const status = srd.status;
-  if (Array.isArray(status)) {
-    return status.find(s => s?.department === dept)?.value || 'pending';
-  }
-  if (status && typeof status === 'object') {
-    const v = status[dept];
-    return v === undefined || v === null ? 'pending' : String(v);
-  }
-  return 'pending';
-};
+import SrdListPage from '@/components/SrdListPage';
 
 export default function MMCDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [srds, setSRDs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('cards');
 
   useEffect(() => {
     if (status === 'loading') return;
-    
+
     if (!session) {
       router.push('/login');
       return;
@@ -43,39 +21,10 @@ export default function MMCDashboard() {
     const allowedRoles = ['mmc', 'admin'];
     if (!allowedRoles.includes(session.user.role)) {
       router.push(`/dashboard/${session.user.role}`);
-      return;
     }
-
-    fetchSRDs();
   }, [session, status, router]);
 
-  const fetchSRDs = async () => {
-    try {
-      const response = await fetch('/api/srd?department=mmc&limit=100');
-      const data = await response.json();
-      if (data.success) {
-        setSRDs(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching SRDs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStats = () => {
-    const total = srds.length;
-    const pending = srds.filter(srd => getStatus(srd, 'mmc') === 'pending').length;
-    const inProgress = srds.filter(srd => getStatus(srd, 'mmc') === 'in-progress').length;
-    const approved = srds.filter(srd => getStatus(srd, 'mmc') === 'approved').length;
-    const flagged = srds.filter(srd => getStatus(srd, 'mmc') === 'flagged').length;
-    
-    return { total, pending, inProgress, approved, flagged };
-  };
-
-  const stats = getStats();
-
-  if (loading) {
+  if (status === 'loading' || !session) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -86,121 +35,10 @@ export default function MMCDashboard() {
   }
 
   return (
-    <Layout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-app-heading font-bold text-gray-900">MMC Portal</h1>
-            <p className="text-gray-600 mt-1">Manage manufacturing and quality control</p>
-          </div>
-          <Link href="/dashboard/mmc/create">
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Create SRD
-            </Button>
-          </Link>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-app-text font-medium">Total SRDs</CardTitle>
-              <Factory className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-app-heading font-bold">{stats.total}</div>
-              <p className="text-app-text text-muted-foreground">For production</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-app-text font-medium">Pending</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-app-heading font-bold">{stats.pending}</div>
-              <p className="text-app-text text-muted-foreground">Awaiting production</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-app-text font-medium">In Production</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-app-heading font-bold">{stats.inProgress}</div>
-              <p className="text-app-text text-muted-foreground">Currently producing</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-app-text font-medium">Completed</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-app-heading font-bold">{stats.approved}</div>
-              <p className="text-app-text text-muted-foreground">Sample complete</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-app-text font-medium">Flagged</CardTitle>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-app-heading font-bold">{stats.flagged}</div>
-              <p className="text-app-text text-muted-foreground">Production issues</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* View Toggle */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-app-heading font-semibold">MMC SRDs</h2>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant={viewMode === 'cards' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('cards')}
-            >
-              Cards
-            </Button>
-            <Button
-              variant={viewMode === 'table' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('table')}
-            >
-              Table
-            </Button>
-          </div>
-        </div>
-
-        {/* SRDs List */}
-        {viewMode === 'cards' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {srds.map((srd) => (
-              <SRDCard key={srd._id} srd={srd} department="mmc" />
-            ))}
-          </div>
-        ) : (
-          <SRDTable department="mmc" />
-        )}
-
-        {srds.length === 0 && (
-          <div className="text-center py-12">
-            <Factory className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-app-text font-medium text-gray-900">No SRDs available</h3>
-            <p className="mt-1 text-app-text text-gray-500">SRDs will appear here when ready for production.</p>
-          </div>
-        )}
-      </div>
-    </Layout>
+    <SrdListPage
+      department="mmc"
+      canCreate={session.user.role === 'mmc' || session.user.role === 'admin'}
+      createHref="/dashboard/mmc/create"
+    />
   );
 }
-

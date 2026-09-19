@@ -1,22 +1,28 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import SRDTable from '@/components/SRDTable';
+import SRDPrintDialog from '@/components/SRDPrintDialog';
 import { Button } from '@/components/ui/button';
 import { Search, Filter, Plus, X } from 'lucide-react';
-import SRDPrintDialog from '@/components/SRDPrintDialog';
 import { STAGE_FILTER_OPTIONS } from '@/lib/sampleFilters';
 
-function SRDListPageContent() {
-  const { data: session, status } = useSession();
+// Shared /srd-style department page. Replaces the old stat-card + card-grid
+// dashboards (CAD/MMC/COM/dispatch/dynamic departments) with a single filter
+// header + SRDTable, matching the appearance of /srd.
+export default function SrdListPage({
+  department = 'all',
+  createHref,
+  canCreate = false,
+  defaultStatus = 'active',
+  showPrint = true,
+}) {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('active');
+  const [filterStatus, setFilterStatus] = useState(defaultStatus);
   const [filterBrand, setFilterBrand] = useState('');
   const [filterSampleType, setFilterSampleType] = useState('');
   const [filterStage, setFilterStage] = useState('');
@@ -24,20 +30,10 @@ function SRDListPageContent() {
   const [sampleTypes, setSampleTypes] = useState([]);
   const [recordCount, setRecordCount] = useState(0);
 
-  const departmentFilter = searchParams.get('department') || 'all';
-  const statusFilter = searchParams.get('status') || 'all';
-
-  const canCreateSRD = session?.user?.role === 'vmd' || session?.user?.role === 'admin';
-
   // A specific stage (especially Approved/Dispatched/Rejected) implies "all
   // statuses", otherwise completed SRDs would be hidden by the default
-  // active/status filter and stage filtering would return nothing.
+  // status filter and stage filtering would return nothing.
   const effectiveStatus = filterStage ? 'all' : filterStatus;
-
-  useEffect(() => {
-    if (status === 'loading') return;
-    if (!session) { router.push('/login'); return; }
-  }, [session, status, router]);
 
   useEffect(() => {
     fetch('/api/srd?listBrands=true')
@@ -50,15 +46,7 @@ function SRDListPageContent() {
       .catch(() => {});
   }, []);
 
-  if (status === 'loading') {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600" />
-        </div>
-      </Layout>
-    );
-  }
+  const hasFilters = searchTerm || filterStatus !== defaultStatus || filterBrand || filterSampleType || filterStage;
 
   return (
     <Layout
@@ -76,8 +64,7 @@ function SRDListPageContent() {
             />
           </div>
 
-          {/* Status filter — matches the STATUS column (production progress).
-              Defaults to "active" so completed SRDs stay hidden until enabled. */}
+          {/* Status filter — matches the STATUS column (production progress). */}
           <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm">
             <Filter className="h-4 w-4 text-gray-500" />
             <select
@@ -132,9 +119,9 @@ function SRDListPageContent() {
             </select>
           </div>
 
-          {(searchTerm || filterStatus !== 'active' || filterBrand || filterSampleType || filterStage) && (
+          {hasFilters && (
             <button
-              onClick={() => { setSearchTerm(''); setFilterStatus('active'); setFilterBrand(''); setFilterSampleType(''); setFilterStage(''); }}
+              onClick={() => { setSearchTerm(''); setFilterStatus(defaultStatus); setFilterBrand(''); setFilterSampleType(''); setFilterStage(''); }}
               className="flex items-center gap-1 text-sm text-gray-400 hover:text-red-500"
               title="Clear filters"
             >
@@ -145,11 +132,11 @@ function SRDListPageContent() {
 
           <span className="text-sm text-gray-500 whitespace-nowrap">{recordCount} records</span>
 
-          <SRDPrintDialog />
+          {showPrint && <SRDPrintDialog />}
 
-          {canCreateSRD && (
+          {canCreate && createHref && (
             <Button
-              onClick={() => router.push(`/dashboard/${session.user.role}/create`)}
+              onClick={() => router.push(createHref)}
               className="bg-blue-600 hover:bg-blue-700 text-white"
               size="sm"
             >
@@ -162,7 +149,7 @@ function SRDListPageContent() {
     >
       <div className="flex flex-col flex-1 h-[calc(100vh-56px)] overflow-hidden space-y-4 p-4">
         <SRDTable
-          department={departmentFilter}
+          department={department}
           searchTerm={searchTerm}
           filterStatus={effectiveStatus}
           filterBrand={filterBrand}
@@ -172,13 +159,5 @@ function SRDListPageContent() {
         />
       </div>
     </Layout>
-  );
-}
-
-export default function SRDListPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <SRDListPageContent />
-    </Suspense>
   );
 }

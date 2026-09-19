@@ -14,12 +14,18 @@ import {
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Printer } from 'lucide-react';
+import { STAGE_FILTER_OPTIONS } from '@/lib/sampleFilters';
 
 export default function SRDPrintDialog() {
     const [open, setOpen] = useState(false);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [status, setStatus] = useState('all');
+    const [brand, setBrand] = useState('');
+    const [sampleType, setSampleType] = useState('');
+    const [stage, setStage] = useState('');
+    const [brands, setBrands] = useState([]);
+    const [sampleTypes, setSampleTypes] = useState([]);
     const [loading, setLoading] = useState(false);
 
     const handlePrint = () => {
@@ -30,6 +36,9 @@ export default function SRDPrintDialog() {
         if (startDate) params.append('startDate', startDate);
         if (endDate) params.append('endDate', endDate);
         if (status && status !== 'all') params.append('completionStatus', status);
+        if (brand) params.append('brand', brand);
+        if (sampleType) params.append('sampleType', sampleType);
+        if (stage) params.append('stage', stage);
 
         // Open print page in new tab
         const url = `/srd/print?${params.toString()}`;
@@ -49,9 +58,23 @@ export default function SRDPrintDialog() {
         setEndDate(lastDay.toISOString().split('T')[0]);
     };
 
+    const loadOptions = () => {
+        fetch('/api/srd?listBrands=true')
+            .then(r => r.json())
+            .then(d => { if (d?.success && d.isBrandList) setBrands(d.data || []); })
+            .catch(() => {});
+        fetch('/api/srd?listSampleTypes=true')
+            .then(r => r.json())
+            .then(d => { if (d?.success) setSampleTypes(d.data || []); })
+            .catch(() => {});
+    };
+
     return (
         <Dialog open={open} onOpenChange={(val) => {
-            if (val && !startDate) setDefaultDates();
+            if (val) {
+                if (!startDate) setDefaultDates();
+                loadOptions();
+            }
             setOpen(val);
         }}>
             <DialogTrigger asChild>
@@ -102,6 +125,45 @@ export default function SRDPrintDialog() {
                                 <SelectItem value="completed">Completed</SelectItem>
                                 <SelectItem value="in-production">In Production</SelectItem>
                                 <SelectItem value="pre-production">Pre-Production</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="brand">Brand</Label>
+                        <Select value={brand} onValueChange={setBrand}>
+                            <SelectTrigger id="brand">
+                                <SelectValue placeholder="All brands" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">All Brands</SelectItem>
+                                {brands.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="sample-type">Sample Type</Label>
+                        <Select value={sampleType} onValueChange={setSampleType}>
+                            <SelectTrigger id="sample-type">
+                                <SelectValue placeholder="All sample types" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">All Sample Types</SelectItem>
+                                {sampleTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="stage">Stage</Label>
+                        <Select value={stage} onValueChange={setStage}>
+                            <SelectTrigger id="stage">
+                                <SelectValue placeholder="All stages" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">All Stages</SelectItem>
+                                {STAGE_FILTER_OPTIONS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>

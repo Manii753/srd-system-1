@@ -2,29 +2,13 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
-import SRDCard from '@/components/SRDCard';
 import SRDTable from '@/components/SRDTable';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, FileText, Clock, CheckCircle, AlertCircle, Search, Filter } from 'lucide-react';
-import Link from 'next/link';
+import { Plus, FileText, Search, Filter } from 'lucide-react';
 import { useToast } from '@/lib/use-toast';
-
-// Read a department's status from an SRD status field, supporting both the
-// canonical array [{department, value}] and legacy flat object {vmd: 'pending'}.
-const getStatus = (srd, dept) => {
-  const status = srd.status;
-  if (Array.isArray(status)) {
-    return status.find(s => s?.department === dept)?.value || 'pending';
-  }
-  if (status && typeof status === 'object') {
-    const v = status[dept];
-    return v === undefined || v === null ? 'pending' : String(v);
-  }
-  return 'pending';
-};
+import { STAGE_FILTER_OPTIONS } from '@/lib/sampleFilters';
 
 export default function VMDDashboard() {
   const { data: session, status } = useSession();
@@ -34,7 +18,11 @@ export default function VMDDashboard() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [viewMode, setViewMode] = useState('table'); // cards or table
+  const [filterBrand, setFilterBrand] = useState('');
+  const [filterSampleType, setFilterSampleType] = useState('');
+  const [filterStage, setFilterStage] = useState('');
+  const [brands, setBrands] = useState([]);
+  const [sampleTypes, setSampleTypes] = useState([]);
   const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
@@ -67,6 +55,17 @@ export default function VMDDashboard() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetch('/api/srd?listBrands=true')
+      .then(r => r.json())
+      .then(d => { if (d?.success && d.isBrandList) setBrands(d.data || []); })
+      .catch(() => {});
+    fetch('/api/srd?listSampleTypes=true')
+      .then(r => r.json())
+      .then(d => { if (d?.success) setSampleTypes(d.data || []); })
+      .catch(() => {});
+  }, []);
 
   const handleRaiseSrd = async () => {
     setIsCreating(true);
@@ -113,15 +112,6 @@ export default function VMDDashboard() {
     }
   };
 
-  const stats = useMemo(() => {
-    const total = srds.length;
-    const pending = srds.filter(srd => getStatus(srd, 'vmd') === 'pending').length;
-    const approved = srds.filter(srd => getStatus(srd, 'vmd') === 'approved').length;
-    const flagged = srds.filter(srd => getStatus(srd, 'vmd') === 'flagged').length;
-
-    return { total, pending, approved, flagged };
-  }, [srds]);
-
   if (loading) {
     return (
       <Layout>
@@ -159,9 +149,40 @@ export default function VMDDashboard() {
             <option value="flagged">Flagged</option>
           </select>
         </div>
+        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
+          <Filter className="h-4 w-4 text-gray-500" />
+          <select
+            value={filterBrand}
+            onChange={(e) => setFilterBrand(e.target.value)}
+            className="border-0 focus:ring-0 focus:outline-none bg-transparent text-app-text text-gray-700 font-medium"
+          >
+            <option value="">All Brands</option>
+            {brands.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+        </div>
+        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
+          <Filter className="h-4 w-4 text-gray-500" />
+          <select
+            value={filterSampleType}
+            onChange={(e) => setFilterSampleType(e.target.value)}
+            className="border-0 focus:ring-0 focus:outline-none bg-transparent text-app-text text-gray-700 font-medium"
+          >
+            <option value="">All Sample Types</option>
+            {sampleTypes.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
+          <Filter className="h-4 w-4 text-gray-500" />
+          <select
+            value={filterStage}
+            onChange={(e) => setFilterStage(e.target.value)}
+            className="border-0 focus:ring-0 focus:outline-none bg-transparent text-app-text text-gray-700 font-medium"
+          >
+            <option value="">All Stages</option>
+            {STAGE_FILTER_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
+        </div>
         <div className="flex items-center gap-1 ml-auto">
-          <Button variant={viewMode === 'cards' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('cards')} className={viewMode === 'cards' ? 'text-white' : ''}>Cards</Button>
-          <Button variant={viewMode === 'table' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('table')}className={viewMode === 'table' ? 'text-white' : ''}>Table</Button>
           <Button size="sm" onClick={handleRaiseSrd} disabled={isCreating} className="text-white">
             <Plus className="h-4 w-4 mr-1" />
             {isCreating ? 'Raising SRD...' : 'New SRD'}
@@ -170,16 +191,8 @@ export default function VMDDashboard() {
       </div>
     }>
       <div className="">
-        {/* SRDs List */}
-        {viewMode === 'cards' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {srds.map((srd) => (
-              <SRDCard key={srd._id} srd={srd} department="vmd" />
-            ))}
-          </div>
-        ) : (
-          <SRDTable department="vmd" searchTerm={searchTerm} filterStatus={filterStatus} />
-        )}
+        {/* SRDs Table */}
+        <SRDTable department="vmd" searchTerm={searchTerm} filterStatus={filterStatus} filterBrand={filterBrand} filterSampleType={filterSampleType} filterStage={filterStage} />
 
         {srds.length === 0 && (
           <div className="text-center">
