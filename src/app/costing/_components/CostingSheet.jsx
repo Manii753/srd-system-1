@@ -732,19 +732,19 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
         </td>
         <td colSpan={2} className="border-l border-gray-100" />
         <td className="border-l border-gray-100">
-          {r.computed ? (
+          {r.computed || numCell == null ? (
             <span className="text-xs px-2 py-1 block text-right font-semibold text-gray-900">
               {r.prefix}{fmt2(totals.difference)}
             </span>
           ) : (
             <GridNum
               coord={coord}
-              raw={d[r.key]}
+              raw={d[numCell.key]}
               resolved={machine.valueAt(coord)}
               err={machine.isErr(coord)}
               active={focusedCell === coord}
               disabled={!canEdit}
-              onChange={v => set(r.key, v)}
+              onChange={v => set(numCell.key, v)}
               onFocus={focusCell}
               onEnter={handleCellEnter}
             />
