@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
+import { resolveCosting } from '@/lib/costingGrid';
 
 // ─── number helpers ───────────────────────────────────────────────────────────
 const n = (v) => Number(v) || 0;
@@ -177,7 +178,9 @@ function PrintContent() {
   if (error)   return <div style={{ padding: 40, fontFamily: 'Arial', fontSize: 13, color: 'red' }}>Error: {error}</div>;
   if (!d)      return null;
 
-  const T = calcAll(d);
+  // Resolve any formula cells (=C7*2, =SUM(...), ...) to plain numbers for printing.
+  const data = { ...d, ...resolveCosting(d).resolvedData };
+  const T = calcAll(data);
 
   return (
     <div style={{
@@ -257,19 +260,19 @@ function PrintContent() {
           {/* ── FABRICS ─────────────────────────────── */}
           <SecRow label="Fabrics" color="#c00" />
           <FabHdr />
-          {(d.fabrics || []).map((r, i) => <FabRow key={i} r={r} />)}
+          {(data.fabrics || []).map((r, i) => <FabRow key={i} r={r} />)}
 
           {/* ── BEFORE WASH TRIMS ───────────────────── */}
           <SecRow label="Before Wash Trims" color="#007000" />
-          {(d.beforeWashTrims || []).map((r, i) => <TrimRow key={i} r={r} />)}
+          {(data.beforeWashTrims || []).map((r, i) => <TrimRow key={i} r={r} />)}
 
           {/* ── AFTER WASH TRIMS ────────────────────── */}
           <SecRow label="After Wash Trims" color="#c00" />
-          {(d.afterWashTrims || []).map((r, i) => <TrimRow key={i} r={r} />)}
+          {(data.afterWashTrims || []).map((r, i) => <TrimRow key={i} r={r} />)}
 
           {/* ── EMBELLISHMENT ───────────────────────── */}
           <SecRow label="Embellishment" color="#c07000" />
-          {(d.embellishment || []).map((r, i) => <TrimRow key={i} r={r} />)}
+          {(data.embellishment || []).map((r, i) => <TrimRow key={i} r={r} />)}
 
           {/* ── PRODUCTION COST ─────────────────────── */}
           {/* Header row for this section: label + "LEVEL" header in col 3 */}
@@ -279,14 +282,14 @@ function PrintContent() {
             <td style={td({ borderTop: BO })}></td>
             <td style={td({ borderTop: BO, borderRight: BO })}></td>
           </tr>
-          <ProdRow label="Cmt (Codes Req Level 1 2 3)"     level={n(d.cmtLevel) || ''}     amount={d.cmtLevel} />
-          <ProdRow label="Washing (Codes Req Level 1 2 3)" level={n(d.washingLevel) || ''} amount={d.washingLevel} />
-          <ProdRow label="Fob"                              level=""                        amount={d.fob} />
+          <ProdRow label="Cmt (Codes Req Level 1 2 3)"     level={n(data.cmtLevel) || ''}     amount={data.cmtLevel} />
+          <ProdRow label="Washing (Codes Req Level 1 2 3)" level={n(data.washingLevel) || ''} amount={data.washingLevel} />
+          <ProdRow label="Fob"                              level=""                        amount={data.fob} />
 
           {/* ── FREIGHT ─────────────────────────────── */}
           <tr>
             <td colSpan={4} style={td({ borderLeft: BO, borderTop: BO })}>Freight</td>
-            <td style={tdR({ borderTop: BO, borderRight: BO })}>{fmtAmt(d.freight)}</td>
+            <td style={tdR({ borderTop: BO, borderRight: BO })}>{fmtAmt(data.freight)}</td>
           </tr>
 
           {/* ── MARGIN & COMMISSION ─────────────────── */}
@@ -300,21 +303,21 @@ function PrintContent() {
           {/* Percentage % row — value in col 3, computed amount in col 5 */}
           <tr>
             <td colSpan={2} style={td({ borderLeft: BO })}>Percentage %</td>
-            <td style={td({ textAlign: 'center' })}>{n(d.marginPct) || ''}</td>
+            <td style={td({ textAlign: 'center' })}>{n(data.marginPct) || ''}</td>
             <td style={td()}></td>
             <td style={tdR({ borderRight: BO })}>
-              {fmtAmt((n(d.cmtLevel) + n(d.washingLevel) + n(d.fob) +
-                secSum(d.fabrics) + secSum(d.beforeWashTrims) +
-                secSum(d.afterWashTrims) + secSum(d.embellishment) +
-                n(d.freight)) * (n(d.marginPct) / 100))}
+              {fmtAmt((n(data.cmtLevel) + n(data.washingLevel) + n(data.fob) +
+                secSum(data.fabrics) + secSum(data.beforeWashTrims) +
+                secSum(data.afterWashTrims) + secSum(data.embellishment) +
+                n(data.freight)) * (n(data.marginPct) / 100))}
             </td>
           </tr>
-          <Row2 label="Extra Cut"       value={fmtAmt(d.extraCut)} />
-          <Row2 label="Ld Margin"       value={fmtAmt(d.ldMargin)} />
+          <Row2 label="Extra Cut"       value={fmtAmt(data.extraCut)} />
+          <Row2 label="Ld Margin"       value={fmtAmt(data.ldMargin)} />
           {/* blank spacer row */}
           <tr><td colSpan={4} style={td({ borderLeft: BO, padding: '1px 3px' })}></td><td style={td({ borderRight: BO })}></td></tr>
-          <Row2 label="Testing Charges" value={fmtAmt(d.testingCharges)} />
-          <Row2 label="Commission"      value={fmtAmt(d.commission)} />
+          <Row2 label="Testing Charges" value={fmtAmt(data.testingCharges)} />
+          <Row2 label="Commission"      value={fmtAmt(data.commission)} />
 
           {/* ── SUMMARY ─────────────────────────────── */}
           <Row2 label="Total Price PKR" value={Math.round(T.totalPkr)} bold />
@@ -324,7 +327,7 @@ function PrintContent() {
             <td style={td({ borderLeft: BO })}>Currency</td>
             <td style={td()}></td>
             <td style={td()}>USD/ Euro</td>
-            <td style={tdR()}>{n(d.currencyRate) || 265}</td>
+            <td style={tdR()}>{n(data.currencyRate) || 265}</td>
             <td style={td({ borderRight: BO })}></td>
           </tr>
 
@@ -338,14 +341,14 @@ function PrintContent() {
             labelBold
             dollarColor="#000"
             amountColor="#000"
-            amount={d.firstQuoted}
+            amount={data.firstQuoted}
           />
           {/* Target $ — white */}
           <QuoteRow
             label="Target $"
             dollarColor="#5b9bd5"
             amountColor="#5b9bd5"
-            amount={d.targetPrice}
+            amount={data.targetPrice}
           />
           {/* Difference — white */}
           <QuoteRow
@@ -361,7 +364,7 @@ function PrintContent() {
             labelBold
             dollarColor="#f97316"
             amountColor="#f97316"
-            amount={d.secondQuote}
+            amount={data.secondQuote}
           />
           {/* Confirmed — green bg */}
           <QuoteRow
@@ -370,7 +373,7 @@ function PrintContent() {
             labelBold
             dollarColor="#f97316"
             amountColor="#f97316"
-            amount={d.confirmedPrice}
+            amount={data.confirmedPrice}
           />
 
         </tbody>

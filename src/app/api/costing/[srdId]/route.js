@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Costing from '@/models/Costing';
 import SRD from '@/models/SRD';
+import { resolveCosting } from '@/lib/costingGrid';
 
 // ─── Default row sets (fallback when no SRD table field exists) ───────────────
 
@@ -340,28 +341,38 @@ function buildPostFromSrd(srd) {
 // ─── Recalculate totals ────────────────────────────────────────────────────────
 
 function recalc(side) {
+  const { resolvedData } = resolveCosting(side);
+
   const sumRows = (rows) =>
     (rows || []).reduce((s, r) => {
       r.amount = (Number(r.consumption) || 0) * (Number(r.price) || 0);
       return s + r.amount;
     }, 0);
 
-  const totalFabrics = sumRows(side.fabrics);
-  const totalBeforeWash = sumRows(side.beforeWashTrims);
-  const totalAfterWash = sumRows(side.afterWashTrims);
-  const totalEmbellishment = sumRows(side.embellishment);
+  const totalFabrics = sumRows(resolvedData.fabrics);
+  const totalBeforeWash = sumRows(resolvedData.beforeWashTrims);
+  const totalAfterWash = sumRows(resolvedData.afterWashTrims);
+  const totalEmbellishment = sumRows(resolvedData.embellishment);
 
   const subtotal = totalFabrics + totalBeforeWash + totalAfterWash + totalEmbellishment;
-  const totalWithProduction = subtotal + Number(side.cmtLevel || 0) + Number(side.washingLevel || 0) + Number(side.fob || 0);
-  const totalWithFreight = totalWithProduction + Number(side.freight || 0);
-  const marginAmount = totalWithFreight * (Number(side.marginPct || 0) / 100);
+  const totalWithProduction = subtotal + Number(resolvedData.cmtLevel || 0) + Number(resolvedData.washingLevel || 0) + Number(resolvedData.fob || 0);
+  const totalWithFreight = totalWithProduction + Number(resolvedData.freight || 0);
+  const marginAmount = totalWithFreight * (Number(resolvedData.marginPct || 0) / 100);
   const totalWithMargin = totalWithFreight + marginAmount;
-  const totalWithExtra = totalWithMargin + Number(side.extraCut || 0) + Number(side.ldMargin || 0) + Number(side.testingCharges || 0) + Number(side.commission || 0);
+  const totalWithExtra = totalWithMargin + Number(resolvedData.extraCut || 0) + Number(resolvedData.ldMargin || 0) + Number(resolvedData.testingCharges || 0) + Number(resolvedData.commission || 0);
 
   side.totalPricePkr = totalWithExtra;
-  const currencyRate = Number(side.currencyRate) || 265;
+  const currencyRate = Number(resolvedData.currencyRate) || 265;
   side.finalFobUs = totalWithExtra / currencyRate;
-  side.difference = Number(side.firstQuoted || 0) - Number(side.targetPrice || 0);
+  side.difference = Number(resolvedData.firstQuoted || 0) - Number(resolvedData.targetPrice || 0);
+
+  // Persist per-row amounts as resolved numbers too (consumption/price may be formulas)
+  ['fabrics', 'beforeWashTrims', 'afterWashTrims', 'embellishment'].forEach((sec) => {
+    const list = side[sec] || [];
+    resolvedData[sec]?.forEach((r, i) => {
+      if (list[i]) list[i].amount = (Number(r.consumption) || 0) * (Number(r.price) || 0);
+    });
+  });
 
   return side;
 }

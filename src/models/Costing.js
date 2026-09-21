@@ -1,11 +1,14 @@
 import mongoose from 'mongoose';
 
 // A single item row: description + consumption/qty + price + amount (auto)
+// consumption & price are Mixed so cells can hold either a number or an
+// Excel-style formula string ("=C7*2", "=SUM(C7:C12)") that gets resolved
+// at render time by src/lib/costingGrid.js.
 const costRowSchema = new mongoose.Schema({
   description: { type: String, default: '' },
   code:        { type: String, default: '' },  // Fabric code (for fabrics section)
-  consumption:  { type: Number, default: 0 },  // CONSUMP column
-  price:        { type: Number, default: 0 },  // PRICE column
+  consumption:  { type: mongoose.Schema.Types.Mixed, default: 0 },  // CONSUMP column
+  price:        { type: mongoose.Schema.Types.Mixed, default: 0 },  // PRICE column
   amount:       { type: Number, default: 0 },  // AMOUNT = consumption * price (auto)
 }, { _id: false });
 
@@ -46,31 +49,31 @@ const costingDataSchema = new mongoose.Schema({
   embellishment: { type: [costRowSchema], default: [] },
 
   // ── PRODUCTION COST ──────────────────────────────────────────────
-  cmtLevel:    { type: Number, default: 0 },  // CMT Codes Req Level 1 2 3
-  washingLevel:{ type: Number, default: 0 },  // Washing Codes Req Level 1 2 3
-  fob:         { type: Number, default: 0 },
+  cmtLevel:    { type: mongoose.Schema.Types.Mixed, default: 0 },  // CMT Codes Req Level 1 2 3
+  washingLevel:{ type: mongoose.Schema.Types.Mixed, default: 0 },  // Washing Codes Req Level 1 2 3
+  fob:         { type: mongoose.Schema.Types.Mixed, default: 0 },
 
   // ── FREIGHT ──────────────────────────────────────────────────────
-  freight: { type: Number, default: 0 },
+  freight: { type: mongoose.Schema.Types.Mixed, default: 0 },
 
   // ── MARGIN & COMMISSION ──────────────────────────────────────────
-  marginPct:      { type: Number, default: 0 },  // Percentage %
-  extraCut:       { type: Number, default: 0 },
-  ldMargin:       { type: Number, default: 0 },
-  testingCharges: { type: Number, default: 0 },
-  commission:     { type: Number, default: 0 },
+  marginPct:      { type: mongoose.Schema.Types.Mixed, default: 0 },  // Percentage %
+  extraCut:       { type: mongoose.Schema.Types.Mixed, default: 0 },
+  ldMargin:       { type: mongoose.Schema.Types.Mixed, default: 0 },
+  testingCharges: { type: mongoose.Schema.Types.Mixed, default: 0 },
+  commission:     { type: mongoose.Schema.Types.Mixed, default: 0 },
 
   // ── SUMMARY ──────────────────────────────────────────────────────
   totalPricePkr:  { type: Number, default: 0 },  // calculated
   finalFobUs:     { type: Number, default: 0 },  // computed (PKR / currency rate)
-  currencyRate:   { type: Number, default: 265 },  // PKR per USD default
+  currencyRate:   { type: mongoose.Schema.Types.Mixed, default: 265 },  // PKR per USD default
 
   // ── QUOTE TRACKING ───────────────────────────────────────────────
-  firstQuoted:    { type: Number, default: 0 },
-  targetPrice:    { type: Number, default: 0 },
+  firstQuoted:    { type: mongoose.Schema.Types.Mixed, default: 0 },
+  targetPrice:    { type: mongoose.Schema.Types.Mixed, default: 0 },
   difference:     { type: Number, default: 0 },  // auto: firstQuoted - targetPrice
-  secondQuote:    { type: Number, default: 0 },
-  confirmedPrice: { type: Number, default: 0 },
+  secondQuote:    { type: mongoose.Schema.Types.Mixed, default: 0 },
+  confirmedPrice: { type: mongoose.Schema.Types.Mixed, default: 0 },
 
   // ── IMAGES ───────────────────────────────────────────────────────
   images: { type: [imageSchema], default: [] },

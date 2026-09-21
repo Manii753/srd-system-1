@@ -2393,12 +2393,12 @@ export default function DepartmentPanelExcel({
 
         return (
           <div className={cn(
-            "h-full transition-all duration-300 border-2 border-dashed border-gray-300 rounded-lg p-2",
+            "transition-all duration-300 border-2 border-dashed border-gray-300 rounded-lg p-2",
             isFieldHighlighted(fieldId, fieldDef) && "highlight-empty-field"
           )}>
             {allImages.length === 0 ? (
-              // Empty state - show upload area
-              canEdit && (
+              // Empty state - show upload area only when editable
+              canEdit ? (
                 <UploadImage
                   srdId={srd?._id}
                   fieldId={fieldId}
@@ -2414,6 +2414,10 @@ export default function DepartmentPanelExcel({
                     }
                   }}
                 />
+              ) : (
+                <div className="flex items-center justify-center h-40 text-xs text-gray-400">
+                  No image added
+                </div>
               )
             ) : (
               // Show uploaded images

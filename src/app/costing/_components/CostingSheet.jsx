@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, Fragment } from 'react';
 import { Plus, Trash2, CheckCircle2, Clock, AlertCircle, Send, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,6 +8,7 @@ import { useToast } from '@/lib/use-toast';
 import { useSession } from 'next-auth/react';
 import FabricCodeSelect from './FabricCodeSelect';
 import ImageUpload from './ImageUpload';
+import { resolveCosting, isFormula } from '@/lib/costingGrid';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -15,14 +16,12 @@ const n = (v) => Number(v) || 0;
 const fmt2 = (v) =>
   n(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function rowAmount(row) { return n(row.consumption) * n(row.price); }
-function sectionSum(rows) { return (rows || []).reduce((s, r) => s + rowAmount(r), 0); }
-
 function calcAll(d) {
-  const totalFabrics = sectionSum(d.fabrics);
-  const totalBeforeWash = sectionSum(d.beforeWashTrims);
-  const totalAfterWash = sectionSum(d.afterWashTrims);
-  const totalEmbellishment = sectionSum(d.embellishment);
+  const sumRows = (rows) => (rows || []).reduce((s, r) => s + n(r.consumption) * n(r.price), 0);
+  const totalFabrics = sumRows(d.fabrics);
+  const totalBeforeWash = sumRows(d.beforeWashTrims);
+  const totalAfterWash = sumRows(d.afterWashTrims);
+  const totalEmbellishment = sumRows(d.embellishment);
 
   const subtotal = totalFabrics + totalBeforeWash + totalAfterWash + totalEmbellishment;
   const totalWithProduction = subtotal + n(d.cmtLevel) + n(d.washingLevel) + n(d.fob);
@@ -61,26 +60,45 @@ const STATUS_META = {
   rejected:  { label: 'Rejected',  bg: 'bg-red-50 text-red-500',      Icon: AlertCircle },
 };
 
-// ─── Shared cell styles ───────────────────────────────────────────────────────
+// ─── Shared row-number gutter ─────────────────────────────────────────────────
 
-function NumCell({ value, onChange, disabled, placeholder = '0', className = '' }) {
+function GutterCell({ row, className = '' }) {
+  return (
+    <td className={`gutter-cell ${className}`}>
+      <span>{row?.row ?? ''}</span>
+    </td>
+  );
+}
+
+// ─── Editable grid cell (number OR Excel-style formula) ───────────────────────
+
+function GridNum({ coord, raw, resolved, err, active, disabled, onChange, onFocus, onEnter, placeholder = '0', className = '' }) {
+  const isF = isFormula(raw);
+  let display;
+  if (active) display = raw == null ? '' : String(raw);
+  else if (isF) display = err ? '#ERR!' : fmt2(resolved);
+  else display = raw == null || raw === '' || raw === 0 || raw === '0' ? '' : String(raw);
+
   return (
     <input
-      type="number"
-      min="0"
-      step="any"
-      value={value === 0 || value === '0' ? '' : (value ?? '')}
+      type="text"
+      inputMode="decimal"
+      value={display}
       onChange={e => onChange(e.target.value)}
+      onFocus={() => onFocus(coord)}
+      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onEnter(coord); } }}
       disabled={disabled}
+      data-cell={coord}
+      title={`Cell ${coord}`}
       placeholder={placeholder}
-      className={`w-full h-full text-right text-xs bg-transparent outline-none focus:bg-blue-50 transition-colors px-2 py-1 disabled:cursor-default ${className}`}
+      className={`w-full h-full text-right text-xs bg-transparent outline-none transition-colors px-2 py-1 disabled:cursor-default ${active ? 'bg-blue-50 ring-1 ring-blue-400' : 'focus:bg-blue-50'} ${className}`}
     />
   );
 }
 
 // ─── Header field component ───────────────────────────────────────────────────
 
-function HeaderField({ label, value, onChange, disabled, type = 'text', children }) {
+function HeaderField({ label, value, onChange, disabled, type = 'text', coord, focused, onFocus, onEnter, children }) {
   return (
     <div className="flex items-center gap-1.5 px-3 py-1.5">
       <span className="text-[10px] font-semibold text-gray-400 uppercase shrink-0">{label}</span>
@@ -90,7 +108,11 @@ function HeaderField({ label, value, onChange, disabled, type = 'text', children
           value={value || ''}
           onChange={e => onChange(e.target.value)}
           disabled={disabled}
-          className="flex-1 text-xs bg-transparent outline-none text-gray-800 focus:bg-gray-50 rounded px-0.5 min-w-0"
+          data-cell={coord}
+          title={coord ? `Cell ${coord}` : undefined}
+          onFocus={coord ? () => onFocus(coord) : undefined}
+          onKeyDown={coord && onEnter ? (e) => { if (e.key === 'Enter') { e.preventDefault(); onEnter(coord); } } : undefined}
+          className={`flex-1 text-xs bg-transparent outline-none text-gray-800 rounded px-0.5 min-w-0 ${focused ? 'bg-blue-50 ring-1 ring-blue-400' : 'focus:bg-gray-50'}`}
         />
       )}
     </div>
@@ -114,159 +136,11 @@ function SelectField({ value, onChange, disabled, options }) {
   );
 }
 
-// ─── Item row (section lines) ─────────────────────────────────────────────────
-
-function ItemRow({ row, onChange, onRemove, canEdit, descriptionLocked, showCode }) {
-  const amt = rowAmount(row);
-  const canEditDesc   = canEdit && !descriptionLocked;
-  const canEditConsump = canEdit && !descriptionLocked;
-  const canEditPrice  = canEdit;
-
-  return (
-    <tr className="border-b border-gray-100 group hover:bg-gray-50/60">
-      {/* Description */}
-      <td className="py-0 pl-6 pr-1 border-r border-gray-100">
-        {canEditDesc ? (
-          <input
-            value={row.description}
-            onChange={e => onChange({ ...row, description: e.target.value })}
-            placeholder="Item name"
-            className="w-full text-xs bg-transparent outline-none focus:bg-blue-50 transition-colors px-1 py-1"
-          />
-        ) : (
-          <span className="text-xs text-gray-700 px-1 py-1 block">{row.description}</span>
-        )}
-      </td>
-      {/* Code (fabrics only) */}
-      {showCode && (
-        <td className="border-r border-gray-100">
-          <FabricCodeSelect
-            value={row.code || ''}
-            onChange={code => onChange({ ...row, code })}
-            disabled={!canEdit}
-            placeholder="Code"
-          />
-        </td>
-      )}
-      {/* Consump */}
-      <td className="border-r border-gray-100">
-        <NumCell
-          value={row.consumption}
-          onChange={v => onChange({ ...row, consumption: v })}
-          disabled={!canEditConsump}
-        />
-      </td>
-      {/* Price */}
-      <td className="border-r border-gray-100">
-        <NumCell
-          value={row.price}
-          onChange={v => onChange({ ...row, price: v })}
-          disabled={!canEditPrice}
-        />
-      </td>
-      {/* Amount (read-only computed) */}
-      <td className="text-right text-xs text-gray-800 px-2 py-1">
-        {amt > 0 ? fmt2(amt) : <span className="text-gray-300">—</span>}
-      </td>
-      {/* Remove */}
-      <td className="w-6 pr-1">
-        {canEdit && !descriptionLocked && (
-          <button
-            onClick={onRemove}
-            className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 flex items-center justify-center w-full py-1"
-          >
-            <Trash2 size={10} />
-          </button>
-        )}
-      </td>
-    </tr>
-  );
-}
-
-// ─── Section block ────────────────────────────────────────────────────────────
-
-function SectionBlock({ title, sectionKey, rows, onUpdateRow, onRemoveRow, onAddRow, canEdit, fromSrd, showCode }) {
-  const total = sectionSum(rows);
-  return (
-    <>
-      {/* Section title row */}
-      <tr className="bg-gray-50 border-y border-gray-200">
-        <td colSpan={showCode ? 6 : 5} className="py-1 px-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">{title}</span>
-              {fromSrd && (
-                <span className="text-[10px] text-blue-400 font-medium bg-blue-50 px-1.5 py-0.5 rounded">
-                  from SRD
-                </span>
-              )}
-            </div>
-            {total > 0 && (
-              <span className="text-[11px] font-semibold text-gray-600">{fmt2(total)}</span>
-            )}
-          </div>
-        </td>
-      </tr>
-
-      {/* Column headers for this section */}
-      <tr className="bg-gray-100/50 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
-        <th className="py-1 px-3 text-left">Description</th>
-        {showCode && <th className="py-1 px-2 text-left border-l border-gray-200">Code</th>}
-        <th className="py-1 px-2 text-right border-l border-gray-200">Cons</th>
-        <th className="py-1 px-2 text-right border-l border-gray-200">Rate</th>
-        <th className="py-1 px-2 text-right border-l border-gray-200">Amount</th>
-        <th className="w-6" />
-      </tr>
-
-      {/* Rows */}
-      {rows.map((row, idx) => (
-        <ItemRow
-          key={idx}
-          row={row}
-          canEdit={canEdit}
-          descriptionLocked={fromSrd}
-          showCode={showCode}
-          onChange={updated => onUpdateRow(sectionKey, idx, updated)}
-          onRemove={() => onRemoveRow(sectionKey, idx)}
-        />
-      ))}
-
-      {/* Add row */}
-      {canEdit && (
-        <tr className="border-b border-gray-100">
-          <td colSpan={showCode ? 6 : 5} className="py-0.5 pl-6">
-            <button
-              onClick={() => onAddRow(sectionKey)}
-              className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-500 transition-colors py-0.5"
-            >
-              <Plus size={10} /> {fromSrd ? 'add extra row' : 'add row'}
-            </button>
-          </td>
-        </tr>
-      )}
-    </>
-  );
-}
-
-// ─── Summary row ──────────────────────────────────────────────────────────────
-
-function SummaryRow({ label, value, onChange, canEdit, editable, bold, highlight, prefix }) {
-  return (
-    <tr className={`border-b border-gray-200 ${highlight ? 'bg-gray-50' : 'bg-white'}`}>
-      <td colSpan={3} className={`py-1 px-3 text-xs uppercase tracking-wide ${bold ? 'font-bold text-gray-900' : 'text-gray-600'}`}>
-        {label}
-      </td>
-      <td className={`text-right text-xs px-2 py-1 ${bold ? 'font-bold text-gray-900' : 'text-gray-700'}`}>
-        {editable && canEdit ? (
-          <NumCell value={value} onChange={onChange} disabled={false} />
-        ) : (
-          <span>{prefix}{fmt2(value)}</span>
-        )}
-      </td>
-      <td className="w-6" />
-    </tr>
-  );
-}
+const HEADER_LABELS = {
+  date: 'Date', brand: 'Brand', fitSpecsCode: 'Fit Code',
+  fit: 'Fit', description: 'Description', fabricType: 'Fabric Type',
+  embellishmentYesNo: 'Embellishment', costingBase: 'Costing Base', sampleSize: 'Sample Size',
+};
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -275,6 +149,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
   const { toast } = useToast();
   const isAdmin = ['admin', 'vmd'].includes(session?.user?.role);
   const label = type === 'pre' ? 'Pre-Costing' : 'Post-Costing';
+  const fromSrd = type === 'post';
 
   // ── Local state ──────────────────────────────────────────────────────────────
 
@@ -305,6 +180,9 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
   }));
   const [isDirty, setIsDirty] = useState(false);
 
+  const [focusedCell, setFocusedCell] = useState(null); // cell whose input is focused
+  const [selectedCell, setSelectedCell] = useState(null); // cell shown in the formula bar
+
   // Sync when costData prop changes
   const [lastCostData, setLastCostData] = useState(costData);
   if (costData !== lastCostData) {
@@ -317,7 +195,10 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
   const canEdit  = isAdmin && ['draft', 'rejected'].includes(status);
   const sm       = STATUS_META[status] || STATUS_META.draft;
   const StatusIcon = sm.Icon;
-  const totals   = useMemo(() => calcAll(d), [d]);
+
+  // ── Grid model + formula evaluation ──────────────────────────────────────────
+  const machine  = useMemo(() => resolveCosting(d), [d]);
+  const totals   = useMemo(() => calcAll(machine.resolvedData), [machine]);
 
   // ── Updaters ─────────────────────────────────────────────────────────────────
 
@@ -347,6 +228,53 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     }));
     setIsDirty(true);
   }, []);
+
+  const focusCell = useCallback((coord) => {
+    setFocusedCell(coord);
+    setSelectedCell(coord);
+  }, []);
+
+  const onChangeRowField = useCallback((section, idx, field, value) => {
+    const row = d[section]?.[idx];
+    if (!row) return;
+    updateRow(section, idx, { ...row, [field]: value });
+  }, [d, updateRow]);
+
+  // Update any cell from its Excel coordinate (used by the formula bar).
+  const updateCellByCoord = useCallback((coord, value) => {
+    if (!coord || !canEdit) return;
+    const def = machine.byCoord.get(coord);
+    if (!def) return;
+    if (def.kind === 'item') {
+      const row = d[def.section]?.[def.idx];
+      if (!row) return;
+      updateRow(def.section, def.idx, { ...row, [def.field]: value });
+    } else if (def.kind === 'num' || def.kind === 'field') {
+      set(def.key, value);
+    }
+  }, [machine, canEdit, d, updateRow, set]);
+
+  // Enter key: move to the field directly below; if we are on the last field of a
+  // costed section, add a new row there and jump into it (spreadsheet-style).
+  const handleCellEnter = useCallback((coord) => {
+    if (!coord) return;
+    const next = machine.nextEditableBelow(coord);
+    if (next) {
+      requestAnimationFrame(() => document.querySelector(`[data-cell="${next}"]`)?.focus());
+      return;
+    }
+    const def = machine.byCoord.get(coord);
+    if (def && def.kind === 'item' && def.section && canEdit && machine.isLastItem(def.section, def.idx)) {
+      const items = machine.secRows[def.section]?.items || [];
+      const newRow = (items.length ? items[items.length - 1].row : 0) + 1;
+      setD(prev => ({
+        ...prev,
+        [def.section]: [...(prev[def.section] || []), { description: '', code: '', consumption: 0, price: 0, amount: 0 }],
+      }));
+      setIsDirty(true);
+      setTimeout(() => document.querySelector(`[data-cell="${def.col + newRow}"]`)?.focus(), 0);
+    }
+  }, [machine, canEdit]);
 
   // ── Actions ──────────────────────────────────────────────────────────────────
 
@@ -381,9 +309,312 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     window.open(url, '_blank');
   };
 
+  // ── Row renderers (driven by the shared grid model, so row numbers in the
+  //    gutter always match the cell references used in formulas) ────────────────
+
+  const cell = (row) => (col) => row.cells.find(c => c.col === col);
+
+  const renderHeadTitle = (r) => (
+    <tr className="border-b border-gray-200 bg-gray-50">
+      <GutterCell row={r} />
+      <th colSpan={6} className="py-2 px-3 text-left text-xs font-semibold text-gray-700 tracking-wide">
+        <div className="flex items-center justify-between">
+          <span>
+            {pocNumber
+              ? <span className="font-mono font-bold text-blue-700 mr-2">POC-{pocNumber}</span>
+              : srd?.refNo
+                ? <span className="font-mono text-gray-500 mr-2">{srd.refNo}</span>
+                : null}
+            <span className="text-gray-700">Costing Form</span>
+          </span>
+          <select
+            value={d.currency}
+            onChange={e => set('currency', e.target.value)}
+            disabled={!canEdit}
+            className="border border-gray-200 rounded px-1.5 py-0.5 text-xs text-gray-600 bg-white"
+          >
+            {['USD', 'EUR', 'GBP', 'INR', 'AUD', 'PKR'].map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+      </th>
+    </tr>
+  );
+
+  const renderHeadField = (c) => {
+    if (c.select) {
+      const opts = c.key === 'embellishmentYesNo'
+        ? [{ value: 'No', label: 'No' }, { value: 'Yes', label: 'Yes' }]
+        : [{ value: 'Image', label: 'Image' }, { value: 'CAD', label: 'CAD' }];
+      return (
+        <HeaderField key={c.coord} label={HEADER_LABELS[c.key]} disabled={!canEdit}>
+          <SelectField value={d[c.key]} onChange={v => set(c.key, v)} disabled={!canEdit} options={opts} />
+        </HeaderField>
+      );
+    }
+    return (
+      <HeaderField
+        key={c.coord}
+        label={HEADER_LABELS[c.key]}
+        value={d[c.key]}
+        onChange={v => set(c.key, v)}
+        disabled={!canEdit}
+        coord={c.coord}
+        focused={focusedCell === c.coord}
+        onFocus={focusCell}
+        onEnter={handleCellEnter}
+      />
+    );
+  };
+
+  const renderHeadRow = (r) => (
+    <tr className="border-b border-gray-200 bg-white">
+      <GutterCell row={r} />
+      <td colSpan={6} className="p-0">
+        <div className="grid grid-cols-3 divide-x divide-gray-100">
+          {r.cells.map(renderHeadField)}
+        </div>
+      </td>
+    </tr>
+  );
+
+  const renderSectionTitle = (r) => {
+    const total = machine.sectionTotal(r.section);
+    return (
+      <tr className="bg-gray-50 border-y border-gray-200">
+        <GutterCell row={r} />
+        <td colSpan={6} className="py-1 px-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">{r.title}</span>
+              {fromSrd && (
+                <span className="text-[10px] text-blue-400 font-medium bg-blue-50 px-1.5 py-0.5 rounded">
+                  from SRD
+                </span>
+              )}
+            </div>
+            {total > 0 && (
+              <span className="text-[11px] font-semibold text-gray-600">{fmt2(total)}</span>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
+  const renderSectionHeader = (r) => (
+    <tr className="bg-gray-100/50 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
+      <GutterCell row={r} />
+      <th className="py-1 px-3 text-left">Description</th>
+      <th className="py-1 px-2 text-left border-l border-gray-200">{r.showCode ? 'Code' : ''}</th>
+      <th className="py-1 px-2 text-right border-l border-gray-200">Cons</th>
+      <th className="py-1 px-2 text-right border-l border-gray-200">Rate</th>
+      <th className="py-1 px-2 text-right border-l border-gray-200">Amount</th>
+      <th className="w-6" />
+    </tr>
+  );
+
+  const renderItem = (r) => {
+    const row = d[r.section]?.[r.idx] || {};
+    const cDesc = cell(r)('A');
+    const cCons = cell(r)('C');
+    const cRate = cell(r)('D');
+    const cAmt  = cell(r)('E');
+    const descLocked = fromSrd;
+    const amt = machine.valueAt(cAmt.coord);
+    const amtErr = machine.isErr(cAmt.coord);
+
+    return (
+      <tr className="border-b border-gray-100 group hover:bg-gray-50/60">
+        <GutterCell row={r} />
+        {/* Description */}
+        <td className="py-0 pl-6 pr-1 border-r border-gray-100">
+          {canEdit && !descLocked ? (
+            <input
+              value={row.description || ''}
+              onChange={e => onChangeRowField(r.section, r.idx, 'description', e.target.value)}
+              onFocus={() => focusCell(cDesc.coord)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCellEnter(cDesc.coord); } }}
+              disabled={!canEdit}
+              data-cell={cDesc.coord}
+              title={`Cell ${cDesc.coord}`}
+              placeholder="Item name"
+              className="w-full text-xs bg-transparent outline-none transition-colors px-1 py-1 focus:bg-blue-50"
+            />
+          ) : (
+            <span className="text-xs text-gray-700 px-1 py-1 block">{row.description}</span>
+          )}
+        </td>
+        {/* Code (fabrics only; other sections keep the column for alignment) */}
+        <td className="border-r border-gray-100">
+          {r.showCode ? (
+            <FabricCodeSelect
+              value={row.code || ''}
+              onChange={code => onChangeRowField(r.section, r.idx, 'code', code)}
+              disabled={!canEdit}
+              placeholder="Code"
+            />
+          ) : null}
+        </td>
+        {/* Cons */}
+        <td className="border-r border-gray-100">
+          <GridNum
+            coord={cCons.coord}
+            raw={row.consumption}
+            resolved={machine.valueAt(cCons.coord)}
+            err={machine.isErr(cCons.coord)}
+            active={focusedCell === cCons.coord}
+            disabled={!canEdit || descLocked}
+            onChange={v => onChangeRowField(r.section, r.idx, 'consumption', v)}
+            onFocus={focusCell}
+            onEnter={handleCellEnter}
+          />
+        </td>
+        {/* Rate */}
+        <td className="border-r border-gray-100">
+          <GridNum
+            coord={cRate.coord}
+            raw={row.price}
+            resolved={machine.valueAt(cRate.coord)}
+            err={machine.isErr(cRate.coord)}
+            active={focusedCell === cRate.coord}
+            disabled={!canEdit}
+            onChange={v => onChangeRowField(r.section, r.idx, 'price', v)}
+            onFocus={focusCell}
+            onEnter={handleCellEnter}
+          />
+        </td>
+        {/* Amount (read-only, auto) */}
+        <td className="text-right text-xs text-gray-800 px-2 py-1">
+          {amtErr ? <span className="text-red-500">#ERR!</span> : amt > 0 ? fmt2(amt) : <span className="text-gray-300">—</span>}
+        </td>
+        {/* Remove */}
+        <td className="w-6 pr-1">
+          {canEdit && !descLocked && (
+            <button
+              onClick={() => removeRow(r.section, r.idx)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 flex items-center justify-center w-full py-1"
+            >
+              <Trash2 size={10} />
+            </button>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
+  const renderAddRow = (r) => (
+    <tr className="border-b border-gray-100">
+      <GutterCell row={r} />
+      <td colSpan={6} className="py-0.5 pl-6">
+        {canEdit && (
+          <button
+            onClick={() => addRow(r.section)}
+            className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-500 transition-colors py-0.5"
+          >
+            <Plus size={10} /> {fromSrd ? 'add extra row' : 'add row'}
+          </button>
+        )}
+      </td>
+    </tr>
+  );
+
+  const renderSingle = (r) => {
+    const numCell = r.cells[0];
+    const coord = numCell ? numCell.coord : null;
+    return (
+      <tr className="border-b border-gray-100 hover:bg-gray-50/60">
+        <GutterCell row={r} />
+        <td className="py-0 px-3">
+          <span className="text-xs text-gray-700 py-1 block">{r.label}</span>
+        </td>
+        <td colSpan={2} className="border-l border-gray-100" />
+        <td className="border-l border-gray-100">
+          {r.computed ? (
+            <span className="text-xs px-2 py-1 block text-right font-semibold text-gray-900">
+              {r.prefix}{fmt2(totals.difference)}
+            </span>
+          ) : (
+            <GridNum
+              coord={coord}
+              raw={d[r.key]}
+              resolved={machine.valueAt(coord)}
+              err={machine.isErr(coord)}
+              active={focusedCell === coord}
+              disabled={!canEdit}
+              onChange={v => set(r.key, v)}
+              onFocus={focusCell}
+              onEnter={handleCellEnter}
+            />
+          )}
+        </td>
+        <td className="border-l border-gray-100" />
+        <td className="w-6" />
+      </tr>
+    );
+  };
+
+  const renderBodyRow = (r) => {
+    switch (r.type) {
+      case 'sectionTitle': return renderSectionTitle(r);
+      case 'sectionHeader': return renderSectionHeader(r);
+      case 'item': return renderItem(r);
+      case 'addRow': return renderAddRow(r);
+      case 'single': return renderSingle(r);
+      case 'divider':
+        return <tr key={r.row}><GutterCell row={r} /><td colSpan={6} className="py-0 border-t-2 border-gray-200" /></tr>;
+      case 'total':
+        return (
+          <tr key={r.row} className="bg-gray-900 text-white border-b border-gray-200">
+            <GutterCell row={r} className="!bg-gray-900 !border-gray-800 text-gray-500" />
+            <td colSpan={3} className="py-2 px-3 text-xs font-bold uppercase tracking-wide">Total Price PKR</td>
+            <td className="text-right font-bold text-xs px-2 py-2">{fmt2(totals.totalPricePkr)}</td>
+            <td colSpan={2} />
+          </tr>
+        );
+      case 'currencyRate': {
+        const coord = cell(r)('A').coord;
+        return (
+          <tr key={r.row} className="border-b border-gray-200 bg-gray-50">
+            <GutterCell row={r} />
+            <td className="py-1 px-3 text-xs text-gray-600">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold uppercase">Currency Rate (PKR/USD)</span>
+                <GridNum
+                  coord={coord}
+                  raw={d.currencyRate}
+                  resolved={machine.valueAt(coord)}
+                  err={machine.isErr(coord)}
+                  active={focusedCell === coord}
+                  disabled={!canEdit}
+                  onChange={v => set('currencyRate', v)}
+                  onFocus={focusCell}
+                  onEnter={handleCellEnter}
+                  className="!w-16"
+                />
+              </div>
+            </td>
+            <td colSpan={2} className="border-l border-gray-200" />
+            <td className="border-l border-gray-200 text-right text-xs px-2 py-1">
+              <span className="font-semibold text-gray-900">Final FOB US$</span>
+            </td>
+            <td className="text-right text-xs font-bold text-gray-900 px-2 py-1">
+              ${fmt2(totals.finalFobUs)}
+            </td>
+            <td className="w-6" />
+          </tr>
+        );
+      }
+      default: return null;
+    }
+  };
+
   // ── Render ───────────────────────────────────────────────────────────────────
 
-  const colCount = 6; // Description, Code, Cons, Rate, Amount, Remove
+  const headTitleRow = machine.rows[0];
+  const headRows = machine.rows.filter(r => r.type === 'head');
+  const bodyRows = machine.rows.filter(r => r.type !== 'head' && r.type !== 'headTitle');
 
   return (
     <div className="space-y-3">
@@ -411,12 +642,38 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
         </p>
       )}
 
+      {/* ── Formula bar (Excel-style) ── */}
+      <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1.5 shadow-sm print:hidden">
+        <span className="font-mono font-bold text-blue-700 text-xs min-w-[3.5rem] text-center border-r border-gray-200 pr-2">
+          {selectedCell || '—'}
+        </span>
+        <span className="text-[10px] font-semibold text-emerald-600 shrink-0" title="Formula">fx</span>
+        <input
+          value={selectedCell ? String(machine.rawAt(selectedCell) ?? '') : ''}
+          onChange={e => updateCellByCoord(selectedCell, e.target.value)}
+          onFocus={e => e.target.select()}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              if (selectedCell) handleCellEnter(selectedCell);
+              e.target.blur();
+            } else if (e.key === 'Escape') {
+              e.target.blur();
+            }
+          }}
+          disabled={!canEdit}
+          placeholder="Type a value or formula — e.g. =SUM(C7:C12) or =C7*2"
+          className="flex-1 text-xs bg-transparent outline-none rounded px-1 py-0.5 min-w-0 focus:bg-blue-50"
+        />
+      </div>
+
       {/* ── Main table ── */}
       <div className="rounded-lg border border-gray-200 overflow-hidden bg-white shadow-sm">
         <table className="w-full text-xs border-collapse" style={{ tableLayout: 'fixed' }}>
 
           {/* ── Column widths ── */}
           <colgroup>
+            <col style={{ width: 26 }} />
             <col style={{ width: '35%' }} />
             <col style={{ width: '15%' }} />
             <col style={{ width: '12%' }} />
@@ -427,245 +684,12 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
 
           {/* ── Table header ── */}
           <thead>
-            {/* SRD ref + label row */}
-            <tr className="border-b border-gray-200 bg-gray-50">
-              <th colSpan={4} className="py-2 px-3 text-left text-xs font-semibold text-gray-700 tracking-wide">
-                {pocNumber
-                  ? <span className="font-mono font-bold text-blue-700 mr-2">POC-{pocNumber}</span>
-                  : srd?.refNo
-                    ? <span className="font-mono text-gray-500 mr-2">{srd.refNo}</span>
-                    : null}
-                <span className="text-gray-700">Costing Form</span>
-              </th>
-              <th colSpan={2} className="py-2 px-3 text-right">
-                <select
-                  value={d.currency}
-                  onChange={e => set('currency', e.target.value)}
-                  disabled={!canEdit}
-                  className="border border-gray-200 rounded px-1.5 py-0.5 text-xs text-gray-600 bg-white"
-                >
-                  {['USD', 'EUR', 'GBP', 'INR', 'AUD', 'PKR'].map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </th>
-            </tr>
-
-            {/* Row 1: Costing date | Brand | Fit Specs Code */}
-            <tr className="border-b border-gray-200 bg-white">
-              <td colSpan={colCount} className="p-0">
-                <div className="grid grid-cols-3 divide-x divide-gray-100">
-                  <HeaderField label="Date" value={d.date} onChange={v => set('date', v)} disabled={!canEdit} />
-                  <HeaderField label="Brand" value={d.brand} onChange={v => set('brand', v)} disabled={!canEdit} />
-                  <HeaderField label="Fit Code" value={d.fitSpecsCode} onChange={v => set('fitSpecsCode', v)} disabled={!canEdit} />
-                </div>
-              </td>
-            </tr>
-
-            {/* Row 2: Fit | Description | Fabric Type */}
-            <tr className="border-b border-gray-200 bg-white">
-              <td colSpan={colCount} className="p-0">
-                <div className="grid grid-cols-3 divide-x divide-gray-100">
-                  <HeaderField label="Fit" value={d.fit} onChange={v => set('fit', v)} disabled={!canEdit} />
-                  <HeaderField label="Description" value={d.description} onChange={v => set('description', v)} disabled={!canEdit} />
-                  <HeaderField label="Fabric Type" value={d.fabricType} onChange={v => set('fabricType', v)} disabled={!canEdit} />
-                </div>
-              </td>
-            </tr>
-
-            {/* Row 3: Embellishment | Costing Base | Sample Size */}
-            <tr className="border-b border-gray-200 bg-white">
-              <td colSpan={colCount} className="p-0">
-                <div className="grid grid-cols-3 divide-x divide-gray-100">
-                  <HeaderField label="Embellishment" disabled={!canEdit}>
-                    <SelectField
-                      value={d.embellishmentYesNo}
-                      onChange={v => set('embellishmentYesNo', v)}
-                      disabled={!canEdit}
-                      options={[{ value: 'No', label: 'No' }, { value: 'Yes', label: 'Yes' }]}
-                    />
-                  </HeaderField>
-                  <HeaderField label="Costing Base" disabled={!canEdit}>
-                    <SelectField
-                      value={d.costingBase}
-                      onChange={v => set('costingBase', v)}
-                      disabled={!canEdit}
-                      options={[{ value: 'Image', label: 'Image' }, { value: 'CAD', label: 'CAD' }]}
-                    />
-                  </HeaderField>
-                  <HeaderField label="Sample Size" value={d.sampleSize} onChange={v => set('sampleSize', v)} disabled={!canEdit} />
-                </div>
-              </td>
-            </tr>
+            {renderHeadTitle(headTitleRow)}
+            {headRows.map(r => <Fragment key={r.row}>{renderHeadRow(r)}</Fragment>)}
           </thead>
 
           <tbody>
-            {/* ── FABRICS ── */}
-            <SectionBlock
-              title="Fabrics" sectionKey="fabrics"
-              rows={d.fabrics} canEdit={canEdit}
-              fromSrd={type === 'post'}
-              showCode={true}
-              onUpdateRow={updateRow} onRemoveRow={removeRow} onAddRow={addRow}
-            />
-
-            {/* ── BEFORE WASH TRIMS ── */}
-            <SectionBlock
-              title="Before Wash Trims" sectionKey="beforeWashTrims"
-              rows={d.beforeWashTrims} canEdit={canEdit}
-              fromSrd={type === 'post'}
-              showCode={false}
-              onUpdateRow={updateRow} onRemoveRow={removeRow} onAddRow={addRow}
-            />
-
-            {/* ── AFTER WASH TRIMS ── */}
-            <SectionBlock
-              title="After Wash Trims" sectionKey="afterWashTrims"
-              rows={d.afterWashTrims} canEdit={canEdit}
-              fromSrd={type === 'post'}
-              showCode={false}
-              onUpdateRow={updateRow} onRemoveRow={removeRow} onAddRow={addRow}
-            />
-
-            {/* ── EMBELLISHMENT ── */}
-            <SectionBlock
-              title="Embellishment" sectionKey="embellishment"
-              rows={d.embellishment} canEdit={canEdit}
-              fromSrd={type === 'post'}
-              showCode={false}
-              onUpdateRow={updateRow} onRemoveRow={removeRow} onAddRow={addRow}
-            />
-
-            {/* ── PRODUCTION COST ── */}
-            <tr className="bg-gray-50 border-y border-gray-200">
-              <td colSpan={colCount} className="py-1 px-3">
-                <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">Production Cost</span>
-              </td>
-            </tr>
-            {[
-              { label: 'CMT (Codes Req Level 1 2 3)', key: 'cmtLevel' },
-              { label: 'Washing (Codes Req Level 1 2 3)', key: 'washingLevel' },
-              { label: 'FOB', key: 'fob' },
-            ].map(({ label: lbl, key }) => (
-              <tr key={key} className="border-b border-gray-100 hover:bg-gray-50/60">
-                <td className="py-0 px-3">
-                  <span className="text-xs text-gray-700 py-1 block">{lbl}</span>
-                </td>
-                <td colSpan={2} className="border-l border-gray-100" />
-                <td className="border-l border-gray-100">
-                  <NumCell value={d[key]} onChange={v => set(key, v)} disabled={!canEdit} />
-                </td>
-                <td className="border-l border-gray-100" />
-                <td className="w-6" />
-              </tr>
-            ))}
-
-            {/* ── FREIGHT ── */}
-            <tr className="bg-gray-50 border-y border-gray-200">
-              <td colSpan={colCount} className="py-1 px-3">
-                <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">Freight</span>
-              </td>
-            </tr>
-            <tr className="border-b border-gray-100 hover:bg-gray-50/60">
-              <td className="py-0 px-3">
-                <span className="text-xs text-gray-700 py-1 block">Freight</span>
-              </td>
-              <td colSpan={2} className="border-l border-gray-100" />
-              <td className="border-l border-gray-100">
-                <NumCell value={d.freight} onChange={v => set('freight', v)} disabled={!canEdit} />
-              </td>
-              <td className="border-l border-gray-100" />
-              <td className="w-6" />
-            </tr>
-
-            {/* ── MARGIN & COMMISSION ── */}
-            <tr className="bg-gray-50 border-y border-gray-200">
-              <td colSpan={colCount} className="py-1 px-3">
-                <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">Margin & Commission</span>
-              </td>
-            </tr>
-            {[
-              { label: 'Percentage %', key: 'marginPct' },
-              { label: 'Extra Cut', key: 'extraCut' },
-              { label: 'Ld Margin', key: 'ldMargin' },
-              { label: 'Testing Charges', key: 'testingCharges' },
-              { label: 'Commission', key: 'commission' },
-            ].map(({ label: lbl, key }) => (
-              <tr key={key} className="border-b border-gray-100 hover:bg-gray-50/60">
-                <td className="py-0 px-3">
-                  <span className="text-xs text-gray-700 py-1 block">{lbl}</span>
-                </td>
-                <td colSpan={2} className="border-l border-gray-100" />
-                <td className="border-l border-gray-100">
-                  <NumCell value={d[key]} onChange={v => set(key, v)} disabled={!canEdit} />
-                </td>
-                <td className="border-l border-gray-100" />
-                <td className="w-6" />
-              </tr>
-            ))}
-
-            {/* ── DIVIDER ── */}
-            <tr><td colSpan={colCount} className="py-0 border-t-2 border-gray-200" /></tr>
-
-            {/* ── TOTAL PRICE PKR ── */}
-            <tr className="bg-gray-900 text-white border-b border-gray-200">
-              <td colSpan={3} className="py-2 px-3 text-xs font-bold uppercase tracking-wide">Total Price PKR</td>
-              <td className="text-right font-bold text-xs px-2 py-2">{fmt2(totals.totalPricePkr)}</td>
-              <td colSpan={2} />
-            </tr>
-
-            {/* Currency rate & Final FOB */}
-            <tr className="border-b border-gray-200 bg-gray-50">
-              <td className="py-1 px-3 text-xs text-gray-600">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold uppercase">Currency Rate (PKR/USD)</span>
-                  <NumCell
-                    value={d.currencyRate}
-                    onChange={v => set('currencyRate', v)}
-                    disabled={!canEdit}
-                    className="!w-16"
-                  />
-                </div>
-              </td>
-              <td colSpan={2} className="border-l border-gray-200" />
-              <td className="border-l border-gray-200 text-right text-xs px-2 py-1">
-                <span className="font-semibold text-gray-900">Final FOB US$</span>
-              </td>
-              <td className="text-right text-xs font-bold text-gray-900 px-2 py-1">
-                ${fmt2(totals.finalFobUs)}
-              </td>
-              <td className="w-6" />
-            </tr>
-
-            {/* ── QUOTE TRACKING ── */}
-            <tr className="bg-gray-50 border-y border-gray-200">
-              <td colSpan={colCount} className="py-1 px-3">
-                <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">Quote Tracking</span>
-              </td>
-            </tr>
-            {[
-              { label: 'First Quoted', key: 'firstQuoted', prefix: '$' },
-              { label: 'Target $', key: 'targetPrice', prefix: '$' },
-              { label: 'Difference', key: 'difference', computed: true, prefix: '$' },
-              { label: '2nd Quote $', key: 'secondQuote', prefix: '$' },
-              { label: 'Confirmed', key: 'confirmedPrice', prefix: '$' },
-            ].map(({ label: lbl, key, computed, prefix }) => (
-              <tr key={key} className="border-b border-gray-100 hover:bg-gray-50/60">
-                <td className="py-0 px-3">
-                  <span className="text-xs text-gray-700 py-1 block">{lbl}</span>
-                </td>
-                <td colSpan={2} className="border-l border-gray-100" />
-                <td className="border-l border-gray-100 text-right text-xs px-2 py-1 font-semibold text-gray-900">
-                  {computed ? (
-                    <span>{prefix}{fmt2(totals.difference)}</span>
-                  ) : (
-                    <NumCell value={d[key]} onChange={v => set(key, v)} disabled={!canEdit} />
-                  )}
-                </td>
-                <td className="border-l border-gray-100" />
-                <td className="w-6" />
-              </tr>
-            ))}
+            {bodyRows.map(r => <Fragment key={r.row}>{renderBodyRow(r)}</Fragment>)}
           </tbody>
         </table>
       </div>
@@ -678,8 +702,8 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
         <div className="p-3">
           <ImageUpload
             images={d.images || []}
-            onChange={images => {
-              setD(prev => ({ ...prev, images }));
+            onChange={fn => {
+              setD(prev => ({ ...prev, images: typeof fn === 'function' ? fn(prev.images || []) : fn }));
               setIsDirty(true);
             }}
             disabled={!canEdit}

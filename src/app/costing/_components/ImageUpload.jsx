@@ -1,15 +1,21 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 
 /**
- * ImageUpload — Drag & drop image upload for costing product photos.
+ * ImageUpload — Drag & drop or paste (Ctrl+V) image upload for costing product photos.
  * Images are stored as base64 in the costing document.
+ * onChange supports both direct arrays and functional updates.
  */
 export default function ImageUpload({ images = [], onChange, disabled }) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
+
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   const processFile = (file) => {
     if (!file || !file.type.startsWith('image/')) return;
@@ -24,7 +30,7 @@ export default function ImageUpload({ images = [], onChange, disabled }) {
         url: e.target.result,
         caption: file.name.replace(/\.[^.]+$/, ''),
       };
-      onChange?.([...images, newImage]);
+      onChangeRef.current?.((prev) => [...(prev || []), newImage]);
     };
     reader.readAsDataURL(file);
   };
@@ -52,14 +58,44 @@ export default function ImageUpload({ images = [], onChange, disabled }) {
   };
 
   const handleRemove = (idx) => {
-    const updated = images.filter((_, i) => i !== idx);
-    onChange?.(updated);
+    onChangeRef.current?.((prev) => (prev || []).filter((_, i) => i !== idx));
   };
 
   const handleCaptionChange = (idx, caption) => {
-    const updated = images.map((img, i) => i === idx ? { ...img, caption } : img);
-    onChange?.(updated);
+    onChangeRef.current?.((prev) => (prev || []).map((img, i) => i === idx ? { ...img, caption } : img));
   };
+
+  // Paste images from the clipboard (Ctrl+V / right-click → paste) anywhere
+  // while the costing form is editable.
+  useEffect(() => {
+    if (disabled) return;
+    const onPaste = (e) => {
+      const items = e.clipboardData?.items ? Array.from(e.clipboardData.items) : [];
+      const files = items
+        .filter(i => i.type.startsWith('image/'))
+        .map(i => i.getAsFile())
+        .filter(Boolean);
+      if (!files.length) return;
+      e.preventDefault();
+      files.forEach((file) => {
+        if (!file.type.startsWith('image/')) return;
+        if (file.size > 5 * 1024 * 1024) {
+          alert('Image must be under 5MB');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          onChangeRef.current?.((prev) => [
+            ...(prev || []),
+            { url: ev.target.result, caption: (file.name || 'Pasted image').replace(/\.[^.]+$/, '') },
+          ]);
+        };
+        reader.readAsDataURL(file);
+      });
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [disabled]);
 
   return (
     <div className="space-y-3">
@@ -80,7 +116,7 @@ export default function ImageUpload({ images = [], onChange, disabled }) {
         >
           <Upload size={20} className="mx-auto mb-1 text-gray-400" />
           <p className="text-[11px] text-gray-500">
-            Drag & drop product photos or <span className="text-blue-500 font-medium">browse</span>
+            Drag & drop product photos, paste (Ctrl+V) or <span className="text-blue-500 font-medium">browse</span>
           </p>
           <p className="text-[10px] text-gray-400 mt-0.5">PNG, JPG up to 5MB</p>
 
