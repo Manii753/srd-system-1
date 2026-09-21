@@ -62,9 +62,9 @@ const STATUS_META = {
 
 // ─── Shared row-number gutter ─────────────────────────────────────────────────
 
-function GutterCell({ row, className = '' }) {
+function GutterCell({ row, className = '', active = false }) {
   return (
-    <td className={`gutter-cell ${className}`}>
+    <td className={`gutter-cell ${active ? 'gutter-cell-active' : ''} ${className}`}>
       <span>{row?.row ?? ''}</span>
     </td>
   );
@@ -80,19 +80,26 @@ function GridNum({ coord, raw, resolved, err, active, disabled, onChange, onFocu
   else display = raw == null || raw === '' || raw === 0 || raw === '0' ? '' : String(raw);
 
   return (
-    <input
-      type="text"
-      inputMode="decimal"
-      value={display}
-      onChange={e => onChange(e.target.value)}
-      onFocus={() => onFocus(coord)}
-      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onEnter(coord); } }}
-      disabled={disabled}
-      data-cell={coord}
-      title={`Cell ${coord}`}
-      placeholder={placeholder}
-      className={`w-full h-full text-right text-xs bg-transparent outline-none transition-colors px-2 py-1 disabled:cursor-default ${active ? 'bg-blue-50 ring-1 ring-blue-400' : 'focus:bg-blue-50'} ${className}`}
-    />
+    <div className={`relative w-full h-full ${className}`}>
+      {active && (
+        <span className="absolute -top-2 right-1 z-10 px-1.5 py-px rounded font-mono text-[9px] font-bold text-white bg-blue-500 shadow pointer-events-none select-none">
+          {coord}
+        </span>
+      )}
+      <input
+        type="text"
+        inputMode="decimal"
+        value={display}
+        onChange={e => onChange(e.target.value)}
+        onFocus={() => onFocus(coord)}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onEnter(coord); } }}
+        disabled={disabled}
+        data-cell={coord}
+        title={`Cell ${coord}`}
+        placeholder={placeholder}
+        className={`w-full h-full text-right text-xs bg-transparent outline-none transition-colors px-2 py-1.5 disabled:cursor-default ${active ? 'bg-blue-50 ring-2 ring-blue-500' : 'focus:bg-blue-50'}`}
+      />
+    </div>
   );
 }
 
@@ -100,7 +107,12 @@ function GridNum({ coord, raw, resolved, err, active, disabled, onChange, onFocu
 
 function HeaderField({ label, value, onChange, disabled, type = 'text', coord, focused, onFocus, onEnter, children }) {
   return (
-    <div className="flex items-center gap-1.5 px-3 py-1.5">
+    <div className="relative flex items-center gap-1.5 px-3 py-2">
+      {focused && coord && (
+        <span className="absolute -top-2 left-2 z-10 px-1.5 py-px rounded font-mono text-[9px] font-bold text-white bg-blue-500 shadow pointer-events-none select-none">
+          {coord}
+        </span>
+      )}
       <span className="text-[10px] font-semibold text-gray-400 uppercase shrink-0">{label}</span>
       {children || (
         <input
@@ -112,7 +124,7 @@ function HeaderField({ label, value, onChange, disabled, type = 'text', coord, f
           title={coord ? `Cell ${coord}` : undefined}
           onFocus={coord ? () => onFocus(coord) : undefined}
           onKeyDown={coord && onEnter ? (e) => { if (e.key === 'Enter') { e.preventDefault(); onEnter(coord); } } : undefined}
-          className={`flex-1 text-xs bg-transparent outline-none text-gray-800 rounded px-0.5 min-w-0 ${focused ? 'bg-blue-50 ring-1 ring-blue-400' : 'focus:bg-gray-50'}`}
+          className={`flex-1 text-xs bg-transparent outline-none text-gray-800 rounded px-1.5 py-1 min-w-0 ${focused ? 'bg-blue-50 ring-2 ring-blue-500' : 'focus:bg-gray-50'}`}
         />
       )}
     </div>
@@ -195,6 +207,12 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
   const canEdit  = isAdmin && ['draft', 'rejected'].includes(status);
   const sm       = STATUS_META[status] || STATUS_META.draft;
   const StatusIcon = sm.Icon;
+
+  // Active cell (input focus or formula-bar target) — drives row/column highlight.
+  const focusCoord = focusedCell || selectedCell;
+  const activeRow  = focusCoord ? focusCoord.replace(/[A-Z]/g, '') : null;
+  const activeCol  = focusCoord ? focusCoord[0] : null;
+  const isActiveRow = (row) => String(row?.row) === activeRow;
 
   // ── Grid model + formula evaluation ──────────────────────────────────────────
   const machine  = useMemo(() => resolveCosting(d), [d]);
@@ -316,8 +334,8 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
 
   const renderHeadTitle = (r) => (
     <tr className="border-b border-gray-200 bg-gray-50">
-      <GutterCell row={r} />
-      <th colSpan={6} className="py-2 px-3 text-left text-xs font-semibold text-gray-700 tracking-wide">
+      <GutterCell row={r} active={isActiveRow(r)} />
+      <th colSpan={6} className="py-2 px-4 text-left text-xs font-semibold text-gray-700 tracking-wide">
         <div className="flex items-center justify-between">
           <span>
             {pocNumber
@@ -331,7 +349,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
             value={d.currency}
             onChange={e => set('currency', e.target.value)}
             disabled={!canEdit}
-            className="border border-gray-200 rounded px-1.5 py-0.5 text-xs text-gray-600 bg-white"
+            className="border border-gray-200 rounded px-2 py-1 text-xs text-gray-600 bg-white"
           >
             {['USD', 'EUR', 'GBP', 'INR', 'AUD', 'PKR'].map(c => (
               <option key={c} value={c}>{c}</option>
@@ -370,7 +388,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
 
   const renderHeadRow = (r) => (
     <tr className="border-b border-gray-200 bg-white">
-      <GutterCell row={r} />
+      <GutterCell row={r} active={isActiveRow(r)} />
       <td colSpan={6} className="p-0">
         <div className="grid grid-cols-3 divide-x divide-gray-100">
           {r.cells.map(renderHeadField)}
@@ -383,8 +401,8 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     const total = machine.sectionTotal(r.section);
     return (
       <tr className="bg-gray-50 border-y border-gray-200">
-        <GutterCell row={r} />
-        <td colSpan={6} className="py-1 px-3">
+        <GutterCell row={r} active={isActiveRow(r)} />
+        <td colSpan={6} className="py-1.5 px-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">{r.title}</span>
@@ -405,12 +423,12 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
 
   const renderSectionHeader = (r) => (
     <tr className="bg-gray-100/50 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
-      <GutterCell row={r} />
-      <th className="py-1 px-3 text-left">Description</th>
-      <th className="py-1 px-2 text-left border-l border-gray-200">{r.showCode ? 'Code' : ''}</th>
-      <th className="py-1 px-2 text-right border-l border-gray-200">Cons</th>
-      <th className="py-1 px-2 text-right border-l border-gray-200">Rate</th>
-      <th className="py-1 px-2 text-right border-l border-gray-200">Amount</th>
+      <GutterCell row={r} active={isActiveRow(r)} />
+      <th className={`py-1.5 px-3 text-left ${activeCol === 'A' ? 'bg-blue-50 text-blue-700' : ''}`}>Description</th>
+      <th className={`py-1.5 px-2 text-left border-l border-gray-200 ${r.showCode && activeCol === 'B' ? 'bg-blue-50 text-blue-700' : ''}`}>{r.showCode ? 'Code' : ''}</th>
+      <th className={`py-1.5 px-2 text-right border-l border-gray-200 ${activeCol === 'C' ? 'bg-blue-50 text-blue-700' : ''}`}>Cons</th>
+      <th className={`py-1.5 px-2 text-right border-l border-gray-200 ${activeCol === 'D' ? 'bg-blue-50 text-blue-700' : ''}`}>Rate</th>
+      <th className={`py-1.5 px-2 text-right border-l border-gray-200 ${activeCol === 'E' ? 'bg-blue-50 text-blue-700' : ''}`}>Amount</th>
       <th className="w-6" />
     </tr>
   );
@@ -427,9 +445,9 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
 
     return (
       <tr className="border-b border-gray-100 group hover:bg-gray-50/60">
-        <GutterCell row={r} />
+        <GutterCell row={r} active={isActiveRow(r)} />
         {/* Description */}
-        <td className="py-0 pl-6 pr-1 border-r border-gray-100">
+        <td className="py-0.5 pl-6 pr-1 border-r border-gray-100">
           {canEdit && !descLocked ? (
             <input
               value={row.description || ''}
@@ -440,10 +458,10 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
               data-cell={cDesc.coord}
               title={`Cell ${cDesc.coord}`}
               placeholder="Item name"
-              className="w-full text-xs bg-transparent outline-none transition-colors px-1 py-1 focus:bg-blue-50"
+              className="w-full text-xs bg-transparent outline-none transition-colors px-1.5 py-1.5 focus:bg-blue-50"
             />
           ) : (
-            <span className="text-xs text-gray-700 px-1 py-1 block">{row.description}</span>
+            <span className="text-xs text-gray-700 px-1.5 py-1.5 block">{row.description}</span>
           )}
         </td>
         {/* Code (fabrics only; other sections keep the column for alignment) */}
@@ -486,7 +504,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
           />
         </td>
         {/* Amount (read-only, auto) */}
-        <td className="text-right text-xs text-gray-800 px-2 py-1">
+        <td className="text-right text-xs text-gray-800 px-2 py-1.5">
           {amtErr ? <span className="text-red-500">#ERR!</span> : amt > 0 ? fmt2(amt) : <span className="text-gray-300">—</span>}
         </td>
         {/* Remove */}
@@ -506,8 +524,8 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
 
   const renderAddRow = (r) => (
     <tr className="border-b border-gray-100">
-      <GutterCell row={r} />
-      <td colSpan={6} className="py-0.5 pl-6">
+      <GutterCell row={r} active={isActiveRow(r)} />
+      <td colSpan={6} className="py-1 pl-6">
         {canEdit && (
           <button
             onClick={() => addRow(r.section)}
@@ -525,8 +543,8 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     const coord = numCell ? numCell.coord : null;
     return (
       <tr className="border-b border-gray-100 hover:bg-gray-50/60">
-        <GutterCell row={r} />
-        <td className="py-0 px-3">
+        <GutterCell row={r} active={isActiveRow(r)} />
+        <td className="py-1 px-3">
           <span className="text-xs text-gray-700 py-1 block">{r.label}</span>
         </td>
         <td colSpan={2} className="border-l border-gray-100" />
@@ -563,13 +581,13 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
       case 'addRow': return renderAddRow(r);
       case 'single': return renderSingle(r);
       case 'divider':
-        return <tr key={r.row}><GutterCell row={r} /><td colSpan={6} className="py-0 border-t-2 border-gray-200" /></tr>;
+        return <tr key={r.row}><GutterCell row={r} active={isActiveRow(r)} /><td colSpan={6} className="py-0 border-t-2 border-gray-200" /></tr>;
       case 'total':
         return (
           <tr key={r.row} className="bg-gray-900 text-white border-b border-gray-200">
             <GutterCell row={r} className="!bg-gray-900 !border-gray-800 text-gray-500" />
-            <td colSpan={3} className="py-2 px-3 text-xs font-bold uppercase tracking-wide">Total Price PKR</td>
-            <td className="text-right font-bold text-xs px-2 py-2">{fmt2(totals.totalPricePkr)}</td>
+            <td colSpan={3} className="py-2.5 px-3 text-xs font-bold uppercase tracking-wide">Total Price PKR</td>
+            <td className="text-right font-bold text-xs px-2 py-2.5">{fmt2(totals.totalPricePkr)}</td>
             <td colSpan={2} />
           </tr>
         );
@@ -577,8 +595,8 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
         const coord = cell(r)('A').coord;
         return (
           <tr key={r.row} className="border-b border-gray-200 bg-gray-50">
-            <GutterCell row={r} />
-            <td className="py-1 px-3 text-xs text-gray-600">
+            <GutterCell row={r} active={isActiveRow(r)} />
+            <td className="py-1.5 px-3 text-xs text-gray-600">
               <div className="flex items-center gap-2">
                 <span className="font-semibold uppercase">Currency Rate (PKR/USD)</span>
                 <GridNum
@@ -643,7 +661,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
       )}
 
       {/* ── Formula bar (Excel-style) ── */}
-      <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1.5 shadow-sm print:hidden">
+      <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm print:hidden">
         <span className="font-mono font-bold text-blue-700 text-xs min-w-[3.5rem] text-center border-r border-gray-200 pr-2">
           {selectedCell || '—'}
         </span>
@@ -663,7 +681,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
           }}
           disabled={!canEdit}
           placeholder="Type a value or formula — e.g. =SUM(C7:C12) or =C7*2"
-          className="flex-1 text-xs bg-transparent outline-none rounded px-1 py-0.5 min-w-0 focus:bg-blue-50"
+          className="flex-1 text-xs bg-transparent outline-none rounded px-1.5 py-1 min-w-0 focus:bg-blue-50"
         />
       </div>
 
@@ -673,13 +691,13 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
 
           {/* ── Column widths ── */}
           <colgroup>
-            <col style={{ width: 26 }} />
+            <col style={{ width: 34 }} />
             <col style={{ width: '35%' }} />
             <col style={{ width: '15%' }} />
             <col style={{ width: '12%' }} />
             <col style={{ width: '12%' }} />
             <col style={{ width: '16%' }} />
-            <col style={{ width: '24px' }} />
+            <col style={{ width: '26px' }} />
           </colgroup>
 
           {/* ── Table header ── */}

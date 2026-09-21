@@ -232,6 +232,29 @@
   }
 }
 
+/* ─── Costing sheet gutter (row numbers) ─────────────────────────────────── */
+.gutter-cell {
+  width: 34px;
+  min-width: 34px;
+  padding: 6px 4px;
+  text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1;
+  color: #9ca3af;
+  background-color: #fafafa;
+  border-right: 1px solid #e5e7eb;
+  vertical-align: middle;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.gutter-cell-active {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
 /* Splash Screen Animations */
 @keyframes float {
   0%, 100% {
