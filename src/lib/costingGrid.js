@@ -29,6 +29,19 @@ export const SECTIONS = [
 const mkField = (col, key, isSelect = false) => ({ col, kind: 'field', key, select: isSelect });
 const mkItem = (col, section, idx, field) => ({ col, kind: 'item', section, idx, field });
 const mkNum = (col, key) => ({ col, kind: 'num', key });
+const mkExtra = (col, section, idx, extraId) => ({ col, kind: 'extra', section, idx, extraId });
+
+// Excel-style column letters: 0->A … 25->Z, 26->AA … (extras start at 'G').
+const colLetter = (n) => {
+  let s = '';
+  n += 1;
+  while (n > 0) {
+    const m = (n - 1) % 26;
+    s = String.fromCharCode(65 + m) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+};
 
 // Build the ordered list of visible grid rows (single source of truth for the
 // row numbers shown in the gutter and used by cell references).
@@ -59,6 +72,7 @@ export function buildCostingRows(d = {}) {
   ]);
 
   // Costing sections
+  const extraCols = d.extraCols || [];
   for (const [key, title, showCode] of SECTIONS) {
     add('sectionTitle', [], { section: key, title });
     add('sectionHeader', [], { section: key, showCode });
@@ -68,6 +82,7 @@ export function buildCostingRows(d = {}) {
       cells.push(mkItem('C', key, idx, 'consumption'));
       cells.push(mkItem('D', key, idx, 'price'));
       cells.push(mkItem('E', key, idx, 'amount'));
+      extraCols.forEach((ec, i) => cells.push(mkExtra(colLetter(6 + i), key, idx, ec.id)));
       add('item', cells, { section: key, idx, showCode });
     });
     add('addRow', [], { section: key });
@@ -123,6 +138,7 @@ export function buildCostingRows(d = {}) {
  */
 export function resolveCosting(d = {}) {
   const rows = buildCostingRows(d);
+  const extraCols = rows[0].extraCols || [];
 
   const byCoord = new Map();       // "C7" -> cell descriptor
   const fieldCoord = new Map();    // `${section}:${idx}:${field}` -> "C7"
@@ -163,7 +179,7 @@ export function resolveCosting(d = {}) {
     const below = m[1] + (Number(m[2]) + 1);
     const c = byCoord.get(below);
     if (!c) return null;
-    const editable = c.kind === 'item' || c.kind === 'num' || (c.kind === 'field' && !c.select);
+    const editable = c.kind === 'item' || c.kind === 'num' || c.kind === 'extra' || (c.kind === 'field' && !c.select);
     return editable ? below : null;
   };
 
@@ -173,9 +189,16 @@ export function resolveCosting(d = {}) {
     if (c.kind === 'item') {
       const row = d[c.section]?.[c.idx];
       if (!row) return 0;
-      if (c.field === 'amount') return `=C${c.row}*D${c.row}`; // Amount is always Cons×Rate
+      if (c.field === 'amount') {
+        // Editable Amount: a manual value (number or formula) overrides the
+        // default Cons×Rate; an empty manual value falls back to the formula.
+        const manual = row.amountManual;
+        if (manual !== undefined && manual !== null && String(manual).trim() !== '') return manual;
+        return `=C${c.row}*D${c.row}`;
+      }
       return row[c.field] ?? 0;
     }
+    if (c.kind === 'extra') return d[c.section]?.[c.idx]?.extra?.[c.extraId] ?? '';
     if (c.kind === 'num') return d[c.key] ?? 0;
     if (c.kind === 'field') return d[c.key] ?? '';
     return 0;
@@ -223,6 +246,7 @@ export function resolveCosting(d = {}) {
   const sectionResolved = (section) =>
     (d[section] || []).map((row, idx) => ({
       ...row,
+      amount: valueAt(fieldCoord.get(`${section}:${idx}:amount`)),
       consumption: valueAt(fieldCoord.get(`${section}:${idx}:consumption`)),
       price: valueAt(fieldCoord.get(`${section}:${idx}:price`)),
     }));
@@ -230,7 +254,7 @@ export function resolveCosting(d = {}) {
   const scalar = (key) => valueAt(keyCoord.get(key));
 
   const sectionTotal = (section) =>
-    sectionResolved(section).reduce((s, r) => s + n(r.consumption) * n(r.price), 0);
+    sectionResolved(section).reduce((s, r) => s + n(r.amount ?? 0), 0);
 
   const itemCount = {};
   for (const sec of SECTIONS) {
@@ -266,6 +290,7 @@ export function resolveCosting(d = {}) {
     keyCoord,
     secRows,
     singleRowsByKey,
+    extraCols,
     nextEditableBelow,
     rawAt,
     valueAt,

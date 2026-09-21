@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo, Fragment } from 'react';
-import { Plus, Trash2, CheckCircle2, Clock, AlertCircle, Send, Printer } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Clock, AlertCircle, Send, Printer, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/lib/use-toast';
@@ -17,7 +17,7 @@ const fmt2 = (v) =>
   n(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function calcAll(d) {
-  const sumRows = (rows) => (rows || []).reduce((s, r) => s + n(r.consumption) * n(r.price), 0);
+  const sumRows = (rows) => (rows || []).reduce((s, r) => s + n(r.amount ?? r.consumption * r.price), 0);
   const totalFabrics = sumRows(d.fabrics);
   const totalBeforeWash = sumRows(d.beforeWashTrims);
   const totalAfterWash = sumRows(d.afterWashTrims);
@@ -148,10 +148,91 @@ function SelectField({ value, onChange, disabled, options }) {
   );
 }
 
+// ─── User-added dropdown column header (with rename / options / delete) ──────
+
+function ExtraColHeader({ col, canEdit, isCtrl, active, onRename, onSetOptions, onRemove }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(col?.name || '');
+  const [opts, setOpts] = useState((col?.options || []).join('\n'));
+
+  const apply = () => {
+    onRename(col.id, name.trim() || 'Column');
+    onSetOptions(col.id, opts.split('\n').map(s => s.trim()).filter(Boolean));
+    setOpen(false);
+  };
+
+  return (
+    <th className={`border-l border-gray-200 ${active ? 'bg-blue-50' : ''}`}>
+      <div className="relative flex items-center justify-between gap-1 px-2 py-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 truncate" title={col?.name}>
+          {col?.name || 'Column'}
+        </span>
+        {isCtrl && canEdit && (
+          <button
+            onClick={() => { setOpen(o => !o); setName(col?.name || ''); setOpts((col?.options || []).join('\n')); }}
+            className={`shrink-0 ${open ? 'text-blue-500' : 'text-gray-400 hover:text-blue-500'}`}
+            title="Column settings (name, options, delete)"
+          >
+            <Settings2 size={10} />
+          </button>
+        )}
+        {open && (
+          <div className="absolute left-0 top-full z-30 mt-1 w-60 rounded-lg border border-gray-200 bg-white shadow-lg p-3 space-y-2 print:hidden">
+            <div>
+              <div className="text-[9px] font-semibold text-gray-400 uppercase mb-0.5">Column name</div>
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                className="w-full text-xs border border-gray-200 rounded px-2 py-1 outline-none focus:border-blue-400"
+              />
+            </div>
+            <div>
+              <div className="text-[9px] font-semibold text-gray-400 uppercase mb-0.5">Dropdown options (one per line)</div>
+              <textarea
+                value={opts}
+                onChange={e => setOpts(e.target.value)}
+                rows={4}
+                placeholder={'ECRU\nBLUE RIGID\nRED'}
+                className="w-full text-xs border border-gray-200 rounded px-2 py-1 outline-none focus:border-blue-400 resize-none"
+              />
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <button
+                onClick={() => { onRemove(col.id); setOpen(false); }}
+                className="flex items-center gap-1 text-[10px] text-red-500 hover:text-red-700"
+              >
+                <Trash2 size={10} /> Delete column
+              </button>
+              <button
+                onClick={apply}
+                className="text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded px-2.5 py-1"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </th>
+  );
+}
+
 const HEADER_LABELS = {
   date: 'Date', brand: 'Brand', fitSpecsCode: 'Fit Code',
   fit: 'Fit', description: 'Description', fabricType: 'Fabric Type',
   embellishmentYesNo: 'Embellishment', costingBase: 'Costing Base', sampleSize: 'Sample Size',
+};
+
+// Column letter for a user-added dropdown column (same scheme as costingGrid).
+const extraColLetter = (i) => {
+  let n = 6 + i + 1;
+  let s = '';
+  while (n > 0) {
+    const m = (n - 1) % 26;
+    s = String.fromCharCode(65 + m) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
 };
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -186,6 +267,8 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     firstQuoted: 0, targetPrice: 0, difference: 0, secondQuote: 0, confirmedPrice: 0,
     // Images
     images: [],
+    // User-added dropdown columns (see extraCols schema)
+    extraCols: [],
     // Workflow
     notes: '', status: 'draft',
     ...costData,
@@ -218,6 +301,11 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
   const machine  = useMemo(() => resolveCosting(d), [d]);
   const totals   = useMemo(() => calcAll(machine.resolvedData), [machine]);
 
+  // User-added dropdown columns
+  const extraCols = machine.extraCols || [];
+  const nExtra    = extraCols.length;
+  const SPAN      = 6 + nExtra; // base columns A..F plus the extra columns
+
   // ── Updaters ─────────────────────────────────────────────────────────────────
 
   const set = useCallback((key, val) => {
@@ -242,7 +330,8 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
   const addRow = useCallback((section) => {
     setD(prev => ({
       ...prev,
-      [section]: [...(prev[section] || []), { description: '', code: '', consumption: 0, price: 0, amount: 0 }],
+      [section]: [...(prev[section] || []),
+        { description: '', code: '', consumption: 0, price: 0, amount: 0, amountManual: '', extra: {} }],
     }));
     setIsDirty(true);
   }, []);
@@ -258,6 +347,39 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     updateRow(section, idx, { ...row, [field]: value });
   }, [d, updateRow]);
 
+  // ── User-added dropdown columns ─────────────────────────────────────────────
+
+  const handleAddExtraCol = useCallback(() => {
+    set('extraCols', [...(d.extraCols || []), {
+      id: `dc_${Date.now().toString(36)}_${(d.extraCols || []).length}`,
+      name: `Column ${(d.extraCols || []).length + 1}`,
+      options: [],
+    }]);
+  }, [d.extraCols, set]);
+
+  const mutateExtraCol = useCallback((id, patch) => {
+    setD(prev => ({
+      ...prev,
+      extraCols: (prev.extraCols || []).map(c => c.id === id ? { ...c, ...patch } : c),
+    }));
+    setIsDirty(true);
+  }, []);
+
+  const handleRemoveExtraCol = useCallback((id) => {
+    setD(prev => ({
+      ...prev,
+      extraCols: (prev.extraCols || []).filter(c => c.id !== id),
+    }));
+    setIsDirty(true);
+  }, []);
+
+  const setRowExtra = useCallback((section, idx, extraId, value) => {
+    const row = d[section]?.[idx];
+    if (!row) return;
+    const nextExtra = { ...(row.extra || {}), [extraId]: value };
+    updateRow(section, idx, { ...row, extra: nextExtra });
+  }, [d, updateRow]);
+
   // Update any cell from its Excel coordinate (used by the formula bar).
   const updateCellByCoord = useCallback((coord, value) => {
     if (!coord || !canEdit) return;
@@ -266,11 +388,17 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     if (def.kind === 'item') {
       const row = d[def.section]?.[def.idx];
       if (!row) return;
+      if (def.field === 'amount') {
+        updateRow(def.section, def.idx, { ...row, amountManual: value });
+        return;
+      }
       updateRow(def.section, def.idx, { ...row, [def.field]: value });
+    } else if (def.kind === 'extra') {
+      setRowExtra(def.section, def.idx, def.extraId, value);
     } else if (def.kind === 'num' || def.kind === 'field') {
       set(def.key, value);
     }
-  }, [machine, canEdit, d, updateRow, set]);
+  }, [machine, canEdit, d, updateRow, set, setRowExtra]);
 
   // Enter key: move to the field directly below; if we are on the last field of a
   // costed section, add a new row there and jump into it (spreadsheet-style).
@@ -335,7 +463,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
   const renderHeadTitle = (r) => (
     <tr className="border-b border-gray-200 bg-gray-50">
       <GutterCell row={r} active={isActiveRow(r)} />
-      <th colSpan={6} className="py-2 px-4 text-left text-xs font-semibold text-gray-700 tracking-wide">
+      <th colSpan={SPAN} className="py-2 px-4 text-left text-xs font-semibold text-gray-700 tracking-wide">
         <div className="flex items-center justify-between">
           <span>
             {pocNumber
@@ -389,7 +517,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
   const renderHeadRow = (r) => (
     <tr className="border-b border-gray-200 bg-white">
       <GutterCell row={r} active={isActiveRow(r)} />
-      <td colSpan={6} className="p-0">
+      <td colSpan={SPAN} className="p-0">
         <div className="grid grid-cols-3 divide-x divide-gray-100">
           {r.cells.map(renderHeadField)}
         </div>
@@ -402,7 +530,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     return (
       <tr className="bg-gray-50 border-y border-gray-200">
         <GutterCell row={r} active={isActiveRow(r)} />
-        <td colSpan={6} className="py-1.5 px-3">
+        <td colSpan={SPAN} className="py-1.5 px-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">{r.title}</span>
@@ -429,6 +557,29 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
       <th className={`py-1.5 px-2 text-right border-l border-gray-200 ${activeCol === 'C' ? 'bg-blue-50 text-blue-700' : ''}`}>Cons</th>
       <th className={`py-1.5 px-2 text-right border-l border-gray-200 ${activeCol === 'D' ? 'bg-blue-50 text-blue-700' : ''}`}>Rate</th>
       <th className={`py-1.5 px-2 text-right border-l border-gray-200 ${activeCol === 'E' ? 'bg-blue-50 text-blue-700' : ''}`}>Amount</th>
+      {extraCols.map((ec, i) => (
+        <ExtraColHeader
+          key={ec.id}
+          col={ec}
+          canEdit={canEdit}
+          isCtrl={r.section === 'fabrics'}
+          active={activeCol === extraColLetter(i)}
+          onRename={(id, name) => mutateExtraCol(id, { name })}
+          onSetOptions={(id, options) => mutateExtraCol(id, { options })}
+          onRemove={handleRemoveExtraCol}
+        />
+      ))}
+      {r.section === 'fabrics' && canEdit && (
+        <th className="w-14 border-l border-gray-200 print:hidden">
+          <button
+            onClick={handleAddExtraCol}
+            className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 hover:text-blue-500 transition-colors px-1 py-1.5"
+            title="Add a dropdown column"
+          >
+            <Plus size={10} /> Col
+          </button>
+        </th>
+      )}
       <th className="w-6" />
     </tr>
   );
@@ -442,6 +593,9 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     const descLocked = fromSrd;
     const amt = machine.valueAt(cAmt.coord);
     const amtErr = machine.isErr(cAmt.coord);
+    const amtRaw = (row.amountManual !== undefined && String(row.amountManual ?? '').trim() !== '')
+      ? row.amountManual
+      : `=C${r.row}*D${r.row}`;
 
     return (
       <tr className="border-b border-gray-100 group hover:bg-gray-50/60">
@@ -503,10 +657,39 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
             onEnter={handleCellEnter}
           />
         </td>
-        {/* Amount (read-only, auto) */}
-        <td className="text-right text-xs text-gray-800 px-2 py-1.5">
-          {amtErr ? <span className="text-red-500">#ERR!</span> : amt > 0 ? fmt2(amt) : <span className="text-gray-300">—</span>}
+        {/* Amount (auto Cons×Rate, or editable manual value / formula) */}
+        <td className="border-r border-gray-100">
+          <GridNum
+            coord={cAmt.coord}
+            raw={amtRaw}
+            resolved={amt}
+            err={amtErr}
+            active={focusedCell === cAmt.coord}
+            disabled={!canEdit}
+            onChange={v => onChangeRowField(r.section, r.idx, 'amountManual', v)}
+            onFocus={focusCell}
+            onEnter={handleCellEnter}
+          />
         </td>
+        {/* User-added dropdown columns */}
+        {extraCols.map((ec, i) => (
+          <td key={ec.id} className="border-r border-gray-100">
+            <select
+              value={row.extra?.[ec.id] ?? ''}
+              onChange={e => setRowExtra(r.section, r.idx, ec.id, e.target.value)}
+              onFocus={() => focusCell(extraColLetter(i) + r.row)}
+              data-cell={`${extraColLetter(i)}${r.row}`}
+              disabled={!canEdit}
+              title={`Cell ${extraColLetter(i)}${r.row}`}
+              className={`w-full text-xs bg-transparent outline-none px-1 py-1.5 ${row.extra?.[ec.id] ? 'text-gray-800' : 'text-gray-400'} focus:bg-blue-50`}
+            >
+              <option value="">—</option>
+              {(ec.options || []).map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </td>
+        ))}
         {/* Remove */}
         <td className="w-6 pr-1">
           {canEdit && !descLocked && (
@@ -525,7 +708,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
   const renderAddRow = (r) => (
     <tr className="border-b border-gray-100">
       <GutterCell row={r} active={isActiveRow(r)} />
-      <td colSpan={6} className="py-1 pl-6">
+      <td colSpan={SPAN} className="py-1 pl-6">
         {canEdit && (
           <button
             onClick={() => addRow(r.section)}
@@ -568,6 +751,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
           )}
         </td>
         <td className="border-l border-gray-100" />
+        {extraCols.map(ec => <td key={ec.id} className="border-l border-gray-100" />)}
         <td className="w-6" />
       </tr>
     );
@@ -581,14 +765,15 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
       case 'addRow': return renderAddRow(r);
       case 'single': return renderSingle(r);
       case 'divider':
-        return <tr key={r.row}><GutterCell row={r} active={isActiveRow(r)} /><td colSpan={6} className="py-0 border-t-2 border-gray-200" /></tr>;
+        return <tr key={r.row}><GutterCell row={r} active={isActiveRow(r)} /><td colSpan={SPAN} className="py-0 border-t-2 border-gray-200" /></tr>;
       case 'total':
         return (
           <tr key={r.row} className="bg-gray-900 text-white border-b border-gray-200">
             <GutterCell row={r} className="!bg-gray-900 !border-gray-800 text-gray-500" />
             <td colSpan={3} className="py-2.5 px-3 text-xs font-bold uppercase tracking-wide">Total Price PKR</td>
             <td className="text-right font-bold text-xs px-2 py-2.5">{fmt2(totals.totalPricePkr)}</td>
-            <td colSpan={2} />
+            <td colSpan={1 + nExtra} />
+            <td className="w-6" />
           </tr>
         );
       case 'currencyRate': {
@@ -620,6 +805,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
             <td className="text-right text-xs font-bold text-gray-900 px-2 py-1">
               ${fmt2(totals.finalFobUs)}
             </td>
+            {extraCols.map(ec => <td key={ec.id} className="border-l border-gray-200" />)}
             <td className="w-6" />
           </tr>
         );
@@ -697,6 +883,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
             <col style={{ width: '12%' }} />
             <col style={{ width: '12%' }} />
             <col style={{ width: '16%' }} />
+            {extraCols.map(ec => <col key={ec.id} style={{ width: 120 }} />)}
             <col style={{ width: '26px' }} />
           </colgroup>
 

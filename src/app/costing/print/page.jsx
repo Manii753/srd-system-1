@@ -22,8 +22,23 @@ const fmtAmt = (v) => {
 
 const fmtUsd = (v) => n(v).toFixed(2);
 
-function rowAmt(row) { return n(row.consumption) * n(row.price); }
+function rowAmt(row) { return n(row.amount ?? row.consumption * row.price); }
 function secSum(rows) { return (rows || []).reduce((s, r) => s + rowAmt(r), 0); }
+
+// helper: count of user-added dropdown columns
+const nEC = (EC) => (EC || []).length;
+
+// Right-side content cells for user-added dropdown columns (item rows)
+const ExtraVal = ({ EC, r }) => (EC || []).map((c, i) => (
+  <td key={c.id} style={td({ textAlign: 'center', ...(i === EC.length - 1 ? { borderRight: BO } : {}) })}>
+    {r?.extra?.[c.id] || ''}
+  </td>
+));
+
+// Empty spacer cells so specialised rows keep their borders when extras exist
+const ExtraSpacer = ({ EC }) => (EC || []).map((_c, i) => (
+  <td key={`x${i}`} style={td({ ...(i === EC.length - 1 ? { borderRight: BO } : {}) })} />
+));
 
 function calcAll(d) {
   const tFab  = secSum(d.fabrics);
@@ -62,49 +77,56 @@ const tdR = (extra = {}) => td({ textAlign: 'right', ...extra }); // right-align
 
 // ─── reusable row renderers ───────────────────────────────────────────────────
 
-// Section label row (colored bold text, spans all 5 cols)
-const SecRow = ({ label, color }) => (
+// Section label row (colored bold text, spans all columns)
+const SecRow = ({ label, color, EC }) => (
   <tr>
-    <td colSpan={5} style={tdB({ color, borderTop: BO, borderBottom: B, borderLeft: BO, borderRight: BO })}>
+    <td colSpan={5 + nEC(EC)} style={tdB({ color, borderTop: BO, borderBottom: B, borderLeft: BO, borderRight: BO })}>
       {label}
     </td>
   </tr>
 );
 
-// Col-header row for fabrics (5 cols with Code)
-const FabHdr = () => (
+// Col-header row for fabrics (with Code + user dropdown columns)
+const FabHdr = ({ EC }) => (
   <tr style={{ background: '#f5f5f5' }}>
     <td style={tdB({ width: '30%', borderLeft: BO })}>Description</td>
     <td style={tdB({ width: '14%' })}>Code</td>
     <td style={tdB({ width: '14%', textAlign: 'right' })}>Consumption</td>
     <td style={tdB({ width: '14%', textAlign: 'right' })}>Rate</td>
-    <td style={tdB({ width: '14%', textAlign: 'right', borderRight: BO })}>Amount</td>
+    <td style={tdB({ width: '14%', textAlign: 'right', ...(nEC(EC) ? {} : { borderRight: BO }) })}>Amount</td>
+    {(EC || []).map((c, i) => (
+      <td key={c.id} style={tdB({ textAlign: 'center', ...(i === EC.length - 1 ? { borderRight: BO } : {}) })}>
+        {c.name}
+      </td>
+    ))}
   </tr>
 );
 
 // Fabric data row
-const FabRow = ({ r }) => (
+const FabRow = ({ r, EC }) => (
   <tr>
     <td style={td({ borderLeft: BO })}>{r.description}</td>
     <td style={td()}>{r.code || ''}</td>
     <td style={tdR()}>{fmtN(r.consumption)}</td>
     <td style={tdR()}>{fmtN(r.price)}</td>
-    <td style={tdR({ borderRight: BO })}>{fmtAmt(rowAmt(r))}</td>
+    <td style={tdR({ ...(nEC(EC) ? {} : { borderRight: BO }) })}>{fmtAmt(rowAmt(r))}</td>
+    <ExtraVal EC={EC} r={r} />
   </tr>
 );
 
 // Trim/embellishment data row (Description spans 2 cols)
-const TrimRow = ({ r }) => (
+const TrimRow = ({ r, EC }) => (
   <tr>
     <td colSpan={2} style={td({ borderLeft: BO })}>{r.description}</td>
     <td style={tdR()}>{fmtN(r.consumption)}</td>
     <td style={tdR()}>{fmtN(r.price)}</td>
-    <td style={tdR({ borderRight: BO })}>{fmtAmt(rowAmt(r))}</td>
+    <td style={tdR({ ...(nEC(EC) ? {} : { borderRight: BO }) })}>{fmtAmt(rowAmt(r))}</td>
+    <ExtraVal EC={EC} r={r} />
   </tr>
 );
 
 // Generic 2-col row: label (spans 4) + right-aligned value
-const Row2 = ({ label, value, bold, indent }) => (
+const Row2 = ({ label, value, bold, indent, EC }) => (
   <tr>
     <td colSpan={4} style={td({
       borderLeft: BO,
@@ -114,27 +136,30 @@ const Row2 = ({ label, value, bold, indent }) => (
       {label}
     </td>
     <td style={tdR({ borderRight: BO, fontWeight: bold ? 700 : 400 })}>{value}</td>
+    <ExtraSpacer EC={EC} />
   </tr>
 );
 
 // Production row: label (spans 2) + level (1 col) + empty + amount
-const ProdRow = ({ label, level, amount }) => (
+const ProdRow = ({ label, level, amount, EC }) => (
   <tr>
     <td colSpan={2} style={td({ borderLeft: BO })}>{label}</td>
     <td style={td({ textAlign: 'center' })}>{level != null && level !== 0 ? level : ''}</td>
     <td style={td()}></td>
     <td style={tdR({ borderRight: BO })}>{fmtAmt(amount)}</td>
+    <ExtraSpacer EC={EC} />
   </tr>
 );
 
 // Quote row: label (spans 3) + dollar sign + amount value
-const QuoteRow = ({ label, dollarColor, amountColor, amount, bg, labelBold }) => (
+const QuoteRow = ({ label, dollarColor, amountColor, amount, bg, labelBold, EC }) => (
   <tr style={bg ? { background: bg } : {}}>
     <td colSpan={3} style={tdB({ borderLeft: BO, fontWeight: labelBold ? 700 : 400 })}>{label}</td>
     <td style={td({ textAlign: 'right', color: dollarColor || '#000', fontWeight: 700 })}>$</td>
     <td style={tdR({ borderRight: BO, color: amountColor || '#000', fontWeight: 700 })}>
       {amount ? fmtUsd(amount) : ''}
     </td>
+    <ExtraSpacer EC={EC} />
   </tr>
 );
 
@@ -152,8 +177,8 @@ function PrintContent() {
   const [error,     setError]     = useState(null);
 
   useEffect(() => {
-    if (!srdId) { setError('No costing ID provided.'); setLoading(false); return; }
     (async () => {
+      if (!srdId) { setError('No costing ID provided.'); setLoading(false); return; }
       try {
         const res  = await fetch(`/api/costing/${srdId}`);
         const json = await res.json();
@@ -181,6 +206,7 @@ function PrintContent() {
   // Resolve any formula cells (=C7*2, =SUM(...), ...) to plain numbers for printing.
   const data = { ...d, ...resolveCosting(d).resolvedData };
   const T = calcAll(data);
+  const EC = data.extraCols || [];
 
   return (
     <div style={{
@@ -244,8 +270,8 @@ function PrintContent() {
       </table>
 
       {/* ════════════════════════════════════════
-          MASTER TABLE  (5 columns throughout)
-          Col widths: Description | Code | Consumption | Rate | Amount
+          MASTER TABLE  (5 base columns + any user dropdown columns)
+          Col widths: Description | Code | Consumption | Rate | Amount | <extras>
           ════════════════════════════════════════ */}
       <table style={{ border: BO }}>
         <colgroup>
@@ -254,25 +280,26 @@ function PrintContent() {
           <col style={{ width: '16%' }} />
           <col style={{ width: '16%' }} />
           <col style={{ width: '16%' }} />
+          {EC.map(c => <col key={c.id} style={{ width: '12%' }} />)}
         </colgroup>
         <tbody>
 
           {/* ── FABRICS ─────────────────────────────── */}
-          <SecRow label="Fabrics" color="#c00" />
-          <FabHdr />
-          {(data.fabrics || []).map((r, i) => <FabRow key={i} r={r} />)}
+          <SecRow label="Fabrics" color="#c00" EC={EC} />
+          <FabHdr EC={EC} />
+          {(data.fabrics || []).map((r, i) => <FabRow key={i} r={r} EC={EC} />)}
 
           {/* ── BEFORE WASH TRIMS ───────────────────── */}
-          <SecRow label="Before Wash Trims" color="#007000" />
-          {(data.beforeWashTrims || []).map((r, i) => <TrimRow key={i} r={r} />)}
+          <SecRow label="Before Wash Trims" color="#007000" EC={EC} />
+          {(data.beforeWashTrims || []).map((r, i) => <TrimRow key={i} r={r} EC={EC} />)}
 
           {/* ── AFTER WASH TRIMS ────────────────────── */}
-          <SecRow label="After Wash Trims" color="#c00" />
-          {(data.afterWashTrims || []).map((r, i) => <TrimRow key={i} r={r} />)}
+          <SecRow label="After Wash Trims" color="#c00" EC={EC} />
+          {(data.afterWashTrims || []).map((r, i) => <TrimRow key={i} r={r} EC={EC} />)}
 
           {/* ── EMBELLISHMENT ───────────────────────── */}
-          <SecRow label="Embellishment" color="#c07000" />
-          {(data.embellishment || []).map((r, i) => <TrimRow key={i} r={r} />)}
+          <SecRow label="Embellishment" color="#c07000" EC={EC} />
+          {(data.embellishment || []).map((r, i) => <TrimRow key={i} r={r} EC={EC} />)}
 
           {/* ── PRODUCTION COST ─────────────────────── */}
           {/* Header row for this section: label + "LEVEL" header in col 3 */}
@@ -281,15 +308,17 @@ function PrintContent() {
             <td style={tdB({ textAlign: 'center', borderTop: BO })}>LEVEL</td>
             <td style={td({ borderTop: BO })}></td>
             <td style={td({ borderTop: BO, borderRight: BO })}></td>
+            <ExtraSpacer EC={EC} />
           </tr>
-          <ProdRow label="Cmt (Codes Req Level 1 2 3)"     level={n(data.cmtLevel) || ''}     amount={data.cmtLevel} />
-          <ProdRow label="Washing (Codes Req Level 1 2 3)" level={n(data.washingLevel) || ''} amount={data.washingLevel} />
-          <ProdRow label="Fob"                              level=""                        amount={data.fob} />
+          <ProdRow label="Cmt (Codes Req Level 1 2 3)"     level={n(data.cmtLevel) || ''}     amount={data.cmtLevel} EC={EC} />
+          <ProdRow label="Washing (Codes Req Level 1 2 3)" level={n(data.washingLevel) || ''} amount={data.washingLevel} EC={EC} />
+          <ProdRow label="Fob"                              level=""                        amount={data.fob} EC={EC} />
 
           {/* ── FREIGHT ─────────────────────────────── */}
           <tr>
             <td colSpan={4} style={td({ borderLeft: BO, borderTop: BO })}>Freight</td>
             <td style={tdR({ borderTop: BO, borderRight: BO })}>{fmtAmt(data.freight)}</td>
+            <ExtraSpacer EC={EC} />
           </tr>
 
           {/* ── MARGIN & COMMISSION ─────────────────── */}
@@ -299,6 +328,7 @@ function PrintContent() {
             <td style={tdB({ textAlign: 'center', borderTop: BO })}>Percentage %</td>
             <td style={td({ borderTop: BO })}></td>
             <td style={td({ borderTop: BO, borderRight: BO })}></td>
+            <ExtraSpacer EC={EC} />
           </tr>
           {/* Percentage % row — value in col 3, computed amount in col 5 */}
           <tr>
@@ -311,16 +341,17 @@ function PrintContent() {
                 secSum(data.afterWashTrims) + secSum(data.embellishment) +
                 n(data.freight)) * (n(data.marginPct) / 100))}
             </td>
+            <ExtraSpacer EC={EC} />
           </tr>
-          <Row2 label="Extra Cut"       value={fmtAmt(data.extraCut)} />
-          <Row2 label="Ld Margin"       value={fmtAmt(data.ldMargin)} />
+          <Row2 label="Extra Cut"       value={fmtAmt(data.extraCut)} EC={EC} />
+          <Row2 label="Ld Margin"       value={fmtAmt(data.ldMargin)} EC={EC} />
           {/* blank spacer row */}
-          <tr><td colSpan={4} style={td({ borderLeft: BO, padding: '1px 3px' })}></td><td style={td({ borderRight: BO })}></td></tr>
-          <Row2 label="Testing Charges" value={fmtAmt(data.testingCharges)} />
-          <Row2 label="Commission"      value={fmtAmt(data.commission)} />
+          <tr><td colSpan={4} style={td({ borderLeft: BO, padding: '1px 3px' })}></td><td style={td({ borderRight: BO })}></td><ExtraSpacer EC={EC} /></tr>
+          <Row2 label="Testing Charges" value={fmtAmt(data.testingCharges)} EC={EC} />
+          <Row2 label="Commission"      value={fmtAmt(data.commission)} EC={EC} />
 
           {/* ── SUMMARY ─────────────────────────────── */}
-          <Row2 label="Total Price PKR" value={Math.round(T.totalPkr)} bold />
+          <Row2 label="Total Price PKR" value={Math.round(T.totalPkr)} bold EC={EC} />
 
           {/* Currency row: label | value | USD/Euro label | rate | empty */}
           <tr>
@@ -329,9 +360,10 @@ function PrintContent() {
             <td style={td()}>USD/ Euro</td>
             <td style={tdR()}>{n(data.currencyRate) || 265}</td>
             <td style={td({ borderRight: BO })}></td>
+            <ExtraSpacer EC={EC} />
           </tr>
 
-          <Row2 label="Final Fob Us$" value={`$${fmtUsd(T.finalFob)}`} bold />
+          <Row2 label="Final Fob Us$" value={`$${fmtUsd(T.finalFob)}`} bold EC={EC} />
 
           {/* ── QUOTE TRACKING ──────────────────────── */}
           {/* First Quoted — green bg */}
@@ -342,6 +374,7 @@ function PrintContent() {
             dollarColor="#000"
             amountColor="#000"
             amount={data.firstQuoted}
+            EC={EC}
           />
           {/* Target $ — white */}
           <QuoteRow
@@ -349,6 +382,7 @@ function PrintContent() {
             dollarColor="#5b9bd5"
             amountColor="#5b9bd5"
             amount={data.targetPrice}
+            EC={EC}
           />
           {/* Difference — white */}
           <QuoteRow
@@ -356,6 +390,7 @@ function PrintContent() {
             dollarColor="#5b9bd5"
             amountColor="#5b9bd5"
             amount={T.diff}
+            EC={EC}
           />
           {/* 2nd Quote — yellow bg */}
           <QuoteRow
@@ -365,6 +400,7 @@ function PrintContent() {
             dollarColor="#f97316"
             amountColor="#f97316"
             amount={data.secondQuote}
+            EC={EC}
           />
           {/* Confirmed — green bg */}
           <QuoteRow
@@ -374,6 +410,7 @@ function PrintContent() {
             dollarColor="#f97316"
             amountColor="#f97316"
             amount={data.confirmedPrice}
+            EC={EC}
           />
 
         </tbody>

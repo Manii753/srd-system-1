@@ -344,10 +344,7 @@ function recalc(side) {
   const { resolvedData } = resolveCosting(side);
 
   const sumRows = (rows) =>
-    (rows || []).reduce((s, r) => {
-      r.amount = (Number(r.consumption) || 0) * (Number(r.price) || 0);
-      return s + r.amount;
-    }, 0);
+    (rows || []).reduce((s, r) => s + (Number(r.amount) || 0), 0);
 
   const totalFabrics = sumRows(resolvedData.fabrics);
   const totalBeforeWash = sumRows(resolvedData.beforeWashTrims);
@@ -366,11 +363,12 @@ function recalc(side) {
   side.finalFobUs = totalWithExtra / currencyRate;
   side.difference = Number(resolvedData.firstQuoted || 0) - Number(resolvedData.targetPrice || 0);
 
-  // Persist per-row amounts as resolved numbers too (consumption/price may be formulas)
+  // Persist per-row amounts as resolved numbers too (respects any manual
+  // Amount override typed by the user; consumption/price may be formulas).
   ['fabrics', 'beforeWashTrims', 'afterWashTrims', 'embellishment'].forEach((sec) => {
     const list = side[sec] || [];
     resolvedData[sec]?.forEach((r, i) => {
-      if (list[i]) list[i].amount = (Number(r.consumption) || 0) * (Number(r.price) || 0);
+      if (list[i]) list[i].amount = Number(r.amount) || 0;
     });
   });
 
@@ -500,6 +498,8 @@ export async function PATCH(request, { params }) {
         'marginPct', 'extraCut', 'ldMargin', 'testingCharges', 'commission',
         // Summary
         'totalPricePkr', 'finalFobUs', 'currencyRate',
+        // User-added dropdown columns
+        'extraCols',
         // Quote tracking
         'firstQuoted', 'targetPrice', 'difference', 'secondQuote', 'confirmedPrice',
         // Images

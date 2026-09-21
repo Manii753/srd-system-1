@@ -10,6 +10,10 @@ const costRowSchema = new mongoose.Schema({
   consumption:  { type: mongoose.Schema.Types.Mixed, default: 0 },  // CONSUMP column
   price:        { type: mongoose.Schema.Types.Mixed, default: 0 },  // PRICE column
   amount:       { type: Number, default: 0 },  // AMOUNT = consumption * price (auto)
+  // User-typed Amount override (number or formula). Empty => auto = Cons*Rate.
+  amountManual: { type: mongoose.Schema.Types.Mixed, default: '' },
+  // Values for user-added dropdown columns: { <extraColId>: <value> }
+  extra:        { type: mongoose.Schema.Types.Mixed, default: {} },
 }, { _id: false });
 
 const imageSchema = new mongoose.Schema({
@@ -19,6 +23,11 @@ const imageSchema = new mongoose.Schema({
 
 const costingDataSchema = new mongoose.Schema({
   currency: { type: String, default: 'USD' },
+
+  // ── User-added dropdown columns ─────────────────────────────
+  // [{ id, name, options: [...] }] rendered as <select> cells in every
+  // costed section, like the fabrics "Code" column.
+  extraCols: { type: mongoose.Schema.Types.Mixed, default: [] },
 
   // ── Header info ──────────────────────────────────────────────────
   date:             { type: String, default: '' },
