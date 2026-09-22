@@ -523,7 +523,7 @@ export default function SampleProcessPage() {
                       <th className="px-4 py-3 text-left text-xs font-bold text-nowrap text-gray-500 uppercase tracking-wider border-b border-black/10 w-44">Current Status</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white">
+                  <tbody className="bg-white text-app-text">
                     {visibleRows.map((item, i) => {
                       // ── group header row ──────────────────────────────
                       if (item.type === 'header') {
@@ -561,27 +561,27 @@ export default function SampleProcessPage() {
                       return (
                         <tr key={`${srd._id}-${slug}`} className={`hover:bg-blue-50 transition-colors ${blinkingKey === `${srd._id}-${slug}` ? 'animate-pulse bg-yellow-50' : ''}`}>
                           {/* Date */}
-                          <td className="px-4 py-2 border-b border-black/10 text-sm text-gray-700 whitespace-nowrap">
+                          <td className="px-4 py-2 border-b border-black/10 text-gray-700 whitespace-nowrap">
                             {fmtDate(srd.createdAt)}
                           </td>
 
                           {/* Inquiry # */}
-                          <td className="px-4 py-2 border-b border-black/10 text-sm text-gray-700 whitespace-nowrap">
+                          <td className="px-4 py-2 border-b border-black/10 text-gray-700 whitespace-nowrap">
                             {srd.refNo}
                           </td>
 
                           {/* Brand */}
-                          <td className="px-4 py-2 border-b border-black/10 text-sm text-gray-700 whitespace-nowrap">
+                          <td className="px-4 py-2 border-b border-black/10 text-gray-700 whitespace-nowrap">
                             {getBrand(srd) || <span className="text-gray-300">—</span>}
                           </td>
 
                           {/* Description */}
-                          <td className="px-4 py-2 border-b border-black/10 text-sm text-gray-700 max-w-xs">
+                          <td className="px-4 py-2 border-b border-black/10 text-gray-700 max-w-xs">
                             <span className="line-clamp-1">{getDescription(srd) || '—'}</span>
                           </td>
 
                           {/* Click To Receive */}
-                          <td className="px-4 py-2 border-b border-black/10 text-sm text-center">
+                          <td className="px-4 py-2 border-b border-black/10 text-center">
                             {isFirst ? (
                               cadReceived ? (
                                 <span className="font-medium text-blue-600">
@@ -609,7 +609,7 @@ export default function SampleProcessPage() {
                           </td>
 
                           {/* Current Status (with Ready button merged in) */}
-                          <td className="px-4 py-2 border-b border-black/10 text-sm">
+                          <td className="px-4 py-2 border-b border-black/10">
                             {isDispatchStage && srd.sampleDispatchedToBuyer ? (
                               <span>
                                 <span className="font-medium text-green-700">
