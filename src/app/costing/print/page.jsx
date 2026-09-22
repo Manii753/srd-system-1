@@ -32,12 +32,16 @@ function calcAll(d) {
   const tEmb  = secSum(d.embellishment);
   const sub   = tFab + tBW + tAW + tEmb;
   const prod  = sub  + n(d.cmtLevel) + n(d.washingLevel) + n(d.fob);
-  const wFrt  = prod + n(d.freight);
-  const wMgn  = wFrt + wFrt * (n(d.marginPct) / 100);
-  const total = wMgn + n(d.extraCut) + n(d.ldMargin) + n(d.testingCharges) + n(d.commission);
+  // Percentage % and Commission are both a % of everything above the margin
+  // block (sections + production + Extra Cut + Ld Margin + Testing Charges).
+  const base  = prod + n(d.extraCut) + n(d.ldMargin) + n(d.testingCharges);
+  const margin = base * (n(d.marginPct) / 100);
+  const comm  = base * (n(d.commission) / 100);
+  const total = base + margin + comm;
   const rate  = n(d.currencyRate) || 265;
   return {
     tFab, tBW, tAW, tEmb,
+    base, margin, comm,
     totalPkr: total,
     finalFob: rate > 0 ? total / rate : 0,
     diff: n(d.firstQuoted) - n(d.targetPrice),
@@ -137,6 +141,7 @@ function PrintContent() {
         <thead>
           <tr>
             <th className="table-header" colSpan={showCode ? 1 : 2} style={{ width: showCode ? '30%' : '40%' }}>Description</th>
+            {showCode && <th className="table-header" style={{ width: '16%' }}>Code</th>}
             <th className="table-header num-right" style={{ width: '15%' }}>Cons</th>
             <th className="table-header num-right" style={{ width: '15%' }}>Rate</th>
             <th className="table-header num-right" style={{ width: EC.length ? '14%' : '30%' }}>Amount</th>
@@ -425,13 +430,13 @@ function PrintContent() {
       {itemBlock('Fabrics', data.fabrics, true, T.tFab)}
 
       {/* ── BEFORE WASH TRIMS ───────────────────── */}
-      {itemBlock('Before Wash Trims', data.beforeWashTrims, false, T.tBW)}
+      {itemBlock('Before Wash Trims', data.beforeWashTrims, true, T.tBW)}
 
       {/* ── AFTER WASH TRIMS ────────────────────── */}
-      {itemBlock('After Wash Trims', data.afterWashTrims, false, T.tAW)}
+      {itemBlock('After Wash Trims', data.afterWashTrims, true, T.tAW)}
 
       {/* ── EMBELLISHMENT ───────────────────────── */}
-      {itemBlock('Embellishment', data.embellishment, false, T.tEmb)}
+      {itemBlock('Embellishment', data.embellishment, true, T.tEmb)}
 
       {/* ── PRODUCTION COST ─────────────────────── */}
       <div className="table-block">
@@ -443,21 +448,15 @@ function PrintContent() {
         ])}
       </div>
 
-      {/* ── FREIGHT ─────────────────────────────── */}
-      <div className="table-block">
-        <div className="table-label">Freight</div>
-        {rowsBy2([['Freight', fmtAmt(data.freight)]])}
-      </div>
-
       {/* ── MARGIN & COMMISSION ─────────────────── */}
       <div className="table-block">
         <div className="table-label">Margin &amp; Commission</div>
         {rowsBy2([
-          ['Percentage %', n(data.marginPct) ? n(data.marginPct) + ' %' : ''],
           ['Extra Cut', fmtAmt(data.extraCut)],
           ['Ld Margin', fmtAmt(data.ldMargin)],
           ['Testing Charges', fmtAmt(data.testingCharges)],
-          ['Commission', fmtAmt(data.commission)],
+          ['Percentage %', n(data.marginPct) ? `(${n(data.marginPct)}%) ${fmtAmt(T.margin)}` : fmtAmt(T.margin), { bold: true }],
+          ['Commission', n(data.commission) ? `(${n(data.commission)}%) ${fmtAmt(T.comm)}` : fmtAmt(T.comm), { bold: true }],
         ])}
       </div>
 

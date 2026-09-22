@@ -21,9 +21,9 @@ export const isFormula = (v) =>
 
 export const SECTIONS = [
   ['fabrics', 'Fabrics', true],
-  ['beforeWashTrims', 'Before Wash Trims', false],
-  ['afterWashTrims', 'After Wash Trims', false],
-  ['embellishment', 'Embellishment', false],
+  ['beforeWashTrims', 'Before Wash Trims', true],
+  ['afterWashTrims', 'After Wash Trims', true],
+  ['embellishment', 'Embellishment', true],
 ];
 
 const mkField = (col, key, isSelect = false) => ({ col, kind: 'field', key, select: isSelect });
@@ -94,16 +94,12 @@ export function buildCostingRows(d = {}) {
   add('single', [mkNum('D', 'washingLevel')], { label: 'Washing (Codes Req Level 1 2 3)' });
   add('single', [mkNum('D', 'fob')], { label: 'FOB' });
 
-  // Freight
-  add('sectionTitle', [], { title: 'Freight', section: 'freight' });
-  add('single', [mkNum('D', 'freight')], { label: 'Freight' });
-
   // Margin & commission
   add('sectionTitle', [], { title: 'Margin & Commission', section: 'margin' });
-  add('single', [mkNum('D', 'marginPct')], { label: 'Percentage %' });
   add('single', [mkNum('D', 'extraCut')], { label: 'Extra Cut' });
   add('single', [mkNum('D', 'ldMargin')], { label: 'Ld Margin' });
   add('single', [mkNum('D', 'testingCharges')], { label: 'Testing Charges' });
+  add('single', [mkNum('D', 'marginPct')], { label: 'Percentage %' });
   add('single', [mkNum('D', 'commission')], { label: 'Commission' });
 
   // Divider + totals
@@ -272,7 +268,6 @@ export function resolveCosting(d = {}) {
     cmtLevel: scalar('cmtLevel'),
     washingLevel: scalar('washingLevel'),
     fob: scalar('fob'),
-    freight: scalar('freight'),
     marginPct: scalar('marginPct'),
     extraCut: scalar('extraCut'),
     ldMargin: scalar('ldMargin'),

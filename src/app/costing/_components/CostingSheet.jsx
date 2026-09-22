@@ -25,12 +25,15 @@ function calcAll(d) {
 
   const subtotal = totalFabrics + totalBeforeWash + totalAfterWash + totalEmbellishment;
   const totalWithProduction = subtotal + n(d.cmtLevel) + n(d.washingLevel) + n(d.fob);
-  const totalWithFreight = totalWithProduction + n(d.freight);
-  const marginAmount = totalWithFreight * (n(d.marginPct) / 100);
-  const totalWithMargin = totalWithFreight + marginAmount;
-  const totalWithExtra = totalWithMargin + n(d.extraCut) + n(d.ldMargin) + n(d.testingCharges) + n(d.commission);
 
-  const totalPricePkr = totalWithExtra;
+  // Percentage % and Commission are both a % of everything above the margin
+  // block (sections + production + Extra Cut + Ld Margin + Testing Charges).
+  const marginBase = totalWithProduction + n(d.extraCut) + n(d.ldMargin) + n(d.testingCharges);
+  const marginAmount = marginBase * (n(d.marginPct) / 100);
+  const commissionAmount = marginBase * (n(d.commission) / 100);
+  const totalWithMargin = marginBase + marginAmount + commissionAmount;
+
+  const totalPricePkr = totalWithMargin;
   const currencyRate = n(d.currencyRate) || 265;
   const finalFobUs = totalPricePkr / currencyRate;
 
@@ -44,8 +47,9 @@ function calcAll(d) {
     totalEmbellishment,
     subtotal,
     totalWithProduction,
-    totalWithFreight,
+    marginBase,
     marginAmount,
+    commissionAmount,
     totalWithMargin,
     totalPricePkr,
     finalFobUs,
@@ -257,8 +261,6 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     fabrics: [], beforeWashTrims: [], afterWashTrims: [], embellishment: [],
     // Production cost
     cmtLevel: 0, washingLevel: 0, fob: 0,
-    // Freight
-    freight: 0,
     // Margin & Commission
     marginPct: 0, extraCut: 0, ldMargin: 0, testingCharges: 0, commission: 0,
     // Summary

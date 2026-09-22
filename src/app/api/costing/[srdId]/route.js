@@ -156,8 +156,6 @@ function buildDefault() {
     embellishment:    JSON.parse(JSON.stringify(DEFAULT_EMBELLISHMENT)),
     // Production cost
     cmtLevel: 0, washingLevel: 0, fob: 0,
-    // Freight
-    freight: 0,
     // Margin & Commission
     marginPct: 0, extraCut: 0, ldMargin: 0, testingCharges: 0, commission: 0,
     // Summary
@@ -353,14 +351,16 @@ function recalc(side) {
 
   const subtotal = totalFabrics + totalBeforeWash + totalAfterWash + totalEmbellishment;
   const totalWithProduction = subtotal + Number(resolvedData.cmtLevel || 0) + Number(resolvedData.washingLevel || 0) + Number(resolvedData.fob || 0);
-  const totalWithFreight = totalWithProduction + Number(resolvedData.freight || 0);
-  const marginAmount = totalWithFreight * (Number(resolvedData.marginPct || 0) / 100);
-  const totalWithMargin = totalWithFreight + marginAmount;
-  const totalWithExtra = totalWithMargin + Number(resolvedData.extraCut || 0) + Number(resolvedData.ldMargin || 0) + Number(resolvedData.testingCharges || 0) + Number(resolvedData.commission || 0);
+  // Percentage % and Commission are both a % of everything above the margin
+  // block (sections + production + Extra Cut + Ld Margin + Testing Charges).
+  const marginBase = totalWithProduction + Number(resolvedData.extraCut || 0) + Number(resolvedData.ldMargin || 0) + Number(resolvedData.testingCharges || 0);
+  const marginAmount = marginBase * (Number(resolvedData.marginPct || 0) / 100);
+  const commissionAmount = marginBase * (Number(resolvedData.commission || 0) / 100);
+  const totalWithMargin = marginBase + marginAmount + commissionAmount;
 
-  side.totalPricePkr = totalWithExtra;
+  side.totalPricePkr = totalWithMargin;
   const currencyRate = Number(resolvedData.currencyRate) || 265;
-  side.finalFobUs = totalWithExtra / currencyRate;
+  side.finalFobUs = totalWithMargin / currencyRate;
   side.difference = Number(resolvedData.firstQuoted || 0) - Number(resolvedData.targetPrice || 0);
 
   // Persist per-row amounts as resolved numbers too (respects any manual
@@ -492,8 +492,6 @@ export async function PATCH(request, { params }) {
         'fabrics', 'beforeWashTrims', 'afterWashTrims', 'embellishment',
         // Production cost
         'cmtLevel', 'washingLevel', 'fob',
-        // Freight
-        'freight',
         // Margin & Commission
         'marginPct', 'extraCut', 'ldMargin', 'testingCharges', 'commission',
         // Summary
