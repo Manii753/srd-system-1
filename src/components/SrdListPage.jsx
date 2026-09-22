@@ -64,20 +64,27 @@ export default function SrdListPage({
             />
           </div>
 
-          {/* Status filter — matches the STATUS column (production progress). */}
-          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm">
-            <Filter className="h-4 w-4 text-gray-500" />
-            <select
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-              className="border-0 focus:ring-0 focus:outline-none bg-transparent text-sm text-gray-700 font-medium"
-            >
-              <option value="active">All Active</option>
-              <option value="pre-production">Pre-Production</option>
-              <option value="in-production">In Production</option>
-              <option value="completed">Completed</option>
-              <option value="all">All Statuses</option>
-            </select>
+          {/* Status filter — pill toggles. "Active" = not yet buyer-approved,
+              "Completed" = buyer-approved only. */}
+          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-full p-1 shadow-sm">
+            {[
+              { value: 'active', label: 'Active' },
+              { value: 'completed', label: 'Completed' },
+              { value: 'all', label: 'All' },
+            ].map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setFilterStatus(opt.value)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  filterStatus === opt.value
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
 
           {/* Brand filter */}

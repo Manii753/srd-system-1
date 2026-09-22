@@ -19,6 +19,16 @@ import {
 } from '@/lib/assetUtils';
 import { useSession } from 'next-auth/react';
 import BrandGroupManager from '@/components/BrandGroupManager';
+import { resolveStage } from '@/lib/sampleFilters';
+
+// Stage buckets shown in the STATUS column. "Completed" appears ONLY after
+// the sample is buyer-approved; everything else shows its current stage.
+const STAGE_LABELS = {
+  cad: 'CAD',
+  sewing: 'Sewing',
+  washing: 'Washing',
+  finishing: 'Finishing',
+};
 
 
 export default function SRDTable({ department, searchTerm: searchTermProp, filterStatus: filterStatusProp, filterBrand: filterBrandProp, filterSampleType: filterSampleTypeProp, filterStage: filterStageProp, initialProductionStages, initialQuickDetailsFields, initialPaginationSettings, initialDelayThresholdDays, onCountChange }) {
@@ -451,44 +461,48 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
                     <td className="px-6 py-2 border-b border-black/10">
                       <div className="flex items-center gap-2">
                         {(() => {
-                          const srdStageIds = (srd.productionStages || []).map(id => String(id));
-                          const relevantStages = srdStageIds.length > 0
-                            ? productionStages.filter(s => srdStageIds.includes(String(s._id)))
-                            : productionStages;
+                          const stageKey = resolveStage(srd);
 
-                          // Check if all stages are completed using multiple sources
-                          const allCompletedFromHistory = relevantStages.length > 0 && relevantStages.every(stage => {
-                            const historyEntry = (srd.productionHistory || []).find(h => String(h.stage) === String(stage._id));
-                            return historyEntry?.status === 'completed';
-                          });
-
-                          const allCompletedFromSampleProcess = srd.sampleProcess && srd.sampleProcess.length > 0 &&
-                            srd.sampleProcess.every(s => s.status === 'completed');
-
-                          const allCompleted = srd.isComplete || allCompletedFromHistory || allCompletedFromSampleProcess;
-
-                          if (allCompleted) {
+                          if (stageKey === 'approved') {
                             return <span className="text-app-text font-medium text-green-700">Completed</span>;
                           }
+                          if (stageKey === 'rejected') {
+                            return <span className="text-app-text font-medium text-red-600">Rejected</span>;
+                          }
+                          if (stageKey === 'dispatched') {
+                            return <span className="text-app-text font-medium text-blue-700">Dispatched</span>;
+                          }
 
-                          if (srd.inProduction && srd.currentProductionStage) {
-                            const stage = productionStages.find(s => String(s._id) === String(srd.currentProductionStage));
-                            const historyEntry = (srd.productionHistory || []).find(h => String(h.stage) === String(srd.currentProductionStage));
+                          if (STAGE_LABELS[stageKey]) {
+                            const entry = (srd.sampleProcess || []).find(s => {
+                              const slug = (s.stage || '').toLowerCase();
+                              return slug === stageKey || (stageKey === 'cad' && slug === 'cutting');
+                            });
+                            const date = entry?.receivedDate || entry?.completedDate;
                             return (
                               <div className="flex flex-col">
                                 <span className="text-app-text text-gray-700 font-medium">
-                                  {stage?.displayName || stage?.name || '—'}
+                                  {STAGE_LABELS[stageKey]}
                                 </span>
-                                {historyEntry?.startDate && (
+                                {date && (
                                   <span className="text-[11px] text-blue-500">
-                                    {new Date(historyEntry.startDate).toLocaleDateString()}
+                                    {new Date(date).toLocaleDateString()}
                                   </span>
                                 )}
                               </div>
                             );
                           }
 
-                          return <span className="text-app-text text-gray-400">Pending</span>;
+                          // Safety net for legacy rows that track the stage only
+                          // through currentProductionStage (no sampleProcess yet).
+                          if (srd.inProduction && srd.currentProductionStage) {
+                            const stage = productionStages.find(s => String(s._id) === String(srd.currentProductionStage));
+                            if (stage) {
+                              return <span className="text-app-text text-gray-700 font-medium">{stage.displayName || stage.name}</span>;
+                            }
+                          }
+
+                          return <span className="text-app-text text-gray-400">Incomplete</span>;
                         })()}
                         <button
                           onClick={() => toggleRow(srd._id)}

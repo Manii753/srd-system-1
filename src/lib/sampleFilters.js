@@ -5,6 +5,7 @@ export const STAGE_FILTER_OPTIONS = [
   { value: 'incomplete',  label: 'Incomplete' },
   { value: 'cad',         label: 'CAD' },
   { value: 'sewing',      label: 'Sewing' },
+  { value: 'washing',     label: 'Washing' },
   { value: 'finishing',   label: 'Finishing' },
   { value: 'dispatched',  label: 'Dispatched' },
   { value: 'approved',    label: 'Approved' },
@@ -43,11 +44,19 @@ export function getSampleType(srd) {
 
 // Resolve the lifecycle stage bucket for an SRD. Mirrors the server-side
 // /api/srd `stage` filter so client-side pages match the SRD list behaviour.
+//
+// Order matters — a SRD can satisfy several conditions, and the most advanced
+// state wins:
+//   approved   — buyer approved (this is the ONLY state that reads "Completed")
+//   rejected   — internal or buyer rejection reasons present
+//   dispatched — sample sent to buyer / production finished (awaiting approval)
+//   cad/sewing/washing/finishing — actively in a production stage
+//   incomplete — everything else (created but not yet progressing)
 export function resolveStage(srd) {
   if (srd?.BuyerApproved) return 'approved';
   if ((srd?.internalRejectedReasons || []).length > 0 ||
       (srd?.BuyerRejectedReasons || []).length > 0) return 'rejected';
-  if (srd?.sampleDispatchedToBuyer) return 'dispatched';
+  if (srd?.sampleDispatchedToBuyer || srd?.inDispatch || srd?.isComplete) return 'dispatched';
 
   const sp = srd?.sampleProcess || [];
   const history = srd?.productionHistory || [];
@@ -59,7 +68,15 @@ export function resolveStage(srd) {
       ? String(activeHist.stageName || activeHist.stageDisplayName || '').toLowerCase()
       : '';
 
-  if (current === 'cad' || current === 'sewing' || current === 'finishing') return current;
+  // Cutting is handled as part of the CAD phase (matches the stage-filter options).
+  if (current === 'cutting') return 'cad';
+  if (current === 'cad' || current === 'sewing' || current === 'washing' || current === 'finishing') return current;
+
+  // Pre-production CAD sign-off: CAD department approved but production not started.
+  const cadApproved = (Array.isArray(srd?.status) ? srd.status : [])
+    .find(s => s.department === 'cad')?.value === 'approved';
+  if (cadApproved) return 'cad';
+
   return 'incomplete';
 }
 

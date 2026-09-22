@@ -336,8 +336,12 @@ function getCustomerApprovalStatusLabel(srd) {
 }
 
 function getSrdLifecycleStatusLabel(srd) {
-  if (srd?.isComplete) {
+  if (srd?.BuyerApproved) {
     return 'Completed';
+  }
+
+  if (srd?.isComplete || srd?.inDispatch || srd?.sampleDispatchedToBuyer) {
+    return 'Dispatched';
   }
 
   if (srd?.inProduction) {

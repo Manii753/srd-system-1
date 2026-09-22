@@ -133,7 +133,10 @@ function SRDPrintPageContent() {
     };
 
     const getStatusDisplay = (srd) => {
-        if (srd.isComplete) return 'Completed';
+        if (srd.BuyerApproved) return 'Completed';
+        const hasRejections = (srd.internalRejectedReasons?.length || 0) > 0 || (srd.BuyerRejectedReasons?.length || 0) > 0;
+        if (hasRejections) return 'Rejected';
+        if (srd.sampleDispatchedToBuyer || srd.isComplete || srd.inDispatch) return 'Dispatched';
         if (srd.inProduction) {
             // Check if we have current production stage info
             if (srd.currentProductionStage) {

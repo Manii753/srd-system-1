@@ -37,24 +37,24 @@ function getStageStatus(srd, stageSlug) {
   if (!entry) {
     if (stageSlug === 'cad') {
       const cadApproved = (srd.status || []).find(s => s.department === 'cad' && s.value === 'approved');
-      if (cadApproved) return { text: `Received ${fmtDate(cadApproved.updatedAt)}`, cls: 'text-blue-600 font-semibold' };
+      if (cadApproved) return { text: `Received ${fmtDate(cadApproved.updatedAt)}`, cls: 'text-blue-600 font-medium' };
       const d = daysSince(srd.createdAt);
-      if (d > 2) return { text: `Pending (${d}d)`, cls: 'text-red-500' };
-      return { text: 'Pending', cls: 'text-orange-500' };
+      if (d > 2) return { text: `Pending (${d}d)`, cls: 'text-red-500 font-medium' };
+      return { text: 'Pending', cls: 'text-orange-500 font-medium' };
     }
     const d = daysSince(srd.createdAt);
-    if (d > 2) return { text: `Pending (${d}d)`, cls: 'text-red-500' };
-    return { text: 'Pending', cls: 'text-orange-500' };
+    if (d > 2) return { text: `Pending (${d}d)`, cls: 'text-red-500 font-medium' };
+    return { text: 'Pending', cls: 'text-orange-500 font-medium' };
   }
   if (entry.status === 'completed' && entry.completedDate)
-    return { text: `Ready ${fmtDate(entry.completedDate)}`, cls: 'text-green-700 font-semibold' };
+    return { text: `Ready ${fmtDate(entry.completedDate)}`, cls: 'text-green-700 font-medium' };
   if (entry.status === 'received' || entry.receivedDate)
-    return { text: `Received ${fmtDate(entry.receivedDate)}`, cls: 'text-blue-600 font-semibold' };
+    return { text: `Received ${fmtDate(entry.receivedDate)}`, cls: 'text-blue-600 font-medium' };
   if (entry.status === 'in-progress')
-    return { text: 'In Progress', cls: 'text-blue-500' };
+    return { text: 'In Progress', cls: 'text-blue-500 font-medium' };
   const d = daysSince(srd.createdAt);
-  if (d > 2) return { text: `Pending (${d}d)`, cls: 'text-red-500' };
-  return { text: 'Pending', cls: 'text-orange-500' };
+  if (d > 2) return { text: `Pending (${d}d)`, cls: 'text-red-500 font-medium' };
+  return { text: 'Pending', cls: 'text-orange-500 font-medium' };
 }
 
 // ─── component ───────────────────────────────────────────────────────────────
@@ -566,8 +566,8 @@ export default function SampleProcessPage() {
                           </td>
 
                           {/* Inquiry # */}
-                          <td className="px-4 py-2 border-b border-black/10 whitespace-nowrap">
-                            <span className="text-sm font-medium text-blue-600">{srd.refNo}</span>
+                          <td className="px-4 py-2 border-b border-black/10 text-sm text-gray-700 whitespace-nowrap">
+                            {srd.refNo}
                           </td>
 
                           {/* Brand */}
@@ -581,17 +581,17 @@ export default function SampleProcessPage() {
                           </td>
 
                           {/* Click To Receive */}
-                          <td className="px-4 py-2 border-b border-black/10 text-center">
+                          <td className="px-4 py-2 border-b border-black/10 text-sm text-center">
                             {isFirst ? (
                               cadReceived ? (
-                                <span className="text-sm font-medium text-blue-600">
+                                <span className="font-medium text-blue-600">
                                   Received {fmtDate(entry?.receivedDate || cadApprovedDate)}
                                 </span>
                               ) : (
                                 <span className="text-gray-300">—</span>
                               )
                             ) : isReceived ? (
-                              <span className="text-sm font-medium text-blue-600">
+                              <span className="font-medium text-blue-600">
                                 Received {fmtDate(entry.receivedDate)}
                               </span>
                             ) : showRcv ? (
@@ -609,10 +609,10 @@ export default function SampleProcessPage() {
                           </td>
 
                           {/* Current Status (with Ready button merged in) */}
-                          <td className="px-4 py-2 border-b border-black/10">
+                          <td className="px-4 py-2 border-b border-black/10 text-sm">
                             {isDispatchStage && srd.sampleDispatchedToBuyer ? (
-                              <span className="text-sm">
-                                <span className="font-semibold text-green-700">
+                              <span>
+                                <span className="font-medium text-green-700">
                                   Dispatched {fmtDate(srd.sampleDipatchedtoBuyerDate || srd.dispatchDate)}
                                 </span>
                                 {srd.dispatchBy && (
@@ -620,7 +620,7 @@ export default function SampleProcessPage() {
                                 )}
                               </span>
                             ) : isReady ? (
-                              <span className="text-sm font-semibold text-green-700">
+                              <span className="font-medium text-green-700">
                                 Ready {fmtDate(entry.completedDate)}
                               </span>
                             ) : showReady ? (
@@ -633,14 +633,14 @@ export default function SampleProcessPage() {
                                 Ready
                               </button>
                             ) : showRcv ? (
-                              <span className="text-sm">
-                                <span className="font-semibold text-green-700">Ready at {prevLabel}</span>
+                              <span>
+                                <span className="font-medium text-green-700">Ready at {prevLabel}</span>
                                 {prevEntry?.completedDate && (
                                   <span className="block text-[11px] text-gray-500">{fmtDate(prevEntry.completedDate)}</span>
                                 )}
                               </span>
                             ) : (
-                              <span className={`text-sm ${stageStatus.cls}`}>{stageStatus.text}</span>
+                              <span className={stageStatus.cls}>{stageStatus.text}</span>
                             )}
                           </td>
                         </tr>

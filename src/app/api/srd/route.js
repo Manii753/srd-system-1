@@ -179,33 +179,57 @@ export async function GET(request) {
 
     // Filter by lifecycle stage. Values match STAGE_FILTER_OPTIONS in
     // src/lib/sampleFilters.js.
+    //
+    // Lifecycle order: incomplete → cad → sewing → washing → finishing →
+    // dispatched → approved. "Completed" is only the buyer-APPROVED state;
+    // production-finished SRDs land in the "dispatched" bucket until approved.
     if (stageParam && stageParam !== 'all') {
       const stageLower = stageParam.toLowerCase();
+      const rejectionCountExpr = {
+        $add: [
+          { $size: { $ifNull: ['$internalRejectedReasons', []] } },
+          { $size: { $ifNull: ['$BuyerRejectedReasons', []] } },
+        ],
+      };
+
       if (stageLower === 'incomplete') {
-        andFilters.push({ isComplete: { $ne: true } });
+        andFilters.push({
+          BuyerApproved: { $ne: true },
+          sampleDispatchedToBuyer: { $ne: true },
+          inDispatch: { $ne: true },
+          isComplete: { $ne: true },
+          $expr: { $eq: [rejectionCountExpr, 0] },
+          'status': { $not: { $elemMatch: { department: 'cad', value: 'approved' } } },
+        });
       } else if (stageLower === 'dispatched') {
-        andFilters.push({ sampleDispatchedToBuyer: true });
+        andFilters.push({
+          $and: [
+            {
+              $or: [
+                { sampleDispatchedToBuyer: true },
+                { inDispatch: true },
+                { isComplete: true },
+              ],
+            },
+            { BuyerApproved: { $ne: true } },
+            { $expr: { $eq: [rejectionCountExpr, 0] } },
+          ],
+        });
       } else if (stageLower === 'approved') {
         andFilters.push({ BuyerApproved: true });
       } else if (stageLower === 'rejected') {
         andFilters.push({
-          $expr: {
-            $gt: [
-              {
-                $add: [
-                  { $size: { $ifNull: ['$internalRejectedReasons', []] } },
-                  { $size: { $ifNull: ['$BuyerRejectedReasons', []] } },
-                ],
-              },
-              0,
-            ],
-          },
+          $and: [
+            { $expr: { $gt: [rejectionCountExpr, 0] } },
+            { BuyerApproved: { $ne: true } },
+          ],
         });
-      } else if (stageLower === 'cad' || stageLower === 'sewing' || stageLower === 'finishing') {
-        const stageNameRegex = new RegExp(`^${escapeRegex(stageLower)}$`, 'i');
-        const displayNameRegex = new RegExp(`^${escapeRegex(stageLower)}$`, 'i');
+      } else if (stageLower === 'cad' || stageLower === 'sewing' || stageLower === 'washing' || stageLower === 'finishing') {
+        // Cutting is folded into the CAD phase so it matches the option labels.
+        const aliases = stageLower === 'cad' ? ['cad', 'cutting'] : [stageLower];
+        const stageNameRegexes = aliases.map(a => new RegExp(`^${escapeRegex(a)}$`, 'i'));
         const stageDocs = await ProductionStage.find({
-          $or: [{ name: stageNameRegex }, { displayName: displayNameRegex }],
+          $or: [{ name: { $in: stageNameRegexes } }, { displayName: { $in: stageNameRegexes } }],
         }).select('_id').lean();
         const stageIds = stageDocs.map(s => s._id);
 
@@ -222,18 +246,28 @@ export async function GET(request) {
         }
         stageMatches.push({
           'sampleProcess': {
-            $elemMatch: { stage: stageNameRegex, status: { $in: ['in-progress', 'received'] } },
+            $elemMatch: { stage: { $in: stageNameRegexes }, status: { $in: ['in-progress', 'received'] } },
           },
         });
         // CAD is also handled as a department approval (pre-production CAD sign-off).
         if (stageLower === 'cad') {
           stageMatches.push({
-            'status': { $elemMatch: { department: 'cad', value: 'approved' } },
+            $and: [
+              { 'status': { $elemMatch: { department: 'cad', value: 'approved' } } },
+              { inProduction: { $ne: true } },
+              { inDispatch: { $ne: true } },
+              { isComplete: { $ne: true } },
+              { BuyerApproved: { $ne: true } },
+              { $expr: { $eq: [rejectionCountExpr, 0] } },
+            ],
           });
         }
         andFilters.push({
           $and: [
             { $or: stageMatches },
+            { BuyerApproved: { $ne: true } },
+            { $expr: { $eq: [rejectionCountExpr, 0] } },
+            { $nor: [{ inDispatch: true }, { isComplete: true }] },
           ],
         });
       }
@@ -346,18 +380,23 @@ export async function GET(request) {
       }
     }
 
-    // Filter by completion status
+    // Filter by completion status. "Completed" means buyer-approved — that is
+    // the only state that counts as done. Everything else is active until the
+    // sample is approved, so "active" = not yet approved.
     if (completionStatus) {
       if (completionStatus === 'active') {
-        query.isComplete = { $ne: true };
+        query.BuyerApproved = { $ne: true };
       } else if (completionStatus === 'completed') {
-        query.isComplete = true;
+        query.BuyerApproved = true;
       } else if (completionStatus === 'in-production') {
         query.inProduction = true;
-        query.isComplete = { $ne: true };
+        query.BuyerApproved = { $ne: true };
       } else if (completionStatus === 'pre-production') {
         query.inProduction = false;
         query.isComplete = { $ne: true };
+        query.inDispatch = { $ne: true };
+        query.sampleDispatchedToBuyer = { $ne: true };
+        query.BuyerApproved = { $ne: true };
       }
     }
 

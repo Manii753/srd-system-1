@@ -71,6 +71,22 @@ async function diagnoseOne(srd, validDepts, stages) {
     issues.push({ type: 'stale_stages', fix: 'prune_stale_stages', data: { stale: staleEntries.map(e => e.stage) }, label: `Stale sampleProcess stages: ${staleEntries.map(e => e.stage).join(', ')}` });
   }
 
+  // 9. Buyer-approved but not flagged complete. Under the current status model,
+  //    ONLY approved SRDs say "Completed", so an approved SRD must carry the
+  //    completion flags everywhere (isComplete, inDispatch, end date, etc.).
+  const hasRejections =
+    (srd.internalRejectedReasons?.length || 0) > 0 ||
+    (srd.BuyerRejectedReasons?.length || 0) > 0;
+  if (srd.BuyerApproved && !srd.isComplete) {
+    issues.push({ type: 'approved_not_complete', fix: 'mark_complete', data: {}, label: 'Buyer-approved but isComplete = false — approved SRDs must show as Completed' });
+  }
+
+  // 10. Rejected but still flagged as in-production. A rejected SRD is a
+  //     terminal state until redone — it should not occupy a production stage.
+  if (hasRejections && (srd.inProduction || srd.currentProductionStage)) {
+    issues.push({ type: 'rejected_in_production', fix: 'clear_production', data: {}, label: 'Rejected but still marked in production — rejection should stop the run' });
+  }
+
   return issues;
 }
 
@@ -98,6 +114,7 @@ export async function GET() {
           inProduction: srd.inProduction,
           inDispatch: srd.inDispatch,
           isComplete: srd.isComplete,
+          buyerApproved: !!srd.BuyerApproved,
           issues,
         });
       }
@@ -214,6 +231,21 @@ export async function POST(request) {
             srd.sampleProcess = (srd.sampleProcess || []).filter(e => known.has((e.stage || '').toLowerCase()));
             srd.markModified('sampleProcess');
             changes.push(`Pruned stale stages: ${issue.data.stale.join(', ')}`);
+            break;
+          }
+          case 'mark_complete': {
+            srd.isComplete = true;
+            srd.inDispatch = true;
+            srd.inProduction = false;
+            srd.currentProductionStage = null;
+            if (!srd.productionEndDate) srd.productionEndDate = new Date();
+            changes.push('Marked complete (buyer-approved)');
+            break;
+          }
+          case 'clear_production': {
+            srd.inProduction = false;
+            srd.currentProductionStage = null;
+            changes.push('Cleared in-production/stage for rejected SRD');
             break;
           }
         }
