@@ -32,16 +32,15 @@ function calcAll(d) {
   const tEmb  = secSum(d.embellishment);
   const sub   = tFab + tBW + tAW + tEmb;
   const prod  = sub  + n(d.cmtLevel) + n(d.washingLevel) + n(d.fob);
-  // Percentage % and Commission are both a % of everything above the margin
-  // block (sections + production + Extra Cut + Ld Margin + Testing Charges).
+  // Commission is a % of everything above the margin block
+  // (sections + production + Extra Cut + Ld Margin + Testing Charges).
   const base  = prod + n(d.extraCut) + n(d.ldMargin) + n(d.testingCharges);
-  const margin = base * (n(d.marginPct) / 100);
   const comm  = base * (n(d.commission) / 100);
-  const total = base + margin + comm;
+  const total = base + comm;
   const rate  = n(d.currencyRate) || 265;
   return {
     tFab, tBW, tAW, tEmb,
-    base, margin, comm,
+    base, comm,
     totalPkr: total,
     finalFob: rate > 0 ? total / rate : 0,
     diff: n(d.firstQuoted) - n(d.targetPrice),
@@ -455,7 +454,6 @@ function PrintContent() {
           ['Extra Cut', fmtAmt(data.extraCut)],
           ['Ld Margin', fmtAmt(data.ldMargin)],
           ['Testing Charges', fmtAmt(data.testingCharges)],
-          ['Percentage %', n(data.marginPct) ? `(${n(data.marginPct)}%) ${fmtAmt(T.margin)}` : fmtAmt(T.margin), { bold: true }],
           ['Commission', n(data.commission) ? `(${n(data.commission)}%) ${fmtAmt(T.comm)}` : fmtAmt(T.comm), { bold: true }],
         ])}
       </div>

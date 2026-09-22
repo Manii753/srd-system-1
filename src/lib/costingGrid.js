@@ -99,7 +99,6 @@ export function buildCostingRows(d = {}) {
   add('single', [mkNum('D', 'extraCut')], { label: 'Extra Cut' });
   add('single', [mkNum('D', 'ldMargin')], { label: 'Ld Margin' });
   add('single', [mkNum('D', 'testingCharges')], { label: 'Testing Charges' });
-  add('single', [mkNum('D', 'marginPct')], { label: 'Percentage %' });
   add('single', [mkNum('D', 'commission')], { label: 'Commission' });
 
   // Divider + totals
@@ -268,7 +267,6 @@ export function resolveCosting(d = {}) {
     cmtLevel: scalar('cmtLevel'),
     washingLevel: scalar('washingLevel'),
     fob: scalar('fob'),
-    marginPct: scalar('marginPct'),
     extraCut: scalar('extraCut'),
     ldMargin: scalar('ldMargin'),
     testingCharges: scalar('testingCharges'),
