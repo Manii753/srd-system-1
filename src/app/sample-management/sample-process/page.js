@@ -72,7 +72,7 @@ export default function SampleProcessPage() {
 
   const [filterBrand, setFilterBrand] = useState('');
   const [filterSampleType, setFilterSampleType] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterStatus, setFilterStatus] = useState('active'); // 'active' | 'completed' | 'all'
   const [filterInquiry, setFilterInquiry] = useState('');
   const [filterStage, setFilterStage] = useState(''); // '' = all stages
   const [blinkingKey, setBlinkingKey] = useState(null);
@@ -116,7 +116,7 @@ export default function SampleProcessPage() {
     setLoading(true);
     try {
       const [srdsRes, stagesRes, companyRes] = await Promise.all([
-        fetch('/api/srd?limit=1000&select=refNo,title,description,createdAt,isComplete,inProduction,sampleProcess,status,dynamicFields,sampleDispatchedToBuyer,sampleDipatchedtoBuyerDate,dispatchBy,dispatchDate&lean=true'),
+        fetch('/api/srd?limit=1000&select=refNo,title,description,createdAt,isComplete,inProduction,BuyerApproved,sampleProcess,status,dynamicFields,sampleDispatchedToBuyer,sampleDipatchedtoBuyerDate,dispatchBy,dispatchDate&lean=true'),
         fetch('/api/production-stages'),
         fetch('/api/company'),
       ]);
@@ -188,9 +188,12 @@ export default function SampleProcessPage() {
       list = list.filter(s => matchesStage(s, filterStage));
     }
     if (filterInquiry) list = list.filter(s => s.refNo?.toLowerCase().includes(filterInquiry.toLowerCase()));
-    if (filterStatus === 'pending')          list = list.filter(s => !s.inProduction && !s.isComplete);
-    else if (filterStatus === 'in-progress') list = list.filter(s => s.inProduction && !s.isComplete);
-    else if (filterStatus === 'completed')   list = list.filter(s => s.isComplete);
+    // Status pill: "Active" = not yet buyer-approved, "Completed" = buyer-approved
+    // only. Choosing a specific stage implies all statuses (same as the SRD list).
+    if (!filterStage) {
+      if (filterStatus === 'active')      list = list.filter(s => !s.BuyerApproved);
+      else if (filterStatus === 'completed') list = list.filter(s => !!s.BuyerApproved);
+    }
     return list;
   }, [baseSrds, filterBrand, filterSampleType, filterInquiry, filterStatus, filterStage, activeGroupBrands]);
 
@@ -391,15 +394,25 @@ export default function SampleProcessPage() {
         />
       </div>
 
-      <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 shadow-sm">
-        <Filter className="h-3.5 w-3.5 text-gray-400" />
-        <select value={filterStage} onChange={e => setFilterStage(e.target.value)}
-          className="border-0 focus:ring-0 focus:outline-none bg-transparent text-sm text-gray-700 font-medium">
-          <option value="">All Stages</option>
-          {STAGE_FILTER_OPTIONS.map(s => (
-            <option key={s.value} value={s.value}>{s.label}</option>
-          ))}
-        </select>
+      <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-full p-0.5 shadow-sm">
+        {[
+          { value: 'active', label: 'Active' },
+          { value: 'completed', label: 'Completed' },
+          { value: 'all', label: 'All' },
+        ].map(opt => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => setFilterStatus(opt.value)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              filterStatus === opt.value
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
 
       <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 shadow-sm">
@@ -422,17 +435,17 @@ export default function SampleProcessPage() {
 
       <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 shadow-sm">
         <Filter className="h-3.5 w-3.5 text-gray-400" />
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+        <select value={filterStage} onChange={e => setFilterStage(e.target.value)}
           className="border-0 focus:ring-0 focus:outline-none bg-transparent text-sm text-gray-700 font-medium">
-          <option value="">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="in-progress">In Progress</option>
-          <option value="completed">Completed</option>
+          <option value="">All Stages</option>
+          {STAGE_FILTER_OPTIONS.map(s => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
         </select>
       </div>
 
-      {(filterBrand || filterSampleType || filterStatus || filterInquiry || filterStage) && (
-        <button onClick={() => { setFilterBrand(''); setFilterSampleType(''); setFilterStatus(''); setFilterInquiry(''); setFilterStage(''); }}
+      {(filterBrand || filterSampleType || filterStage || filterInquiry || filterStatus !== 'active') && (
+        <button onClick={() => { setFilterBrand(''); setFilterSampleType(''); setFilterStage(''); setFilterInquiry(''); setFilterStatus('active'); }}
           className="flex items-center gap-1 text-sm text-gray-400 hover:text-red-500">
           <X className="h-3.5 w-3.5" />
         </button>
