@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/lib/use-toast';
 import Layout from '@/components/layout/Layout';
-import { STAGE_FILTER_OPTIONS, matchesStage } from '@/lib/sampleFilters';
+import { STAGE_FILTER_OPTIONS, matchesStage, resolveStage } from '@/lib/sampleFilters';
 import {
   Loader2, Download, Filter, ChevronDown,
   Search, X, Plus, Trash2, Edit2, Printer,
@@ -29,70 +29,60 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
 }
 
-function getDeptVal(srd, dept) {
-  return Array.isArray(srd.status)
-    ? (srd.status.find(s => s.department === dept)?.value || 'pending')
-    : 'pending';
+// Resolve the label shown in the Current Status column. Uses the SAME
+// lifecycle taxonomy as the Stage filter (resolveStage), so whichever stage
+// you filter by, the data beneath shows the exact same status.
+const STATUS_LABELS = {
+  incomplete: 'Incomplete',
+  cad:        'CAD',
+  sewing:     'Sewing',
+  washing:    'Washing',
+  finishing:  'Finishing',
+  dispatched: 'Dispatched',
+  approved:   'Completed',
+  rejected:   'Rejected',
+};
+
+// Tailwind classes for the Current Status cell
+const STATUS_TAILWIND_CLS = {
+  incomplete: 'text-gray-400',
+  cad:        'text-blue-600 font-semibold',
+  sewing:     'text-blue-600 font-semibold',
+  washing:    'text-blue-600 font-semibold',
+  finishing:  'text-blue-600 font-semibold',
+  dispatched: 'text-sky-600 font-semibold',
+  approved:   'text-green-700 font-semibold',
+  rejected:   'text-red-600 font-semibold',
+};
+
+// Inline colors used by the CSV/print export
+const STATUS_INLINE_COLORS = {
+  incomplete: 'color:#9ca3af',
+  cad:        'color:#2563eb;font-weight:600',
+  sewing:     'color:#2563eb;font-weight:600',
+  washing:    'color:#2563eb;font-weight:600',
+  finishing:  'color:#2563eb;font-weight:600',
+  dispatched: 'color:#0284c7;font-weight:600',
+  approved:   'color:#15803d;font-weight:600',
+  rejected:   'color:#dc2626;font-weight:600',
+};
+
+function getCurrentStatus(srd) {
+  return resolveStage(srd);
 }
 
-function getOverallStatus(srd) {
-  // "Completed" is ONLY shown when the buyer has approved. Production being
-  // done (isComplete) without approval reads as "Dispatched" (awaiting verdict).
-  if (srd.BuyerApproved) return 'Completed';
-  if ((srd.internalRejectedReasons || []).length > 0 ||
-      (srd.BuyerRejectedReasons || []).length > 0) return 'Rejected';
-  if (srd.isComplete || srd.inDispatch || srd.sampleDispatchedToBuyer) return 'Dispatched';
-  // If in production, show current production stage
-  if (srd.inProduction) return 'In Production';
-  // Otherwise show department approval status
-  const vals = ['vmd', 'cad', 'mmc', 'commercial'].map(d => getDeptVal(srd, d));
-  if (vals.every(v => v === 'approved')) return 'Ready for Production';
-  if (vals.some(v => v === 'flagged')) return 'Flagged';
-  if (vals.some(v => v === 'approved' || v === 'in-progress')) return 'In Progress';
-  return 'Not Started';
+function getCurrentStatusLabel(srd) {
+  return STATUS_LABELS[getCurrentStatus(srd)] || 'Incomplete';
 }
-
-// Base status buckets shown in the All Status filter. Active production
-// stages are appended dynamically (see statusOptions in the component).
-const BASE_STATUS_OPTIONS = [
-  { value: 'not-started', label: 'Not Started' },
-  { value: 'in-progress', label: 'In Progress' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'flagged', label: 'Flagged' },
-  { value: 'ready-for-production', label: 'Ready for Production' },
-  { value: 'in-production', label: 'In Production' },
-  { value: 'dispatched', label: 'Dispatched' },
-  { value: 'rejected', label: 'Rejected' },
-];
 
 function slugify(text) {
   return (text || '').toLowerCase().replace(/\s+/g, '-');
 }
 
-// Resolve the label shown in the Current Status column. For records in
-// production this shows the actual current stage (e.g. "Sewing") instead of
-// the generic "In Production" bucket.
-function getCurrentStatusLabel(srd, prodStages) {
-  const os = getOverallStatus(srd);
-  if (os !== 'In Production') return os;
-
-  const sp = srd.sampleProcess || [];
-  const active = sp.find(s => s.status === 'in-progress' || s.status === 'received');
-  if (active) return active.stageDisplayName || active.stage || 'In Production';
-
-  const curId = srd.currentProductionStage
-    ? String(srd.currentProductionStage._id || srd.currentProductionStage)
-    : null;
-  if (curId) {
-    const st = prodStages.find(s => String(s._id) === curId);
-    if (st) return st.displayName || st.name;
-  }
-
-  const hist = (srd.productionHistory || []).slice().reverse().find(h => h.status === 'in-progress');
-  if (hist) return hist.stageDisplayName || hist.stageName || 'In Production';
-
-  return 'In Production';
-}
+const STATUS_OPTIONS = Object.entries(STATUS_LABELS).map(([value, label]) => ({
+  value: slugify(label),
+  label,
+}));
 
 function getDelayDays(srd) {
   const created = srd.createdAt ? new Date(srd.createdAt) : null;
@@ -372,18 +362,8 @@ export default function SRReportPage() {
     return [...map.values()].map(v => v.canonical).sort();
   }, [srds]);
 
-  // Status filter options: base buckets + every active production stage
-  const statusOptions = useMemo(() => {
-    const seen = new Set();
-    const opts = [];
-    for (const o of [
-      ...BASE_STATUS_OPTIONS,
-      ...prodStages.map(s => ({ value: slugify(s.displayName || s.name), label: s.displayName || s.name })),
-    ]) {
-      if (!seen.has(o.value)) { seen.add(o.value); opts.push(o); }
-    }
-    return opts;
-  }, [prodStages]);
+  // Status filter options mirror the Current Status column taxonomy
+  const statusOptions = STATUS_OPTIONS;
 
   // filter + group
   const filtered = useMemo(() => {
@@ -406,14 +386,14 @@ export default function SRReportPage() {
       if (filterType  && getDyn(srd, 'sample type', 'sampleType').toLowerCase() !== filterType.toLowerCase()) return false;
       if (filterStage && !matchesStage(srd, filterStage)) return false;
       if (filterStatus !== 'all') {
-        const label = slugify(getCurrentStatusLabel(srd, prodStages));
+        const label = slugify(getCurrentStatusLabel(srd));
         if (label !== filterStatus) return false;
       }
       if (filterDateFrom && new Date(srd.createdAt) < new Date(filterDateFrom)) return false;
       if (filterDateTo   && new Date(srd.createdAt) > new Date(filterDateTo + 'T23:59:59')) return false;
       return true;
     });
-  }, [srds, activeGroup, groups, search, filterStatus, filterBrand, filterType, filterStage, filterDateFrom, filterDateTo, prodStages]);
+  }, [srds, activeGroup, groups, search, filterStatus, filterBrand, filterType, filterStage, filterDateFrom, filterDateTo]);
 
   const hasFilters = search || filterStatus !== 'all' || filterBrand || filterType || filterStage || filterDateFrom || filterDateTo;
   const clearFilters = () => {
@@ -446,7 +426,7 @@ export default function SRReportPage() {
       const size       = getDyn(srd, 'sample request size', 'size', 'Size');
       const qty        = getDyn(srd, 'sample request qty.', 'sample request qty', 'qty', 'quantity', 'Qty');
       const delay      = getDelayDays(srd);
-      const os         = getCurrentStatusLabel(srd, prodStages);
+      const os         = getCurrentStatusLabel(srd);
       const targetDate = fmtDate(getDyn(srd, 'sample etd', 'target dispatch date', 'etd', 'dispatch date'));
       const actualDate = srd.sampleDispatchedToBuyer ? fmtDate(srd.sampleDipatchedtoBuyerDate) : '';
 
@@ -512,7 +492,7 @@ export default function SRReportPage() {
       const size       = getDyn(srd, 'sample request size', 'size', 'Size');
       const qty        = getDyn(srd, 'sample request qty.', 'sample request qty', 'qty', 'quantity', 'Qty');
       const delay      = getDelayDays(srd);
-      const os         = getCurrentStatusLabel(srd, prodStages);
+      const os         = getCurrentStatusLabel(srd);
       const targetDate = fmtDate(getDyn(srd, 'sample etd', 'target dispatch date', 'etd', 'dispatch date'));
       const actualDate = srd.sampleDispatchedToBuyer ? fmtDate(srd.sampleDipatchedtoBuyerDate) : '-';
 
@@ -526,13 +506,7 @@ export default function SRReportPage() {
         (srd.BuyerRejectedReasons    || []).map(r => r.reason).join(', ') || '-';
 
       const delayCls = delay > 7 ? 'color:#dc2626' : delay > 3 ? 'color:#ea580c' : 'color:#374151';
-      const osBucket = getOverallStatus(srd);
-      const osCls    = osBucket === 'Completed' ? 'color:#15803d;font-weight:600'
-                     : osBucket === 'In Production'      ? 'color:#2563eb;font-weight:600'
-                     : osBucket === 'Ready for Production' ? 'color:#7c3aed;font-weight:600'
-                     : osBucket === 'Flagged'            ? 'color:#ea580c;font-weight:600'
-                     : osBucket === 'In Progress'        ? 'color:#ca8a04;font-weight:600'
-                     : 'color:#9ca3af';
+      const osCls    = STATUS_INLINE_COLORS[getCurrentStatus(srd)] || 'color:#9ca3af';
       const appCls   = approvalStatus.includes('Rejected') ? 'color:#dc2626'
                      : approvalStatus !== '-' ? 'color:#15803d' : 'color:#9ca3af';
 
@@ -835,16 +809,9 @@ export default function SRReportPage() {
                 const size       = getDyn(srd, 'sample request size', 'size', 'Size');
                 const qty        = getDyn(srd, 'sample request qty.', 'sample request qty', 'qty', 'quantity', 'Qty');
                 const delay      = getDelayDays(srd);
-                const os         = getOverallStatus(srd);
-                const osDisplay  = getCurrentStatusLabel(srd, prodStages);
-                const osCls      = os === 'Completed' ? 'text-green-700 font-semibold'
-                                 : os === 'In Production'      ? 'text-blue-600 font-semibold'
-                                 : os === 'Ready for Production' ? 'text-purple-600 font-semibold'
-                                 : os === 'Dispatched'         ? 'text-sky-600 font-semibold'
-                                 : os === 'Rejected'           ? 'text-red-600 font-semibold'
-                                 : os === 'Flagged'            ? 'text-orange-600 font-semibold'
-                                 : os === 'In Progress'        ? 'text-yellow-600 font-semibold'
-                                 : 'text-gray-400';
+                const statusKey  = getCurrentStatus(srd);
+                const osDisplay  = getCurrentStatusLabel(srd);
+                const osCls      = STATUS_TAILWIND_CLS[statusKey] || 'text-gray-400';
 
                 let approvalStatus = '';
                 if (srd.BuyerApproved) approvalStatus = 'Buyer Approved';

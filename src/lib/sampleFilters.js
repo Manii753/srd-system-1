@@ -8,7 +8,7 @@ export const STAGE_FILTER_OPTIONS = [
   { value: 'washing',     label: 'Washing' },
   { value: 'finishing',   label: 'Finishing' },
   { value: 'dispatched',  label: 'Dispatched' },
-  { value: 'approved',    label: 'Approved' },
+  { value: 'approved',    label: 'Completed' },
   { value: 'rejected',    label: 'Rejected' },
 ];
 
