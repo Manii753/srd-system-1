@@ -36,18 +36,14 @@ function getDeptVal(srd, dept) {
 }
 
 function getOverallStatus(srd) {
-  // If the SRD is fully complete, show Completed
-  const sp = srd.sampleProcess || [];
-  const allSamplesCompleted =
-    sp.length > 0 && sp.every(s => s.status === 'completed' || s.completedDate);
-  if (srd.isComplete || allSamplesCompleted) return 'Completed';
+  // "Completed" is ONLY shown when the buyer has approved. Production being
+  // done (isComplete) without approval reads as "Dispatched" (awaiting verdict).
+  if (srd.BuyerApproved) return 'Completed';
+  if ((srd.internalRejectedReasons || []).length > 0 ||
+      (srd.BuyerRejectedReasons || []).length > 0) return 'Rejected';
+  if (srd.isComplete || srd.inDispatch || srd.sampleDispatchedToBuyer) return 'Dispatched';
   // If in production, show current production stage
-  if (srd.inProduction && srd.currentProductionStage) {
-    return 'In Production';
-  }
-  if (srd.inProduction && !srd.currentProductionStage) {
-    return 'Completed';
-  }
+  if (srd.inProduction) return 'In Production';
   // Otherwise show department approval status
   const vals = ['vmd', 'cad', 'mmc', 'commercial'].map(d => getDeptVal(srd, d));
   if (vals.every(v => v === 'approved')) return 'Ready for Production';
@@ -65,6 +61,8 @@ const BASE_STATUS_OPTIONS = [
   { value: 'flagged', label: 'Flagged' },
   { value: 'ready-for-production', label: 'Ready for Production' },
   { value: 'in-production', label: 'In Production' },
+  { value: 'dispatched', label: 'Dispatched' },
+  { value: 'rejected', label: 'Rejected' },
 ];
 
 function slugify(text) {
@@ -842,6 +840,8 @@ export default function SRReportPage() {
                 const osCls      = os === 'Completed' ? 'text-green-700 font-semibold'
                                  : os === 'In Production'      ? 'text-blue-600 font-semibold'
                                  : os === 'Ready for Production' ? 'text-purple-600 font-semibold'
+                                 : os === 'Dispatched'         ? 'text-sky-600 font-semibold'
+                                 : os === 'Rejected'           ? 'text-red-600 font-semibold'
                                  : os === 'Flagged'            ? 'text-orange-600 font-semibold'
                                  : os === 'In Progress'        ? 'text-yellow-600 font-semibold'
                                  : 'text-gray-400';
@@ -946,7 +946,7 @@ export default function SRReportPage() {
                                 if (completedDate) {
                                   cls = 'bg-green-600 text-white';
                                   text = fmtDate(completedDate);
-                                } else if (getOverallStatus(srd) === 'Completed') {
+                                } else if (srd.isComplete) {
                                   // SRD is fully complete but has no per-stage timestamps:
                                   // fall back to the record's completion / last-updated date.
                                   const fallbackDate =
