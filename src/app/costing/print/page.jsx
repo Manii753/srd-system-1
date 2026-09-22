@@ -25,21 +25,6 @@ const fmtUsd = (v) => n(v).toFixed(2);
 function rowAmt(row) { return n(row.amount ?? row.consumption * row.price); }
 function secSum(rows) { return (rows || []).reduce((s, r) => s + rowAmt(r), 0); }
 
-// helper: count of user-added dropdown columns
-const nEC = (EC) => (EC || []).length;
-
-// Right-side content cells for user-added dropdown columns (item rows)
-const ExtraVal = ({ EC, r }) => (EC || []).map((c, i) => (
-  <td key={c.id} style={td({ textAlign: 'center', ...(i === EC.length - 1 ? { borderRight: BO } : {}) })}>
-    {r?.extra?.[c.id] || ''}
-  </td>
-));
-
-// Empty spacer cells so specialised rows keep their borders when extras exist
-const ExtraSpacer = ({ EC }) => (EC || []).map((_c, i) => (
-  <td key={`x${i}`} style={td({ ...(i === EC.length - 1 ? { borderRight: BO } : {}) })} />
-));
-
 function calcAll(d) {
   const tFab  = secSum(d.fabrics);
   const tBW   = secSum(d.beforeWashTrims);
@@ -59,116 +44,17 @@ function calcAll(d) {
   };
 }
 
-// ─── shared cell style ────────────────────────────────────────────────────────
-const B  = '0.5px solid #aaa';   // inner border
-const BO = '1px solid #000';     // outer / section border
-
-const td = (extra = {}) => ({
-  border: B,
-  padding: '1.5px 3px',
-  fontSize: '7.5pt',
-  fontFamily: 'Arial, Helvetica, sans-serif',
-  verticalAlign: 'middle',
-  ...extra,
-});
-
-const tdB = (extra = {}) => td({ fontWeight: 700, ...extra });   // bold cell
-const tdR = (extra = {}) => td({ textAlign: 'right', ...extra }); // right-align
-
-// ─── reusable row renderers ───────────────────────────────────────────────────
-
-// Section label row (colored bold text, spans all columns)
-const SecRow = ({ label, color, EC }) => (
-  <tr>
-    <td colSpan={5 + nEC(EC)} style={tdB({ color, borderTop: BO, borderBottom: B, borderLeft: BO, borderRight: BO })}>
-      {label}
-    </td>
-  </tr>
-);
-
-// Col-header row for fabrics (with Code + user dropdown columns)
-const FabHdr = ({ EC }) => (
-  <tr style={{ background: '#f5f5f5' }}>
-    <td style={tdB({ width: '30%', borderLeft: BO })}>Description</td>
-    <td style={tdB({ width: '14%' })}>Code</td>
-    <td style={tdB({ width: '14%', textAlign: 'right' })}>Consumption</td>
-    <td style={tdB({ width: '14%', textAlign: 'right' })}>Rate</td>
-    <td style={tdB({ width: '14%', textAlign: 'right', ...(nEC(EC) ? {} : { borderRight: BO }) })}>Amount</td>
-    {(EC || []).map((c, i) => (
-      <td key={c.id} style={tdB({ textAlign: 'center', ...(i === EC.length - 1 ? { borderRight: BO } : {}) })}>
-        {c.name}
-      </td>
-    ))}
-  </tr>
-);
-
-// Fabric data row
-const FabRow = ({ r, EC }) => (
-  <tr>
-    <td style={td({ borderLeft: BO })}>{r.description}</td>
-    <td style={td()}>{r.code || ''}</td>
-    <td style={tdR()}>{fmtN(r.consumption)}</td>
-    <td style={tdR()}>{fmtN(r.price)}</td>
-    <td style={tdR({ ...(nEC(EC) ? {} : { borderRight: BO }) })}>{fmtAmt(rowAmt(r))}</td>
-    <ExtraVal EC={EC} r={r} />
-  </tr>
-);
-
-// Trim/embellishment data row (Description spans 2 cols)
-const TrimRow = ({ r, EC }) => (
-  <tr>
-    <td colSpan={2} style={td({ borderLeft: BO })}>{r.description}</td>
-    <td style={tdR()}>{fmtN(r.consumption)}</td>
-    <td style={tdR()}>{fmtN(r.price)}</td>
-    <td style={tdR({ ...(nEC(EC) ? {} : { borderRight: BO }) })}>{fmtAmt(rowAmt(r))}</td>
-    <ExtraVal EC={EC} r={r} />
-  </tr>
-);
-
-// Generic 2-col row: label (spans 4) + right-aligned value
-const Row2 = ({ label, value, bold, indent, EC }) => (
-  <tr>
-    <td colSpan={4} style={td({
-      borderLeft: BO,
-      fontWeight: bold ? 700 : 400,
-      paddingLeft: indent ? 10 : 3,
-    })}>
-      {label}
-    </td>
-    <td style={tdR({ borderRight: BO, fontWeight: bold ? 700 : 400 })}>{value}</td>
-    <ExtraSpacer EC={EC} />
-  </tr>
-);
-
-// Production row: label (spans 2) + level (1 col) + empty + amount
-const ProdRow = ({ label, level, amount, EC }) => (
-  <tr>
-    <td colSpan={2} style={td({ borderLeft: BO })}>{label}</td>
-    <td style={td({ textAlign: 'center' })}>{level != null && level !== 0 ? level : ''}</td>
-    <td style={td()}></td>
-    <td style={tdR({ borderRight: BO })}>{fmtAmt(amount)}</td>
-    <ExtraSpacer EC={EC} />
-  </tr>
-);
-
-// Quote row: label (spans 3) + dollar sign + amount value
-const QuoteRow = ({ label, dollarColor, amountColor, amount, bg, labelBold, EC }) => (
-  <tr style={bg ? { background: bg } : {}}>
-    <td colSpan={3} style={tdB({ borderLeft: BO, fontWeight: labelBold ? 700 : 400 })}>{label}</td>
-    <td style={td({ textAlign: 'right', color: dollarColor || '#000', fontWeight: 700 })}>$</td>
-    <td style={tdR({ borderRight: BO, color: amountColor || '#000', fontWeight: 700 })}>
-      {amount ? fmtUsd(amount) : ''}
-    </td>
-    <ExtraSpacer EC={EC} />
-  </tr>
-);
-
-// ─── main print component ─────────────────────────────────────────────────────
+function assetUrl(entry) {
+  if (!entry) return '';
+  if (typeof entry === 'string') return entry;
+  return entry.url || entry.src || entry.path || '';
+}
 
 function PrintContent() {
   const sp     = useSearchParams();
   const srdId  = sp.get('srdId');
   const type   = sp.get('type') || 'post';
+  const isPre  = type === 'pre';
 
   const [d,         setD]         = useState(null);
   const [srd,       setSrd]       = useState(null);
@@ -183,14 +69,14 @@ function PrintContent() {
         const res  = await fetch(`/api/costing/${srdId}`);
         const json = await res.json();
         if (!json.success) throw new Error(json.error || 'Failed to load');
-        const side = type === 'pre' ? json.data?.preCost : json.data?.postCost;
+        const side = isPre ? json.data?.preCost : json.data?.postCost;
         setD(side || {});
         setSrd(json.srd);
         setPocNumber(json.data?.pocNumber ?? null);
       } catch (e) { setError(e.message); }
       finally     { setLoading(false); }
     })();
-  }, [srdId, type]);
+  }, [srdId, isPre]);
 
   useEffect(() => {
     if (!loading && d && !error) {
@@ -208,227 +94,421 @@ function PrintContent() {
   const T = calcAll(data);
   const EC = data.extraCols || [];
 
-  return (
-    <div style={{
-      fontFamily: 'Arial, Helvetica, sans-serif',
-      fontSize: '7.5pt',
-      color: '#000',
-      background: '#fff',
-      width: '190mm',
-      margin: '0 auto',
-    }}>
-      <style>{`
-        @page { size: A4 portrait; margin: 10mm 10mm 10mm 10mm; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        table { width: 100%; border-collapse: collapse; }
-      `}</style>
+  const imageSrc = assetUrl(data.images?.[0]);
 
-      {/* ════════════════════════════════════════
-          TITLE
-          ════════════════════════════════════════ */}
-      <div style={{
-        textAlign: 'center', fontWeight: 700, fontSize: '11pt',
-        border: '1px solid #000', padding: '3px 0', marginBottom: 6,
-      }}>
-        Costing Form
+  const headerFields = [
+    ['Costing Date',   d.date],
+    ['Brand',          d.brand],
+    ['Fit Specs Code', d.fitSpecsCode],
+    ['Fit',            d.fit],
+    ['Description',    d.description],
+    ['Fabric Type',    d.fabricType],
+    ['Embellishment',  d.embellishmentYesNo || ''],
+    ['Costing Base',   d.costingBase || ''],
+    ['Sample Size',    d.sampleSize],
+  ];
+
+  // ── generic SR-style label/value table (2 columns) ──────────────────────────
+  const rowsBy2 = (rows) => (
+    <table className="print-table">
+      <tbody>
+        {rows.map(([label, value, opts = {}], i) => (
+          <tr key={i} style={opts.bg ? { background: opts.bg } : {}}>
+            <td className="table-field-label" style={opts.labelBold ? { fontWeight: 700 } : {}}>{label}</td>
+            <td className="table-field-cell" style={{ textAlign: 'right' }}>
+              <span className="table-field-underline" style={opts.amountColor ? { color: opts.amountColor, fontWeight: 700 } : { fontWeight: opts.bold ? 700 : 400 }}>
+                {value}
+              </span>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  // ── section block: items table (fabrics with Code, trims/embellishment without) ──
+  const itemBlock = (label, rows, showCode, sectionTotal) => (
+    <div className="table-block">
+      <div className="table-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>{label}</span>
+        {sectionTotal > 0 && <span style={{ fontWeight: 600 }}>{fmtAmt(sectionTotal)}</span>}
       </div>
-
-      {/* ════════════════════════════════════════
-          HEADER INFO (no border on the label rows, values underlined)
-          ════════════════════════════════════════ */}
-      <table style={{ marginBottom: 5, borderCollapse: 'collapse', width: '60%' }}>
-        <colgroup>
-          <col style={{ width: '38%' }} />
-          <col style={{ width: '62%' }} />
-        </colgroup>
+      <table className="print-table">
+        <thead>
+          <tr>
+            <th className="table-header" colSpan={showCode ? 1 : 2} style={{ width: showCode ? '30%' : '40%' }}>Description</th>
+            <th className="table-header num-right" style={{ width: '15%' }}>Cons</th>
+            <th className="table-header num-right" style={{ width: '15%' }}>Rate</th>
+            <th className="table-header num-right" style={{ width: EC.length ? '14%' : '30%' }}>Amount</th>
+            {EC.map((c) => (
+              <th key={c.id} className="table-header" style={{ width: '12%', textAlign: 'center' }}>{c.name}</th>
+            ))}
+          </tr>
+        </thead>
         <tbody>
-          {[
-            ['Costing date',   d.date],
-            ['Brand',          d.brand],
-            ['Fit Specs Code', d.fitSpecsCode],
-            ['Fit',            d.fit],
-            ['Description',    d.description],
-            ['Fabric Type',    d.fabricType],
-            ['Embellishment',  d.embellishmentYesNo || ''],
-            ['Costing Base',   d.costingBase || ''],
-            ['Sample Size',    d.sampleSize],
-          ].map(([lbl, val]) => (
-            <tr key={lbl}>
-              <td style={{ fontSize: '7.5pt', padding: '0.8px 2px', fontWeight: 600, color: '#222' }}>{lbl}</td>
-              <td style={{
-                fontSize: '7.5pt', padding: '0.8px 2px',
-                fontWeight: val ? 700 : 400,
-                textDecoration: val ? 'underline' : 'none',
-                textAlign: 'center',
-              }}>
-                {val || ''}
+          {(rows || []).map((r, i) => (
+            <tr key={i}>
+              {showCode ? (
+                <td className="table-field-label"><span className="table-field-underline">{r.description}</span></td>
+              ) : (
+                <td colSpan={showCode ? 1 : 2} className="table-field-label"><span className="table-field-underline">{r.description}</span></td>
+              )}
+              {showCode && <td className="table-field-cell"><span className="table-field-underline">{r.code || ''}</span></td>}
+              <td className="table-field-cell">
+                <span className="table-field-underline" style={{ textAlign: 'right', fontWeight: 400 }}>{fmtN(r.consumption)}</span>
               </td>
+              <td className="table-field-cell">
+                <span className="table-field-underline" style={{ textAlign: 'right', fontWeight: 400 }}>{fmtN(r.price)}</span>
+              </td>
+              <td className="table-field-cell" style={{ textAlign: 'right' }}>
+                <span className="table-field-underline" style={{ fontWeight: 700 }}>{fmtAmt(rowAmt(r))}</span>
+              </td>
+              {EC.map((c) => (
+                <td key={c.id} className="table-field-cell" style={{ textAlign: 'center' }}>
+                  <span className="table-field-underline" style={{ fontWeight: 400 }}>{r?.extra?.[c.id] || ''}</span>
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>
       </table>
+    </div>
+  );
+
+  return (
+    <div className="print-page">
+      <style>{`
+        @page { size: A4; margin: 0.05in; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+          background: #fff;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          font-size: 10px;
+          text-transform: capitalize !important;
+          line-height: 1.1;
+        }
+        .print-page { width: 100%; }
+
+        /* ── header (title left, image right, like the SR print) ── */
+        .header {
+          margin-top: 4px;
+          margin-bottom: 6px;
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 12px;
+        }
+        .header-main { flex: 1; min-width: 0; }
+        .header h1 {
+          font-size: 14px;
+          margin: 0 0 3px 0;
+          font-weight: 700;
+          text-transform: uppercase;
+          color: #1a1a1a;
+          border-bottom: 1.5px solid #1a1a1a;
+          padding-bottom: 2px;
+        }
+        .header-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px 12px;
+          font-size: 11px;
+          font-weight: 600;
+          color: #333;
+          margin-top: 2px;
+        }
+        .header-meta .meta-key { color: #6b7280; font-weight: 600; }
+        .header-image { flex-shrink: 0; width: 170px; }
+        .header-image-frame {
+          width: 170px;
+          height: 170px;
+          border: 1px solid #d1d5db;
+          background: #fff;
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .header-image-img {
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
+          display: block;
+        }
+        .header-image-empty {
+          font-size: 9px;
+          color: #9ca3af;
+          font-style: italic;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+          text-transform: none;
+        }
+
+        /* ── field cells (label + underlined value), like the SR grid ── */
+        .info-grid {
+          display: grid;
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+          gap: 4px 1px;
+          margin-bottom: 8px;
+        }
+        .field-cell {
+          grid-column: span 2;
+          padding: 2px 0 0 0;
+          background: white;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-start;
+        }
+        .field-cell.is-wide { grid-column: span 6; }
+        .cell-content {
+          display: flex;
+          align-items: flex-start;
+          width: 100%;
+          gap: 6px;
+          height: 100%;
+        }
+        .cell-label-group { width: 120px; flex-shrink: 0; }
+        .cell-label {
+          font-size: 11px;
+          font-weight: 700;
+          color: #333;
+          white-space: normal;
+          text-transform: capitalize;
+          line-height: 10px;
+        }
+        .cell-underline {
+          font-size: 11px;
+          color: #000;
+          flex-grow: 1;
+          border-bottom: 0.4px solid #999;
+          min-height: 12px;
+          padding: 0 2px;
+          display: flex;
+          align-items: flex-end;
+          white-space: pre-wrap;
+          line-height: 1.2;
+          word-break: break-word;
+        }
+
+        /* ── print tables, like the SR print tables ── */
+        .table-block { margin-top: 4px; margin-bottom: 4px; break-inside: avoid; }
+        .table-label {
+          font-size: 12px;
+          font-weight: 700;
+          color: #333;
+          text-transform: capitalize;
+          background: #f3f4f6;
+          padding: 2px 4px;
+          border-bottom: 1px solid #ddd;
+        }
+        .print-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 11px;
+          border: 0.5px solid #ccc;
+        }
+        .print-table .table-header {
+          background-color: #f3f4f6;
+          padding: 2px 4px;
+          text-align: left;
+          font-weight: 700;
+          font-size: 11px;
+          color: #333;
+          text-transform: capitalize;
+          border: 0.5px solid #ccc;
+        }
+        .print-table .table-field-label {
+          padding: 2px 4px;
+          text-align: left;
+          font-size: 11px;
+          font-weight: 700;
+          color: #333;
+          text-transform: capitalize;
+          white-space: normal;
+          word-break: break-word;
+          border: 0.5px solid #ccc;
+        }
+        .print-table .table-field-cell {
+          padding: 2px 4px;
+          text-align: left;
+          border: 0.5px solid #ccc;
+        }
+        .print-table .table-field-underline {
+          font-size: 11px;
+          color: #000;
+          display: inline-block;
+          width: calc(100% - 5px);
+          border-bottom: 0.4px solid #999;
+          min-height: 14px;
+          padding: 0 2px;
+          line-height: 14px;
+          white-space: pre-wrap;
+        }
+        .print-table .num-right { text-align: right; }
+
+        /* ── signature footer, like the SR print ── */
+        .footer {
+          margin-top: 18px;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 15px;
+          font-size: 7px;
+        }
+        .signature-box {
+          border-top: 0.5px solid #000;
+          padding-top: 3px;
+        }
+        .signature-title {
+          font-weight: bold;
+          margin-bottom: 15px;
+          font-size: 11px;
+          color: #000;
+        }
+      `}</style>
 
       {/* ════════════════════════════════════════
-          MASTER TABLE  (5 base columns + any user dropdown columns)
-          Col widths: Description | Code | Consumption | Rate | Amount | <extras>
+          HEADER  (title + meta left, product image right)
           ════════════════════════════════════════ */}
-      <table style={{ border: BO }}>
-        <colgroup>
-          <col style={{ width: '30%' }} />
-          <col style={{ width: '16%' }} />
-          <col style={{ width: '16%' }} />
-          <col style={{ width: '16%' }} />
-          <col style={{ width: '16%' }} />
-          {EC.map(c => <col key={c.id} style={{ width: '12%' }} />)}
-        </colgroup>
-        <tbody>
-
-          {/* ── FABRICS ─────────────────────────────── */}
-          <SecRow label="Fabrics" color="#c00" EC={EC} />
-          <FabHdr EC={EC} />
-          {(data.fabrics || []).map((r, i) => <FabRow key={i} r={r} EC={EC} />)}
-
-          {/* ── BEFORE WASH TRIMS ───────────────────── */}
-          <SecRow label="Before Wash Trims" color="#007000" EC={EC} />
-          {(data.beforeWashTrims || []).map((r, i) => <TrimRow key={i} r={r} EC={EC} />)}
-
-          {/* ── AFTER WASH TRIMS ────────────────────── */}
-          <SecRow label="After Wash Trims" color="#c00" EC={EC} />
-          {(data.afterWashTrims || []).map((r, i) => <TrimRow key={i} r={r} EC={EC} />)}
-
-          {/* ── EMBELLISHMENT ───────────────────────── */}
-          <SecRow label="Embellishment" color="#c07000" EC={EC} />
-          {(data.embellishment || []).map((r, i) => <TrimRow key={i} r={r} EC={EC} />)}
-
-          {/* ── PRODUCTION COST ─────────────────────── */}
-          {/* Header row for this section: label + "LEVEL" header in col 3 */}
-          <tr>
-            <td colSpan={2} style={tdB({ color: '#c00', borderTop: BO, borderLeft: BO })}>Production Cost</td>
-            <td style={tdB({ textAlign: 'center', borderTop: BO })}>LEVEL</td>
-            <td style={td({ borderTop: BO })}></td>
-            <td style={td({ borderTop: BO, borderRight: BO })}></td>
-            <ExtraSpacer EC={EC} />
-          </tr>
-          <ProdRow label="Cmt (Codes Req Level 1 2 3)"     level={n(data.cmtLevel) || ''}     amount={data.cmtLevel} EC={EC} />
-          <ProdRow label="Washing (Codes Req Level 1 2 3)" level={n(data.washingLevel) || ''} amount={data.washingLevel} EC={EC} />
-          <ProdRow label="Fob"                              level=""                        amount={data.fob} EC={EC} />
-
-          {/* ── FREIGHT ─────────────────────────────── */}
-          <tr>
-            <td colSpan={4} style={td({ borderLeft: BO, borderTop: BO })}>Freight</td>
-            <td style={tdR({ borderTop: BO, borderRight: BO })}>{fmtAmt(data.freight)}</td>
-            <ExtraSpacer EC={EC} />
-          </tr>
-
-          {/* ── MARGIN & COMMISSION ─────────────────── */}
-          {/* Header: label + "Percentage %" column header */}
-          <tr>
-            <td colSpan={2} style={tdB({ color: '#c00', borderTop: BO, borderLeft: BO })}>Margin &amp; Commission</td>
-            <td style={tdB({ textAlign: 'center', borderTop: BO })}>Percentage %</td>
-            <td style={td({ borderTop: BO })}></td>
-            <td style={td({ borderTop: BO, borderRight: BO })}></td>
-            <ExtraSpacer EC={EC} />
-          </tr>
-          {/* Percentage % row — value in col 3, computed amount in col 5 */}
-          <tr>
-            <td colSpan={2} style={td({ borderLeft: BO })}>Percentage %</td>
-            <td style={td({ textAlign: 'center' })}>{n(data.marginPct) || ''}</td>
-            <td style={td()}></td>
-            <td style={tdR({ borderRight: BO })}>
-              {fmtAmt((n(data.cmtLevel) + n(data.washingLevel) + n(data.fob) +
-                secSum(data.fabrics) + secSum(data.beforeWashTrims) +
-                secSum(data.afterWashTrims) + secSum(data.embellishment) +
-                n(data.freight)) * (n(data.marginPct) / 100))}
-            </td>
-            <ExtraSpacer EC={EC} />
-          </tr>
-          <Row2 label="Extra Cut"       value={fmtAmt(data.extraCut)} EC={EC} />
-          <Row2 label="Ld Margin"       value={fmtAmt(data.ldMargin)} EC={EC} />
-          {/* blank spacer row */}
-          <tr><td colSpan={4} style={td({ borderLeft: BO, padding: '1px 3px' })}></td><td style={td({ borderRight: BO })}></td><ExtraSpacer EC={EC} /></tr>
-          <Row2 label="Testing Charges" value={fmtAmt(data.testingCharges)} EC={EC} />
-          <Row2 label="Commission"      value={fmtAmt(data.commission)} EC={EC} />
-
-          {/* ── SUMMARY ─────────────────────────────── */}
-          <Row2 label="Total Price PKR" value={Math.round(T.totalPkr)} bold EC={EC} />
-
-          {/* Currency row: label | value | USD/Euro label | rate | empty */}
-          <tr>
-            <td style={td({ borderLeft: BO })}>Currency</td>
-            <td style={td()}></td>
-            <td style={td()}>USD/ Euro</td>
-            <td style={tdR()}>{n(data.currencyRate) || 265}</td>
-            <td style={td({ borderRight: BO })}></td>
-            <ExtraSpacer EC={EC} />
-          </tr>
-
-          <Row2 label="Final Fob Us$" value={`$${fmtUsd(T.finalFob)}`} bold EC={EC} />
-
-          {/* ── QUOTE TRACKING ──────────────────────── */}
-          {/* First Quoted — green bg */}
-          <QuoteRow
-            label="First Quoted"
-            bg="#92d050"
-            labelBold
-            dollarColor="#000"
-            amountColor="#000"
-            amount={data.firstQuoted}
-            EC={EC}
-          />
-          {/* Target $ — white */}
-          <QuoteRow
-            label="Target $"
-            dollarColor="#5b9bd5"
-            amountColor="#5b9bd5"
-            amount={data.targetPrice}
-            EC={EC}
-          />
-          {/* Difference — white */}
-          <QuoteRow
-            label="Difference"
-            dollarColor="#5b9bd5"
-            amountColor="#5b9bd5"
-            amount={T.diff}
-            EC={EC}
-          />
-          {/* 2nd Quote — yellow bg */}
-          <QuoteRow
-            label="2nd Quote $"
-            bg="#ffff00"
-            labelBold
-            dollarColor="#f97316"
-            amountColor="#f97316"
-            amount={data.secondQuote}
-            EC={EC}
-          />
-          {/* Confirmed — green bg */}
-          <QuoteRow
-            label="Confirmed"
-            bg="#92d050"
-            labelBold
-            dollarColor="#f97316"
-            amountColor="#f97316"
-            amount={data.confirmedPrice}
-            EC={EC}
-          />
-
-        </tbody>
-      </table>
+      <div className="header">
+        <div className="header-main">
+          <h1>{isPre ? 'Pre Costing Form' : 'Costing Form'}</h1>
+          <div className="header-meta">
+            {pocNumber
+              ? <span><span className="meta-key">POC:</span> POC-{pocNumber}</span>
+              : srd?.refNo
+                ? <span><span className="meta-key">Ref:</span> {srd.refNo}</span>
+                : null}
+            <span><span className="meta-key">Currency:</span> {d.currency || 'USD'}</span>
+            {d.status && <span><span className="meta-key">Status:</span> {d.status}</span>}
+          </div>
+        </div>
+        <div className="header-image">
+          <div className="header-image-frame">
+            {imageSrc ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={imageSrc} alt="Product" className="header-image-img" />
+            ) : (
+              <span className="header-image-empty">No Image</span>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* ════════════════════════════════════════
-          PRODUCT IMAGE  (right-aligned, below table)
+          INFO FIELDS  (label + underlined values)
           ════════════════════════════════════════ */}
-      {(d.images || []).length > 0 && (
-        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={d.images[0].url}
-            alt="Product"
-            style={{ maxWidth: 180, maxHeight: 220, objectFit: 'contain' }}
-          />
+      <div className="info-grid">
+        {headerFields.map(([label, value]) => (
+          <div key={label} className="field-cell">
+            <div className="cell-content">
+              <div className="cell-label-group">
+                <span className="cell-label">{label}</span>
+              </div>
+              <span className="cell-underline">{value || ''}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ════════════════════════════════════════
+          MASTER COST SECTIONS
+          ════════════════════════════════════════ */}
+
+      {/* ── FABRICS ─────────────────────────────── */}
+      {itemBlock('Fabrics', data.fabrics, true, T.tFab)}
+
+      {/* ── BEFORE WASH TRIMS ───────────────────── */}
+      {itemBlock('Before Wash Trims', data.beforeWashTrims, false, T.tBW)}
+
+      {/* ── AFTER WASH TRIMS ────────────────────── */}
+      {itemBlock('After Wash Trims', data.afterWashTrims, false, T.tAW)}
+
+      {/* ── EMBELLISHMENT ───────────────────────── */}
+      {itemBlock('Embellishment', data.embellishment, false, T.tEmb)}
+
+      {/* ── PRODUCTION COST ─────────────────────── */}
+      <div className="table-block">
+        <div className="table-label">Production Cost</div>
+        {rowsBy2([
+          ['Cmt (Codes Req Level 1 2 3)', fmtAmt(data.cmtLevel)],
+          ['Washing (Codes Req Level 1 2 3)', fmtAmt(data.washingLevel)],
+          ['Fob', fmtAmt(data.fob)],
+        ])}
+      </div>
+
+      {/* ── FREIGHT ─────────────────────────────── */}
+      <div className="table-block">
+        <div className="table-label">Freight</div>
+        {rowsBy2([['Freight', fmtAmt(data.freight)]])}
+      </div>
+
+      {/* ── MARGIN & COMMISSION ─────────────────── */}
+      <div className="table-block">
+        <div className="table-label">Margin &amp; Commission</div>
+        {rowsBy2([
+          ['Percentage %', n(data.marginPct) ? n(data.marginPct) + ' %' : ''],
+          ['Extra Cut', fmtAmt(data.extraCut)],
+          ['Ld Margin', fmtAmt(data.ldMargin)],
+          ['Testing Charges', fmtAmt(data.testingCharges)],
+          ['Commission', fmtAmt(data.commission)],
+        ])}
+      </div>
+
+      {/* ── SUMMARY ─────────────────────────────── */}
+      <div className="table-block">
+        <div className="table-label">Summary</div>
+        {rowsBy2([
+          ['Total Price PKR', Math.round(T.totalPkr).toLocaleString('en-US'), { bold: true }],
+          ['Currency (USD / Euro)', String(n(data.currencyRate) || 265)],
+          ['Final Fob Us$', '$' + fmtUsd(T.finalFob), { bold: true }],
+        ])}
+      </div>
+
+      {/* ── QUOTE TRACKING ──────────────────────── */}
+      <div className="table-block">
+        <div className="table-label">Quote Tracking</div>
+        {rowsBy2([
+          ['First Quoted', '$' + fmtUsd(data.firstQuoted), { bg: '#92d050', labelBold: true, amountColor: '#000' }],
+          ['Target $', '$' + fmtUsd(data.targetPrice), { amountColor: '#5b9bd5' }],
+          ['Difference', '$' + fmtUsd(T.diff), { amountColor: '#5b9bd5' }],
+          ['2nd Quote $', '$' + fmtUsd(data.secondQuote), { bg: '#ffff00', labelBold: true, amountColor: '#f97316' }],
+          ['Confirmed', '$' + fmtUsd(data.confirmedPrice), { bg: '#92d050', labelBold: true, amountColor: '#f97316' }],
+        ])}
+      </div>
+
+      {/* ── NOTES ───────────────────────────────── */}
+      {d.notes && (
+        <div className="field-cell is-wide" style={{ marginTop: 4 }}>
+          <div className="cell-content">
+            <div className="cell-label-group">
+              <span className="cell-label">Notes</span>
+            </div>
+            <span className="cell-underline">{d.notes}</span>
+          </div>
         </div>
       )}
+
+      {/* ════════════════════════════════════════
+          SIGNATURE FOOTER
+          ════════════════════════════════════════ */}
+      <div className="footer">
+        <div className="signature-box">
+          <div className="signature-title">Prepared By</div>
+        </div>
+        <div className="signature-box">
+          <div className="signature-title">Checked By</div>
+        </div>
+        <div className="signature-box">
+          <div className="signature-title">Approved By</div>
+        </div>
+      </div>
     </div>
   );
 }
