@@ -74,6 +74,15 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
     fetchSRDs();
   }, [currentPage, effectiveSearch, effectiveFilter, department, sortField, sortDirection, paginationSettings.itemsPerPage, activeBrands, effectiveBrand, effectiveSampleType, effectiveStage]);
 
+  // Refetch when the window regains focus so approval/rejection/comment
+  // changes made on the SR form are reflected (e.g. redo enablement).
+  useEffect(() => {
+    const onFocus = () => fetchSRDs();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, effectiveSearch, effectiveFilter, department, sortField, sortDirection, paginationSettings.itemsPerPage, activeBrands, effectiveBrand, effectiveSampleType, effectiveStage]);
+
   const fetchMetadata = async () => {
     try {
       const promises = [];
@@ -548,7 +557,7 @@ export default function SRDTable({ department, searchTerm: searchTermProp, filte
                           size="sm"
                           variant="outline"
                           onClick={() => handleRedo(srd._id)}
-                          disabled={session?.user?.role !== 'vmd' ? true : srd?.BuyerRejectedReasons.length < 1 && srd?.internalRejectedReasons.length < 1 && !(srd?.BuyerApproved && srd?.BuyerComments)}
+                          disabled={session?.user?.role !== 'vmd' ? true : (srd?.BuyerRejectedReasons || []).length < 1 && (srd?.internalRejectedReasons || []).length < 1 && !(srd?.BuyerApproved && srd?.BuyerComments)}
                           title="Redo SRD"
                           className="border-gray-300 hover:border-green-500 hover:text-green-600 transition-colors duration-200"
                         >

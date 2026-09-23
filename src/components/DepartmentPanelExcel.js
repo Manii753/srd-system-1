@@ -1461,7 +1461,7 @@ export default function DepartmentPanelExcel({
           size="sm"
           variant="outline"
           className="h-7 w-7 p-0 text-app-text"
-          disabled={userRole !== 'vmd'? true : srd?.BuyerRejectedReasons.length < 1 && srd?.internalRejectedReasons.length < 1 && !(srd?.BuyerApproved && srd?.BuyerComments) }
+          disabled={userRole !== 'vmd'? true : (srd?.BuyerRejectedReasons || []).length < 1 && (srd?.internalRejectedReasons || []).length < 1 && !(srd?.BuyerApproved && srd?.BuyerComments) }
           title="Redo"
           onClick={async () => {
             const target = window.prompt('Optional: enter a department slug (vmd, cad, commercial, mmc) or production stage name to nudge. Leave blank to notify all users.');
@@ -1599,7 +1599,7 @@ export default function DepartmentPanelExcel({
       </div>
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onHeaderContent, srd._id, srd.refNo, JSON.stringify(srd.status), isPrinting, hasUnsavedChanges, isAutoSaving, handlePrint, fields, allFieldDefs, activeTemplate, delayThresholdDays, canApproveAnyDepartment, readOnly, userRole]);
+  }, [onHeaderContent, srd._id, srd.refNo, JSON.stringify(srd.status), srd.BuyerApproved, srd.BuyerComments, (srd.BuyerRejectedReasons || []).length, (srd.internalRejectedReasons || []).length, isPrinting, hasUnsavedChanges, isAutoSaving, handlePrint, fields, allFieldDefs, activeTemplate, delayThresholdDays, canApproveAnyDepartment, readOnly, userRole]);
 
   // Activity Console toggle button — injected into the header right slot (before notifications)
   useEffect(() => {
