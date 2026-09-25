@@ -311,6 +311,23 @@ export default function SampleProcessPage() {
   // each item is either { type:'header', label, slug, count }
   // or { type:'row', srd, stageSlug, stageIndex }
   const flatRows = useMemo(() => {
+    // Admin/VMD, or anyone who has picked an explicit stage filter: show the
+    // full table grouped by stage so the filter is honored regardless of role.
+    if (canViewAll || filterStage) {
+      const rows = [];
+      stages.forEach((stage, stageIndex) => {
+        const slug  = stage.name?.toLowerCase();
+        const label = stage.displayName || stage.name?.toUpperCase();
+
+        const sectionSrds = srdsForStage(slug, stageIndex);
+        if (sectionSrds.length === 0) return;
+
+        rows.push({ type: 'header', label, slug, stageIndex, count: sectionSrds.length });
+        sectionSrds.forEach(srd => rows.push({ type: 'row', srd, slug, stageIndex }));
+      });
+      return rows;
+    }
+
     // Production stage user (not admin/vmd): two tabs — what is coming to me
     // soon (Ready at the previous stage) vs. my pending work at my own stage.
     if (!canViewAll) {
@@ -356,20 +373,9 @@ export default function SampleProcessPage() {
       return rows;
     }
 
-    const rows = [];
-    stages.forEach((stage, stageIndex) => {
-      const slug  = stage.name?.toLowerCase();
-      const label = stage.displayName || stage.name?.toUpperCase();
-
-      const sectionSrds = srdsForStage(slug, stageIndex);
-      if (sectionSrds.length === 0) return;
-
-      rows.push({ type: 'header', label, slug, stageIndex, count: sectionSrds.length });
-      sectionSrds.forEach(srd => rows.push({ type: 'row', srd, slug, stageIndex }));
-    });
-    return rows;
+    return [];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredSrds, stages, canViewAll, userRole, activeTab, isDeptRole]);
+  }, [filteredSrds, stages, canViewAll, userRole, activeTab, isDeptRole, filterStage]);
 
   // Pagination on the flat rows (headers always stay with their group —
   // we paginate only the data rows, headers follow their group)
@@ -583,7 +589,7 @@ export default function SampleProcessPage() {
           </div>
 
           {/* Two tabs for production stage users: Coming Soon vs Pending */}
-          {!canViewAll && !isDeptRole && (
+          {!canViewAll && !isDeptRole && !filterStage && (
             <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-2 bg-white">
               <button
                 onClick={() => { setActiveTab('incoming'); setCurrentPage(1); }}
@@ -640,8 +646,8 @@ export default function SampleProcessPage() {
                       if (item.type === 'header') {
                         return (
                           <tr key={`h-${item.slug}`}>
-                            <td colSpan={7} className="px-4 py-1.5 bg-gray-50 border-b border-t border-black/10">
-                              <div className="flex items-center justify-between">
+                            <td colSpan={7} className="px-4 py-1.5 bg-gray-50 border-b border-t border-black/10 text-center">
+                              <div className="flex items-center justify-center gap-2">
                                 <span className="text-xs font-bold text-gray-700 uppercase tracking-widest">{item.label}</span>
                                 <span className="text-xs text-gray-400">{item.count} SR{item.count !== 1 ? 's' : ''}</span>
                               </div>
@@ -671,7 +677,6 @@ export default function SampleProcessPage() {
                         ? (stages[stageIndex - 1]?.displayName || stages[stageIndex - 1]?.name || 'previous stage')
                         : null;
                       const stageObj   = stages[stageIndex];
-                      const stageColor = isDept ? '#3b82f6' : (stageObj?.color || '#3b82f6');
                       const stageLabel = isDept
                         ? (RESOLVED_STAGE_LABELS[resolveStage(srd)] || slug.toUpperCase())
                         : (stageObj?.displayName || stageObj?.name || slug || '');
@@ -693,16 +698,9 @@ export default function SampleProcessPage() {
                             {getBrand(srd) || <span className="text-gray-300">—</span>}
                           </td>
 
-                          {/* Stage (highlighted in middle of row) */}
+                          {/* Stage */}
                           <td className="px-4 py-2 border-b border-black/10">
-                            <span
-                              style={{
-                                backgroundColor: stageColor + '22',
-                                borderColor: stageColor,
-                                color: stageColor,
-                              }}
-                              className="inline-flex items-center px-2.5 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap"
-                            >
+                            <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
                               {stageLabel || '—'}
                             </span>
                           </td>
