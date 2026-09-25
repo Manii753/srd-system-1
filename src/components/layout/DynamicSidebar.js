@@ -125,7 +125,7 @@ export default function DynamicSidebar() {
   // production stage. Refreshes on mount, on window focus, and every 30s.
   useEffect(() => {
     const role = String(userRole || '').toLowerCase();
-    if (!['cad', 'cutting', 'sewing', 'washing', 'finishing', 'dispatch'].includes(role)) return;
+    if (!['cad', 'cutting', 'sewing', 'washing', 'finishing', 'dispatch', 'mmc', 'commercial'].includes(role)) return;
     const load = async () => {
       try {
         const res = await fetch('/api/work-queue/count');
@@ -286,8 +286,14 @@ export default function DynamicSidebar() {
         ];
         if (userRole?.toLowerCase() === 'mmc') {
           items.push(
+            { id: 'work-queue', name: 'Pending', href: '/sample-management/sample-process', icon: Package },
             { id: 'mmc', name: 'MMC Portal', href: '/dashboard/mmc', icon: Factory },
             { id: 'purchase-orders', name: 'Purchase Orders', href: '/dashboard/mmc/purchase-orders', icon: ClipboardList },
+          );
+        }
+        if (userRole?.toLowerCase() === 'commercial') {
+          items.push(
+            { id: 'work-queue', name: 'Pending', href: '/sample-management/sample-process', icon: Package },
           );
         }
         if (userRole?.toLowerCase() === 'vmd') {

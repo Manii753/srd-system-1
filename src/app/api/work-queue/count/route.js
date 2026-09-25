@@ -27,7 +27,21 @@ export async function GET() {
     active.unshift({ _id: 'cad-virtual', name: 'cad', displayName: 'CAD', order: 0, isActive: true });
   }
 
-  const stageIndex = active.findIndex((s) => s.name?.toLowerCase() === role);
+  // Approval-based departments (MMC, Commercial) don't sit on a production
+// stage — their pending work is SRDs whose dept status hasn't been approved.
+const DEPT_ROLES = ['mmc', 'commercial'];
+if (DEPT_ROLES.includes(role)) {
+  const srds = await SRD.find({}, { status: 1, BuyerApproved: 1 }).lean();
+  let pending = 0;
+  for (const srd of srds) {
+    if (srd.BuyerApproved) continue;
+    const v = (srd.status || []).find(s => s.department === role)?.value || 'pending';
+    if (v !== 'approved' && v !== 'flagged') pending += 1;
+  }
+  return NextResponse.json({ success: true, pending, incoming: 0, stage: role });
+}
+
+const stageIndex = active.findIndex((s) => s.name?.toLowerCase() === role);
   if (stageIndex < 0) {
     return NextResponse.json({ success: true, pending: 0, incoming: 0 });
   }
