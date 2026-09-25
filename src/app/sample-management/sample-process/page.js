@@ -232,6 +232,13 @@ export default function SampleProcessPage() {
     });
   }, [srds, canViewAll, userRole, stages, isDeptRole]);
 
+  // Production-stage slugs (in the table's own stage pipeline) vs lifecycle
+  // buckets (approved/rejected/dispatched/incomplete) used by the dropdown.
+  const productionStageSlugs = useMemo(
+    () => stages.map(s => s.name?.toLowerCase()).filter(s => s && s !== 'dispatch'),
+    [stages]
+  );
+
   const filteredSrds = useMemo(() => {
     let list = baseSrds;
     if (activeGroupBrands.length > 0) {
@@ -243,7 +250,10 @@ export default function SampleProcessPage() {
     if (filterSampleType) {
       list = list.filter(s => getSampleType(s).toLowerCase() === filterSampleType.toLowerCase());
     }
-    if (filterStage) {
+    // Production-stage filters are applied per-section (see flatRows) using the
+    // same stage-chain logic as the table. Only lifecycle-bucket filters (e.g.
+    // Completed/Rejected from the dropdown) pre-filter here.
+    if (filterStage && !productionStageSlugs.includes(filterStage)) {
       list = list.filter(s => matchesStage(s, filterStage));
     }
     if (filterInquiry) list = list.filter(s => s.refNo?.toLowerCase().includes(filterInquiry.toLowerCase()));
@@ -254,7 +264,7 @@ export default function SampleProcessPage() {
       else if (filterStatus === 'completed') list = list.filter(s => !!s.BuyerApproved);
     }
     return list;
-  }, [baseSrds, filterBrand, filterSampleType, filterInquiry, filterStatus, filterStage, activeGroupBrands]);
+  }, [baseSrds, filterBrand, filterSampleType, filterInquiry, filterStatus, filterStage, activeGroupBrands, productionStageSlugs]);
 
   const srdsForStage = (stageSlug, stageIndex) => {
     if (stageIndex === 0) {
@@ -315,8 +325,20 @@ export default function SampleProcessPage() {
     // full table grouped by stage so the filter is honored regardless of role.
     if (canViewAll || filterStage) {
       const rows = [];
+
+      // Lifecycle-bucket filters (Completed/Rejected/Dispatched/Incomplete
+      // from the dropdown) don't map to a production section — show them under
+      // a single labeled section.
+      if (filterStage && !productionStageSlugs.includes(filterStage)) {
+        const opt = STAGE_FILTER_OPTIONS.find(o => o.value === filterStage);
+        rows.push({ type: 'header', label: opt?.label || filterStage, slug: filterStage, stageIndex: -1, count: filteredSrds.length, isLifecycle: true });
+        filteredSrds.forEach(srd => rows.push({ type: 'row', srd, slug: filterStage, stageIndex: -1, isLifecycle: true }));
+        return rows;
+      }
+
       stages.forEach((stage, stageIndex) => {
         const slug  = stage.name?.toLowerCase();
+        if (filterStage && slug !== filterStage) return; // only the selected stage
         const label = stage.displayName || stage.name?.toUpperCase();
 
         const sectionSrds = srdsForStage(slug, stageIndex);
@@ -375,7 +397,7 @@ export default function SampleProcessPage() {
 
     return [];
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredSrds, stages, canViewAll, userRole, activeTab, isDeptRole, filterStage]);
+  }, [filteredSrds, stages, canViewAll, userRole, activeTab, isDeptRole, filterStage, productionStageSlugs]);
 
   // Pagination on the flat rows (headers always stay with their group —
   // we paginate only the data rows, headers follow their group)
@@ -659,6 +681,7 @@ export default function SampleProcessPage() {
                       // ── data row ─────────────────────────────────────
                       const { srd, slug, stageIndex } = item;
                       const isDept          = !!item.isDept;
+                      const isLifecycle     = !!item.isLifecycle;
                       const isFirst         = stageIndex === 0;
                       const isDispatchStage = slug === 'dispatch';
                       const entry           = getStageEntry(srd, slug);
@@ -679,7 +702,9 @@ export default function SampleProcessPage() {
                       const stageObj   = stages[stageIndex];
                       const stageLabel = isDept
                         ? (RESOLVED_STAGE_LABELS[resolveStage(srd)] || slug.toUpperCase())
-                        : (stageObj?.displayName || stageObj?.name || slug || '');
+                        : isLifecycle
+                          ? (RESOLVED_STAGE_LABELS[slug] || slug)
+                          : (stageObj?.displayName || stageObj?.name || slug || '');
 
                       return (
                         <tr key={`${srd._id}-${slug}`} className={`hover:bg-blue-50 transition-colors ${blinkingKey === `${srd._id}-${slug}` ? 'animate-pulse bg-yellow-50' : ''}`}>
