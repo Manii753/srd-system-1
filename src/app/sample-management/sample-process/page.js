@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useToast } from '@/lib/use-toast';
 import Layout from '@/components/layout/Layout';
 import BrandGroupManager from '@/components/BrandGroupManager';
-import { STAGE_FILTER_OPTIONS, getSampleType, matchesStage, getStageEntry, classifyForStage } from '@/lib/sampleFilters';
+import { STAGE_FILTER_OPTIONS, getSampleType, matchesStage, getStageEntry, classifyForStage, resolveStage } from '@/lib/sampleFilters';
 import { Loader2, RefreshCw, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -57,6 +57,39 @@ function getStageStatus(srd, stageSlug) {
   return { text: 'Pending', cls: 'text-orange-500 font-medium' };
 }
 
+// Department records (MMC, Commercial) approve their section via the SRD status
+// array rather than the production-stage pipeline. These helpers read that.
+function getDeptStatus(srd, dept) {
+  return (Array.isArray(srd.status) ? srd.status : [])
+    .find(s => s.department === dept)?.value || 'pending';
+}
+
+function getDeptStatusDisplay(srd, dept) {
+  const v = getDeptStatus(srd, dept);
+  if (v === 'approved') return { text: 'Approved', cls: 'text-green-700 font-medium' };
+  if (v === 'in-progress') return { text: 'In Progress', cls: 'text-blue-500 font-medium' };
+  if (v === 'flagged') return { text: 'Flagged', cls: 'text-red-500 font-medium' };
+  const d = daysSince(srd.createdAt);
+  if (d > 2) return { text: `Pending (${d}d)`, cls: 'text-red-500 font-medium' };
+  return { text: 'Pending', cls: 'text-orange-500 font-medium' };
+}
+
+// Names for the resolved lifecycle stage shown in the row's Stage column.
+const RESOLVED_STAGE_LABELS = {
+  cad: 'CAD',
+  cutting: 'CAD',
+  sewing: 'Sewing',
+  washing: 'Washing',
+  finishing: 'Finishing',
+  approved: 'Completed',
+  rejected: 'Rejected',
+  dispatched: 'Dispatched',
+  incomplete: 'Incomplete',
+};
+
+// Approval-based departments that get a "My Pending Work" view on this page.
+const DEPT_ROLES = ['mmc', 'commercial'];
+
 // ─── component ───────────────────────────────────────────────────────────────
 
 export default function SampleProcessPage() {
@@ -83,6 +116,7 @@ export default function SampleProcessPage() {
 
   const userRole = session?.user?.role?.toLowerCase() || '';
   const canViewAll = userRole === 'admin' || userRole === 'vmd';
+  const isDeptRole = DEPT_ROLES.includes(userRole);
   const canReceiveAnyStage = !!myPermissions?.canReceiveAnyStage;
   const canCompleteAnyStage =
     !!myPermissions?.canCompleteAnyStage || canReceiveAnyStage;
@@ -155,10 +189,35 @@ export default function SampleProcessPage() {
     return [...set].sort();
   }, [srds]);
 
+  // Stage filter pills: production stages CAD → Finishing (cutting is part of the
+  // CAD phase, dispatch is not a production stage).
+  const stagePills = useMemo(() => {
+    const pills = [];
+    const seen = new Set();
+    for (const s of stages) {
+      const slug = s.name?.toLowerCase();
+      if (slug === 'cutting') continue;
+      if (slug === 'dispatch' || slug === 'approved' || slug === 'rejected') continue;
+      if (seen.has(slug)) continue;
+      seen.add(slug);
+      pills.push({
+        slug,
+        label: s.displayName || slug.toUpperCase(),
+        color: s.color || '#3b82f6',
+        filterValue: slug,
+      });
+    }
+    if (!seen.has('cad')) {
+      pills.unshift({ slug: 'cad', label: 'CAD', color: '#3b82f6', filterValue: 'cad' });
+    }
+    return pills;
+  }, [stages]);
+
   const baseSrds = useMemo(() => {
     if (canViewAll) return srds;
     return srds.filter(srd => {
       if (userRole === 'cad') return true;
+      if (isDeptRole) return true;
       if (!srd.inProduction) return false;
       // Only SRDs that are actually heading to / sitting at my stage belong in
       // my view — classify by checking the sampleProcess chain (previous stage
@@ -171,7 +230,7 @@ export default function SampleProcessPage() {
       const prevEntry = prevSlug ? getStageEntry(srd, prevSlug) : null;
       return classifyForStage(srd, entry, prevEntry, { first: stageIndex === 0 }) !== null;
     });
-  }, [srds, canViewAll, userRole, stages]);
+  }, [srds, canViewAll, userRole, stages, isDeptRole]);
 
   const filteredSrds = useMemo(() => {
     let list = baseSrds;
@@ -256,6 +315,21 @@ export default function SampleProcessPage() {
     // soon (Ready at the previous stage) vs. my pending work at my own stage.
     if (!canViewAll) {
       const rows = [];
+
+      // Approval-based departments (MMC, Commercial): their pending work is the
+      // SRDs where their dept status has not been approved yet.
+      if (isDeptRole) {
+        const pending = filteredSrds.filter(srd => {
+          const v = getDeptStatus(srd, userRole);
+          return v !== 'approved' && v !== 'flagged';
+        });
+        if (pending.length) {
+          rows.push({ type: 'header', label: 'My Pending Work', slug: userRole, stageIndex: -1, count: pending.length, isDept: true });
+          pending.forEach(srd => rows.push({ type: 'row', srd, slug: userRole, stageIndex: -1, isDept: true }));
+        }
+        return rows;
+      }
+
       const stageIndex = stages.findIndex(s => s.name?.toLowerCase() === userRole);
       if (stageIndex >= 0) {
         const slug = stages[stageIndex].name?.toLowerCase();
@@ -295,7 +369,7 @@ export default function SampleProcessPage() {
     });
     return rows;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredSrds, stages, canViewAll, userRole, activeTab]);
+  }, [filteredSrds, stages, canViewAll, userRole, activeTab, isDeptRole]);
 
   // Pagination on the flat rows (headers always stay with their group —
   // we paginate only the data rows, headers follow their group)
@@ -483,10 +557,33 @@ export default function SampleProcessPage() {
               activeGroupId={activeGroupId}
               onGroupSelect={handleGroupSelect}
             />
+
+            {/* Stage filter pills (production stages CAD → Finishing) */}
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">Stages</span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {stagePills.map(p => {
+                const active = filterStage === p.filterValue;
+                return (
+                  <button
+                    key={p.slug}
+                    type="button"
+                    onClick={() => setFilterStage(active ? '' : p.filterValue)}
+                    style={{
+                      backgroundColor: active ? p.color : p.color + '22',
+                      borderColor: p.color,
+                      color: active ? '#fff' : p.color,
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium transition-all select-none cursor-pointer hover:opacity-80"
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Two tabs for production stage users: Coming Soon vs Pending */}
-          {!canViewAll && (
+          {!canViewAll && !isDeptRole && (
             <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-2 bg-white">
               <button
                 onClick={() => { setActiveTab('incoming'); setCurrentPage(1); }}
@@ -531,6 +628,7 @@ export default function SampleProcessPage() {
                       <th className="px-4 py-3 text-left text-xs font-bold text-nowrap text-gray-500 uppercase tracking-wider border-b border-black/10 w-24">Date</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-nowrap text-gray-500 uppercase tracking-wider border-b border-black/10 w-36">Inquiry #</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-nowrap text-gray-500 uppercase tracking-wider border-b border-black/10 w-36">Brand</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-nowrap text-gray-500 uppercase tracking-wider border-b border-black/10 w-28">Stage</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-nowrap text-gray-500 uppercase tracking-wider border-b border-black/10">Description</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-nowrap text-gray-500 uppercase tracking-wider border-b border-black/10 w-36">Click To Receive</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-nowrap text-gray-500 uppercase tracking-wider border-b border-black/10 w-44">Current Status</th>
@@ -542,7 +640,7 @@ export default function SampleProcessPage() {
                       if (item.type === 'header') {
                         return (
                           <tr key={`h-${item.slug}`}>
-                            <td colSpan={6} className="px-4 py-1.5 bg-gray-50 border-b border-t border-black/10">
+                            <td colSpan={7} className="px-4 py-1.5 bg-gray-50 border-b border-t border-black/10">
                               <div className="flex items-center justify-between">
                                 <span className="text-xs font-bold text-gray-700 uppercase tracking-widest">{item.label}</span>
                                 <span className="text-xs text-gray-400">{item.count} SR{item.count !== 1 ? 's' : ''}</span>
@@ -554,10 +652,12 @@ export default function SampleProcessPage() {
 
                       // ── data row ─────────────────────────────────────
                       const { srd, slug, stageIndex } = item;
+                      const isDept          = !!item.isDept;
                       const isFirst         = stageIndex === 0;
                       const isDispatchStage = slug === 'dispatch';
                       const entry           = getStageEntry(srd, slug);
                       const stageStatus = getStageStatus(srd, slug);
+                      const deptStatus  = isDept ? getDeptStatusDisplay(srd, slug) : null;
                       const showReady   = canMarkReady(srd, slug, stageIndex);
                       const showRcv     = canReceive(srd, slug, stageIndex);
                       const readyKey    = `${srd._id}-${slug}-complete`;
@@ -570,6 +670,11 @@ export default function SampleProcessPage() {
                       const prevLabel = stageIndex > 0
                         ? (stages[stageIndex - 1]?.displayName || stages[stageIndex - 1]?.name || 'previous stage')
                         : null;
+                      const stageObj   = stages[stageIndex];
+                      const stageColor = isDept ? '#3b82f6' : (stageObj?.color || '#3b82f6');
+                      const stageLabel = isDept
+                        ? (RESOLVED_STAGE_LABELS[resolveStage(srd)] || slug.toUpperCase())
+                        : (stageObj?.displayName || stageObj?.name || slug || '');
 
                       return (
                         <tr key={`${srd._id}-${slug}`} className={`hover:bg-blue-50 transition-colors ${blinkingKey === `${srd._id}-${slug}` ? 'animate-pulse bg-yellow-50' : ''}`}>
@@ -586,6 +691,20 @@ export default function SampleProcessPage() {
                           {/* Brand */}
                           <td className="px-4 py-2 border-b border-black/10 text-gray-700 whitespace-nowrap">
                             {getBrand(srd) || <span className="text-gray-300">—</span>}
+                          </td>
+
+                          {/* Stage (highlighted in middle of row) */}
+                          <td className="px-4 py-2 border-b border-black/10">
+                            <span
+                              style={{
+                                backgroundColor: stageColor + '22',
+                                borderColor: stageColor,
+                                color: stageColor,
+                              }}
+                              className="inline-flex items-center px-2.5 py-0.5 rounded-full border text-xs font-semibold whitespace-nowrap"
+                            >
+                              {stageLabel || '—'}
+                            </span>
                           </td>
 
                           {/* Description */}
@@ -653,7 +772,7 @@ export default function SampleProcessPage() {
                                 )}
                               </span>
                             ) : (
-                              <span className={stageStatus.cls}>{stageStatus.text}</span>
+                              <span className={deptStatus?.cls || stageStatus.cls}>{deptStatus?.text || stageStatus.text}</span>
                             )}
                           </td>
                         </tr>
