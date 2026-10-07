@@ -526,6 +526,33 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     handleAction('dispatch_to_buyer', {});
   };
 
+const loadMergeSRDs = useCallback(async (query) => {
+    setLoadingSRDs(true);
+    try {
+      const params = new URLSearchParams({
+        limit: '200',
+        populateBuyer: 'true',
+        select: '_id,refNo,dynamicFields,BuyerDetails',
+      });
+      if (query) params.set('search', query);
+      const res = await fetch(`/api/srd?${params.toString()}`);
+      const data = await res.json();
+      const list = data.data || data.srds || (Array.isArray(data) ? data : []);
+      setAllSRDs(list);
+    } catch {
+      setAllSRDs([]);
+    } finally {
+      setLoadingSRDs(false);
+    }
+  }, []);
+
+  // Server-side search so SRDs beyond the first page are findable.
+  useEffect(() => {
+    if (!emailModalOpen || emailMode !== 'merge') return;
+    const t = setTimeout(() => loadMergeSRDs(srdSearch.trim()), 300);
+    return () => clearTimeout(t);
+  }, [srdSearch, emailModalOpen, emailMode, loadMergeSRDs]);
+
   const openEmailModal = (mode) => {
     // Pre-fill To with buyer contact emails
     const buyer = buyers.find(x => x._id?.toString() === selectedBuyer?.toString());
@@ -543,17 +570,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
     setSrdFilterContact('');
     setSrdFilterEmail('');
     setSelectedMergeSRDs([srd._id?.toString()]); // pre-select current SRD
-    if (mode === 'merge') {
-      setLoadingSRDs(true);
-      fetch('/api/srd?limit=200&populateBuyer=true&select=_id,refNo,dynamicFields,BuyerDetails')
-        .then(r => r.json())
-        .then(data => {
-          const list = data.data || data.srds || (Array.isArray(data) ? data : []);
-          setAllSRDs(list);
-        })
-        .catch(() => setAllSRDs([]))
-        .finally(() => setLoadingSRDs(false));
-    }
+    // Merge SRD list is loaded by the debounced effect above.
     setEmailModalOpen(true);
   };
 
@@ -1433,15 +1450,12 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                   {loadingSRDs ? (
                     <div className="text-center py-6 text-xs text-gray-400">Loading SRDs...</div>
                   ) : (() => {
-                    const q = srdSearch.toLowerCase();
                     const bq = srdFilterBrand.toLowerCase();
                     const cq = srdFilterContact.toLowerCase();
                     const eq = srdFilterEmail.toLowerCase();
 
                     const filtered = allSRDs.filter(s => {
                       const brand = (s.dynamicFields?.find(f => f.name?.toLowerCase() === 'brand')?.value || '').toLowerCase();
-                      const desc  = (s.dynamicFields?.find(f => ['description','style'].includes(f.name?.toLowerCase()))?.value || '').toLowerCase();
-                      const refNo = (s.refNo || '').toLowerCase();
                       const buyerObj = s.BuyerDetails;
                       const contacts = Array.isArray(buyerObj?.contactPerson) ? buyerObj.contactPerson : [];
                       const contactNames = contacts.map(c => (c.name || '').toLowerCase()).join(' ');
@@ -1450,7 +1464,6 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                         ...contacts.map(c => c.email || '')
                       ].join(' ').toLowerCase();
 
-                      if (q && !refNo.includes(q) && !desc.includes(q) && !brand.includes(q)) return false;
                       if (bq && !brand.includes(bq)) return false;
                       if (cq && !contactNames.includes(cq)) return false;
                       if (eq && !contactEmails.includes(eq)) return false;
@@ -1458,7 +1471,7 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                     });
 
                     if (!filtered.length) return (
-                      <div className="text-center py-6 text-xs text-gray-400">No SRDs match your filters</div>
+                      <div className="text-center py-6 text-xs text-gray-400">{srdSearch ? `No SRDs found for "${srdSearch}"` : 'No SRDs match your filters'}</div>
                     );
 
                     return filtered.map(s => {
@@ -1504,12 +1517,20 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
                     <button
                       onClick={() => {
                         const filtered = allSRDs.filter(s => {
-                          const q = srdSearch.toLowerCase();
                           const bq = srdFilterBrand.toLowerCase();
+                          const cq = srdFilterContact.toLowerCase();
+                          const eq = srdFilterEmail.toLowerCase();
                           const brand = (s.dynamicFields?.find(f => f.name?.toLowerCase() === 'brand')?.value || '').toLowerCase();
-                          const refNo = (s.refNo || '').toLowerCase();
-                          if (q && !refNo.includes(q) && !brand.includes(q)) return false;
+                          const buyerObj = s.BuyerDetails;
+                          const contacts = Array.isArray(buyerObj?.contactPerson) ? buyerObj.contactPerson : [];
+                          const contactNames = contacts.map(c => (c.name || '').toLowerCase()).join(' ');
+                          const contactEmails = [
+                            ...(buyerObj?.email || []),
+                            ...contacts.map(c => c.email || '')
+                          ].join(' ').toLowerCase();
                           if (bq && !brand.includes(bq)) return false;
+                          if (cq && !contactNames.includes(cq)) return false;
+                          if (eq && !contactEmails.includes(eq)) return false;
                           return true;
                         });
                         setSelectedMergeSRDs(filtered.map(s => s._id?.toString()));

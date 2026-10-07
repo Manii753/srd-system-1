@@ -120,11 +120,18 @@ export async function GET(request) {
       }
     }
 
-    // Search by refNo or title
+    // Escape a literal string for use inside a RegExp.
+    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Search by refNo, title or any dynamic-field value (brand, style,
+    // description...). The term is escaped so user input like "SDD-[" can't
+    // produce an invalid regex that throws.
     if (search) {
+      const searchRx = { $regex: escapeRegex(search), $options: 'i' };
       query['$or'] = [
-        { refNo: { $regex: search, $options: 'i' } },
-        { title: { $regex: search, $options: 'i' } },
+        { refNo: searchRx },
+        { title: searchRx },
+        { dynamicFields: { $elemMatch: { value: searchRx } } },
       ];
     }
 
@@ -132,8 +139,6 @@ export async function GET(request) {
     // so multiple dynamic-field filters (and search's top-level $or) compose.
     const andFilters = [];
 
-    // Escape a literal string for use inside a RegExp.
-    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     // Case-insensitive regex where dashes, spaces and no separator are treated
     // as equivalent — "sample-type" matches "Sample Type", "sampletype", etc.
     const slugishRegex = (term) => {

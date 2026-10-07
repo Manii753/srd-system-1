@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { useToast } from '@/lib/use-toast';
 import Layout from '@/components/layout/Layout';
 import BrandGroupManager from '@/components/BrandGroupManager';
@@ -94,6 +95,7 @@ const DEPT_ROLES = ['mmc', 'commercial'];
 
 export default function SampleProcessPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const { toast } = useToast();
 
   const [srds, setSrds] = useState([]);
@@ -707,7 +709,9 @@ export default function SampleProcessPage() {
                           : (stageObj?.displayName || stageObj?.name || slug || '');
 
                       return (
-                        <tr key={`${srd._id}-${slug}`} className={`hover:bg-blue-50 transition-colors ${blinkingKey === `${srd._id}-${slug}` ? 'animate-pulse bg-yellow-50' : ''}`}>
+                        <tr key={`${srd._id}-${slug}`}
+                          onClick={() => router.push(`/srd/${srd._id}`)}
+                          className={`cursor-pointer hover:bg-blue-50 transition-colors ${blinkingKey === `${srd._id}-${slug}` ? 'animate-pulse bg-yellow-50' : ''}`}>
                           {/* Date */}
                           <td className="px-4 py-2 border-b border-black/10 text-gray-700 whitespace-nowrap">
                             {fmtDate(srd.createdAt)}
@@ -751,7 +755,7 @@ export default function SampleProcessPage() {
                               </span>
                             ) : showRcv ? (
                               <button
-                                onClick={() => handleAction(srd._id, slug, 'receive')}
+                                onClick={e => { e.stopPropagation(); handleAction(srd._id, slug, 'receive'); }}
                                 disabled={actionLoading === rcvKey}
                                 className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded px-3 py-1 font-medium disabled:opacity-50 transition-colors"
                               >
@@ -780,7 +784,7 @@ export default function SampleProcessPage() {
                               </span>
                             ) : showReady ? (
                               <button
-                                onClick={() => handleAction(srd._id, slug, 'complete')}
+                                onClick={e => { e.stopPropagation(); handleAction(srd._id, slug, 'complete'); }}
                                 disabled={actionLoading === readyKey}
                                 className="inline-flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded px-3 py-1 font-medium disabled:opacity-50 transition-colors"
                               >
