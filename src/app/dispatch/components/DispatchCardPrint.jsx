@@ -6,6 +6,28 @@ import { useState } from "react";
 const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
   const [isPrinting, setIsPrinting] = useState(false);
 
+  const isPopulatedRef = (ref) =>
+    typeof ref === 'object' && ref !== null;
+
+  const formatDispatchDate = (value) => {
+    if (!value) return '';
+    let date;
+    if (typeof value === 'string') {
+      const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      date = dateOnly
+        ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+        : new Date(value);
+    } else {
+      date = new Date(value);
+    }
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
   const handlePrint = async () => {
     setIsPrinting(true);
     try {
@@ -31,28 +53,29 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
 
       // Add Date, Buyer and Department as first rows if available
       const extraRows = [];
-      
-      // Format and display dispatch date if available
-      const effectiveDate = dispatchDate
-        || (srd?.DispatchDetails?.sampleDispatchDate)
-        || (srd?.sampleDispatchDate)
-        || (srd?.dispatchDate)
-        || '';
-      if (effectiveDate) {
+
+      // Dispatch date lives in the SRD's Dispatch Details section. DispatchDetails
+      // is an ObjectId ref on the SRD, so re-fetch the SRD when it was not populated.
+      let dispatchDetails = isPopulatedRef(srd?.DispatchDetails) ? srd.DispatchDetails : null;
+      const localDate = dispatchDate
+        || srd?.sampleDispatchDate
+        || srd?.sampleDipatchedtoBuyerDate
+        || srd?.dispatchDate;
+      if (!dispatchDetails?.sampleDispatchDate && !localDate && srd?.DispatchDetails && srd?._id) {
         try {
-          const date = new Date(effectiveDate);
-          if (!isNaN(date.getTime())) {
-            const formattedDate = date.toLocaleDateString('en-GB', { 
-              day: '2-digit', 
-              month: 'short', 
-              year: 'numeric' 
-            });
-            extraRows.push({ name: 'Date', value: formattedDate, type: 'text' });
+          const srdRes = await fetch(`/api/srd/${srd._id}`);
+          const srdJson = await srdRes.json();
+          if (isPopulatedRef(srdJson?.data?.DispatchDetails)) {
+            dispatchDetails = srdJson.data.DispatchDetails;
           }
         } catch (e) {
-          console.error('Error formatting date:', e);
+          console.error('Failed to load dispatch details:', e);
         }
       }
+
+      // Always add Date row (even if empty - will show as dash)
+      const effectiveDate = localDate || dispatchDetails?.sampleDispatchDate || '';
+      extraRows.push({ name: 'Date', value: formatDispatchDate(effectiveDate) || '—', type: 'text' });
       
       // Get brand name from dynamic fields
       const brandField = srd.dynamicFields?.find(f => {
