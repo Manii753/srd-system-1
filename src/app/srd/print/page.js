@@ -155,85 +155,169 @@ function SRDPrintPageContent() {
     if (loading) return <div className="p-8 text-center">Loading report data...</div>;
 
     return (
-        <div className="p-4 max-w-[297mm] mx-auto print:max-w-none bg-white">
-            <style jsx global>{`
+        <div className="print-page">
+            <style>{`
+                @page { size: landscape; margin: 0.3in; }
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                html, body {
+                    background: #fff;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    font-size: 10px;
+                    text-transform: capitalize !important;
+                    line-height: 1.1;
+                }
+                .print-page { width: 100%; padding: 8px; }
+
+                /* ── header ── */
+                .header {
+                    margin-bottom: 8px;
+                }
+                .header h1 {
+                    font-size: 14px;
+                    margin: 0 0 3px 0;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    color: #1a1a1a;
+                    border-bottom: 1.5px solid #1a1a1a;
+                    padding-bottom: 2px;
+                    text-align: center;
+                }
+                .header-meta {
+                    text-align: center;
+                    font-size: 10px;
+                    color: #666;
+                    margin-top: 2px;
+                }
+
+                /* ── print button (only on screen) ── */
+                .print-button-container {
+                    text-align: right;
+                    margin-bottom: 8px;
+                }
+                .print-button {
+                    background: #2563eb;
+                    color: white;
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 11px;
+                    font-weight: 600;
+                }
+                .print-button:hover {
+                    background: #1d4ed8;
+                }
                 @media print {
-                    @page {
-                        size: landscape;
-                        margin: 8mm;
-                    }
-                    body {
-                        -webkit-print-color-adjust: exact;
-                        print-color-adjust: exact;
-                    }
-                    .bg-gray-200 {
-                        background-color: #e5e7eb !important;
-                    }
-                    table {
-                        font-size: 10pt;
-                    }
-                    td, th {
-                        padding: 4px 6px !important;
+                    .print-button-container {
+                        display: none;
                     }
                 }
+
+                /* ── print table ── */
+                .print-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 11px;
+                    border: 0.5px solid #ccc;
+                }
+                .print-table .table-header {
+                    background-color: #f3f4f6;
+                    padding: 3px 6px;
+                    text-align: left;
+                    font-weight: 700;
+                    font-size: 11px;
+                    color: #333;
+                    text-transform: capitalize;
+                    border: 0.5px solid #ccc;
+                    white-space: nowrap;
+                }
+                .print-table .table-cell {
+                    padding: 3px 6px;
+                    text-align: left;
+                    border: 0.5px solid #ccc;
+                    font-size: 11px;
+                    color: #000;
+                    white-space: nowrap;
+                }
+                .print-table .table-cell-medium {
+                    font-weight: 600;
+                }
+                .print-table .empty-cell {
+                    padding: 32px;
+                    text-align: center;
+                    color: #999;
+                    font-style: italic;
+                }
+
+                /* ── footer ── */
+                .footer {
+                    margin-top: 12px;
+                    text-align: right;
+                    font-size: 9px;
+                    color: #999;
+                }
             `}</style>
-            <div className="flex justify-between items-center mb-2 print:hidden">
-                <h1 className="text-app-heading font-bold text-lg">SRD Report</h1>
+
+            <div className="print-button-container">
                 <button
                     onClick={() => window.print()}
-                    className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
+                    className="print-button"
                 >
                     Print / Save as PDF
                 </button>
             </div>
 
-            <div className="mb-2">
-                <h2 className="text-app-heading font-bold text-center">SRD Status Report</h2>
-                <div className="text-app-text text-center text-gray-600 text-sm">
+            <div className="header">
+                <h1>SRD Status Report</h1>
+                <div className="header-meta">
                     Generated on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}
                 </div>
             </div>
 
-            <table className="w-full border-collapse border border-gray-300 text-app-text" style={{ whiteSpace: 'nowrap' }}>
+            <table className="print-table">
                 <thead>
-                    <tr className="bg-gray-200">
-                        <th className="border border-gray-300 p-2 text-left bg-gray-200">Date</th>
-                        <th className="border border-gray-300 p-2 text-left bg-gray-200">Inquiry #</th>
+                    <tr>
+                        <th className="table-header">Date</th>
+                        <th className="table-header">Inquiry #</th>
 
                         {/* Dynamic Report Columns */}
                         {reportFields.map(field => (
-                            <th key={field._id} className="border border-gray-300 p-2 text-left bg-gray-200">
+                            <th key={field._id} className="table-header">
                                 {field.name}
                             </th>
                         ))}
 
-                        <th className="border border-gray-300 p-2 text-left bg-gray-200">Status</th>
-                        <th className="border border-gray-300 p-2 text-left bg-gray-200">Latest Approved</th>
+                        <th className="table-header">Status</th>
+                        <th className="table-header">Latest Approved</th>
                     </tr>
                 </thead>
                 <tbody>
                     {srds.length > 0 ? (
                         srds.map((srd) => {
                             return (
-                                <tr key={srd._id} className="break-inside-avoid">
-                                    <td className="border border-gray-300 p-2">
+                                <tr key={srd._id}>
+                                    <td className="table-cell">
                                         {new Date(srd.createdAt).toLocaleDateString()}
                                     </td>
-                                    <td className="border border-gray-300 p-2 font-medium">
+                                    <td className="table-cell table-cell-medium">
                                         {srd.refNo}
                                     </td>
 
                                     {/* Dynamic Report Values */}
                                     {reportFields.map(field => (
-                                        <td key={field._id} className="border border-gray-300 p-2">
+                                        <td key={field._id} className="table-cell">
                                             {getDynamicFieldValue(srd, field)}
                                         </td>
                                     ))}
 
-                                    <td className="border border-gray-300 p-2">
+                                    <td className="table-cell">
                                         {getStatusDisplay(srd)}
                                     </td>
-                                    <td className="border border-gray-300 p-2">
+                                    <td className="table-cell">
                                         {getLatestApprovedDept(srd)}
                                     </td>
                                 </tr>
@@ -241,7 +325,7 @@ function SRDPrintPageContent() {
                         })
                     ) : (
                         <tr>
-                            <td colSpan={4 + reportFields.length} className="border border-gray-300 p-8 text-center text-gray-500">
+                            <td colSpan={4 + reportFields.length} className="empty-cell">
                                 No SRDs found matching the criteria.
                             </td>
                         </tr>
@@ -249,7 +333,7 @@ function SRDPrintPageContent() {
                 </tbody>
             </table>
 
-            <div className="mt-4 text-app-text text-gray-500 text-right print:fixed print:bottom-2 print:right-2 text-sm">
+            <div className="footer">
                 Report Generated by MMS
             </div>
         </div>
