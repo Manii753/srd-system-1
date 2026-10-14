@@ -810,33 +810,48 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
   const renderSingle = (r) => {
     const numCell = r.cells[0];
     const coord = numCell ? numCell.coord : null;
+    // Rows whose value lives in the Levels column (C) — e.g. Production Cost.
+    const inLevelsCol = numCell?.col === COL.levels;
+    const empty = <td className="border-l border-gray-100" />;
+    const value = r.computed || numCell == null ? (
+      <span className="text-xs px-2 py-1 block text-right font-semibold text-gray-900">
+        {r.prefix}{fmt2(totals.difference)}
+      </span>
+    ) : (
+      <GridNum
+        coord={coord}
+        raw={d[numCell.key]}
+        resolved={machine.valueAt(coord)}
+        err={machine.isErr(coord)}
+        active={focusedCell === coord}
+        disabled={!canEdit}
+        onChange={v => set(numCell.key, v)}
+        onFocus={focusCell}
+        onEnter={handleCellEnter}
+      />
+    );
+
     return (
       <tr className="border-b border-gray-100 hover:bg-gray-50/60">
         <GutterCell row={r} active={isActiveRow(r)} />
         <td className="py-1 px-3">
           <span className="text-xs text-gray-700 py-1 block">{r.label}</span>
         </td>
-        <td colSpan={3} className="border-l border-gray-100" />
-        <td className="border-l border-gray-100">
-          {r.computed || numCell == null ? (
-            <span className="text-xs px-2 py-1 block text-right font-semibold text-gray-900">
-              {r.prefix}{fmt2(totals.difference)}
-            </span>
-          ) : (
-            <GridNum
-              coord={coord}
-              raw={d[numCell.key]}
-              resolved={machine.valueAt(coord)}
-              err={machine.isErr(coord)}
-              active={focusedCell === coord}
-              disabled={!canEdit}
-              onChange={v => set(numCell.key, v)}
-              onFocus={focusCell}
-              onEnter={handleCellEnter}
-            />
-          )}
-        </td>
-        <td className="border-l border-gray-100" />
+        {inLevelsCol ? (
+          <>
+            {empty}
+            <td className="border-l border-gray-100">{value}</td>
+            {empty}
+            {empty}
+            {empty}
+          </>
+        ) : (
+          <>
+            <td colSpan={3} className="border-l border-gray-100" />
+            <td className="border-l border-gray-100">{value}</td>
+            {empty}
+          </>
+        )}
         {extraCols.map(ec => <td key={ec.id} className="border-l border-gray-100" />)}
         <td className="w-6" />
       </tr>

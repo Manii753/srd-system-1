@@ -98,10 +98,11 @@ export function buildCostingRows(d = {}) {
   }
 
   // Production cost
+  // Production cost lives in the Levels column (C), not Cons (D).
   add('sectionTitle', [], { title: 'Production Cost', section: 'production' });
-  add('single', [mkNum('D', 'cmtLevel')], { label: 'CMT (Codes Req Level 1 2 3)' });
-  add('single', [mkNum('D', 'washingLevel')], { label: 'Washing (Codes Req Level 1 2 3)' });
-  add('single', [mkNum('D', 'fob')], { label: 'FOB' });
+  add('single', [mkNum('C', 'cmtLevel')], { label: 'CMT (Codes Req Level 1 2 3)' });
+  add('single', [mkNum('C', 'washingLevel')], { label: 'Washing (Codes Req Level 1 2 3)' });
+  add('single', [mkNum('C', 'fob')], { label: 'FOB' });
 
   // Margin & commission
   add('sectionTitle', [], { title: 'Margin & Commission', section: 'margin' });
@@ -146,7 +147,7 @@ export function resolveCosting(d = {}) {
 
   const byCoord = new Map();       // "C7" -> cell descriptor
   const fieldCoord = new Map();    // `${section}:${idx}:${field}` -> "C7"
-  const keyCoord = new Map();      // "cmtLevel" -> "D17"
+  const keyCoord = new Map();      // "cmtLevel" -> "C17"
   const singleRowsByKey = new Map(); // "fob" -> row object
   const secRows = {};              // section -> { title, header, add, items[] , showCode }
 

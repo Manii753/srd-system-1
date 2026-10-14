@@ -877,7 +877,7 @@ const loadMergeSRDs = useCallback(async (query) => {
         {!(srd.inDispatch || srd.isComplete || srd.internalApproved || srd.readyForProduction) && !dispatchLocked && (
           <div className="absolute inset-0 z-10 bg-white/60 flex items-center justify-center">
             <span className="bg-white border border-orange-300 rounded-lg px-4 py-2 text-sm text-orange-700 font-medium shadow">
-              ðŸ”’ Available after Finishing stage is marked Ready
+              🔒 Available after Finishing stage is marked Ready
             </span>
           </div>
         )}
@@ -1406,7 +1406,7 @@ const loadMergeSRDs = useCallback(async (query) => {
                       type="text"
                       value={srdSearch}
                       onChange={e => setSrdSearch(e.target.value)}
-                      placeholder="ðŸ” Search by Ref No or Style..."
+                      placeholder="🔍 Search by Ref No or Style..."
                       className="col-span-2 h-7 px-2 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
                     />
                     {/* Brand filter */}
@@ -1622,7 +1622,7 @@ const loadMergeSRDs = useCallback(async (query) => {
                   <p className="text-gray-500">{repName}{repEmail ? `: ${repEmail}` : ': Usman@lazienda.com.pk / Tayyab@lazienda.com.pk'}</p>
                   <p>Thank you for your continued partnership.</p>
                   <p><strong>LAZIENDA DENIM (PVT) LTD.</strong></p>
-                  <p className="text-gray-400">ðŸŒ± Think before you print. Save paper, save trees.</p>
+                  <p className="text-gray-400">🌍 Think before you print. Save paper, save trees.</p>
                   <p className="font-semibold text-gray-500 mt-2">DHL Tracking: {awb}</p>
                 </div>
               );

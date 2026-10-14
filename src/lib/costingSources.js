@@ -61,13 +61,20 @@ export const MAPPABLE_FIELD_TYPES = new Set([
 ]);
 
 // Which costing column does an SRD table header correspond to?
+//
+// `aliases` are matched against the WHOLE normalised header name — never as a
+// substring. Substring matching used to mis-assign columns: "Fabric Type"
+// contains "fabric" (a description alias) and "Required Qty" contains "qty"
+// (a consumption alias), so the item name landed in Fabric Type and Required
+// Qty just duplicated Consumption. A header that isn't listed here is left
+// alone rather than filled with a plausible-looking wrong value.
 const ROW_COLUMNS = [
-  { field: 'description', label: 'Item Name',   match: ['itemname', 'item', 'description', 'fabric', 'trim', 'material', 'name', 'product', 'garment'] },
-  { field: 'code',        label: 'Code',        match: ['code', 'fabriccode', 'stylecode', 'style'] },
-  { field: 'levels',      label: 'Levels',      match: ['level', 'levels'] },
-  { field: 'consumption', label: 'Consumption', match: ['consumption', 'consump', 'cons', 'qty', 'quantity', 'requirement'] },
-  { field: 'price',       label: 'Rate',        match: ['rate', 'price', 'unitprice', 'unitcost', 'cost'] },
-  { field: 'amount',      label: 'Amount',      match: ['amount', 'amt', 'total', 'totalcost', 'value'] },
+  { field: 'description', label: 'Item Name',   aliases: ['itemname', 'item', 'items', 'itemdescription', 'description', 'fabric', 'fabrics', 'fabricname', 'trim', 'trims', 'material', 'materialname', 'name', 'product', 'productname', 'garment', 'garmentname'] },
+  { field: 'code',        label: 'Code',        aliases: ['code', 'codes', 'fabriccode', 'itemcode', 'trimcode', 'stylecode', 'style'] },
+  { field: 'levels',      label: 'Levels',      aliases: ['level', 'levels'] },
+  { field: 'consumption', label: 'Consumption', aliases: ['consumption', 'consumptionqty', 'consump', 'cons', 'qty', 'quantity', 'requirement', 'requirementqty', 'requiredqty', 'reqqty', 'requiredquantity'] },
+  { field: 'price',       label: 'Rate',        aliases: ['rate', 'rates', 'price', 'unitrate', 'unitprice', 'unitcost', 'cost', 'rateperunit'] },
+  { field: 'amount',      label: 'Amount',      aliases: ['amount', 'amt', 'total', 'totalamount', 'totalcost', 'value'] },
 ];
 
 // ─── Scalar helpers ──────────────────────────────────────────────────────────
@@ -91,7 +98,15 @@ const hasValue = (v) => {
 
 /** Best-effort conversion of a free-text date into the YYYY-MM-DD an SRD date input wants. */
 export function toDateInput(value) {
-  const parsed = new Date(value);
+  const text = cellText(value);
+
+  // A date-only string is parsed by `new Date()` as UTC midnight, so reading it
+  // back with getDate() slips a day in every UTC-negative timezone. Match it as
+  // plain calendar digits first and only fall back to Date for anything richer.
+  const ymd = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/.exec(text);
+  if (ymd) return `${ymd[1]}-${ymd[2].padStart(2, '0')}-${ymd[3].padStart(2, '0')}`;
+
+  const parsed = new Date(text);
   if (Number.isNaN(parsed.getTime())) return value;
   const mm = String(parsed.getMonth() + 1).padStart(2, '0');
   const dd = String(parsed.getDate()).padStart(2, '0');
@@ -101,9 +116,7 @@ export function toDateInput(value) {
 function matchColumn(headerName) {
   const n = norm(headerName);
   if (!n) return null;
-  for (const c of ROW_COLUMNS) if (c.match.includes(n)) return c.field;
-  for (const c of ROW_COLUMNS) if (c.match.some(k => n.includes(k))) return c.field;
-  return null;
+  return ROW_COLUMNS.find(c => c.aliases.includes(n))?.field ?? null;
 }
 
 const columnHasData = (rows, col) =>
@@ -134,9 +147,14 @@ export function readSource(side, resolved, key) {
 
 /**
  * Turn costing item rows into an SRD table value
- * ({ headers, rows, predefinedData }), keeping the target field's configured
- * column order where it exists and appending any costing column that has no
- * home so nothing is silently dropped.
+ * ({ headers, rows, predefinedData }).
+ *
+ * The target field's configured column order wins. Two rules keep the result
+ * honest:
+ *  - a costing column feeds at most one SR header (so "Consumption" claims the
+ *    quantity and "Required Qty" is left blank instead of mirroring it);
+ *  - costing columns the SR table has no header for are dropped, not appended —
+ *    Rate/Amount are costing concepts and must not leak into an SR form.
  */
 export function buildTableValue(read, fieldDef) {
   const meaningful = read?.rows || [];
@@ -144,24 +162,36 @@ export function buildTableValue(read, fieldDef) {
 
   const headers = [];
   const columns = [];
-  const push = (name, col) => { headers.push({ name, owner: 'global' }); columns.push(col); };
+  const taken = new Set();
+  const push = (header, col) => {
+    headers.push(typeof header === 'string' ? { name: header, owner: 'global' } : { owner: 'global', ...header });
+    columns.push(col);
+    if (col) taken.add(col);
+  };
 
   const configured = Array.isArray(fieldDef?.tableHeaders) ? fieldDef.tableHeaders : [];
-  if (configured.length) {
-    configured.forEach(h => push(typeof h === 'string' ? h : (h?.name || ''), matchColumn(h?.name)));
-  }
 
-  ROW_COLUMNS.forEach(c => {
-    if (columns.includes(c.field)) return;
-    if (!columnHasData(meaningful, c.field)) return;
-    push(c.label, c.field);
-  });
-  (read.extraCols || []).forEach(ec => {
-    if (!ec?.id) return;
-    const col = `extra:${ec.id}`;
-    if (!columnHasData(meaningful, col)) return;
-    push(ec.name || 'Column', col);
-  });
+  if (configured.length) {
+    configured.forEach(h => {
+      const name = typeof h === 'string' ? h : (h?.name || '');
+      if (!name) return;
+      let col = matchColumn(name);
+      if (col && taken.has(col)) col = null;  // already fed by an earlier header
+      push(h, col);                           // keep the SR column, just leave it empty
+    });
+  } else {
+    // No configured layout on the SR field — fall back to the costing columns.
+    ROW_COLUMNS.forEach(c => {
+      if (!columnHasData(meaningful, c.field)) return;
+      push(c.label, c.field);
+    });
+    (read.extraCols || []).forEach(ec => {
+      if (!ec?.id) return;
+      const col = `extra:${ec.id}`;
+      if (!columnHasData(meaningful, col)) return;
+      push(ec.name || 'Column', col);
+    });
+  }
 
   if (!headers.length) return null;
 
@@ -264,13 +294,13 @@ export function applyMapping({ side, resolved, fields, mapping }) {
 const AUTO_PATTERNS = {
   date:               [/^sample\s*(r(aise|equest)|request(ed)?)\s*date$/i, /^(request|raise)\s*date$/i, /^date$/i],
   brand:              [/^brand$/i, /^buyer$/i],
-  fitSpecsCode:       [/^fit\s*specs?\s*(code|no\.?|ref(erence)?)?$/i, /^buyer\s*style\s*ref(erence)?$/i, /^style\s*(no\.?|code|ref(erence)?)$/i],
+  fitSpecsCode:       [/^fit\s*specs?\s*(code|no\.?|ref(erence)?)?$/i, /^buyer\s*style\s*ref(erence)?\.?$/i, /^style\s*(no\.?|code|ref(erence)?)$/i],
   fit:                [/^fit$/i],
   description:        [/^garment\s*description$/i, /^product\s*description$/i, /^description$/i],
   fabricType:         [/^fabric\s*type$/i],
   embellishmentYesNo: [/^embellish(ment)?$/i],
   costingBase:        [/^costing\s*base$/i],
-  sampleSize:         [/^sample\s*size$/i, /^size$/i],
+  sampleSize:         [/^sample\s*request\s*size$/i, /^sample\s*size$/i, /^size$/i],
   notes:              [/^(notes?|remarks?|comments?)$/i],
   fabrics:            [/^fabric$/i, /^fabrics$/i],
   beforeWashTrims:    [/^before\s*wash\s*trim$/i, /^before\s*wash\s*trims$/i, /before.wash.trim/i],
@@ -300,11 +330,12 @@ export function autoDetectMapping(fields) {
     const patterns = AUTO_PATTERNS[source.key];
     if (!patterns) return;
 
-    const hit = pool.find(f =>
-      !used.has(String(f._id)) &&
-      (source.kind === 'table' ? f.type === 'table' : f.type !== 'table') &&
-      patterns.some(p => p.test(f.name || '') || p.test(f.slug || ''))
-    );
+    const hit = pool.find(f => {
+      const name = String(f.name || '').trim();
+      return !used.has(String(f._id)) &&
+        (source.kind === 'table' ? f.type === 'table' : f.type !== 'table') &&
+        patterns.some(p => p.test(name) || p.test(String(f.slug || '').trim()))
+    });
 
     if (hit) {
       used.add(String(hit._id));
