@@ -1,8 +1,8 @@
 // Shared Excel-style grid model + formula resolver for the Pre/Post costing sheet.
 //
 // The sheet is treated like a spreadsheet:
-//   - every data column has a letter (A=Description, B=Code, C=Levels,
-//     D=Cons, E=Rate, F=Amount, G+ = user-added dropdown columns) and every
+//   - every data column has a letter (A=Description, B=Code, C=Cons,
+//     D=Rate, E=Amount, F+ = user-added dropdown columns) and every
 //     visible row has a number.
 //   - cells may hold either a number or an Excel-style formula string
 //     ("=D7*2", "=SUM(D7:D12)", "=B6/2", "=D{row}*E{row}").
@@ -30,9 +30,11 @@ export const SECTIONS = [
 const mkField = (col, key, isSelect = false) => ({ col, kind: 'field', key, select: isSelect });
 const mkItem = (col, section, idx, field) => ({ col, kind: 'item', section, idx, field });
 const mkNum = (col, key) => ({ col, kind: 'num', key });
+// "Codes Req Level" dropdown — only used by the Production Cost block.
+const mkLevel = (col, key) => ({ col, kind: 'level', key });
 const mkExtra = (col, section, idx, extraId) => ({ col, kind: 'extra', section, idx, extraId });
 
-// Excel-style column letters: 0->A … 25->Z, 26->AA … (extras start at 'G').
+// Excel-style column letters: 0->A … 25->Z, 26->AA … (extras start at 'F').
 const colLetter = (n) => {
   let s = '';
   n += 1;
@@ -79,37 +81,37 @@ export function buildCostingRows(d = {}) {
     add('sectionHeader', [], { section: key, showCode });
     (d[key] || []).forEach((item, idx) => {
       // Fixed column layout (matches the sheet headers):
-      //   A Description | B Code | C Levels | D Cons | E Rate | F Amount | G… extras
+      //   A Description | B Code | C Cons | D Rate | E Amount | F… extras
       // Column B is always reserved so every section keeps the same alignment,
       // even when it doesn't render a Code cell.
       const cells = [mkItem('A', key, idx, 'description')];
       cells.push(mkItem('B', key, idx, 'code'));
-      cells.push(mkItem('C', key, idx, 'levels'));
-      cells.push(mkItem('D', key, idx, 'consumption'));
-      cells.push(mkItem('E', key, idx, 'price'));
-      const amtCell = mkItem('F', key, idx, 'amount');
+      cells.push(mkItem('C', key, idx, 'consumption'));
+      cells.push(mkItem('D', key, idx, 'price'));
+      const amtCell = mkItem('E', key, idx, 'amount');
       cells.push(amtCell);
-      extraCols.forEach((ec, i) => cells.push(mkExtra(colLetter(6 + i), key, idx, ec.id)));
+      extraCols.forEach((ec, i) => cells.push(mkExtra(colLetter(5 + i), key, idx, ec.id)));
       const row = add('item', cells, { section: key, idx, showCode });
       // Default Amount formula for this row (Cons × Rate).
-      amtCell.defaultFormula = `=D${row}*E${row}`;
+      amtCell.defaultFormula = `=C${row}*D${row}`;
     });
     add('addRow', [], { section: key });
   }
 
   // Production cost
-  // Production cost lives in the Levels column (C), not Cons (D).
+  // The "Codes Req Level" dropdown lives in column B and the amount in the Cons
+  // column (C), so the block stays aligned with the item sections above.
   add('sectionTitle', [], { title: 'Production Cost', section: 'production' });
-  add('single', [mkNum('C', 'cmtLevel')], { label: 'CMT (Codes Req Level 1 2 3)' });
-  add('single', [mkNum('C', 'washingLevel')], { label: 'Washing (Codes Req Level 1 2 3)' });
+  add('single', [mkLevel('B', 'cmtLevelCode'), mkNum('C', 'cmtLevel')], { label: 'CMT (Codes Req Level 1 2 3)' });
+  add('single', [mkLevel('B', 'washingLevelCode'), mkNum('C', 'washingLevel')], { label: 'Washing (Codes Req Level 1 2 3)' });
   add('single', [mkNum('C', 'fob')], { label: 'FOB' });
 
   // Margin & commission
   add('sectionTitle', [], { title: 'Margin & Commission', section: 'margin' });
-  add('single', [mkNum('D', 'extraCut')], { label: 'Extra Cut' });
-  add('single', [mkNum('D', 'ldMargin')], { label: 'Ld Margin' });
-  add('single', [mkNum('D', 'testingCharges')], { label: 'Testing Charges' });
-  add('single', [mkNum('D', 'commission')], { label: 'Commission' });
+  add('single', [mkNum('C', 'extraCut')], { label: 'Extra Cut' });
+  add('single', [mkNum('C', 'ldMargin')], { label: 'Ld Margin' });
+  add('single', [mkNum('C', 'testingCharges')], { label: 'Testing Charges' });
+  add('single', [mkNum('C', 'commission')], { label: 'Commission' });
 
   // Divider + totals
   add('divider');
@@ -118,11 +120,11 @@ export function buildCostingRows(d = {}) {
 
   // Quote tracking
   add('sectionTitle', [], { title: 'Quote Tracking', section: 'quote' });
-  add('single', [mkNum('D', 'firstQuoted')], { label: 'First Quoted', prefix: '$' });
-  add('single', [mkNum('D', 'targetPrice')], { label: 'Target $', prefix: '$' });
+  add('single', [mkNum('C', 'firstQuoted')], { label: 'First Quoted', prefix: '$' });
+  add('single', [mkNum('C', 'targetPrice')], { label: 'Target $', prefix: '$' });
   add('single', [], { label: 'Difference', prefix: '$', computed: 'difference' });
-  add('single', [mkNum('D', 'secondQuote')], { label: '2nd Quote $', prefix: '$' });
-  add('single', [mkNum('D', 'confirmedPrice')], { label: 'Confirmed', prefix: '$' });
+  add('single', [mkNum('C', 'secondQuote')], { label: '2nd Quote $', prefix: '$' });
+  add('single', [mkNum('C', 'confirmedPrice')], { label: 'Confirmed', prefix: '$' });
 
   rows.forEach((r) => {
     r.cells.forEach((c) => {
@@ -167,13 +169,14 @@ export function resolveCosting(d = {}) {
       secRows[r.section].items = secRows[r.section].items || [];
       secRows[r.section].items.push({ row: r.row, idx: r.idx });
     } else if (r.type === 'single') {
-      if (r.cells[0] && r.cells[0].kind === 'num') singleRowsByKey.set(r.cells[0].key, r.row);
+      const num = r.cells.find(c => c.kind === 'num');
+      if (num) singleRowsByKey.set(num.key, r.row);
     }
 
     r.cells.forEach((c) => {
       byCoord.set(c.coord, c);
       if (c.kind === 'item') fieldCoord.set(`${c.section}:${c.idx}:${c.field}`, c.coord);
-      if (c.kind === 'num') keyCoord.set(c.key, c.coord);
+      if (c.kind === 'num' || c.kind === 'level') keyCoord.set(c.key, c.coord);
     });
   });
 
@@ -184,7 +187,7 @@ export function resolveCosting(d = {}) {
     const below = m[1] + (Number(m[2]) + 1);
     const c = byCoord.get(below);
     if (!c) return null;
-    const editable = c.kind === 'item' || c.kind === 'num' || c.kind === 'extra' || (c.kind === 'field' && !c.select);
+    const editable = c.kind === 'item' || c.kind === 'num' || c.kind === 'level' || c.kind === 'extra' || (c.kind === 'field' && !c.select);
     return editable ? below : null;
   };
 
@@ -199,11 +202,12 @@ export function resolveCosting(d = {}) {
         // default Cons×Rate; an empty manual value falls back to the formula.
         const manual = row.amountManual;
         if (manual !== undefined && manual !== null && String(manual).trim() !== '') return manual;
-        return c.defaultFormula || `=D${c.row}*E${c.row}`;
+        return c.defaultFormula || `=C${c.row}*D${c.row}`;
       }
       return row[c.field] ?? 0;
     }
     if (c.kind === 'extra') return d[c.section]?.[c.idx]?.extra?.[c.extraId] ?? '';
+    if (c.kind === 'level') return d[c.key] ?? '';
     if (c.kind === 'num') return d[c.key] ?? 0;
     if (c.kind === 'field') return d[c.key] ?? '';
     return 0;
@@ -276,6 +280,8 @@ export function resolveCosting(d = {}) {
     embellishment: sectionResolved('embellishment'),
     cmtLevel: scalar('cmtLevel'),
     washingLevel: scalar('washingLevel'),
+    cmtLevelCode: d.cmtLevelCode ?? '',
+    washingLevelCode: d.washingLevelCode ?? '',
     fob: scalar('fob'),
     extraCut: scalar('extraCut'),
     ldMargin: scalar('ldMargin'),

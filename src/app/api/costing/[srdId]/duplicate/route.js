@@ -8,7 +8,7 @@ import { recalcCosting } from '@/lib/costingRecalc';
  * POST /api/costing/[srdId]/duplicate
  * Clones an existing costing draft into a brand-new standalone draft with a
  * fresh POC number and every value pre-filled (header fields, all four item
- * sections incl. codes/levels/dropdown columns, production cost, margin,
+ * sections incl. codes/dropdown columns, production cost levels, margin,
  * quote tracking, images and notes).
  *
  * Workflow state is reset back to "draft" so the copy can be edited/submitted.
@@ -27,7 +27,7 @@ const COPY_FIELDS = [
   // Item sections (deep-copied below)
   'fabrics', 'beforeWashTrims', 'afterWashTrims', 'embellishment',
   // Production cost
-  'cmtLevel', 'washingLevel', 'fob',
+  'cmtLevel', 'washingLevel', 'cmtLevelCode', 'washingLevelCode', 'fob',
   // Margin & commission
   'extraCut', 'ldMargin', 'testingCharges', 'commission',
   // Summary

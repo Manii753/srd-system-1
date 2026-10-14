@@ -71,7 +71,6 @@ export const MAPPABLE_FIELD_TYPES = new Set([
 const ROW_COLUMNS = [
   { field: 'description', label: 'Item Name',   aliases: ['itemname', 'item', 'items', 'itemdescription', 'description', 'fabric', 'fabrics', 'fabricname', 'trim', 'trims', 'material', 'materialname', 'name', 'product', 'productname', 'garment', 'garmentname'] },
   { field: 'code',        label: 'Code',        aliases: ['code', 'codes', 'fabriccode', 'itemcode', 'trimcode', 'stylecode', 'style'] },
-  { field: 'levels',      label: 'Levels',      aliases: ['level', 'levels'] },
   { field: 'consumption', label: 'Consumption', aliases: ['consumption', 'consumptionqty', 'consump', 'cons', 'qty', 'quantity', 'requirement', 'requirementqty', 'requiredqty', 'reqqty', 'requiredquantity'] },
   { field: 'price',       label: 'Rate',        aliases: ['rate', 'rates', 'price', 'unitrate', 'unitprice', 'unitcost', 'cost', 'rateperunit'] },
   { field: 'amount',      label: 'Amount',      aliases: ['amount', 'amt', 'total', 'totalamount', 'totalcost', 'value'] },

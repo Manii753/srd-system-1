@@ -220,49 +220,51 @@ function ExtraColHeader({ col, canEdit, isCtrl, active, onRename, onSetOptions, 
   );
 }
 
-// ─── Levels column header (dropdown options editor) ───────────────────────────
+// ─── Production Cost: Level dropdown options editor ──────────────────────────
 
-function LevelsHeader({ options, canEdit, isCtrl, active, onSetOptions }) {
+function LevelOptionsButton({ options, canEdit, onSetOptions }) {
   const [open, setOpen] = useState(false);
   const [opts, setOpts] = useState((options || []).join('\n'));
+  const label = `Levels: ${(options || []).join(' / ') || '—'}`;
+
+  if (!canEdit) {
+    return <span className="text-[10px] font-medium text-gray-400">{label}</span>;
+  }
 
   return (
-    <th className={`border-l border-gray-200 ${active ? 'bg-blue-50 text-blue-700' : ''}`}>
-      <div className="relative flex items-center justify-between gap-1 px-2 py-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 truncate">Levels</span>
-        {isCtrl && canEdit && (
-          <button
-            onClick={() => { setOpen(o => !o); setOpts((options || []).join('\n')); }}
-            className={`shrink-0 ${open ? 'text-blue-500' : 'text-gray-400 hover:text-blue-500'}`}
-            title="Levels dropdown options"
-          >
-            <Settings2 size={10} />
-          </button>
-        )}
-        {open && (
-          <div className="absolute right-0 top-full z-30 mt-1 w-56 rounded-lg border border-gray-200 bg-white shadow-lg p-3 space-y-2 print:hidden">
-            <div>
-              <div className="text-[9px] font-semibold text-gray-400 uppercase mb-0.5">Dropdown options (one per line)</div>
-              <textarea
-                value={opts}
-                onChange={e => setOpts(e.target.value)}
-                rows={4}
-                placeholder={'1\n2\n3'}
-                className="w-full text-xs border border-gray-200 rounded px-2 py-1 outline-none focus:border-blue-400 resize-none"
-              />
-            </div>
-            <div className="flex justify-end pt-1">
-              <button
-                onClick={() => { onSetOptions(opts.split('\n').map(s => s.trim()).filter(Boolean)); setOpen(false); }}
-                className="text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded px-2.5 py-1"
-              >
-                Done
-              </button>
-            </div>
+    <div className="relative print:hidden">
+      <button
+        onClick={() => { setOpen(o => !o); setOpts((options || []).join('\n')); }}
+        className={`flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border transition-colors ${
+          open ? 'border-blue-300 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:text-blue-500'
+        }`}
+        title="Options offered by the Codes Req Level dropdown on CMT and Washing"
+      >
+        <Settings2 size={10} /> {label}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-30 mt-1 w-56 rounded-lg border border-gray-200 bg-white shadow-lg p-3 space-y-2">
+          <div>
+            <div className="text-[9px] font-semibold text-gray-400 uppercase mb-0.5">Dropdown options (one per line)</div>
+            <textarea
+              value={opts}
+              onChange={e => setOpts(e.target.value)}
+              rows={4}
+              placeholder={'1\n2\n3'}
+              className="w-full text-xs border border-gray-200 rounded px-2 py-1 outline-none focus:border-blue-400 resize-none"
+            />
           </div>
-        )}
-      </div>
-    </th>
+          <div className="flex justify-end pt-1">
+            <button
+              onClick={() => { onSetOptions(opts.split('\n').map(s => s.trim()).filter(Boolean)); setOpen(false); }}
+              className="text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded px-2.5 py-1"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -273,11 +275,11 @@ const HEADER_LABELS = {
 };
 
 // Column letters for the fixed item columns (see lib/costingGrid.js).
-const COL = { description: 'A', code: 'B', levels: 'C', consumption: 'D', price: 'E', amount: 'F' };
+const COL = { description: 'A', code: 'B', consumption: 'C', price: 'D', amount: 'E' };
 
 // Column letter for a user-added dropdown column (same scheme as costingGrid).
 const extraColLetter = (i) => {
-  let n = 6 + i + 1;
+  let n = 5 + i + 1;
   let s = '';
   while (n > 0) {
     const m = (n - 1) % 26;
@@ -310,6 +312,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     fabrics: [], beforeWashTrims: [], afterWashTrims: [], embellishment: [],
     // Production cost
     cmtLevel: 0, washingLevel: 0, fob: 0,
+    cmtLevelCode: '', washingLevelCode: '',
     // Margin & Commission
     extraCut: 0, ldMargin: 0, testingCharges: 0, commission: 0,
     // Summary
@@ -320,7 +323,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     images: [],
     // User-added dropdown columns (see extraCols schema)
     extraCols: [],
-    // Options offered by the "Levels" dropdown column
+    // Options offered by the Production Cost "Codes Req Level" dropdowns
     levelOptions: ['1', '2', '3'],
     // Workflow
     notes: '', status: 'draft',
@@ -358,7 +361,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
   // User-added dropdown columns
   const extraCols = machine.extraCols || [];
   const nExtra    = extraCols.length;
-  const SPAN      = 6 + nExtra; // base columns A..F plus the extra columns
+  const SPAN      = 5 + nExtra; // base columns A..E plus the extra columns
 
   // ── Updaters ─────────────────────────────────────────────────────────────────
 
@@ -385,7 +388,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     setD(prev => ({
       ...prev,
       [section]: [...(prev[section] || []),
-        { description: '', code: '', levels: '', consumption: 0, price: 0, amount: 0, amountManual: '', extra: {} }],
+        { description: '', code: '', consumption: 0, price: 0, amount: 0, amountManual: '', extra: {} }],
     }));
     setIsDirty(true);
   }, []);
@@ -434,7 +437,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     updateRow(section, idx, { ...row, extra: nextExtra });
   }, [d, updateRow]);
 
-  // ── Levels dropdown options ─────────────────────────────────────────────────
+  // ── Production Cost "Codes Req Level" dropdown options ──────────────────────
 
   const levelOptions = d.levelOptions?.length ? d.levelOptions : ['1', '2', '3'];
 
@@ -457,7 +460,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
       updateRow(def.section, def.idx, { ...row, [def.field]: value });
     } else if (def.kind === 'extra') {
       setRowExtra(def.section, def.idx, def.extraId, value);
-    } else if (def.kind === 'num' || def.kind === 'field') {
+    } else if (def.kind === 'num' || def.kind === 'level' || def.kind === 'field') {
       set(def.key, value);
     }
   }, [machine, canEdit, d, updateRow, set, setRowExtra]);
@@ -477,7 +480,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
       const newRow = (items.length ? items[items.length - 1].row : 0) + 1;
       setD(prev => ({
         ...prev,
-        [def.section]: [...(prev[def.section] || []), { description: '', code: '', levels: '', consumption: 0, price: 0, amount: 0, amountManual: '', extra: {} }],
+        [def.section]: [...(prev[def.section] || []), { description: '', code: '', consumption: 0, price: 0, amount: 0, amountManual: '', extra: {} }],
       }));
       setIsDirty(true);
       setTimeout(() => document.querySelector(`[data-cell="${def.col + newRow}"]`)?.focus(), 0);
@@ -592,7 +595,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
       <tr className="bg-gray-50 border-y border-gray-200">
         <GutterCell row={r} active={isActiveRow(r)} />
         <td colSpan={SPAN} className="py-1.5 px-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">{r.title}</span>
               {fromSrd && (
@@ -601,9 +604,14 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
                 </span>
               )}
             </div>
-            {total > 0 && (
-              <span className="text-[11px] font-semibold text-gray-600">{fmt2(total)}</span>
-            )}
+            <div className="flex items-center gap-2">
+              {total > 0 && (
+                <span className="text-[11px] font-semibold text-gray-600">{fmt2(total)}</span>
+              )}
+              {r.section === 'production' && (
+                <LevelOptionsButton options={levelOptions} canEdit={canEdit} onSetOptions={setLevelOptions} />
+              )}
+            </div>
           </div>
         </td>
       </tr>
@@ -615,13 +623,6 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
       <GutterCell row={r} active={isActiveRow(r)} />
       <th className={`py-1.5 px-3 text-left ${activeCol === COL.description ? 'bg-blue-50 text-blue-700' : ''}`}>Description</th>
       <th className={`py-1.5 px-2 text-left border-l border-gray-200 ${r.showCode && activeCol === COL.code ? 'bg-blue-50 text-blue-700' : ''}`}>{r.showCode ? 'Code' : ''}</th>
-      <LevelsHeader
-        options={levelOptions}
-        canEdit={canEdit}
-        isCtrl={r.section === 'fabrics'}
-        active={activeCol === COL.levels}
-        onSetOptions={setLevelOptions}
-      />
       <th className={`py-1.5 px-2 text-right border-l border-gray-200 ${activeCol === COL.consumption ? 'bg-blue-50 text-blue-700' : ''}`}>Cons</th>
       <th className={`py-1.5 px-2 text-right border-l border-gray-200 ${activeCol === COL.price ? 'bg-blue-50 text-blue-700' : ''}`}>Rate</th>
       <th className={`py-1.5 px-2 text-right border-l border-gray-200 ${activeCol === COL.amount ? 'bg-blue-50 text-blue-700' : ''}`}>Amount</th>
@@ -655,7 +656,6 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
   const renderItem = (r) => {
     const row = d[r.section]?.[r.idx] || {};
     const cDesc   = cell(r)(COL.description);
-    const cLevels = cell(r)(COL.levels);
     const cCons   = cell(r)(COL.consumption);
     const cRate   = cell(r)(COL.price);
     const cAmt    = cell(r)(COL.amount);
@@ -697,23 +697,6 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
               placeholder="Code"
             />
           ) : null}
-        </td>
-        {/* Levels (dropdown, between Code and Cons) */}
-        <td className="border-r border-gray-100">
-          <select
-            value={row.levels ?? ''}
-            onChange={e => onChangeRowField(r.section, r.idx, 'levels', e.target.value)}
-            onFocus={() => focusCell(cLevels.coord)}
-            data-cell={cLevels.coord}
-            title={`Cell ${cLevels.coord}`}
-            disabled={!canEdit}
-            className={`w-full text-xs bg-transparent outline-none px-1 py-1.5 ${row.levels ? 'text-gray-800' : 'text-gray-400'} focus:bg-blue-50`}
-          >
-            <option value="">—</option>
-            {levelOptions.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
         </td>
         {/* Cons */}
         <td className="border-r border-gray-100">
@@ -808,10 +791,10 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
   );
 
   const renderSingle = (r) => {
-    const numCell = r.cells[0];
+    const numCell = r.cells.find(c => c.kind === 'num');
+    // "Codes Req Level" dropdown — Production Cost only (column B).
+    const lvlCell = r.cells.find(c => c.kind === 'level');
     const coord = numCell ? numCell.coord : null;
-    // Rows whose value lives in the Levels column (C) — e.g. Production Cost.
-    const inLevelsCol = numCell?.col === COL.levels;
     const empty = <td className="border-l border-gray-100" />;
     const value = r.computed || numCell == null ? (
       <span className="text-xs px-2 py-1 block text-right font-semibold text-gray-900">
@@ -837,21 +820,28 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
         <td className="py-1 px-3">
           <span className="text-xs text-gray-700 py-1 block">{r.label}</span>
         </td>
-        {inLevelsCol ? (
-          <>
-            {empty}
-            <td className="border-l border-gray-100">{value}</td>
-            {empty}
-            {empty}
-            {empty}
-          </>
-        ) : (
-          <>
-            <td colSpan={3} className="border-l border-gray-100" />
-            <td className="border-l border-gray-100">{value}</td>
-            {empty}
-          </>
-        )}
+        {/* Codes Req Level */}
+        <td className="border-r border-gray-100">
+          {lvlCell ? (
+            <select
+              value={d[lvlCell.key] ?? ''}
+              onChange={e => set(lvlCell.key, e.target.value)}
+              onFocus={() => focusCell(lvlCell.coord)}
+              data-cell={lvlCell.coord}
+              title="Code Required Level"
+              disabled={!canEdit}
+              className={`w-full text-xs bg-transparent outline-none px-1 py-1.5 ${d[lvlCell.key] ? 'text-gray-800' : 'text-gray-400'} focus:bg-blue-50`}
+            >
+              <option value="">—</option>
+              {levelOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          ) : null}
+        </td>
+        <td className="border-r border-gray-100">{value}</td>
+        {empty}
+        {empty}
         {extraCols.map(ec => <td key={ec.id} className="border-l border-gray-100" />)}
         <td className="w-6" />
       </tr>
@@ -899,7 +889,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
                 />
               </div>
             </td>
-            <td colSpan={3} className="border-l border-gray-200" />
+            <td colSpan={2} className="border-l border-gray-200" />
             <td className="border-l border-gray-200 text-right text-xs px-2 py-1">
               <span className="font-semibold text-gray-900">Final FOB US$</span>
             </td>
@@ -979,12 +969,11 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
           {/* ── Column widths ── */}
           <colgroup>
             <col style={{ width: 34 }} />
-            <col style={{ width: '30%' }} />
+            <col style={{ width: '32%' }} />
             <col style={{ width: '14%' }} />
-            <col style={{ width: '9%' }} />
             <col style={{ width: '10%' }} />
-            <col style={{ width: '11%' }} />
-            <col style={{ width: '14%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '16%' }} />
             {extraCols.map(ec => <col key={ec.id} style={{ width: 120 }} />)}
             <col style={{ width: '26px' }} />
           </colgroup>

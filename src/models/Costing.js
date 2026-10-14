@@ -7,7 +7,6 @@ import mongoose from 'mongoose';
 const costRowSchema = new mongoose.Schema({
   description: { type: String, default: '' },
   code:        { type: String, default: '' },  // Fabric code (for fabrics section)
-  levels:      { type: String, default: '' },  // LEVELS dropdown (between Code and Cons)
   consumption:  { type: mongoose.Schema.Types.Mixed, default: 0 },  // CONSUMP column
   price:        { type: mongoose.Schema.Types.Mixed, default: 0 },  // PRICE column
   amount:       { type: Number, default: 0 },  // AMOUNT = consumption * price (auto)
@@ -31,7 +30,7 @@ const costingDataSchema = new mongoose.Schema({
   extraCols: { type: mongoose.Schema.Types.Mixed, default: [] },
 
   // ── LEVELS dropdown options ──────────────────────────────────
-  // Options offered by the "Levels" column (Code ▸ Levels ▸ Cons ▸ Rate ▸ Amount).
+  // Options offered by the Production Cost "Codes Req Level" dropdowns.
   levelOptions: { type: [String], default: ['1', '2', '3'] },
 
   // ── Header info ──────────────────────────────────────────────────
@@ -65,6 +64,9 @@ const costingDataSchema = new mongoose.Schema({
   // ── PRODUCTION COST ──────────────────────────────────────────────
   cmtLevel:    { type: mongoose.Schema.Types.Mixed, default: 0 },  // CMT Codes Req Level 1 2 3
   washingLevel:{ type: mongoose.Schema.Types.Mixed, default: 0 },  // Washing Codes Req Level 1 2 3
+  // Codes Req Level picked for each of the two rows above (Production Cost only)
+  cmtLevelCode:    { type: String, default: '' },
+  washingLevelCode:{ type: String, default: '' },
   fob:         { type: mongoose.Schema.Types.Mixed, default: 0 },
 
   // ── FREIGHT ──────────────────────────────────────────────────────

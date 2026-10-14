@@ -134,17 +134,16 @@ function PrintContent() {
     <tr>
       <th className="table-header" colSpan={showCode ? 1 : 2} style={{ width: showCode ? '26%' : '36%' }}>Description</th>
       {showCode && <th className="table-header" style={{ width: '14%' }}>Code</th>}
-      <th className="table-header" style={{ width: '8%', textAlign: 'center' }}>Levels</th>
       <th className="table-header num-right" style={{ width: '13%' }}>Cons</th>
       <th className="table-header num-right" style={{ width: '13%' }}>Rate</th>
-      <th className="table-header num-right" style={{ width: EC.length ? '14%' : '26%' }}>Amount</th>
+      <th className="table-header num-right" style={{ width: EC.length ? '14%' : '34%' }}>Amount</th>
       {EC.map((c) => (
         <th key={c.id} className="table-header" style={{ width: '12%', textAlign: 'center' }}>{c.name}</th>
       ))}
     </tr>
   );
 
-  // ── section block: items table (Description | Code | Levels | Cons | Rate | Amount | extras) ──
+  // ── section block: items table (Description | Code | Cons | Rate | Amount | extras) ──
   const itemBlock = (label, rows, showCode, sectionTotal) => (
     <div className="table-block">
       <div className="table-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -162,9 +161,6 @@ function PrintContent() {
                 <td colSpan={showCode ? 1 : 2} className="table-field-label"><span className="table-field-underline">{r.description}</span></td>
               )}
               {showCode && <td className="table-field-cell"><span className="table-field-underline">{r.code || ''}</span></td>}
-              <td className="table-field-cell" style={{ textAlign: 'center' }}>
-                <span className="table-field-underline" style={{ fontWeight: 400 }}>{r.levels || ''}</span>
-              </td>
               <td className="table-field-cell">
                 <span className="table-field-underline" style={{ textAlign: 'right', fontWeight: 400 }}>{fmtN(r.consumption)}</span>
               </td>
@@ -186,21 +182,23 @@ function PrintContent() {
     </div>
   );
 
-  // ── label/value block laid out on the sheet columns, value under Levels ──
-  const levelsBlock = (label, rows) => (
+  // ── label / level / value block laid out on the sheet columns ──
+  // Used by Production Cost: [label, Codes Req Level, value]
+  const costBlock = (label, rows) => (
     <div className="table-block">
       <div className="table-label">{label}</div>
       <table className="print-table">
         <thead>{sheetHead(true)}</thead>
         <tbody>
-          {rows.map(([rowLabel, value], i) => (
+          {rows.map(([rowLabel, level, value], i) => (
             <tr key={i}>
               <td className="table-field-label"><span className="table-field-underline">{rowLabel}</span></td>
-              <td className="table-field-cell" />
+              <td className="table-field-cell" style={{ textAlign: 'center' }}>
+                <span className="table-field-underline" style={{ fontWeight: 400 }}>{level || ''}</span>
+              </td>
               <td className="table-field-cell">
                 <span className="table-field-underline" style={{ textAlign: 'right', fontWeight: 700 }}>{value}</span>
               </td>
-              <td className="table-field-cell" />
               <td className="table-field-cell" />
               <td className="table-field-cell" />
               {EC.map((c) => <td key={c.id} className="table-field-cell" />)}
@@ -470,10 +468,10 @@ function PrintContent() {
       {itemBlock('Embellishment', data.embellishment, true, T.tEmb)}
 
       {/* ── PRODUCTION COST ─────────────────────── */}
-      {levelsBlock('Production Cost', [
-        ['Cmt (Codes Req Level 1 2 3)', fmtAmt(data.cmtLevel)],
-        ['Washing (Codes Req Level 1 2 3)', fmtAmt(data.washingLevel)],
-        ['Fob', fmtAmt(data.fob)],
+      {costBlock('Production Cost', [
+        ['Cmt (Codes Req Level 1 2 3)', data.cmtLevelCode || '', fmtAmt(data.cmtLevel)],
+        ['Washing (Codes Req Level 1 2 3)', data.washingLevelCode || '', fmtAmt(data.washingLevel)],
+        ['Fob', '', fmtAmt(data.fob)],
       ])}
 
       {/* ── MARGIN & COMMISSION ─────────────────── */}
