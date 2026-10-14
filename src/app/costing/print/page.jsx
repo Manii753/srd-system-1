@@ -111,69 +111,36 @@ function PrintContent() {
     ['Sample Size',    d.sampleSize],
   ];
 
-  // ── generic SR-style label/value table (2 columns) ──────────────────────────
-  const rowsBy2 = (rows) => (
-    <table className="print-table">
-      <tbody>
-        {rows.map(([label, value, opts = {}], i) => (
-          <tr key={i} style={opts.bg ? { background: opts.bg } : {}}>
-            <td className="table-field-label" style={opts.labelBold ? { fontWeight: 700 } : {}}>{label}</td>
-            <td className="table-field-cell" style={{ textAlign: 'right' }}>
-              <span className="table-field-underline" style={opts.amountColor ? { color: opts.amountColor, fontWeight: 700 } : { fontWeight: opts.bold ? 700 : 400 }}>
-                {value}
-              </span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-
-  // ── shared header row so every sheet table lines up ──
-  const sheetHead = (showCode) => (
-    <tr>
-      <th className="table-header" colSpan={showCode ? 1 : 2} style={{ width: showCode ? '26%' : '36%' }}>Description</th>
-      {showCode && <th className="table-header" style={{ width: '14%' }}>Code</th>}
-      <th className="table-header num-right" style={{ width: '13%' }}>Cons</th>
-      <th className="table-header num-right" style={{ width: '13%' }}>Rate</th>
-      <th className="table-header num-right" style={{ width: EC.length ? '14%' : '34%' }}>Amount</th>
-      {EC.map((c) => (
-        <th key={c.id} className="table-header" style={{ width: '12%', textAlign: 'center' }}>{c.name}</th>
-      ))}
-    </tr>
-  );
-
-  // ── section block: items table (Description | Code | Cons | Rate | Amount | extras) ──
-  const itemBlock = (label, rows, showCode, sectionTotal) => (
-    <div className="table-block">
-      <div className="table-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span>{label}</span>
-        {sectionTotal > 0 && <span style={{ fontWeight: 600 }}>{fmtAmt(sectionTotal)}</span>}
+  // ── generic SR-style table with headers
+  const itemTable = (label, rows, showCode, sectionTotal) => (
+    <div className="mb-4">
+      <div className="flex justify-between items-center mb-1">
+        <h3 className="text-app-heading font-bold">{label}</h3>
+        {sectionTotal > 0 && <span className="font-bold">{fmtAmt(sectionTotal)}</span>}
       </div>
-      <table className="print-table">
-        <thead>{sheetHead(showCode)}</thead>
+      <table className="w-full border-collapse border border-gray-300 text-app-text">
+        <thead>
+          <tr className="bg-gray-200">
+            <th className="border border-gray-300 p-2 text-left bg-gray-200">Description</th>
+            {showCode && <th className="border border-gray-300 p-2 text-left bg-gray-200">Code</th>}
+            <th className="border border-gray-300 p-2 text-right bg-gray-200">Cons</th>
+            <th className="border border-gray-300 p-2 text-right bg-gray-200">Rate</th>
+            <th className="border border-gray-300 p-2 text-right bg-gray-200">Amount</th>
+            {EC.map((c) => (
+              <th key={c.id} className="border border-gray-300 p-2 text-center bg-gray-200">{c.name}</th>
+            ))}
+          </tr>
+        </thead>
         <tbody>
           {(rows || []).map((r, i) => (
             <tr key={i}>
-              {showCode ? (
-                <td className="table-field-label"><span className="table-field-underline">{r.description}</span></td>
-              ) : (
-                <td colSpan={showCode ? 1 : 2} className="table-field-label"><span className="table-field-underline">{r.description}</span></td>
-              )}
-              {showCode && <td className="table-field-cell"><span className="table-field-underline">{r.code || ''}</span></td>}
-              <td className="table-field-cell">
-                <span className="table-field-underline" style={{ textAlign: 'right', fontWeight: 400 }}>{fmtN(r.consumption)}</span>
-              </td>
-              <td className="table-field-cell">
-                <span className="table-field-underline" style={{ textAlign: 'right', fontWeight: 400 }}>{fmtN(r.price)}</span>
-              </td>
-              <td className="table-field-cell" style={{ textAlign: 'right' }}>
-                <span className="table-field-underline" style={{ fontWeight: 700 }}>{fmtAmt(rowAmt(r))}</span>
-              </td>
+              <td className="border border-gray-300 p-2">{r.description}</td>
+              {showCode && <td className="border border-gray-300 p-2">{r.code || ''}</td>}
+              <td className="border border-gray-300 p-2 text-right">{fmtN(r.consumption)}</td>
+              <td className="border border-gray-300 p-2 text-right">{fmtN(r.price)}</td>
+              <td className="border border-gray-300 p-2 text-right font-semibold">{fmtAmt(rowAmt(r))}</td>
               {EC.map((c) => (
-                <td key={c.id} className="table-field-cell" style={{ textAlign: 'center' }}>
-                  <span className="table-field-underline" style={{ fontWeight: 400 }}>{r?.extra?.[c.id] || ''}</span>
-                </td>
+                <td key={c.id} className="border border-gray-300 p-2 text-center">{r?.extra?.[c.id] || ''}</td>
               ))}
             </tr>
           ))}
@@ -182,26 +149,45 @@ function PrintContent() {
     </div>
   );
 
-  // ── label / level / value block laid out on the sheet columns ──
-  // Used by Production Cost: [label, Codes Req Level, value]
-  const costBlock = (label, rows) => (
-    <div className="table-block">
-      <div className="table-label">{label}</div>
-      <table className="print-table">
-        <thead>{sheetHead(true)}</thead>
+  // Production cost table
+  const costTable = (label, rows) => (
+    <div className="mb-4">
+      <h3 className="text-app-heading font-bold mb-1">{label}</h3>
+      <table className="w-full border-collapse border border-gray-300 text-app-text">
+        <thead>
+          <tr className="bg-gray-200">
+            <th className="border border-gray-300 p-2 text-left bg-gray-200">Description</th>
+            <th className="border border-gray-300 p-2 text-center bg-gray-200">Code</th>
+            <th className="border border-gray-300 p-2 text-right bg-gray-200">Amount</th>
+          </tr>
+        </thead>
         <tbody>
           {rows.map(([rowLabel, level, value], i) => (
             <tr key={i}>
-              <td className="table-field-label"><span className="table-field-underline">{rowLabel}</span></td>
-              <td className="table-field-cell" style={{ textAlign: 'center' }}>
-                <span className="table-field-underline" style={{ fontWeight: 400 }}>{level || ''}</span>
+              <td className="border border-gray-300 p-2">{rowLabel}</td>
+              <td className="border border-gray-300 p-2 text-center">{level || ''}</td>
+              <td className="border border-gray-300 p-2 text-right font-semibold">{value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  // Label/value table (2 columns)
+  const summaryTable = (label, rows) => (
+    <div className="mb-4">
+      <h3 className="text-app-heading font-bold mb-1">{label}</h3>
+      <table className="w-full border-collapse border border-gray-300 text-app-text">
+        <tbody>
+          {rows.map(([label, value, opts = {}], i) => (
+            <tr key={i} style={opts.bg ? { background: opts.bg } : {}}>
+              <td className="border border-gray-300 p-2 font-semibold bg-gray-50 w-1/2" style={opts.labelBold ? { fontWeight: 700 } : {}}>
+                {label}
               </td>
-              <td className="table-field-cell">
-                <span className="table-field-underline" style={{ textAlign: 'right', fontWeight: 700 }}>{value}</span>
+              <td className="border border-gray-300 p-2 text-right" style={opts.amountColor ? { color: opts.amountColor, fontWeight: 700 } : { fontWeight: opts.bold ? 700 : 400 }}>
+                {value}
               </td>
-              <td className="table-field-cell" />
-              <td className="table-field-cell" />
-              {EC.map((c) => <td key={c.id} className="table-field-cell" />)}
             </tr>
           ))}
         </tbody>
@@ -210,328 +196,127 @@ function PrintContent() {
   );
 
   return (
-    <div className="print-page">
-      <style>{`
-        @page { size: A4; margin: 0.05in; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body {
-          background: #fff;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-        body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          font-size: 10px;
-          text-transform: capitalize !important;
-          line-height: 1.1;
-        }
-        .print-page { width: 100%; }
-
-        /* ── header (title left, image right, like the SR print) ── */
-        .header {
-          margin-top: 4px;
-          margin-bottom: 6px;
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 12px;
-        }
-        .header-main { flex: 1; min-width: 0; }
-        .header h1 {
-          font-size: 14px;
-          margin: 0 0 3px 0;
-          font-weight: 700;
-          text-transform: uppercase;
-          color: #1a1a1a;
-          border-bottom: 1.5px solid #1a1a1a;
-          padding-bottom: 2px;
-        }
-        .header-meta {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 4px 12px;
-          font-size: 11px;
-          font-weight: 600;
-          color: #333;
-          margin-top: 2px;
-        }
-        .header-meta .meta-key { color: #6b7280; font-weight: 600; }
-        .header-image { flex-shrink: 0; width: 170px; }
-        .header-image-frame {
-          width: 170px;
-          height: 170px;
-          border: 1px solid #d1d5db;
-          background: #fff;
-          padding: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .header-image-img {
-          max-width: 100%;
-          max-height: 100%;
-          object-fit: contain;
-          display: block;
-        }
-        .header-image-empty {
-          font-size: 9px;
-          color: #9ca3af;
-          font-style: italic;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 100%;
-          text-transform: none;
-        }
-
-        /* ── field cells (label + underlined value), like the SR grid ── */
-        .info-grid {
-          display: grid;
-          grid-template-columns: repeat(6, minmax(0, 1fr));
-          gap: 4px 1px;
-          margin-bottom: 8px;
-        }
-        .field-cell {
-          grid-column: span 2;
-          padding: 2px 0 0 0;
-          background: white;
-          display: flex;
-          flex-direction: column;
-          justify-content: flex-start;
-        }
-        .field-cell.is-wide { grid-column: span 6; }
-        .cell-content {
-          display: flex;
-          align-items: flex-start;
-          width: 100%;
-          gap: 6px;
-          height: 100%;
-        }
-        .cell-label-group { width: 120px; flex-shrink: 0; }
-        .cell-label {
-          font-size: 11px;
-          font-weight: 700;
-          color: #333;
-          white-space: normal;
-          text-transform: capitalize;
-          line-height: 10px;
-        }
-        .cell-underline {
-          font-size: 11px;
-          color: #000;
-          flex-grow: 1;
-          border-bottom: 0.4px solid #999;
-          min-height: 12px;
-          padding: 0 2px;
-          display: flex;
-          align-items: flex-end;
-          white-space: pre-wrap;
-          line-height: 1.2;
-          word-break: break-word;
-        }
-
-        /* ── print tables, like the SR print tables ── */
-        .table-block { margin-top: 4px; margin-bottom: 4px; break-inside: avoid; }
-        .table-label {
-          font-size: 12px;
-          font-weight: 700;
-          color: #333;
-          text-transform: capitalize;
-          background: #f3f4f6;
-          padding: 2px 4px;
-          border-bottom: 1px solid #ddd;
-        }
-        .print-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 11px;
-          border: 0.5px solid #ccc;
-        }
-        .print-table .table-header {
-          background-color: #f3f4f6;
-          padding: 2px 4px;
-          text-align: left;
-          font-weight: 700;
-          font-size: 11px;
-          color: #333;
-          text-transform: capitalize;
-          border: 0.5px solid #ccc;
-        }
-        .print-table .table-field-label {
-          padding: 2px 4px;
-          text-align: left;
-          font-size: 11px;
-          font-weight: 700;
-          color: #333;
-          text-transform: capitalize;
-          white-space: normal;
-          word-break: break-word;
-          border: 0.5px solid #ccc;
-        }
-        .print-table .table-field-cell {
-          padding: 2px 4px;
-          text-align: left;
-          border: 0.5px solid #ccc;
-        }
-        .print-table .table-field-underline {
-          font-size: 11px;
-          color: #000;
-          display: inline-block;
-          width: calc(100% - 5px);
-          border-bottom: 0.4px solid #999;
-          min-height: 14px;
-          padding: 0 2px;
-          line-height: 14px;
-          white-space: pre-wrap;
-        }
-        .print-table .num-right { text-align: right; }
-
-        /* ── signature footer, like the SR print ── */
-        .footer {
-          margin-top: 18px;
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 15px;
-          font-size: 7px;
-        }
-        .signature-box {
-          border-top: 0.5px solid #000;
-          padding-top: 3px;
-        }
-        .signature-title {
-          font-weight: bold;
-          margin-bottom: 15px;
-          font-size: 11px;
-          color: #000;
+    <div className="p-4 max-w-[297mm] mx-auto print:max-w-none bg-white">
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4;
+            margin: 8mm;
+          }
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .bg-gray-200 {
+            background-color: #e5e7eb !important;
+          }
+          table {
+            font-size: 10pt;
+          }
+          td, th {
+            padding: 4px 6px !important;
+          }
         }
       `}</style>
 
-      {/* ════════════════════════════════════════
-          HEADER  (title + meta left, product image right)
-          ════════════════════════════════════════ */}
-      <div className="header">
-        <div className="header-main">
-          <h1>{isPre ? 'Pre Costing Form' : 'Costing Form'}</h1>
-          <div className="header-meta">
-            {pocNumber
-              ? <span><span className="meta-key">POC:</span> POC-{pocNumber}</span>
-              : srd?.refNo
-                ? <span><span className="meta-key">Ref:</span> {srd.refNo}</span>
-                : null}
-            <span><span className="meta-key">Currency:</span> {d.currency || 'USD'}</span>
-            {d.status && <span><span className="meta-key">Status:</span> {d.status}</span>}
-          </div>
-        </div>
-        <div className="header-image">
-          <div className="header-image-frame">
-            {imageSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={imageSrc} alt="Product" className="header-image-img" />
-            ) : (
-              <span className="header-image-empty">No Image</span>
-            )}
-          </div>
+      <div className="flex justify-between items-center mb-2 print:hidden">
+        <h1 className="text-app-heading font-bold text-lg">{isPre ? 'PRE COSTING FORM' : 'COSTING FORM'}</h1>
+        <button
+          onClick={() => window.print()}
+          className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
+        >
+          Print / Save as PDF
+        </button>
+      </div>
+
+      <div className="mb-2">
+        <h2 className="text-app-heading font-bold text-center text-lg">{isPre ? 'PRE COSTING FORM' : 'COSTING FORM'}</h2>
+        <div className="text-app-text text-center text-gray-600 text-sm">
+          {pocNumber ? `POC-${pocNumber}` : srd?.refNo ? srd.refNo : ''} | Currency: {d.currency || 'USD'} | Status: {d.status || 'Draft'}
         </div>
       </div>
 
-      {/* ════════════════════════════════════════
-          INFO FIELDS  (label + underlined values)
-          ════════════════════════════════════════ */}
-      <div className="info-grid">
-        {headerFields.map(([label, value]) => (
-          <div key={label} className="field-cell">
-            <div className="cell-content">
-              <div className="cell-label-group">
-                <span className="cell-label">{label}</span>
-              </div>
-              <span className="cell-underline">{value || ''}</span>
-            </div>
+      {/* Header Info with Image */}
+      <div className="flex gap-4 mb-4">
+        <div className="flex-1">
+          <table className="w-full border-collapse border border-gray-300 text-app-text">
+            <tbody>
+              {headerFields.map(([label, value]) => (
+                <tr key={label}>
+                  <td className="border border-gray-300 p-2 font-semibold bg-gray-50 w-1/3">{label}</td>
+                  <td className="border border-gray-300 p-2">{value || ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {imageSrc && (
+          <div className="flex-shrink-0" style={{ width: '170px', height: '170px' }}>
+            <img src={imageSrc} alt="Product" className="w-full h-full object-contain border border-gray-300" />
           </div>
-        ))}
+        )}
       </div>
 
-      {/* ════════════════════════════════════════
-          MASTER COST SECTIONS
-          ════════════════════════════════════════ */}
+      {/* Fabrics */}
+      {itemTable('Fabrics', data.fabrics, true, T.tFab)}
 
-      {/* ── FABRICS ─────────────────────────────── */}
-      {itemBlock('Fabrics', data.fabrics, true, T.tFab)}
+      {/* Before Wash Trims */}
+      {itemTable('Before Wash Trims', data.beforeWashTrims, true, T.tBW)}
 
-      {/* ── BEFORE WASH TRIMS ───────────────────── */}
-      {itemBlock('Before Wash Trims', data.beforeWashTrims, true, T.tBW)}
+      {/* After Wash Trims */}
+      {itemTable('After Wash Trims', data.afterWashTrims, true, T.tAW)}
 
-      {/* ── AFTER WASH TRIMS ────────────────────── */}
-      {itemBlock('After Wash Trims', data.afterWashTrims, true, T.tAW)}
+      {/* Embellishment */}
+      {itemTable('Embellishment', data.embellishment, true, T.tEmb)}
 
-      {/* ── EMBELLISHMENT ───────────────────────── */}
-      {itemBlock('Embellishment', data.embellishment, true, T.tEmb)}
-
-      {/* ── PRODUCTION COST ─────────────────────── */}
-      {costBlock('Production Cost', [
+      {/* Production Cost */}
+      {costTable('Production Cost', [
         ['Cmt (Codes Req Level 1 2 3)', data.cmtLevelCode || '', fmtAmt(data.cmtLevel)],
         ['Washing (Codes Req Level 1 2 3)', data.washingLevelCode || '', fmtAmt(data.washingLevel)],
         ['Fob', '', fmtAmt(data.fob)],
       ])}
 
-      {/* ── MARGIN & COMMISSION ─────────────────── */}
-      <div className="table-block">
-        <div className="table-label">Margin &amp; Commission</div>
-        {rowsBy2([
-          ['Extra Cut', fmtAmt(data.extraCut)],
-          ['Ld Margin', fmtAmt(data.ldMargin)],
-          ['Testing Charges', fmtAmt(data.testingCharges)],
-          ['Commission', n(data.commission) ? `(${n(data.commission)}%) ${fmtAmt(T.comm)}` : fmtAmt(T.comm), { bold: true }],
-        ])}
-      </div>
+      {/* Margin & Commission */}
+      {summaryTable('Margin & Commission', [
+        ['Extra Cut', fmtAmt(data.extraCut)],
+        ['Ld Margin', fmtAmt(data.ldMargin)],
+        ['Testing Charges', fmtAmt(data.testingCharges)],
+        ['Commission', n(data.commission) ? `(${n(data.commission)}%) ${fmtAmt(T.comm)}` : fmtAmt(T.comm), { bold: true }],
+      ])}
 
-      {/* ── SUMMARY ─────────────────────────────── */}
-      <div className="table-block">
-        <div className="table-label">Summary</div>
-        {rowsBy2([
-          ['Total Price PKR', Math.round(T.totalPkr).toLocaleString('en-US'), { bold: true }],
-          ['Currency (USD / Euro)', String(n(data.currencyRate) || 265)],
-          ['Final Fob Us$', '$' + fmtUsd(T.finalFob), { bold: true }],
-        ])}
-      </div>
+      {/* Summary */}
+      {summaryTable('Summary', [
+        ['Total Price PKR', Math.round(T.totalPkr).toLocaleString('en-US'), { bold: true }],
+        ['Currency (USD / Euro)', String(n(data.currencyRate) || 265)],
+        ['Final Fob Us$', '$' + fmtUsd(T.finalFob), { bold: true }],
+      ])}
 
-      {/* ── QUOTE TRACKING ──────────────────────── */}
-      <div className="table-block">
-        <div className="table-label">Quote Tracking</div>
-        {rowsBy2([
-          ['First Quoted', '$' + fmtUsd(data.firstQuoted), { bg: '#92d050', labelBold: true, amountColor: '#000' }],
-          ['Target $', '$' + fmtUsd(data.targetPrice), { amountColor: '#5b9bd5' }],
-          ['Difference', '$' + fmtUsd(T.diff), { amountColor: '#5b9bd5' }],
-          ['2nd Quote $', '$' + fmtUsd(data.secondQuote), { bg: '#ffff00', labelBold: true, amountColor: '#f97316' }],
-          ['Confirmed', '$' + fmtUsd(data.confirmedPrice), { bg: '#92d050', labelBold: true, amountColor: '#f97316' }],
-        ])}
-      </div>
+      {/* Quote Tracking */}
+      {summaryTable('Quote Tracking', [
+        ['First Quoted', '$' + fmtUsd(data.firstQuoted), { bg: '#92d050', labelBold: true, amountColor: '#000' }],
+        ['Target $', '$' + fmtUsd(data.targetPrice), { amountColor: '#5b9bd5' }],
+        ['Difference', '$' + fmtUsd(T.diff), { amountColor: '#5b9bd5' }],
+        ['2nd Quote $', '$' + fmtUsd(data.secondQuote), { bg: '#ffff00', labelBold: true, amountColor: '#f97316' }],
+        ['Confirmed', '$' + fmtUsd(data.confirmedPrice), { bg: '#92d050', labelBold: true, amountColor: '#f97316' }],
+      ])}
 
-      {/* ── NOTES ───────────────────────────────── */}
+      {/* Notes */}
       {d.notes && (
-        <div className="field-cell is-wide" style={{ marginTop: 4 }}>
-          <div className="cell-content">
-            <div className="cell-label-group">
-              <span className="cell-label">Notes</span>
-            </div>
-            <span className="cell-underline">{d.notes}</span>
-          </div>
+        <div className="mb-4">
+          <table className="w-full border-collapse border border-gray-300 text-app-text">
+            <tbody>
+              <tr>
+                <td className="border border-gray-300 p-2 font-semibold bg-gray-50 w-1/6">Notes</td>
+                <td className="border border-gray-300 p-2">{d.notes}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* ════════════════════════════════════════
-          SIGNATURE FOOTER
-          ════════════════════════════════════════ */}
-      <div className="footer">
-        <div className="signature-box">
-          <div className="signature-title">Prepared By</div>
-        </div>
-        <div className="signature-box">
-          <div className="signature-title">Checked By</div>
-        </div>
-        <div className="signature-box">
-          <div className="signature-title">Approved By</div>
-        </div>
+      {/* Footer */}
+      <div className="mt-4 text-app-text text-gray-500 text-right text-sm">
+        Report Generated by MMS
       </div>
     </div>
   );
