@@ -113,37 +113,39 @@ function PrintContent() {
 
   // ── generic SR-style table with headers
   const itemTable = (label, rows, showCode, sectionTotal) => (
-    <div className="mb-4">
+    <div className="mb-4 break-inside-avoid">
       <div className="flex justify-between items-center mb-1">
-        <h3 className="text-app-heading font-bold">{label}</h3>
-        {sectionTotal > 0 && <span className="font-bold">{fmtAmt(sectionTotal)}</span>}
+        <h3 className="text-app-heading font-bold text-sm">{label}</h3>
+        {sectionTotal > 0 && <span className="font-bold text-sm">{sectionTotal}</span>}
       </div>
       <table className="w-full border-collapse border border-gray-300 text-app-text">
         <thead>
           <tr className="bg-gray-200">
-            <th className="border border-gray-300 p-2 text-left bg-gray-200">Description</th>
-            {showCode && <th className="border border-gray-300 p-2 text-left bg-gray-200">Code</th>}
-            <th className="border border-gray-300 p-2 text-right bg-gray-200">Cons</th>
-            <th className="border border-gray-300 p-2 text-right bg-gray-200">Rate</th>
-            <th className="border border-gray-300 p-2 text-right bg-gray-200">Amount</th>
+            <th className="border border-gray-300 p-2 text-left bg-gray-200" style={{ width: showCode ? '35%' : '50%' }}>Description</th>
+            {showCode && <th className="border border-gray-300 p-2 text-left bg-gray-200" style={{ width: '20%' }}>Code</th>}
+            <th className="border border-gray-300 p-2 text-right bg-gray-200" style={{ width: '10%' }}>Cons</th>
+            <th className="border border-gray-300 p-2 text-right bg-gray-200" style={{ width: '10%' }}>Rate</th>
+            <th className="border border-gray-300 p-2 text-right bg-gray-200" style={{ width: showCode ? '15%' : '20%' }}>Amount</th>
             {EC.map((c) => (
-              <th key={c.id} className="border border-gray-300 p-2 text-center bg-gray-200">{c.name}</th>
+              <th key={c.id} className="border border-gray-300 p-2 text-center bg-gray-200" style={{ width: '10%' }}>{c.name}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {(rows || []).map((r, i) => (
-            <tr key={i}>
-              <td className="border border-gray-300 p-2">{r.description}</td>
-              {showCode && <td className="border border-gray-300 p-2">{r.code || ''}</td>}
-              <td className="border border-gray-300 p-2 text-right">{fmtN(r.consumption)}</td>
-              <td className="border border-gray-300 p-2 text-right">{fmtN(r.price)}</td>
-              <td className="border border-gray-300 p-2 text-right font-semibold">{fmtAmt(rowAmt(r))}</td>
-              {EC.map((c) => (
-                <td key={c.id} className="border border-gray-300 p-2 text-center">{r?.extra?.[c.id] || ''}</td>
-              ))}
-            </tr>
-          ))}
+          {(rows || []).length > 0 ? (
+            (rows || []).map((r, i) => (
+              <tr key={i}>
+                <td className="border border-gray-300 p-2">{r.description}</td>
+                {showCode && <td className="border border-gray-300 p-2">{r.code || ''}</td>}
+                <td className="border border-gray-300 p-2 text-right">{fmtN(r.consumption)}</td>
+                <td className="border border-gray-300 p-2 text-right">{fmtN(r.price)}</td>
+                <td className="border border-gray-300 p-2 text-right font-semibold">{fmtAmt(rowAmt(r))}</td>
+                {EC.map((c) => (
+                  <td key={c.id} className="border border-gray-300 p-2 text-center">{r?.extra?.[c.id] || ''}</td>
+                ))}
+              </tr>
+            ))
+          ) : null}
         </tbody>
       </table>
     </div>
@@ -151,14 +153,14 @@ function PrintContent() {
 
   // Production cost table
   const costTable = (label, rows) => (
-    <div className="mb-4">
-      <h3 className="text-app-heading font-bold mb-1">{label}</h3>
+    <div className="mb-4 break-inside-avoid">
+      <h3 className="text-app-heading font-bold text-sm mb-1">{label}</h3>
       <table className="w-full border-collapse border border-gray-300 text-app-text">
         <thead>
           <tr className="bg-gray-200">
-            <th className="border border-gray-300 p-2 text-left bg-gray-200">Description</th>
-            <th className="border border-gray-300 p-2 text-center bg-gray-200">Code</th>
-            <th className="border border-gray-300 p-2 text-right bg-gray-200">Amount</th>
+            <th className="border border-gray-300 p-2 text-left bg-gray-200" style={{ width: '60%' }}>Description</th>
+            <th className="border border-gray-300 p-2 text-center bg-gray-200" style={{ width: '20%' }}>Code</th>
+            <th className="border border-gray-300 p-2 text-right bg-gray-200" style={{ width: '20%' }}>Amount</th>
           </tr>
         </thead>
         <tbody>
@@ -176,16 +178,16 @@ function PrintContent() {
 
   // Label/value table (2 columns)
   const summaryTable = (label, rows) => (
-    <div className="mb-4">
-      <h3 className="text-app-heading font-bold mb-1">{label}</h3>
+    <div className="mb-4 break-inside-avoid">
+      <h3 className="text-app-heading font-bold text-sm mb-1">{label}</h3>
       <table className="w-full border-collapse border border-gray-300 text-app-text">
         <tbody>
           {rows.map(([label, value, opts = {}], i) => (
-            <tr key={i} style={opts.bg ? { background: opts.bg } : {}}>
-              <td className="border border-gray-300 p-2 font-semibold bg-gray-50 w-1/2" style={opts.labelBold ? { fontWeight: 700 } : {}}>
+            <tr key={i}>
+              <td className="border border-gray-300 p-2 font-semibold bg-gray-50" style={{ width: '60%' }}>
                 {label}
               </td>
-              <td className="border border-gray-300 p-2 text-right" style={opts.amountColor ? { color: opts.amountColor, fontWeight: 700 } : { fontWeight: opts.bold ? 700 : 400 }}>
+              <td className="border border-gray-300 p-2 text-right" style={{ fontWeight: opts.bold ? 700 : 400 }}>
                 {value}
               </td>
             </tr>
@@ -239,11 +241,11 @@ function PrintContent() {
       {/* Header Info with Image */}
       <div className="flex gap-4 mb-4">
         <div className="flex-1">
-          <table className="w-full border-collapse border border-gray-300 text-app-text">
+          <table className="w-full border-collapse border border-gray-300 text-app-text text-sm">
             <tbody>
               {headerFields.map(([label, value]) => (
                 <tr key={label}>
-                  <td className="border border-gray-300 p-2 font-semibold bg-gray-50 w-1/3">{label}</td>
+                  <td className="border border-gray-300 p-2 font-semibold bg-gray-50" style={{ width: '35%' }}>{label}</td>
                   <td className="border border-gray-300 p-2">{value || ''}</td>
                 </tr>
               ))}
@@ -251,8 +253,10 @@ function PrintContent() {
           </table>
         </div>
         {imageSrc && (
-          <div className="flex-shrink-0" style={{ width: '170px', height: '170px' }}>
-            <img src={imageSrc} alt="Product" className="w-full h-full object-contain border border-gray-300" />
+          <div className="flex-shrink-0" style={{ width: '150px' }}>
+            <div className="border border-gray-300 p-1 bg-white" style={{ height: '150px' }}>
+              <img src={imageSrc} alt="Product" className="w-full h-full object-contain" />
+            </div>
           </div>
         )}
       </div>
@@ -293,11 +297,11 @@ function PrintContent() {
 
       {/* Quote Tracking */}
       {summaryTable('Quote Tracking', [
-        ['First Quoted', '$' + fmtUsd(data.firstQuoted), { bg: '#92d050', labelBold: true, amountColor: '#000' }],
-        ['Target $', '$' + fmtUsd(data.targetPrice), { amountColor: '#5b9bd5' }],
-        ['Difference', '$' + fmtUsd(T.diff), { amountColor: '#5b9bd5' }],
-        ['2nd Quote $', '$' + fmtUsd(data.secondQuote), { bg: '#ffff00', labelBold: true, amountColor: '#f97316' }],
-        ['Confirmed', '$' + fmtUsd(data.confirmedPrice), { bg: '#92d050', labelBold: true, amountColor: '#f97316' }],
+        ['First Quoted', '$' + fmtUsd(data.firstQuoted)],
+        ['Target $', '$' + fmtUsd(data.targetPrice)],
+        ['Difference', '$' + fmtUsd(T.diff)],
+        ['2nd Quote $', '$' + fmtUsd(data.secondQuote)],
+        ['Confirmed', '$' + fmtUsd(data.confirmedPrice), { bold: true }],
       ])}
 
       {/* Notes */}
