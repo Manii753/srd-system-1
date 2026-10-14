@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useCallback, useMemo, Fragment } from 'react';
-import { Plus, Trash2, CheckCircle2, Clock, AlertCircle, Send, Printer, Settings2 } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Clock, AlertCircle, Send, Printer, Settings2, FilePlus2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/lib/use-toast';
 import { useSession } from 'next-auth/react';
 import FabricCodeSelect from './FabricCodeSelect';
 import ImageUpload from './ImageUpload';
+import RaiseSRDialog from './RaiseSRDialog';
 import { resolveCosting, isFormula } from '@/lib/costingGrid';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -219,11 +220,60 @@ function ExtraColHeader({ col, canEdit, isCtrl, active, onRename, onSetOptions, 
   );
 }
 
+// ─── Levels column header (dropdown options editor) ───────────────────────────
+
+function LevelsHeader({ options, canEdit, isCtrl, active, onSetOptions }) {
+  const [open, setOpen] = useState(false);
+  const [opts, setOpts] = useState((options || []).join('\n'));
+
+  return (
+    <th className={`border-l border-gray-200 ${active ? 'bg-blue-50 text-blue-700' : ''}`}>
+      <div className="relative flex items-center justify-between gap-1 px-2 py-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 truncate">Levels</span>
+        {isCtrl && canEdit && (
+          <button
+            onClick={() => { setOpen(o => !o); setOpts((options || []).join('\n')); }}
+            className={`shrink-0 ${open ? 'text-blue-500' : 'text-gray-400 hover:text-blue-500'}`}
+            title="Levels dropdown options"
+          >
+            <Settings2 size={10} />
+          </button>
+        )}
+        {open && (
+          <div className="absolute right-0 top-full z-30 mt-1 w-56 rounded-lg border border-gray-200 bg-white shadow-lg p-3 space-y-2 print:hidden">
+            <div>
+              <div className="text-[9px] font-semibold text-gray-400 uppercase mb-0.5">Dropdown options (one per line)</div>
+              <textarea
+                value={opts}
+                onChange={e => setOpts(e.target.value)}
+                rows={4}
+                placeholder={'1\n2\n3'}
+                className="w-full text-xs border border-gray-200 rounded px-2 py-1 outline-none focus:border-blue-400 resize-none"
+              />
+            </div>
+            <div className="flex justify-end pt-1">
+              <button
+                onClick={() => { onSetOptions(opts.split('\n').map(s => s.trim()).filter(Boolean)); setOpen(false); }}
+                className="text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded px-2.5 py-1"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </th>
+  );
+}
+
 const HEADER_LABELS = {
   date: 'Date', brand: 'Brand', fitSpecsCode: 'Fit Code',
   fit: 'Fit', description: 'Description', fabricType: 'Fabric Type',
   embellishmentYesNo: 'Embellishment', costingBase: 'Costing Base', sampleSize: 'Sample Size',
 };
+
+// Column letters for the fixed item columns (see lib/costingGrid.js).
+const COL = { description: 'A', code: 'B', levels: 'C', consumption: 'D', price: 'E', amount: 'F' };
 
 // Column letter for a user-added dropdown column (same scheme as costingGrid).
 const extraColLetter = (i) => {
@@ -245,6 +295,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
   const isAdmin = ['admin', 'vmd'].includes(session?.user?.role);
   const label = type === 'pre' ? 'Pre-Costing' : 'Post-Costing';
   const fromSrd = type === 'post';
+  const costingId = srdId || srd?._id;
 
   // ── Local state ──────────────────────────────────────────────────────────────
 
@@ -269,11 +320,14 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     images: [],
     // User-added dropdown columns (see extraCols schema)
     extraCols: [],
+    // Options offered by the "Levels" dropdown column
+    levelOptions: ['1', '2', '3'],
     // Workflow
     notes: '', status: 'draft',
     ...costData,
   }));
   const [isDirty, setIsDirty] = useState(false);
+  const [raiseOpen, setRaiseOpen] = useState(false);
 
   const [focusedCell, setFocusedCell] = useState(null); // cell whose input is focused
   const [selectedCell, setSelectedCell] = useState(null); // cell shown in the formula bar
@@ -331,7 +385,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     setD(prev => ({
       ...prev,
       [section]: [...(prev[section] || []),
-        { description: '', code: '', consumption: 0, price: 0, amount: 0, amountManual: '', extra: {} }],
+        { description: '', code: '', levels: '', consumption: 0, price: 0, amount: 0, amountManual: '', extra: {} }],
     }));
     setIsDirty(true);
   }, []);
@@ -380,6 +434,14 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     updateRow(section, idx, { ...row, extra: nextExtra });
   }, [d, updateRow]);
 
+  // ── Levels dropdown options ─────────────────────────────────────────────────
+
+  const levelOptions = d.levelOptions?.length ? d.levelOptions : ['1', '2', '3'];
+
+  const setLevelOptions = useCallback((options) => {
+    set('levelOptions', options.length ? options : ['1', '2', '3']);
+  }, [set]);
+
   // Update any cell from its Excel coordinate (used by the formula bar).
   const updateCellByCoord = useCallback((coord, value) => {
     if (!coord || !canEdit) return;
@@ -415,7 +477,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
       const newRow = (items.length ? items[items.length - 1].row : 0) + 1;
       setD(prev => ({
         ...prev,
-        [def.section]: [...(prev[def.section] || []), { description: '', code: '', consumption: 0, price: 0, amount: 0 }],
+        [def.section]: [...(prev[def.section] || []), { description: '', code: '', levels: '', consumption: 0, price: 0, amount: 0, amountManual: '', extra: {} }],
       }));
       setIsDirty(true);
       setTimeout(() => document.querySelector(`[data-cell="${def.col + newRow}"]`)?.focus(), 0);
@@ -449,9 +511,8 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
   };
 
   const handlePrint = () => {
-    const id = srdId || srd?._id;
-    if (!id) return;
-    const url = `/costing/print?srdId=${id}&type=${type}`;
+    if (!costingId) return;
+    const url = `/costing/print?srdId=${costingId}&type=${type}`;
     window.open(url, '_blank');
   };
 
@@ -552,11 +613,18 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
   const renderSectionHeader = (r) => (
     <tr className="bg-gray-100/50 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
       <GutterCell row={r} active={isActiveRow(r)} />
-      <th className={`py-1.5 px-3 text-left ${activeCol === 'A' ? 'bg-blue-50 text-blue-700' : ''}`}>Description</th>
-      <th className={`py-1.5 px-2 text-left border-l border-gray-200 ${r.showCode && activeCol === 'B' ? 'bg-blue-50 text-blue-700' : ''}`}>{r.showCode ? 'Code' : ''}</th>
-      <th className={`py-1.5 px-2 text-right border-l border-gray-200 ${activeCol === 'C' ? 'bg-blue-50 text-blue-700' : ''}`}>Cons</th>
-      <th className={`py-1.5 px-2 text-right border-l border-gray-200 ${activeCol === 'D' ? 'bg-blue-50 text-blue-700' : ''}`}>Rate</th>
-      <th className={`py-1.5 px-2 text-right border-l border-gray-200 ${activeCol === 'E' ? 'bg-blue-50 text-blue-700' : ''}`}>Amount</th>
+      <th className={`py-1.5 px-3 text-left ${activeCol === COL.description ? 'bg-blue-50 text-blue-700' : ''}`}>Description</th>
+      <th className={`py-1.5 px-2 text-left border-l border-gray-200 ${r.showCode && activeCol === COL.code ? 'bg-blue-50 text-blue-700' : ''}`}>{r.showCode ? 'Code' : ''}</th>
+      <LevelsHeader
+        options={levelOptions}
+        canEdit={canEdit}
+        isCtrl={r.section === 'fabrics'}
+        active={activeCol === COL.levels}
+        onSetOptions={setLevelOptions}
+      />
+      <th className={`py-1.5 px-2 text-right border-l border-gray-200 ${activeCol === COL.consumption ? 'bg-blue-50 text-blue-700' : ''}`}>Cons</th>
+      <th className={`py-1.5 px-2 text-right border-l border-gray-200 ${activeCol === COL.price ? 'bg-blue-50 text-blue-700' : ''}`}>Rate</th>
+      <th className={`py-1.5 px-2 text-right border-l border-gray-200 ${activeCol === COL.amount ? 'bg-blue-50 text-blue-700' : ''}`}>Amount</th>
       {extraCols.map((ec, i) => (
         <ExtraColHeader
           key={ec.id}
@@ -586,16 +654,17 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
 
   const renderItem = (r) => {
     const row = d[r.section]?.[r.idx] || {};
-    const cDesc = cell(r)('A');
-    const cCons = cell(r)('C');
-    const cRate = cell(r)('D');
-    const cAmt  = cell(r)('E');
+    const cDesc   = cell(r)(COL.description);
+    const cLevels = cell(r)(COL.levels);
+    const cCons   = cell(r)(COL.consumption);
+    const cRate   = cell(r)(COL.price);
+    const cAmt    = cell(r)(COL.amount);
     const descLocked = fromSrd;
     const amt = machine.valueAt(cAmt.coord);
     const amtErr = machine.isErr(cAmt.coord);
     const amtRaw = (row.amountManual !== undefined && String(row.amountManual ?? '').trim() !== '')
       ? row.amountManual
-      : `=C${r.row}*D${r.row}`;
+      : `=${COL.consumption}${r.row}*${COL.price}${r.row}`;
 
     return (
       <tr className="border-b border-gray-100 group hover:bg-gray-50/60">
@@ -628,6 +697,23 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
               placeholder="Code"
             />
           ) : null}
+        </td>
+        {/* Levels (dropdown, between Code and Cons) */}
+        <td className="border-r border-gray-100">
+          <select
+            value={row.levels ?? ''}
+            onChange={e => onChangeRowField(r.section, r.idx, 'levels', e.target.value)}
+            onFocus={() => focusCell(cLevels.coord)}
+            data-cell={cLevels.coord}
+            title={`Cell ${cLevels.coord}`}
+            disabled={!canEdit}
+            className={`w-full text-xs bg-transparent outline-none px-1 py-1.5 ${row.levels ? 'text-gray-800' : 'text-gray-400'} focus:bg-blue-50`}
+          >
+            <option value="">—</option>
+            {levelOptions.map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
         </td>
         {/* Cons */}
         <td className="border-r border-gray-100">
@@ -730,7 +816,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
         <td className="py-1 px-3">
           <span className="text-xs text-gray-700 py-1 block">{r.label}</span>
         </td>
-        <td colSpan={2} className="border-l border-gray-100" />
+        <td colSpan={3} className="border-l border-gray-100" />
         <td className="border-l border-gray-100">
           {r.computed || numCell == null ? (
             <span className="text-xs px-2 py-1 block text-right font-semibold text-gray-900">
@@ -770,7 +856,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
         return (
           <tr key={r.row} className="bg-gray-900 text-white border-b border-gray-200">
             <GutterCell row={r} className="!bg-gray-900 !border-gray-800 text-gray-500" />
-            <td colSpan={3} className="py-2.5 px-3 text-xs font-bold uppercase tracking-wide">Total Price PKR</td>
+            <td colSpan={4} className="py-2.5 px-3 text-xs font-bold uppercase tracking-wide">Total Price PKR</td>
             <td className="text-right font-bold text-xs px-2 py-2.5">{fmt2(totals.totalPricePkr)}</td>
             <td colSpan={1 + nExtra} />
             <td className="w-6" />
@@ -798,7 +884,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
                 />
               </div>
             </td>
-            <td colSpan={2} className="border-l border-gray-200" />
+            <td colSpan={3} className="border-l border-gray-200" />
             <td className="border-l border-gray-200 text-right text-xs px-2 py-1">
               <span className="font-semibold text-gray-900">Final FOB US$</span>
             </td>
@@ -866,7 +952,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
             }
           }}
           disabled={!canEdit}
-          placeholder="Type a value or formula — e.g. =SUM(C7:C12) or =C7*2"
+          placeholder="Type a value or formula — e.g. =SUM(D7:D12) or =D7*2"
           className="flex-1 text-xs bg-transparent outline-none rounded px-1.5 py-1 min-w-0 focus:bg-blue-50"
         />
       </div>
@@ -878,11 +964,12 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
           {/* ── Column widths ── */}
           <colgroup>
             <col style={{ width: 34 }} />
-            <col style={{ width: '35%' }} />
-            <col style={{ width: '15%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '16%' }} />
+            <col style={{ width: '30%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '14%' }} />
             {extraCols.map(ec => <col key={ec.id} style={{ width: 120 }} />)}
             <col style={{ width: '26px' }} />
           </colgroup>
@@ -926,8 +1013,22 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
         className="text-xs resize-none border-gray-200 print:hidden"
       />
 
+      {/* ── Raise a new SR from this sheet ── */}
+      <RaiseSRDialog
+        open={raiseOpen}
+        onOpenChange={setRaiseOpen}
+        srdId={costingId}
+        type={type}
+      />
+
       {/* ── Actions ── */}
       <div className="flex flex-wrap gap-2 print:hidden">
+        {isAdmin && (
+          <Button onClick={() => setRaiseOpen(true)} disabled={!costingId} size="sm" variant="outline"
+            className="h-7 text-xs px-3" title="Raise a new Sample Request with these fields pre-filled">
+            <FilePlus2 size={12} className="mr-1" /> Raise SR
+          </Button>
+        )}
         {isAdmin && canEdit && (
           <Button onClick={handleSave} disabled={saving || !isDirty} size="sm" variant="outline"
             className="h-7 text-xs px-3">

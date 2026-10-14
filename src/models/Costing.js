@@ -7,6 +7,7 @@ import mongoose from 'mongoose';
 const costRowSchema = new mongoose.Schema({
   description: { type: String, default: '' },
   code:        { type: String, default: '' },  // Fabric code (for fabrics section)
+  levels:      { type: String, default: '' },  // LEVELS dropdown (between Code and Cons)
   consumption:  { type: mongoose.Schema.Types.Mixed, default: 0 },  // CONSUMP column
   price:        { type: mongoose.Schema.Types.Mixed, default: 0 },  // PRICE column
   amount:       { type: Number, default: 0 },  // AMOUNT = consumption * price (auto)
@@ -28,6 +29,10 @@ const costingDataSchema = new mongoose.Schema({
   // [{ id, name, options: [...] }] rendered as <select> cells in every
   // costed section, like the fabrics "Code" column.
   extraCols: { type: mongoose.Schema.Types.Mixed, default: [] },
+
+  // ── LEVELS dropdown options ──────────────────────────────────
+  // Options offered by the "Levels" column (Code ▸ Levels ▸ Cons ▸ Rate ▸ Amount).
+  levelOptions: { type: [String], default: ['1', '2', '3'] },
 
   // ── Header info ──────────────────────────────────────────────────
   date:             { type: String, default: '' },

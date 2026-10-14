@@ -129,7 +129,7 @@ function PrintContent() {
     </table>
   );
 
-  // ── section block: items table (fabrics with Code, trims/embellishment without) ──
+  // ── section block: items table (Description | Code | Levels | Cons | Rate | Amount | extras) ──
   const itemBlock = (label, rows, showCode, sectionTotal) => (
     <div className="table-block">
       <div className="table-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -139,11 +139,12 @@ function PrintContent() {
       <table className="print-table">
         <thead>
           <tr>
-            <th className="table-header" colSpan={showCode ? 1 : 2} style={{ width: showCode ? '30%' : '40%' }}>Description</th>
-            {showCode && <th className="table-header" style={{ width: '16%' }}>Code</th>}
-            <th className="table-header num-right" style={{ width: '15%' }}>Cons</th>
-            <th className="table-header num-right" style={{ width: '15%' }}>Rate</th>
-            <th className="table-header num-right" style={{ width: EC.length ? '14%' : '30%' }}>Amount</th>
+            <th className="table-header" colSpan={showCode ? 1 : 2} style={{ width: showCode ? '26%' : '36%' }}>Description</th>
+            {showCode && <th className="table-header" style={{ width: '14%' }}>Code</th>}
+            <th className="table-header" style={{ width: '8%', textAlign: 'center' }}>Levels</th>
+            <th className="table-header num-right" style={{ width: '13%' }}>Cons</th>
+            <th className="table-header num-right" style={{ width: '13%' }}>Rate</th>
+            <th className="table-header num-right" style={{ width: EC.length ? '14%' : '26%' }}>Amount</th>
             {EC.map((c) => (
               <th key={c.id} className="table-header" style={{ width: '12%', textAlign: 'center' }}>{c.name}</th>
             ))}
@@ -158,6 +159,9 @@ function PrintContent() {
                 <td colSpan={showCode ? 1 : 2} className="table-field-label"><span className="table-field-underline">{r.description}</span></td>
               )}
               {showCode && <td className="table-field-cell"><span className="table-field-underline">{r.code || ''}</span></td>}
+              <td className="table-field-cell" style={{ textAlign: 'center' }}>
+                <span className="table-field-underline" style={{ fontWeight: 400 }}>{r.levels || ''}</span>
+              </td>
               <td className="table-field-cell">
                 <span className="table-field-underline" style={{ textAlign: 'right', fontWeight: 400 }}>{fmtN(r.consumption)}</span>
               </td>

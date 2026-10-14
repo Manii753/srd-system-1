@@ -6,9 +6,11 @@ import { useSession } from 'next-auth/react';
 import {
   Loader2, AlertCircle, ArrowLeft, ClipboardList,
   CheckCircle2, Clock, Send, XCircle, ChevronRight, Plus,
+  Copy, Trash2, LoaderCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import Layout from '@/components/layout/Layout';
+import { useToast } from '@/lib/use-toast';
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -38,6 +40,8 @@ function PreCostingListContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const srdIdParam = searchParams.get('srdId');
+  const { data: session } = useSession();
+  const { toast } = useToast();
 
   const [items, setItems]       = useState([]);
   const [loading, setLoading]   = useState(true);
@@ -45,6 +49,7 @@ function PreCostingListContent() {
   const [error, setError]       = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [search, setSearch]     = useState('');
+  const [busyId, setBusyId]     = useState(null); // row currently duplicating/deleting
 
   const load = async () => {
     setLoading(true);
@@ -88,6 +93,45 @@ function PreCostingListContent() {
     } catch (e) {
       alert(`Failed to create: ${e.message}`);
       setCreating(false);
+    }
+  };
+
+  // Duplicate a draft — the copy keeps every value and opens straight away
+  const handleDuplicate = async (item) => {
+    setBusyId(item._id);
+    try {
+      const res = await fetch(`/api/costing/${item._id}/duplicate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'pre',
+          author: session?.user?.name || session?.user?.email,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || `Server error ${res.status}`);
+      toast({ title: json.message || 'Costing duplicated' });
+      router.push(`/costing/pre/${json.data._id}`);
+    } catch (e) {
+      toast({ title: 'Duplicate failed', description: e.message, variant: 'destructive' });
+      setBusyId(null);
+    }
+  };
+
+  const handleDelete = async (item) => {
+    const label = item.pocNumber ? `POC-${item.pocNumber}` : 'this costing sheet';
+    if (!window.confirm(`Delete ${label}? This cannot be undone.`)) return;
+    setBusyId(item._id);
+    try {
+      const res  = await fetch(`/api/costing/${item._id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || `Server error ${res.status}`);
+      setItems(prev => prev.filter(i => i._id !== item._id));
+      toast({ title: `${label} deleted` });
+    } catch (e) {
+      toast({ title: 'Delete failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -194,6 +238,7 @@ function PreCostingListContent() {
                 <th className="px-4 py-2.5 text-right">Total Cost</th>
                 <th className="px-4 py-2.5 text-center">Status</th>
                 <th className="px-4 py-2.5 text-right">Last Updated</th>
+                <th className="px-4 py-2.5 text-center">Actions</th>
                 <th className="px-2 py-2.5 w-8" />
               </tr>
             </thead>
@@ -222,6 +267,28 @@ function PreCostingListContent() {
                     </td>
                     <td className="px-4 py-2.5 text-right text-gray-400">
                       {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : '—'}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={e => { e.stopPropagation(); handleDuplicate(item); }}
+                          disabled={busyId === item._id}
+                          title="Duplicate this draft (all data is copied)"
+                          className="p-1.5 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-40 transition-colors"
+                        >
+                          {busyId === item._id
+                            ? <LoaderCircle size={13} className="animate-spin" />
+                            : <Copy size={13} />}
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); handleDelete(item); }}
+                          disabled={busyId === item._id}
+                          title="Delete this draft"
+                          className="p-1.5 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-40 transition-colors"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </td>
                     <td className="px-2 py-2.5 text-gray-300 group-hover:text-blue-400">
                       <ChevronRight size={14} />

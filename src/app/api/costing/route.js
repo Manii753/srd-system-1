@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Costing from '@/models/Costing';
+import { nextPocNumber } from '@/lib/costingDoc';
 import '@/models/SRD'; // Import to register the SRD schema for populate()
 
 /**
@@ -32,8 +33,8 @@ export async function GET(request) {
       srd:       doc.srd,
       standalone: doc.standalone,
       pocNumber: doc.pocNumber,
-      preCost:   doc.preCost  ? { status: doc.preCost.status,  total: doc.preCost.totalCost,  currency: doc.preCost.currency,  buyer: doc.preCost.buyer,  style: doc.preCost.style,  submittedAt: doc.preCost.submittedAt,  approvedAt: doc.preCost.approvedAt  } : null,
-      postCost:  doc.postCost ? { status: doc.postCost.status, total: doc.postCost.totalCost, currency: doc.postCost.currency, buyer: doc.postCost.buyer, style: doc.postCost.style, submittedAt: doc.postCost.submittedAt, approvedAt: doc.postCost.approvedAt } : null,
+      preCost:   doc.preCost  ? { status: doc.preCost.status,  total: doc.preCost.totalPricePkr,  currency: doc.preCost.currency,  buyer: doc.preCost.buyer,  style: doc.preCost.style,  submittedAt: doc.preCost.submittedAt,  approvedAt: doc.preCost.approvedAt  } : null,
+      postCost:  doc.postCost ? { status: doc.postCost.status, total: doc.postCost.totalPricePkr, currency: doc.postCost.currency, buyer: doc.postCost.buyer, style: doc.postCost.style, submittedAt: doc.postCost.submittedAt, approvedAt: doc.postCost.approvedAt } : null,
       updatedAt: doc.updatedAt,
       createdAt: doc.createdAt,
     }));
@@ -56,11 +57,7 @@ export async function POST(request) {
     console.log('[costing POST] DB connected');
 
     // Auto-increment: find highest existing pocNumber
-    const last = await Costing.findOne({ pocNumber: { $ne: null } })
-      .sort({ pocNumber: -1 })
-      .select('pocNumber')
-      .lean();
-    const nextPoc = (last?.pocNumber || 0) + 1;
+    const nextPoc = await nextPocNumber();
     console.log('[costing POST] Next POC number:', nextPoc);
 
     const DEFAULT_PRE = {

@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Costing from '@/models/Costing';
 import SRD from '@/models/SRD';
-import { resolveCosting } from '@/lib/costingGrid';
+import { recalcCosting } from '@/lib/costingRecalc';
+import { findCostingDoc } from '@/lib/costingDoc';
 
 // ─── Default row sets (fallback when no SRD table field exists) ───────────────
 
@@ -336,44 +337,6 @@ function buildPostFromSrd(srd) {
   return post;
 }
 
-// ─── Recalculate totals ────────────────────────────────────────────────────────
-
-function recalc(side) {
-  const { resolvedData } = resolveCosting(side);
-
-  const sumRows = (rows) =>
-    (rows || []).reduce((s, r) => s + (Number(r.amount) || 0), 0);
-
-  const totalFabrics = sumRows(resolvedData.fabrics);
-  const totalBeforeWash = sumRows(resolvedData.beforeWashTrims);
-  const totalAfterWash = sumRows(resolvedData.afterWashTrims);
-  const totalEmbellishment = sumRows(resolvedData.embellishment);
-
-  const subtotal = totalFabrics + totalBeforeWash + totalAfterWash + totalEmbellishment;
-  const totalWithProduction = subtotal + Number(resolvedData.cmtLevel || 0) + Number(resolvedData.washingLevel || 0) + Number(resolvedData.fob || 0);
-  // Commission is a % of everything above the margin block
-  // (sections + production + Extra Cut + Ld Margin + Testing Charges).
-  const marginBase = totalWithProduction + Number(resolvedData.extraCut || 0) + Number(resolvedData.ldMargin || 0) + Number(resolvedData.testingCharges || 0);
-  const commissionAmount = marginBase * (Number(resolvedData.commission || 0) / 100);
-  const totalWithMargin = marginBase + commissionAmount;
-
-  side.totalPricePkr = totalWithMargin;
-  const currencyRate = Number(resolvedData.currencyRate) || 265;
-  side.finalFobUs = totalWithMargin / currencyRate;
-  side.difference = Number(resolvedData.firstQuoted || 0) - Number(resolvedData.targetPrice || 0);
-
-  // Persist per-row amounts as resolved numbers too (respects any manual
-  // Amount override typed by the user; consumption/price may be formulas).
-  ['fabrics', 'beforeWashTrims', 'afterWashTrims', 'embellishment'].forEach((sec) => {
-    const list = side[sec] || [];
-    resolvedData[sec]?.forEach((r, i) => {
-      if (list[i]) list[i].amount = Number(r.amount) || 0;
-    });
-  });
-
-  return side;
-}
-
 // ─── GET ─────────────────────────────────────────────────────────────────────
 
 export async function GET(request, { params }) {
@@ -382,7 +345,7 @@ export async function GET(request, { params }) {
     const { srdId } = await params;
 
     // First: check if this is a standalone costing doc (id is a Costing _id)
-    let standaloneCosting = await Costing.findById(srdId).lean();
+    let standaloneCosting = await findCostingDoc(srdId, { lean: true });
     if (standaloneCosting?.standalone) {
       return NextResponse.json({
         success: true,
@@ -460,11 +423,7 @@ export async function PATCH(request, { params }) {
     }
 
     // Try standalone costing by _id first
-    let costing = await Costing.findById(srdId);
-    if (!costing || !costing.standalone) {
-      // Fall back to SRD-linked costing
-      costing = await Costing.findOne({ srd: srdId });
-    }
+    let costing = await findCostingDoc(srdId);
 
     if (!costing) {
       const srd = await SRD.findById(srdId)
@@ -497,6 +456,7 @@ export async function PATCH(request, { params }) {
         'totalPricePkr', 'finalFobUs', 'currencyRate',
         // User-added dropdown columns
         'extraCols',
+        'levelOptions',
         // Quote tracking
         'firstQuoted', 'targetPrice', 'difference', 'secondQuote', 'confirmedPrice',
         // Images
@@ -505,7 +465,7 @@ export async function PATCH(request, { params }) {
         'notes',
       ];
       FIELDS.forEach(k => { if (data[k] !== undefined) side[k] = data[k]; });
-      recalc(side);
+      recalcCosting(side);
       costing.updatedBy = author || '';
 
     } else if (action === 'submit') {
@@ -538,15 +498,29 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
-// ─── DELETE — wipe costing doc so GET recreates it fresh from SRD ────────────
+// ─── DELETE — delete a costing draft ─────────────────────────────────────────
+// Works both for standalone drafts (looked up by their own _id) and for
+// SRD-linked costings (looked up by the SRD _id), so GET recreates a fresh one.
 
 export async function DELETE(request, { params }) {
   try {
     await dbConnect();
     const { srdId } = await params;
-    await Costing.deleteOne({ srd: srdId });
-    return NextResponse.json({ success: true, message: 'Costing reset. Reload the page to rebuild from SRD.' });
+
+    const costing = await findCostingDoc(srdId);
+    if (!costing) {
+      return NextResponse.json({ success: true, message: 'Nothing to delete.' });
+    }
+
+    await costing.deleteOne();
+    return NextResponse.json({
+      success: true,
+      message: costing.standalone
+        ? 'Costing draft deleted.'
+        : 'Costing reset. Reload the page to rebuild from SRD.',
+    });
   } catch (err) {
+    console.error('[costing DELETE]', err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }

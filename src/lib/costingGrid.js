@@ -1,10 +1,11 @@
 // Shared Excel-style grid model + formula resolver for the Pre/Post costing sheet.
 //
 // The sheet is treated like a spreadsheet:
-//   - every data column has a letter (A=Description, B=Code, C=Cons, D=Rate,
-//     E=Amount, F=remove) and every visible row has a number.
+//   - every data column has a letter (A=Description, B=Code, C=Levels,
+//     D=Cons, E=Rate, F=Amount, G+ = user-added dropdown columns) and every
+//     visible row has a number.
 //   - cells may hold either a number or an Excel-style formula string
-//     ("=C7*2", "=SUM(C7:C12)", "=B6/2", "=C{row}*D{row}").
+//     ("=D7*2", "=SUM(D7:D12)", "=B6/2", "=D{row}*E{row}").
 //
 // This module is pure JS so it is safe to import on both the client
 // (CostingSheet.jsx) and the server (PATCH route) side.
@@ -77,13 +78,21 @@ export function buildCostingRows(d = {}) {
     add('sectionTitle', [], { section: key, title });
     add('sectionHeader', [], { section: key, showCode });
     (d[key] || []).forEach((item, idx) => {
+      // Fixed column layout (matches the sheet headers):
+      //   A Description | B Code | C Levels | D Cons | E Rate | F Amount | G… extras
+      // Column B is always reserved so every section keeps the same alignment,
+      // even when it doesn't render a Code cell.
       const cells = [mkItem('A', key, idx, 'description')];
-      if (showCode) cells.push(mkItem('B', key, idx, 'code'));
-      cells.push(mkItem('C', key, idx, 'consumption'));
-      cells.push(mkItem('D', key, idx, 'price'));
-      cells.push(mkItem('E', key, idx, 'amount'));
+      cells.push(mkItem('B', key, idx, 'code'));
+      cells.push(mkItem('C', key, idx, 'levels'));
+      cells.push(mkItem('D', key, idx, 'consumption'));
+      cells.push(mkItem('E', key, idx, 'price'));
+      const amtCell = mkItem('F', key, idx, 'amount');
+      cells.push(amtCell);
       extraCols.forEach((ec, i) => cells.push(mkExtra(colLetter(6 + i), key, idx, ec.id)));
-      add('item', cells, { section: key, idx, showCode });
+      const row = add('item', cells, { section: key, idx, showCode });
+      // Default Amount formula for this row (Cons × Rate).
+      amtCell.defaultFormula = `=D${row}*E${row}`;
     });
     add('addRow', [], { section: key });
   }
@@ -133,7 +142,7 @@ export function buildCostingRows(d = {}) {
  */
 export function resolveCosting(d = {}) {
   const rows = buildCostingRows(d);
-  const extraCols = rows[0].extraCols || [];
+  const extraCols = d.extraCols || [];
 
   const byCoord = new Map();       // "C7" -> cell descriptor
   const fieldCoord = new Map();    // `${section}:${idx}:${field}` -> "C7"
@@ -189,7 +198,7 @@ export function resolveCosting(d = {}) {
         // default Cons×Rate; an empty manual value falls back to the formula.
         const manual = row.amountManual;
         if (manual !== undefined && manual !== null && String(manual).trim() !== '') return manual;
-        return `=C${c.row}*D${c.row}`;
+        return c.defaultFormula || `=D${c.row}*E${c.row}`;
       }
       return row[c.field] ?? 0;
     }
