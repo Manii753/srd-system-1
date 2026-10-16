@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo, Fragment } from 'react';
+import { useState, useCallback, useMemo, Fragment, useEffect } from 'react';
 import { Plus, Trash2, CheckCircle2, Clock, AlertCircle, Send, Printer, Settings2, FilePlus2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -64,13 +64,10 @@ const STATUS_META = {
 };
 
 // ─── Shared row-number gutter ─────────────────────────────────────────────────
-
+// Row numbers are hidden — we keep the component so the grid model stays intact
+// but render nothing visible.
 function GutterCell({ row, className = '', active = false }) {
-  return (
-    <td className={`gutter-cell ${active ? 'gutter-cell-active' : ''} ${className}`}>
-      <span>{row?.row ?? ''}</span>
-    </td>
-  );
+  return null; // row numbers removed per product requirement
 }
 
 // ─── Editable grid cell (number OR Excel-style formula) ───────────────────────
@@ -84,11 +81,6 @@ function GridNum({ coord, raw, resolved, err, active, disabled, onChange, onFocu
 
   return (
     <div className={`relative w-full h-full ${className}`}>
-      {active && (
-        <span className="absolute -top-2 right-1 z-10 px-1.5 py-px rounded font-mono text-[9px] font-bold text-white bg-blue-500 shadow pointer-events-none select-none">
-          {coord}
-        </span>
-      )}
       <input
         type="text"
         inputMode="decimal"
@@ -98,7 +90,6 @@ function GridNum({ coord, raw, resolved, err, active, disabled, onChange, onFocu
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onEnter(coord); } }}
         disabled={disabled}
         data-cell={coord}
-        title={`Cell ${coord}`}
         placeholder={placeholder}
         className={`w-full h-full text-right text-xs bg-transparent outline-none transition-colors px-2 py-1.5 disabled:cursor-default ${active ? 'bg-blue-50 ring-2 ring-blue-500' : 'focus:bg-blue-50'}`}
       />
@@ -111,11 +102,6 @@ function GridNum({ coord, raw, resolved, err, active, disabled, onChange, onFocu
 function HeaderField({ label, value, onChange, disabled, type = 'text', coord, focused, onFocus, onEnter, children }) {
   return (
     <div className="relative flex items-center gap-1.5 px-3 py-2">
-      {focused && coord && (
-        <span className="absolute -top-2 left-2 z-10 px-1.5 py-px rounded font-mono text-[9px] font-bold text-white bg-blue-500 shadow pointer-events-none select-none">
-          {coord}
-        </span>
-      )}
       <span className="text-[10px] font-semibold text-gray-400 uppercase shrink-0">{label}</span>
       {children || (
         <input
@@ -157,6 +143,17 @@ function ExtraColHeader({ col, canEdit, isCtrl, active, onRename, onSetOptions, 
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(col?.name || '');
   const [opts, setOpts] = useState((col?.options || []).join('\n'));
+  const ref = useState(() => typeof window !== 'undefined' ? { current: null } : { current: null })[0];
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open, ref]);
 
   const apply = () => {
     onRename(col.id, name.trim() || 'Column');
@@ -166,7 +163,7 @@ function ExtraColHeader({ col, canEdit, isCtrl, active, onRename, onSetOptions, 
 
   return (
     <th className={`border-l border-gray-200 ${active ? 'bg-blue-50' : ''}`}>
-      <div className="relative flex items-center justify-between gap-1 px-2 py-1.5">
+      <div className="relative flex items-center justify-between gap-1 px-2 py-1.5" ref={el => ref.current = el}>
         <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 truncate" title={col?.name}>
           {col?.name || 'Column'}
         </span>
@@ -174,7 +171,7 @@ function ExtraColHeader({ col, canEdit, isCtrl, active, onRename, onSetOptions, 
           <button
             onClick={() => { setOpen(o => !o); setName(col?.name || ''); setOpts((col?.options || []).join('\n')); }}
             className={`shrink-0 ${open ? 'text-blue-500' : 'text-gray-400 hover:text-blue-500'}`}
-            title="Column settings (name, options, delete)"
+            title="Column settings"
           >
             <Settings2 size={10} />
           </button>
@@ -225,6 +222,17 @@ function ExtraColHeader({ col, canEdit, isCtrl, active, onRename, onSetOptions, 
 function LevelOptionsButton({ options, canEdit, onSetOptions }) {
   const [open, setOpen] = useState(false);
   const [opts, setOpts] = useState((options || []).join('\n'));
+  const ref = useState(() => ({ current: null }))[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open, ref]);
+
   const label = `Levels: ${(options || []).join(' / ') || '—'}`;
 
   if (!canEdit) {
@@ -232,7 +240,7 @@ function LevelOptionsButton({ options, canEdit, onSetOptions }) {
   }
 
   return (
-    <div className="relative print:hidden">
+    <div className="relative print:hidden" ref={el => ref.current = el}>
       <button
         onClick={() => { setOpen(o => !o); setOpts((options || []).join('\n')); }}
         className={`flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border transition-colors ${
@@ -790,28 +798,34 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     </tr>
   );
 
+  const PCT_LABELS = new Set(['Extra Cut', 'Ld Margin', 'Commission']);
+
   const renderSingle = (r) => {
     const numCell = r.cells.find(c => c.kind === 'num');
     // "Codes Req Level" dropdown — Production Cost only (column B).
     const lvlCell = r.cells.find(c => c.kind === 'level');
     const coord = numCell ? numCell.coord : null;
+    const isPct = PCT_LABELS.has(r.label);
     const empty = <td className="border-l border-gray-100" />;
     const value = r.computed || numCell == null ? (
       <span className="text-xs px-2 py-1 block text-right font-semibold text-gray-900">
         {r.prefix}{fmt2(totals.difference)}
       </span>
     ) : (
-      <GridNum
-        coord={coord}
-        raw={d[numCell.key]}
-        resolved={machine.valueAt(coord)}
-        err={machine.isErr(coord)}
-        active={focusedCell === coord}
-        disabled={!canEdit}
-        onChange={v => set(numCell.key, v)}
-        onFocus={focusCell}
-        onEnter={handleCellEnter}
-      />
+      <div className="flex items-center justify-end">
+        <GridNum
+          coord={coord}
+          raw={d[numCell.key]}
+          resolved={machine.valueAt(coord)}
+          err={machine.isErr(coord)}
+          active={focusedCell === coord}
+          disabled={!canEdit}
+          onChange={v => set(numCell.key, v)}
+          onFocus={focusCell}
+          onEnter={handleCellEnter}
+        />
+        {isPct && <span className="text-xs text-gray-500 pr-2 shrink-0">%</span>}
+      </div>
     );
 
     return (
@@ -968,7 +982,6 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
 
           {/* ── Column widths ── */}
           <colgroup>
-            <col style={{ width: 34 }} />
             <col style={{ width: '32%' }} />
             <col style={{ width: '14%' }} />
             <col style={{ width: '10%' }} />
