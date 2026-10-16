@@ -64,13 +64,13 @@ const SampleIdentificationLabel = ({ srd }) => {
   <title>Sample Identification Label</title>
   <style>
     @page {
-      size: 3cm 5.5cm;
+      size: 3in 5.5in;
       margin: 0;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      width: 3cm;
-      height: 5.5cm;
+      width: 3in;
+      height: 5.5in;
       font-family: Arial, Helvetica, sans-serif;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -79,36 +79,36 @@ const SampleIdentificationLabel = ({ srd }) => {
 
     /* outer border */
     table {
-      width: 3cm;
-      height: 5.5cm;
+      width: 3in;
+      height: 5.5in;
       border-collapse: collapse;
       border: 1.5px solid #000;
       table-layout: fixed;
     }
 
-    tr { height: calc(5.5cm / 6); }
+    tr { height: calc(5.5in / 6); }
 
-    /* label column — fixed narrow width */
+    /* label column — wide enough for "SAMPLE SIZE" on one line */
     .lbl {
-      width: 1.05cm;
+      width: 1.05in;
       border-right: 1px solid #000;
       border-bottom: 1px solid #000;
-      padding: 0 1.2mm;
-      font-size: 5.8pt;
+      padding: 0 5px;
+      font-size: 11pt;
       font-weight: 700;
       vertical-align: middle;
-      line-height: 1.25;
-      word-break: break-word;
+      line-height: 1.3;
+      white-space: nowrap;
     }
 
     /* value column */
     .val {
       border-bottom: 1px solid #000;
-      padding: 0 1.2mm;
-      font-size: 6pt;
+      padding: 0 8px;
+      font-size: 11pt;
       font-weight: 700;
       vertical-align: middle;
-      line-height: 1.25;
+      line-height: 1.3;
       word-break: break-word;
     }
 
