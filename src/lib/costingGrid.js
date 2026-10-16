@@ -102,8 +102,8 @@ export function buildCostingRows(d = {}) {
   // The "Codes Req Level" dropdown lives in column B and the amount in the Cons
   // column (C), so the block stays aligned with the item sections above.
   add('sectionTitle', [], { title: 'Production Cost', section: 'production' });
-  add('single', [mkLevel('B', 'cmtLevelCode'), mkNum('C', 'cmtLevel')], { label: 'CMT (Codes Req Level 1 2 3)' });
-  add('single', [mkLevel('B', 'washingLevelCode'), mkNum('C', 'washingLevel')], { label: 'Washing (Codes Req Level 1 2 3)' });
+  add('single', [mkLevel('B', 'cmtLevelCode'), mkNum('C', 'cmtLevel')], { label: 'CMT' });
+  add('single', [mkLevel('B', 'washingLevelCode'), mkNum('C', 'washingLevel')], { label: 'Washing' });
   add('single', [mkNum('C', 'fob')], { label: 'FOB' });
 
   // Margin & commission

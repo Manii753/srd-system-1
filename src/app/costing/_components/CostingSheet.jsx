@@ -10,6 +10,7 @@ import FabricCodeSelect from './FabricCodeSelect';
 import ImageUpload from './ImageUpload';
 import RaiseSRDialog from './RaiseSRDialog';
 import { resolveCosting, isFormula } from '@/lib/costingGrid';
+import { canCustomizeCostSheet } from '@/lib/permissions';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -309,6 +310,8 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
 
   // ── Local state ──────────────────────────────────────────────────────────────
 
+  // ── Local state ──────────────────────────────────────────────────────────────
+
   const [d, setD] = useState(() => ({
     currency: 'USD',
     // Header fields
@@ -351,8 +354,11 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
     setIsDirty(false);
   }
 
-  const status   = d.status || 'draft';
-  const canEdit  = isAdmin && ['draft', 'rejected'].includes(status);
+  const status      = d.status || 'draft';
+  const canEdit     = isAdmin && ['draft', 'rejected'].includes(status);
+  // canCustomize is separate from canEdit — even admins need this permission
+  // to add/rename/delete columns and edit production level options.
+  const canCustomize = canCustomizeCostSheet(session?.user);
   const sm       = STATUS_META[status] || STATUS_META.draft;
   const StatusIcon = sm.Icon;
 
@@ -617,7 +623,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
                 <span className="text-[11px] font-semibold text-gray-600">{fmt2(total)}</span>
               )}
               {r.section === 'production' && (
-                <LevelOptionsButton options={levelOptions} canEdit={canEdit} onSetOptions={setLevelOptions} />
+                <LevelOptionsButton options={levelOptions} canEdit={canCustomize} onSetOptions={setLevelOptions} />
               )}
             </div>
           </div>
@@ -638,7 +644,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
         <ExtraColHeader
           key={ec.id}
           col={ec}
-          canEdit={canEdit}
+          canEdit={canCustomize}
           isCtrl={r.section === 'fabrics'}
           active={activeCol === extraColLetter(i)}
           onRename={(id, name) => mutateExtraCol(id, { name })}
@@ -646,8 +652,8 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
           onRemove={handleRemoveExtraCol}
         />
       ))}
-      {r.section === 'fabrics' && canEdit && (
-        <th className="w-14 border-l border-gray-200 print:hidden">
+      {r.section === 'fabrics' && canCustomize && canEdit && (
+        <th className="border-l border-gray-200 print:hidden" style={{ width: '56px' }}>
           <button
             onClick={handleAddExtraCol}
             className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 hover:text-blue-500 transition-colors px-1 py-1.5"
@@ -951,30 +957,32 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
         </p>
       )}
 
-      {/* ── Formula bar (Excel-style) ── */}
-      <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm print:hidden">
-        <span className="font-mono font-bold text-blue-700 text-xs min-w-[3.5rem] text-center border-r border-gray-200 pr-2">
-          {selectedCell || '—'}
-        </span>
-        <span className="text-[10px] font-semibold text-emerald-600 shrink-0" title="Formula">fx</span>
-        <input
-          value={selectedCell ? String(machine.rawAt(selectedCell) ?? '') : ''}
-          onChange={e => updateCellByCoord(selectedCell, e.target.value)}
-          onFocus={e => e.target.select()}
-          onKeyDown={e => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              if (selectedCell) handleCellEnter(selectedCell);
-              e.target.blur();
-            } else if (e.key === 'Escape') {
-              e.target.blur();
-            }
-          }}
-          disabled={!canEdit}
-          placeholder="Type a value or formula — e.g. =SUM(D7:D12) or =D7*2"
-          className="flex-1 text-xs bg-transparent outline-none rounded px-1.5 py-1 min-w-0 focus:bg-blue-50"
-        />
-      </div>
+      {/* ── Formula bar — only for users with customize permission ── */}
+      {canCustomize && (
+        <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm print:hidden">
+          <span className="font-mono font-bold text-blue-700 text-xs min-w-[3.5rem] text-center border-r border-gray-200 pr-2">
+            {selectedCell || '—'}
+          </span>
+          <span className="text-[10px] font-semibold text-emerald-600 shrink-0" title="Formula">fx</span>
+          <input
+            value={selectedCell ? String(machine.rawAt(selectedCell) ?? '') : ''}
+            onChange={e => updateCellByCoord(selectedCell, e.target.value)}
+            onFocus={e => e.target.select()}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (selectedCell) handleCellEnter(selectedCell);
+                e.target.blur();
+              } else if (e.key === 'Escape') {
+                e.target.blur();
+              }
+            }}
+            disabled={!canEdit}
+            placeholder="Type a value or formula — e.g. =SUM(D7:D12) or =D7*2"
+            className="flex-1 text-xs bg-transparent outline-none rounded px-1.5 py-1 min-w-0 focus:bg-blue-50"
+          />
+        </div>
+      )}
 
       {/* ── Main table ── */}
       <div className="rounded-lg border border-gray-200 overflow-hidden bg-white shadow-sm">
@@ -986,8 +994,9 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
             <col style={{ width: '14%' }} />
             <col style={{ width: '10%' }} />
             <col style={{ width: '12%' }} />
-            <col style={{ width: '16%' }} />
+            <col style={{ width: canCustomize && canEdit ? '10%' : '16%' }} />
             {extraCols.map(ec => <col key={ec.id} style={{ width: 120 }} />)}
+            {canCustomize && canEdit && <col style={{ width: '56px' }} />}
             <col style={{ width: '26px' }} />
           </colgroup>
 

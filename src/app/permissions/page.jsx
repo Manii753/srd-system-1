@@ -120,7 +120,8 @@ const PERMISSION_GROUPS = [
     title: 'Cost Sheet Permissions',
     permissions: [
       { key: 'canViewCostSheets', label: 'Can View Cost Sheets', description: 'Can view cost sheets' },
-      { key: 'canEditCostSheets', label: 'Can Edit Cost Sheets', description: 'Can edit cost sheets' }
+      { key: 'canEditCostSheets', label: 'Can Edit Cost Sheets', description: 'Can edit cost sheets' },
+      { key: 'canCustomizeCostSheet', label: 'Can Customize Cost Sheet', description: 'Can add/rename/delete columns and edit production level options' }
     ]
   },
   {

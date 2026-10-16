@@ -37,8 +37,8 @@ const SampleIdentificationLabel = ({ srd }) => {
     { label: 'BUYER',       value: getDynField('brand', 'buyer', 'bhw-mr', 'buyer name') },
     { label: 'COLOR',       value: getDynField('wash / color', 'wash/color', 'color', 'colour') },
     { label: 'INQUIRY',     value: srd?.refNo || '' },
-    { label: 'FIT',         value: getDynField('fit', 'fit type', 'garment construction') },
-    { label: 'SAMPLE SIZE', value: getDynField('sample request size', 'sample size', 'size') },
+    { label: 'FIT',       value: getDynField('fit', 'fit type', 'garment construction') },
+    { label: 'S.SIZE',    value: getDynField('sample request size', 'sample size', 'size') },
   ];
 
   /* ── print handler ────────────────────────────────────────── */
@@ -88,7 +88,7 @@ const SampleIdentificationLabel = ({ srd }) => {
 
     tr { height: calc(5.5in / 6); }
 
-    /* label column — wide enough for "SAMPLE SIZE" on one line */
+    /* label column — wide enough for "S.SIZE" on one line */
     .lbl {
       width: 1.05in;
       border-right: 1px solid #000;
@@ -144,7 +144,7 @@ const SampleIdentificationLabel = ({ srd }) => {
       onClick={handlePrint}
       size="sm"
       variant="outline"
-      className="h-6 px-2 py-0 text-blue-700 border-blue-300 bg-white hover:bg-blue-50"
+      className="h-6 px-2 py-0 text-app-text bg-white text-blue-700 border-white hover:bg-blue-50"
       disabled={isPrinting}
     >
       {isPrinting

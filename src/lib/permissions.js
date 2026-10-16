@@ -287,6 +287,16 @@ export function canEditOrderConfirmation(user) {
 }
 
 /**
+ * Check if user can customize cost sheet structure (add/rename/delete columns, edit level options)
+ * @param {Object} user - User object with permissions
+ * @returns {Boolean}
+ */
+export function canCustomizeCostSheet(user) {
+  if (!user) return false;
+  return user.permissions?.canCustomizeCostSheet === true;
+}
+
+/**
  * Check if menu item should be visible for user
  * @param {Object} user - User object with permissions
  * @param {String} menuItemId - The menu item ID to check

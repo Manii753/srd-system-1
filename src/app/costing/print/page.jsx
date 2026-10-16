@@ -57,10 +57,6 @@ const SR_CSS = `
   .header {
     margin-top: 10px;
     margin-bottom: 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
   }
   .header-main { flex: 1; min-width: 0; }
   .header h1 {
@@ -72,24 +68,6 @@ const SR_CSS = `
     border-bottom: 1px solid #1a1a1a;
     padding-bottom: 2px;
   }
-  .header-qr {
-    width: 150px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .header-qr-frame {
-    width: 150px;
-    height: 100px;
-    border: 1px solid #d1d5db;
-    background: #fff;
-    padding: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .header-qr-image { width:100%; height:100%; object-fit:contain; display:block; }
 
   /* ── template grid — same as SR form (gridColumns * 2 = 12 cols) ── */
   .template-grid {
@@ -469,15 +447,6 @@ function PrintContent() {
         <div className="header-main">
           <h1>{isPre ? 'Pre Costing Form' : 'Costing Form'}</h1>
         </div>
-        {/* image top-right like SR form's QR frame */}
-        <div className="header-qr">
-          <div className="header-qr-frame">
-            {imageUrls[0]
-              // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={imageUrls[0]} alt="Product" className="header-qr-image" />
-              : null}
-          </div>
-        </div>
       </div>
 
       {/* ════ 12-column template grid — same as SR form ════ */}
@@ -603,8 +572,8 @@ function PrintContent() {
         {/* ── PRODUCTION COST ── */}
         <SectionHead title="Production Cost" />
         <CostTable rows={[
-          ['Cmt (Codes Req Level 1 2 3)', data.cmtLevelCode || '', fmtAmt(data.cmtLevel)],
-          ['Washing (Codes Req Level 1 2 3)', data.washingLevelCode || '', fmtAmt(data.washingLevel)],
+          ['CMT', data.cmtLevelCode || '', fmtAmt(data.cmtLevel)],
+          ['Washing', data.washingLevelCode || '', fmtAmt(data.washingLevel)],
           ['Fob', '', fmtAmt(data.fob)],
         ]} />
 
