@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import SRDLookup from '@/components/SRDLookup';
 import DispatchCardPrint from '@/app/dispatch/components/DispatchCardPrint';
+import SampleIdentificationLabel from './SampleIdentificationLabel';
 
 export default function SampleCardPage() {
   const [srd, setSrd] = useState(null);
@@ -29,7 +30,10 @@ export default function SampleCardPage() {
         <div className="bg-white rounded-lg shadow-sm p-4">
           <div className="flex items-center justify-between mb-4">
             <span className="font-semibold text-gray-700">{srd.refNo}</span>
-            <DispatchCardPrint srd={srd} />
+            <div className="flex items-center gap-2">
+              <SampleIdentificationLabel srd={srd} />
+              <DispatchCardPrint srd={srd} />
+            </div>
           </div>
           <div className="text-sm text-gray-600 space-y-1">
             {srd.description && <p><span className="font-medium">Description:</span> {srd.description}</p>}
