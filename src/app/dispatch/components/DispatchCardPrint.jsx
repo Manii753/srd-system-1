@@ -73,8 +73,8 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
         }
       }
 
-      // Always add Date row (even if empty - will show as dash)
-      const effectiveDate = localDate || dispatchDetails?.sampleDispatchDate || '';
+      // Always add Date row — prefer dispatch date, fall back to SRD creation date
+      const effectiveDate = localDate || dispatchDetails?.sampleDispatchDate || srd?.createdAt || '';
       extraRows.push({ name: 'Date', value: formatDispatchDate(effectiveDate) || '—', type: 'text' });
       
       // Get brand name from dynamic fields
