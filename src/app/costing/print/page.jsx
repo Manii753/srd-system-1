@@ -20,11 +20,20 @@ function calcAll(d) {
   const tEmb = secSum(d.embellishment);
   const sub  = tFab + tBW + tAW + tEmb;
   const prod = sub + n(d.cmtLevel) + n(d.washingLevel) + n(d.fob);
-  const base = prod + n(d.extraCut) + n(d.ldMargin) + n(d.testingCharges);
+  // Extra Cut: % of prod
+  const extraCutAmt = prod * (n(d.extraCut) / 100);
+  // Ld Margin: % of (prod + extraCutAmt)
+  const ldMarginAmt = (prod + extraCutAmt) * (n(d.ldMargin) / 100);
+  // Testing Charges: flat
+  const testingAmt  = n(d.testingCharges);
+  // Commission: % of everything above
+  const base = prod + extraCutAmt + ldMarginAmt + testingAmt;
   const comm = base * (n(d.commission) / 100);
   const total = base + comm;
   const rate  = n(d.currencyRate) || 265;
-  return { tFab, tBW, tAW, tEmb, base, comm,
+  return { tFab, tBW, tAW, tEmb,
+    extraCutAmt, ldMarginAmt, testingAmt,
+    base, comm,
     totalPkr: total,
     finalFob: rate > 0 ? total / rate : 0,
     diff: n(d.firstQuoted) - n(d.targetPrice),
@@ -580,10 +589,10 @@ function PrintContent() {
         {/* ── MARGIN & COMMISSION ── */}
         <SectionHead title="Margin &amp; Commission" />
         <KvTable rows={[
-          ['Extra Cut',       fmtAmt(data.extraCut),       false],
-          ['Ld Margin',       fmtAmt(data.ldMargin),       false],
-          ['Testing Charges', fmtAmt(data.testingCharges), false],
-          ['Commission',      n(data.commission) ? `(${n(data.commission)}%) ${fmtAmt(T.comm)}` : fmtAmt(T.comm), true],
+          ['Extra Cut',       `${n(data.extraCut)}% = ${fmtAmt(T.extraCutAmt)}`,    true],
+          ['Ld Margin',       `${n(data.ldMargin)}% = ${fmtAmt(T.ldMarginAmt)}`,    true],
+          ['Testing Charges', fmtAmt(data.testingCharges),                           false],
+          ['Commission',      `${n(data.commission)}% = ${fmtAmt(T.comm)}`,         true],
         ]} />
 
         {/* ── SUMMARY ── */}

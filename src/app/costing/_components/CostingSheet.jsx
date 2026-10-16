@@ -28,9 +28,17 @@ function calcAll(d) {
   const subtotal = totalFabrics + totalBeforeWash + totalAfterWash + totalEmbellishment;
   const totalWithProduction = subtotal + n(d.cmtLevel) + n(d.washingLevel) + n(d.fob);
 
-  // Commission is a % of everything above the margin block
-  // (sections + production + Extra Cut + Ld Margin + Testing Charges).
-  const marginBase = totalWithProduction + n(d.extraCut) + n(d.ldMargin) + n(d.testingCharges);
+  // Extra Cut: % of totalWithProduction
+  const extraCutAmount = totalWithProduction * (n(d.extraCut) / 100);
+
+  // Ld Margin: % of (totalWithProduction + extraCutAmount)
+  const ldMarginAmount = (totalWithProduction + extraCutAmount) * (n(d.ldMargin) / 100);
+
+  // Testing Charges: flat amount (no %)
+  const testingChargesAmount = n(d.testingCharges);
+
+  // Commission: % of everything above it
+  const marginBase = totalWithProduction + extraCutAmount + ldMarginAmount + testingChargesAmount;
   const commissionAmount = marginBase * (n(d.commission) / 100);
   const totalWithMargin = marginBase + commissionAmount;
 
@@ -38,7 +46,6 @@ function calcAll(d) {
   const currencyRate = n(d.currencyRate) || 265;
   const finalFobUs = totalPricePkr / currencyRate;
 
-  // Quote tracking
   const difference = n(d.firstQuoted) - n(d.targetPrice);
 
   return {
@@ -48,6 +55,9 @@ function calcAll(d) {
     totalEmbellishment,
     subtotal,
     totalWithProduction,
+    extraCutAmount,
+    ldMarginAmount,
+    testingChargesAmount,
     marginBase,
     commissionAmount,
     totalWithMargin,
@@ -663,7 +673,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
           </button>
         </th>
       )}
-      <th className="w-6" />
+      {canEdit && <th className="w-6" />}
     </tr>
   );
 
@@ -806,14 +816,21 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
 
   const PCT_LABELS = new Set(['Extra Cut', 'Ld Margin', 'Commission']);
 
+  // Map label → computed PKR amount for % rows so user can see the effect
+  const pctComputedAmt = {
+    'Extra Cut':  totals.extraCutAmount,
+    'Ld Margin':  totals.ldMarginAmount,
+    'Commission': totals.commissionAmount,
+  };
+
   const renderSingle = (r) => {
     const numCell = r.cells.find(c => c.kind === 'num');
-    // "Codes Req Level" dropdown — Production Cost only (column B).
     const lvlCell = r.cells.find(c => c.kind === 'level');
-    const coord = numCell ? numCell.coord : null;
-    const isPct = PCT_LABELS.has(r.label);
-    const empty = <td className="border-l border-gray-100" />;
-    const value = r.computed || numCell == null ? (
+    const coord   = numCell ? numCell.coord : null;
+    const isPct   = PCT_LABELS.has(r.label);
+    const empty   = <td className="border-l border-gray-100" />;
+
+    const inputCell = r.computed || numCell == null ? (
       <span className="text-xs px-2 py-1 block text-right font-semibold text-gray-900">
         {r.prefix}{fmt2(totals.difference)}
       </span>
@@ -833,6 +850,13 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
         {isPct && <span className="text-xs text-gray-500 pr-2 shrink-0">%</span>}
       </div>
     );
+
+    // For % rows show computed PKR amount in the Amount column
+    const amtCell = isPct && pctComputedAmt[r.label] != null ? (
+      <td className="border-r border-gray-100 text-right text-xs font-semibold text-gray-900 px-2 py-1">
+        {fmt2(pctComputedAmt[r.label])}
+      </td>
+    ) : empty;
 
     return (
       <tr className="border-b border-gray-100 hover:bg-gray-50/60">
@@ -859,11 +883,11 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
             </select>
           ) : null}
         </td>
-        <td className="border-r border-gray-100">{value}</td>
-        {empty}
+        <td className="border-r border-gray-100">{inputCell}</td>
+        {amtCell}
         {empty}
         {extraCols.map(ec => <td key={ec.id} className="border-l border-gray-100" />)}
-        <td className="w-6" />
+        {canEdit && <td className="w-6" />}
       </tr>
     );
   };
@@ -879,12 +903,12 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
         return <tr key={r.row}><GutterCell row={r} active={isActiveRow(r)} /><td colSpan={SPAN} className="py-0 border-t-2 border-gray-200" /></tr>;
       case 'total':
         return (
-          <tr key={r.row} className="bg-gray-900 text-white border-b border-gray-200">
-            <GutterCell row={r} className="!bg-gray-900 !border-gray-800 text-gray-500" />
-            <td colSpan={4} className="py-2.5 px-3 text-xs font-bold uppercase tracking-wide">Total Price PKR</td>
-            <td className="text-right font-bold text-xs px-2 py-2.5">{fmt2(totals.totalPricePkr)}</td>
+          <tr key={r.row} className="border-y border-gray-200 bg-gray-100/70">
+            <GutterCell row={r} className="!bg-gray-100" />
+            <td colSpan={4} className="py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-widest">Total Price PKR</td>
+            <td className="text-right font-bold text-xs px-2 py-2 text-gray-800">{fmt2(totals.totalPricePkr)}</td>
             <td colSpan={1 + nExtra} />
-            <td className="w-6" />
+            {canEdit && <td className="w-6" />}
           </tr>
         );
       case 'currencyRate': {
@@ -917,7 +941,7 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
               ${fmt2(totals.finalFobUs)}
             </td>
             {extraCols.map(ec => <td key={ec.id} className="border-l border-gray-200" />)}
-            <td className="w-6" />
+            {canEdit && <td className="w-6" />}
           </tr>
         );
       }
@@ -990,14 +1014,14 @@ export default function CostingSheet({ type, costData, srd, srdId, pocNumber, on
 
           {/* ── Column widths ── */}
           <colgroup>
-            <col style={{ width: '32%' }} />
-            <col style={{ width: '14%' }} />
-            <col style={{ width: '10%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: canCustomize && canEdit ? '10%' : '16%' }} />
+            <col style={{ width: '34%' }} />
+            <col style={{ width: '16%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '13%' }} />
+            <col style={{ width: canCustomize && canEdit ? '12%' : canEdit ? '24%' : '26%' }} />
             {extraCols.map(ec => <col key={ec.id} style={{ width: 120 }} />)}
             {canCustomize && canEdit && <col style={{ width: '56px' }} />}
-            <col style={{ width: '26px' }} />
+            {canEdit && <col style={{ width: '26px' }} />}
           </colgroup>
 
           {/* ── Table header ── */}
