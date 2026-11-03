@@ -267,8 +267,31 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       const imgObj = d.images && d.images.length > 0 ? d.images[0] : {};
       setDispatchFrontImages(imgObj.front || []);
       setDispatchBackImages(imgObj.back || []);
+    } else if (!d) {
+      // New SRD without dispatch details — start from blank instead of keeping
+      // the previously viewed SRD's values.
+      setDispatchAWB('');
+      setDispatchQty('');
+      setDispatchAddress('');
+      setDispatchDate('');
+      setDispatchFrontImages([]);
+      setDispatchBackImages([]);
     }
   }, [srd]);
+
+  // If a caller passes an unpopulated SRD (DispatchDetails as a bare id), fetch
+  // the full record once so saved dispatch fields are shown instead of blanks.
+  const hydratedDispatchRef = useRef(null);
+  useEffect(() => {
+    const d = srd?.DispatchDetails;
+    if (!srd?._id || !d || typeof d === 'object') return;
+    if (hydratedDispatchRef.current === String(d)) return;
+    hydratedDispatchRef.current = String(d);
+    fetch(`/api/srd/${srd._id}`)
+      .then(res => res.json())
+      .then(res => { if (res?.success && res.data && onUpdate) onUpdate(res.data); })
+      .catch(() => {});
+  }, [srd?._id, srd?.DispatchDetails, onUpdate]);
 
   useEffect(() => {
     fetch('/api/buyers')
@@ -412,8 +435,10 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
       } else {
         toast({ title: 'Error', description: data.error, variant: 'destructive' });
       }
+      return data;
     } catch (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return { success: false, error: error.message };
     } finally {
       setLoading(false);
     }
@@ -475,6 +500,12 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
   };
 
   const handleSaveDispatchDetails = async () => {
+    // Cancel any pending debounced save so we don't write twice.
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+
     let buyerId = selectedBuyer;
 
     // Auto-create buyer from draft if none selected
@@ -498,32 +529,40 @@ export default function DispatchPanel({ srd, onUpdate, canEdit = true }) {
           buyerId = data.data._id;
         } else {
           toast({ title: 'Error', description: data.error, variant: 'destructive' });
-          return;
+          return { success: false, error: data.error };
         }
       } catch (e) {
         toast({ title: 'Error', description: e.message, variant: 'destructive' });
-        return;
+        return { success: false, error: e.message };
       }
     }
 
-    if (!buyerId) {
-      toast({ title: 'Error', description: 'Please select or enter a Brand name.', variant: 'destructive' });
-      return;
-    }
-    handleAction('save_dispatch_details', {
+    // Dispatch details can be saved without a buyer; the buyer is only required
+    // when actually dispatching the sample to the buyer.
+    const payload = {
       awb: dispatchAWB,
       dispatchQuantity: dispatchQty,
       address: dispatchAddress,
       sampleDispatchDate: dispatchDate,
-      BuyerDetails: buyerId,
       images: [{ front: dispatchFrontImages, back: dispatchBackImages }]
-    });
+    };
+    if (buyerId) payload.BuyerDetails = buyerId;
+
+    return handleAction('save_dispatch_details', payload);
   };
   // Keep ref in sync so triggerAutoSave can call the latest version
   handleSaveDispatchDetailsRef.current = handleSaveDispatchDetails;
 
-  const handleDispatchToBuyer = () => {
-    handleAction('dispatch_to_buyer', {});
+  const handleDispatchToBuyer = async () => {
+    if (!selectedBuyer && !draftBuyer.name.trim()) {
+      toast({ title: 'Error', description: 'Please select or enter a Brand name.', variant: 'destructive' });
+      return;
+    }
+    // Persist the current date/AWB/etc. first so the dispatch uses the date the
+    // user actually entered (and the printed card matches it).
+    const saved = await handleSaveDispatchDetails();
+    if (saved && saved.success === false) return;
+    await handleAction('dispatch_to_buyer', {});
   };
 
 const loadMergeSRDs = useCallback(async (query) => {
@@ -907,7 +946,7 @@ const loadMergeSRDs = useCallback(async (query) => {
           <div className="col-span-3 border-r border-gray-300 px-2 py-0.5">
             <Input type="date" value={dispatchDate} onChange={e => setDispatchDate(e.target.value)}
               disabled={(!canEdit || dispatchLocked)}
-              onBlur={() => selectedBuyer && triggerAutoSave()}
+              onBlur={() => triggerAutoSave()}
               className="h-6 text-app-text rounded-none border-0 border-b border-gray-300 px-0 w-full" />
           </div>
           <div className="col-span-1 bg-gray-50 border-r border-gray-300 px-2 py-0.5 flex items-center">
@@ -916,7 +955,7 @@ const loadMergeSRDs = useCallback(async (query) => {
           <div className="col-span-3 border-r border-gray-300 px-2 py-0.5">
             <Input value={dispatchAWB} onChange={e => setDispatchAWB(e.target.value)} placeholder="####"
               disabled={(!canEdit || dispatchLocked)}
-              onBlur={() => selectedBuyer && triggerAutoSave()}
+              onBlur={() => triggerAutoSave()}
               className="h-6 text-app-text rounded-none border-0 border-b border-gray-300 px-0 w-full" />
           </div>
           <div className="col-span-3 px-2 py-0.5 flex items-center gap-1">
@@ -938,7 +977,7 @@ const loadMergeSRDs = useCallback(async (query) => {
           <div className="col-span-3 border-r border-gray-300 px-2 py-0">
             <Input type="number" min="0" value={dispatchQty} onChange={e => setDispatchQty(Math.max(0, e.target.value))} placeholder="0"
               disabled={(!canEdit || dispatchLocked)}
-              onBlur={() => selectedBuyer && triggerAutoSave()}
+              onBlur={() => triggerAutoSave()}
               className="h-6 text-app-text rounded-none border-0 border-b border-gray-300 px-0 w-full" />
           </div>
           <div className="col-span-1 bg-gray-50 border-r border-gray-300 px-2 py-0 flex items-center">

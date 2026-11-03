@@ -13,12 +13,21 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
     if (!value) return '';
     let date;
     if (typeof value === 'string') {
-      const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      // Date-only values (and ISO date-only values at UTC midnight) are stored
+      // as calendar dates, so build them from their parts to avoid shifting a
+      // day in timezones behind UTC.
+      const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T00:00:00(?:\.000)?Z$)/);
       date = dateOnly
         ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
         : new Date(value);
     } else {
       date = new Date(value);
+      if (
+        date.getUTCHours() === 0 && date.getUTCMinutes() === 0 &&
+        date.getUTCSeconds() === 0 && date.getUTCMilliseconds() === 0
+      ) {
+        date = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+      }
     }
     if (isNaN(date.getTime())) return '';
     return date.toLocaleDateString('en-GB', {
@@ -57,11 +66,11 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
       // Dispatch date lives in the SRD's Dispatch Details section. DispatchDetails
       // is an ObjectId ref on the SRD, so re-fetch the SRD when it was not populated.
       let dispatchDetails = isPopulatedRef(srd?.DispatchDetails) ? srd.DispatchDetails : null;
-      const localDate = dispatchDate
-        || srd?.sampleDispatchDate
-        || srd?.sampleDipatchedtoBuyerDate
-        || srd?.dispatchDate;
-      if (!dispatchDetails?.sampleDispatchDate && !localDate && srd?.DispatchDetails && srd?._id) {
+
+      // Fetch the populated SRD whenever the dispatch details (or their date)
+      // aren't available yet, so the card shows the exact date entered in the
+      // dispatch section instead of a stale SRD-level date.
+      if (!dispatchDetails?.sampleDispatchDate && srd?._id) {
         try {
           const srdRes = await fetch(`/api/srd/${srd._id}`);
           const srdJson = await srdRes.json();
@@ -73,8 +82,16 @@ const DispatchCardPrint = ({ srd, departmentValue, dispatchDate }) => {
         }
       }
 
-      // Always add Date row — prefer dispatch date, fall back to SRD creation date
-      const effectiveDate = localDate || dispatchDetails?.sampleDispatchDate || srd?.createdAt || '';
+      // Always add Date row — prefer the date entered in the dispatch section,
+      // then fall back to the SRD's own dispatch fields, then its creation date.
+      const effectiveDate =
+        dispatchDate ||
+        dispatchDetails?.sampleDispatchDate ||
+        srd?.sampleDispatchDate ||
+        srd?.sampleDipatchedtoBuyerDate ||
+        srd?.dispatchDate ||
+        srd?.createdAt ||
+        '';
       extraRows.push({ name: 'Date', value: formatDispatchDate(effectiveDate) || '—', type: 'text' });
       
       // Get brand name from dynamic fields

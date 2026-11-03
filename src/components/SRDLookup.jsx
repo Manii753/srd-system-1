@@ -20,7 +20,20 @@ export default function SRDLookup({ onFound, placeholder = 'Enter SRD number...'
       const srds = data.data || [];
       const match = srds.find(s => s.refNo?.toLowerCase() === query.trim().toLowerCase()) || srds[0];
       if (match) {
-        onFound(match);
+        // The list endpoint returns DispatchDetails/BuyerDetails as bare ids.
+        // Fetch the full SRD so the dispatch panel and print cards can read the
+        // saved details (dispatch date, AWB, images, buyer, ...).
+        let fullSrd = match;
+        try {
+          const detailRes = await fetch(`/api/srd/${match._id}`);
+          if (detailRes.ok) {
+            const detailData = await detailRes.json();
+            if (detailData?.success && detailData.data) fullSrd = detailData.data;
+          }
+        } catch (_) {
+          // Fall back to the list payload if the detail request fails.
+        }
+        onFound(fullSrd);
       } else {
         setError(`No SRD found for "${query.trim()}"`);
       }
